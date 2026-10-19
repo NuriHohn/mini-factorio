@@ -11,6 +11,6 @@ interface State {
 export const useGameStore = create<State>(set => ({
   ore: 0, miners: 0, stored: 0, tool: 'miner', direction: 'east', inspected: null, inventory: null,
   message: 'Place a miner on iron, then connect its arrow to belts and storage.',
-  select: tool => set({ tool, inspected: null, inventory: null, message: tool === 'remove' ? 'Click an empty building to remove it.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click storage to inspect its inventory.' }),
+  select: tool => set({ tool, inspected: null, inventory: null, message: tool === 'remove' ? 'Click a building to remove it. Contained ore will be discarded.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click storage to inspect its inventory.' }),
   rotate: () => set(state => ({ direction: rotate(state.direction) })),
 }))

@@ -5,7 +5,7 @@ const tools: { tool: Tool; label: string; hint: string; key: string; icon: strin
   { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec · requires iron', key: '1', icon: '⚙' },
   { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜' },
   { tool: 'storage', label: 'Storage chest', hint: 'Collects incoming iron ore', key: '3', icon: '▣' },
-  { tool: 'remove', label: 'Remove building', hint: 'Empty buildings only', key: 'X', icon: '×' },
+  { tool: 'remove', label: 'Remove building', hint: 'Discards contained ore', key: 'X', icon: '×' },
 ]
 export default function App() {
   const { ore, miners, stored, tool, direction, message, inventory, select, rotate } = useGameStore()

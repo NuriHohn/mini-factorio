@@ -53,7 +53,6 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
 export function removalError(world: World, x: number, y: number): string | null {
   const building = buildingAt(world, x, y)
   if (!building) return 'Choose a building to remove.'
-  if (building.kind === 'storage' ? building.inventory > 0 : building.item !== null) return 'Empty this building before removing it.'
   return null
 }
 export function removeBuilding(world: World, x: number, y: number): boolean {

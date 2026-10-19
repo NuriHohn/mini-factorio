@@ -1,5 +1,8 @@
 import Phaser from 'phaser'
-import { buildingAt, createWorld, INTERVAL, offsets, placementError, placeBuilding, removalError, removeBuilding, SIZE } from '../simulation/world'
+import { buildingAt, createWorld, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, SIZE } from '../simulation/world'
+import { beltInputs } from '../simulation/beltConnections'
+import { BELT_TRAVEL_MS } from '../simulation/transport'
+import { beltPathPoint } from './beltPath'
 import { advanceWorld } from '../simulation/step'
 import type { Direction } from '../simulation/world'
 import { useGameStore } from '../state/gameStore'
@@ -9,6 +12,7 @@ export class FactoryScene extends Phaser.Scene {
   private world = createWorld()
   private keys!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>
   private machines!: Phaser.GameObjects.Graphics
+  private items!: Phaser.GameObjects.Graphics
   private preview!: Phaser.GameObjects.Graphics
   create() {
     useGameStore.setState({ ore: 0, miners: 0, stored: 0, inspected: null, inventory: null })
@@ -26,6 +30,7 @@ export class FactoryScene extends Phaser.Scene {
       } else terrain.fillStyle(0x65814b, .25).fillRect(x + 7 + index % 11, y + 10 + index % 13, 2, 3)
     })
     this.machines = this.add.graphics()
+    this.items = this.add.graphics()
     this.preview = this.add.graphics()
     this.cameras.main.setZoom(1.3)
     updateCameraBounds(this.cameras.main, SIZE * TILE)
@@ -55,7 +60,7 @@ export class FactoryScene extends Phaser.Scene {
       if (error) { useGameStore.setState({ message: error }); return }
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'remove' ? 'Building removed.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained ore discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : 'Storage'} placed.` })
     })
   }
   private arrow(x: number, y: number, direction: Direction, color = 0xe8dfac) {
@@ -65,6 +70,16 @@ export class FactoryScene extends Phaser.Scene {
     this.machines.lineBetween(cx + d.x * 7, cy + d.y * 7, cx + d.x * 2 - d.y * 4, cy + d.y * 2 + d.x * 4)
     this.machines.lineBetween(cx + d.x * 7, cy + d.y * 7, cx + d.x * 2 + d.y * 4, cy + d.y * 2 - d.x * 4)
   }
+  private lane(x: number, y: number, entry: Direction, output: Direction, width: number, color: number) {
+    const graphics = this.machines
+    graphics.lineStyle(width, color).beginPath()
+    for (let i = 0; i <= 20; i++) {
+      const p = beltPathPoint(entry, output, i / 20)
+      if (i === 0) graphics.moveTo(x + 16 + p.x * TILE, y + 16 + p.y * TILE)
+      else graphics.lineTo(x + 16 + p.x * TILE, y + 16 + p.y * TILE)
+    }
+    graphics.strokePath()
+  }
   update(_time: number, delta: number) {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
@@ -72,6 +87,7 @@ export class FactoryScene extends Phaser.Scene {
     advanceWorld(this.world, delta)
     let miners = 0, stored = 0
     this.machines.clear()
+    this.items.clear()
     for (const building of this.world.buildings) {
       if (!building) continue
       const x = building.x * TILE, y = building.y * TILE
@@ -80,7 +96,7 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillStyle(0x392d20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.lineStyle(2, 0xb68b50).strokeRect(x + 5, y + 5, 22, 22)
         this.machines.fillStyle(0xb68b50).fillRect(x + 5, y + 13, 22, 5)
-        if (building.inventory) this.machines.fillStyle(0xb4cbd0).fillCircle(x + 16, y + 16, 4)
+        if (building.inventory) this.items.fillStyle(0xb4cbd0).fillCircle(x + 16, y + 16, 4)
       } else if (building.kind === 'miner') {
         miners++
         this.machines.fillStyle(0x15201e).fillRoundedRect(x + 3, y + 4, 27, 27, 3)
@@ -90,16 +106,27 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillStyle(building.item ? 0xf08172 : 0x79e6a2).fillCircle(x + 25, y + 6, 2)
         this.machines.fillStyle(0x79e6a2).fillRect(x + 5, y + 27, 22 * (building.item ? 1 : building.elapsed / INTERVAL), 3)
       } else {
-        this.machines.fillStyle(0x1b2329).fillRoundedRect(x + 1, y + 1, 30, 30, 3)
-        this.machines.lineStyle(2, 0x778184).strokeRect(x + 3, y + 3, 26, 26)
-        this.arrow(x, y, building.direction, 0xa5ac91)
+        const inputs = beltInputs(this.world, building)
+        const paths = inputs.length ? inputs : [opposite(building.direction)]
+        // Draw every valid input, with a stable main lane independent of items.
+        for (const entry of paths) this.lane(x, y, entry, building.direction, 24, 0x778184)
+        for (const entry of paths) this.lane(x, y, entry, building.direction, 20, 0x1b2329)
+        for (const entry of paths) {
+          for (let t = .15; t < 1; t += .2) {
+            const p = beltPathPoint(entry, building.direction, t)
+            const q = beltPathPoint(entry, building.direction, t + .01)
+            const length = Math.hypot(q.x - p.x, q.y - p.y)
+            const nx = -(q.y - p.y) / length * 7, ny = (q.x - p.x) / length * 7
+            this.machines.lineStyle(1, 0x465256).lineBetween(x + 16 + p.x * TILE - nx, y + 16 + p.y * TILE - ny, x + 16 + p.x * TILE + nx, y + 16 + p.y * TILE + ny)
+          }
+        }
+        const arrow = beltPathPoint(paths[0], building.direction, .65)
+        this.arrow(x + arrow.x * TILE, y + arrow.y * TILE, building.direction, 0xa5ac91)
         if (building.item) {
-          const entry = offsets[building.entry], exit = offsets[building.direction]
-          const t = building.progress
-          const dx = t < .5 ? entry.x * (1 - 2 * t) : exit.x * (2 * t - 1)
-          const dy = t < .5 ? entry.y * (1 - 2 * t) : exit.y * (2 * t - 1)
-          this.machines.fillStyle(0x17222b).fillCircle(x + 16 + dx * 11, y + 16 + dy * 11, 5)
-          this.machines.fillStyle(0xb4cbd0).fillCircle(x + 16 + dx * 11, y + 16 + dy * 11, 3.5)
+          const progress = Math.min(1, building.progress + this.world.remainder / BELT_TRAVEL_MS)
+          const p = beltPathPoint(building.entry, building.direction, progress)
+          this.items.fillStyle(0x17222b).fillCircle(x + 16 + p.x * TILE, y + 16 + p.y * TILE, 5)
+          this.items.fillStyle(0xb4cbd0).fillCircle(x + 16 + p.x * TILE, y + 16 + p.y * TILE, 3.5)
         }
       }
     }

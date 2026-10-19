@@ -49,18 +49,27 @@ describe('building tools', () => {
     }
     expect(direction).toBe('north')
   })
-  it('removes only empty buildings and leaves occupied ones intact', () => {
+  it('discards ore on removal of every building kind without resetting lifetime production', () => {
     const world = supplyLine()
+    advanceWorld(world, 5000)
+    const lifetime = world.ore
+    expect(lifetime).toBeGreaterThan(0)
     miner(world).item = 'iron'
     belt(world, 21, 20).item = 'iron'
-    chest(world, 22, 21).inventory = 1
-    for (const [x, y] of [[20, 20], [21, 20], [22, 21]]) {
-      expect(removalError(world, x, y)).toContain('Empty')
-      expect(removeBuilding(world, x, y)).toBe(false)
+    chest(world, 22, 21).inventory = 10
+    for (const [x, y] of [[20, 20], [21, 20], [22, 21], [21, 21]]) {
+      expect(removalError(world, x, y)).toBe(null)
+      expect(removeBuilding(world, x, y)).toBe(true)
+      expect(buildingAt(world, x, y)).toBe(null)
+      expect(world.ore).toBe(lifetime)
     }
-    expect(removeBuilding(world, 21, 21)).toBe(true)
-    expect(buildingAt(world, 21, 21)).toBe(null)
+    expect(accounted(world)).toBe(0)
+    advanceWorld(world, 5000)
+    expect(world.ore).toBe(lifetime)
+    expect(removeBuilding(world, 20, 20)).toBe(false)
     expect(removeBuilding(world, -1, 0)).toBe(false)
+    place(world, 22, 21, 'storage')
+    expect(chest(world, 22, 21).inventory).toBe(0)
   })
 })
 describe('mining and transport', () => {
