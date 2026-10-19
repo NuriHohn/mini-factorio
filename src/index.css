@@ -1,0 +1,40 @@
+﻿@import "tailwindcss";
+:root { font-family: 'Segoe UI', sans-serif; color: #e0e6df; background: #111714; font-synthesis: none; -webkit-font-smoothing: antialiased; color-scheme: dark; }
+* { box-sizing: border-box; } body { margin: 0; min-width: 640px; } button { font: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid #9cdaa2; outline-offset: 4px; }
+.app-shell { height: 100dvh; min-height: 560px; display: flex; flex-direction: column; }
+header { background: #171e1a; flex-shrink: 0; }
+h1 { font-size: 15px; letter-spacing: 3px; font-weight: 750; margin: 0 0 4px; }
+.brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #9dbb77; color: #c3d9a6; font: bold 25px monospace; }
+.eyebrow { color: #8a998e; font-size: 10px; letter-spacing: 1.5px; margin: 0; }
+.version { font: 10px monospace; color: #96aa99; letter-spacing: 1px; }
+i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #98ce94; margin-right: 7px; }
+main { display: flex; flex: 1; min-height: 0; }
+aside { width: 292px; flex-shrink: 0; border-right: 1px solid #2b352d; background: #171e1a; overflow-y: auto; }
+.resource { display: flex; gap: 14px; align-items: center; margin: 21px 0; }
+.ore-icon { color: #adc4cd; background: #293638; padding: 9px 14px; font-size: 26px; border-radius: 6px; }
+.resource strong { font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; font-weight: 600; }
+.resource p { font-size: 12px; color: #9caaa0; margin-top: 7px; }
+.stats { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #283129; font-size: 12px; color: #96a398; }
+.stats b { color: #c2d6b5; font-family: monospace; font-weight: 400; }
+.building { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 14px 10px; border: 1px solid #3b463d; border-radius: 5px; background: #202923; }
+.building.selected { border-color: #9bbd79; background: #283326; box-shadow: inset 3px 0 #9bbd79; }
+.machine-icon { font-size: 29px; color: #d8b369; }
+.building strong { font-size: 12px; font-weight: 600; display: block; }
+.building small { font-size: 10px; color: #9aa993; display: block; margin-top: 5px; }
+.key { font: 10px monospace; margin-left: auto; border: 1px solid #62705a; padding: 2px 5px; border-radius: 3px; }
+.mission { border-top: 1px solid #303a31; padding-top: 23px; }
+.mission h2 { font-size: 16px; font-weight: 500; margin: 10px 0; }
+.mission > p:last-child { font-size: 12px; line-height: 1.8; color: #95a297; }
+.controls { margin-top: auto; }
+.controls > p:not(.eyebrow) { display: flex; justify-content: space-between; align-items: center; margin: 9px 0; font-size: 11px; color: #94a096; }
+kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; padding: 4px 6px; color: #c3cdc3; }
+.session-note { font-size: 10px; color: #6e7c71; margin: 0; }
+.world-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18px; background: #111714; }
+.world-heading,.world-footer { display: flex; justify-content: space-between; gap: 12px; font: 10px monospace; color: #899a8d; padding: 0 0 14px; letter-spacing: 1px; }
+.game-canvas { flex: 1; min-height: 0; overflow: hidden; border: 1px solid #3a4c3b; border-radius: 4px; }
+.game-canvas canvas { display: block; }
+.world-footer { padding: 13px 0 0; letter-spacing: 0; font-size: 11px; }
+.legend { white-space: nowrap; }.legend i { background: #8da9b1; border-radius: 1px; width: 8px; height: 8px; }
+@media (max-width: 850px) { aside { width: 245px; padding: 18px !important; gap: 20px !important; } .version,.legend { display: none; } .world-panel { padding: 12px; } .world-heading { font-size: 8px; } }
+
