@@ -38,3 +38,13 @@ kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; paddin
 .legend { white-space: nowrap; }.legend i { background: #8da9b1; border-radius: 1px; width: 8px; height: 8px; }
 @media (max-width: 850px) { aside { width: 245px; padding: 18px !important; gap: 20px !important; } .version,.legend { display: none; } .world-panel { padding: 12px; } .world-heading { font-size: 8px; } }
 
+.inspection { padding: 14px; border: 1px solid #65533b; border-radius: 5px; background: #27251e; }
+.inspection h2 { font-size: 15px; margin: 12px 0 6px; color: #efd8b4; }
+.inspection-recipe,.inspection-note,.inspection-warning { font-size: 11px; line-height: 1.6; color: #acb4a4; }
+.inspection .stats { gap: 8px; }
+.inspection .stats b { text-align: right; }
+.inspection-warning { color: #efb66e; margin-bottom: 0; }
+.inspection progress { width: 100%; height: 8px; accent-color: #efac58; margin-top: 12px; }
+.inspection progress::-webkit-progress-bar { background: #41463e; border-radius: 3px; }
+.inspection progress::-webkit-progress-value { background: #efac58; border-radius: 3px; }
+.inspection progress::-moz-progress-bar { background: #efac58; border-radius: 3px; }

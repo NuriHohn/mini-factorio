@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildingAt, createWorld, DIRECTIONS, placeBuilding, placementError, removalError, removeBuilding, rotate, SIZE } from './world'
 import type { Belt, BuildingKind, Direction, Miner, Storage, World } from './world'
+import { inventoryTotal } from './items'
 import { advanceWorld } from './step'
 function place(world: World, x: number, y: number, kind: BuildingKind, direction: Direction = 'east') {
   expect(placeBuilding(world, x, y, kind, direction)).toBe(true)
@@ -17,7 +18,7 @@ function supplyLine() {
   return world
 }
 function accounted(world: World) {
-  return world.buildings.reduce((sum, b) => sum + (!b ? 0 : b.kind === 'storage' ? b.inventory : Number(b.item !== null)), 0)
+  return world.buildings.reduce((sum, b) => sum + (!b ? 0 : b.kind === 'storage' ? inventoryTotal(b.inventory) : b.kind === 'furnace' ? inventoryTotal(b.input) + inventoryTotal(b.output) + (b.job ? inventoryTotal(b.job.inputs) : 0) : Number(b.item !== null)), 0)
 }
 describe('building tools', () => {
   it('generates terrain with a guaranteed central deposit and empty occupancy', () => {
@@ -29,7 +30,7 @@ describe('building tools', () => {
   })
   it('validates coordinates, terrain and shared occupancy for every building', () => {
     const world = createWorld(() => .5)
-    for (const kind of ['miner', 'belt', 'storage'] as const) {
+    for (const kind of ['miner', 'belt', 'storage', 'furnace'] as const) {
       for (const [x, y] of [[-1, 20], [40, 20], [20.5, 20], [NaN, 20]]) expect(placeBuilding(world, x, y, kind, 'east')).toBe(false)
     }
     expect(placeBuilding(world, 0, 0, 'miner', 'east')).toBe(false)
@@ -49,18 +50,27 @@ describe('building tools', () => {
     }
     expect(direction).toBe('north')
   })
-  it('removes only empty buildings and leaves occupied ones intact', () => {
+  it('discards ore on removal of every building kind without resetting lifetime production', () => {
     const world = supplyLine()
+    advanceWorld(world, 5000)
+    const lifetime = world.ore
+    expect(lifetime).toBeGreaterThan(0)
     miner(world).item = 'iron'
     belt(world, 21, 20).item = 'iron'
-    chest(world, 22, 21).inventory = 1
-    for (const [x, y] of [[20, 20], [21, 20], [22, 21]]) {
-      expect(removalError(world, x, y)).toContain('Empty')
-      expect(removeBuilding(world, x, y)).toBe(false)
+    chest(world, 22, 21).inventory.iron = 10
+    for (const [x, y] of [[20, 20], [21, 20], [22, 21], [21, 21]]) {
+      expect(removalError(world, x, y)).toBe(null)
+      expect(removeBuilding(world, x, y)).toBe(true)
+      expect(buildingAt(world, x, y)).toBe(null)
+      expect(world.ore).toBe(lifetime)
     }
-    expect(removeBuilding(world, 21, 21)).toBe(true)
-    expect(buildingAt(world, 21, 21)).toBe(null)
+    expect(accounted(world)).toBe(0)
+    advanceWorld(world, 5000)
+    expect(world.ore).toBe(lifetime)
+    expect(removeBuilding(world, 20, 20)).toBe(false)
     expect(removeBuilding(world, -1, 0)).toBe(false)
+    place(world, 22, 21, 'storage')
+    expect(chest(world, 22, 21).inventory.iron).toBe(0)
   })
 })
 describe('mining and transport', () => {
@@ -84,13 +94,13 @@ describe('mining and transport', () => {
   it('delivers ore through corners into storage and conserves all mined items', () => {
     const world = supplyLine()
     advanceWorld(world, 2100)
-    expect(chest(world, 22, 21).inventory).toBe(1)
+    expect(chest(world, 22, 21).inventory.iron).toBe(1)
     expect(world.ore).toBe(2)
     for (let i = 0; i < 100; i++) {
       advanceWorld(world, 133)
       expect(accounted(world)).toBe(world.ore)
     }
-    expect(chest(world, 22, 21).inventory).toBeGreaterThan(10)
+    expect(chest(world, 22, 21).inventory.iron).toBeGreaterThan(10)
   })
   it.each(DIRECTIONS)('outputs miners in the %s direction', direction => {
     const world = createWorld(() => .5)
@@ -109,7 +119,7 @@ describe('mining and transport', () => {
     expect(removeBuilding(world, 21, 20)).toBe(true)
     place(world, 21, 20, 'storage')
     advanceWorld(world, 2000)
-    expect(chest(world, 21, 20).inventory).toBe(0)
+    expect(chest(world, 21, 20).inventory.iron).toBe(0)
     expect(world.ore).toBe(1)
   })
   it('uses tile order for merges and never moves a new arrival twice', () => {
@@ -135,7 +145,7 @@ describe('mining and transport', () => {
     advanceWorld(world, 1000)
     place(world, 1, 0, 'storage')
     advanceWorld(world, 50)
-    expect(chest(world, 1, 0).inventory).toBe(1)
+    expect(chest(world, 1, 0).inventory.iron).toBe(1)
     expect(belt(world, 0, 0).item).toBe(null)
   })
   it('does not reuse a destination vacated in the same step; full loops jam', () => {
@@ -157,7 +167,7 @@ describe('mining and transport', () => {
     belt(world, 21, 20).item = 'iron'
     belt(world, 21, 20).progress = 1
     advanceWorld(world, 50)
-    expect(chest(world, 22, 20).inventory).toBe(1)
+    expect(chest(world, 22, 20).inventory.iron).toBe(1)
     expect(belt(world, 21, 20).item).toBe(null)
     expect(miner(world).item).toBe('iron')
     advanceWorld(world, 50)
@@ -173,7 +183,7 @@ describe('mining and transport', () => {
       belt(world, x, y).item = 'iron'
     }
     advanceWorld(world, 500)
-    expect(chest(world, 10, 10).inventory).toBe(4)
+    expect(chest(world, 10, 10).inventory.iron).toBe(4)
     expect(accounted(world)).toBe(4)
   })
   it('is frame-partition independent and ignores invalid deltas', () => {

@@ -1,15 +1,33 @@
+import { emptyInventory } from './items'
+import type { Inventory, Item } from './items'
+import type { RecipeId } from './recipes'
+export type { Item } from './items'
 export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type Item = 'iron'
-export type BuildingKind = 'miner' | 'belt' | 'storage'
+export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace'
 export interface Position { x: number; y: number }
 export interface Miner extends Position { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
 export interface Belt extends Position { kind: 'belt'; direction: Direction; item: Item | null; progress: number; entry: Direction }
-export interface Storage extends Position { kind: 'storage'; inventory: number }
-export type Building = Miner | Belt | Storage
-export interface World { tiles: boolean[]; buildings: (Building | null)[]; ore: number; remainder: number }
+export interface Storage extends Position { kind: 'storage'; inventory: Inventory }
+export interface ProcessingJob {
+  recipeId: RecipeId
+  elapsedMs: number
+  inputs: Inventory
+  // Explicitly reserved output slots; consumed inputs remain accountable in the job.
+  outputs: Inventory
+}
+export interface Furnace extends Position {
+  kind: 'furnace'
+  direction: Direction
+  recipeId: RecipeId
+  input: Inventory
+  output: Inventory
+  job: ProcessingJob | null
+}
+export type Building = Miner | Belt | Storage | Furnace
+export interface World { tiles: boolean[]; buildings: (Building | null)[]; ore: number; plates: number; remainder: number }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -33,7 +51,7 @@ export function createWorld(random = Math.random): World {
     }
   }
   tiles[20 * SIZE + 20] = true
-  return { tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), ore: 0, remainder: 0 }
+  return { tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), ore: 0, plates: 0, remainder: 0 }
 }
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner'): string | null {
   if (!inside(x, y)) return 'Choose a tile inside the world.'
@@ -43,17 +61,19 @@ export function placementError(world: World, x: number, y: number, kind: Buildin
 }
 export function placeBuilding(world: World, x: number, y: number, kind: BuildingKind, direction: Direction): boolean {
   if (placementError(world, x, y, kind)) return false
-  world.buildings[y * SIZE + x] = kind === 'storage'
-    ? { kind, x, y, inventory: 0 }
-    : kind === 'miner'
-      ? { kind, x, y, direction, elapsed: 0, item: null }
-      : { kind, x, y, direction, item: null, progress: 0, entry: opposite(direction) }
+  let building: Building
+  switch (kind) {
+    case 'storage': building = { kind, x, y, inventory: emptyInventory() }; break
+    case 'miner': building = { kind, x, y, direction, elapsed: 0, item: null }; break
+    case 'belt': building = { kind, x, y, direction, item: null, progress: 0, entry: opposite(direction) }; break
+    case 'furnace': building = { kind, x, y, direction, recipeId: 'ironSmelting', input: emptyInventory(), output: emptyInventory(), job: null }; break
+  }
+  world.buildings[y * SIZE + x] = building
   return true
 }
 export function removalError(world: World, x: number, y: number): string | null {
   const building = buildingAt(world, x, y)
   if (!building) return 'Choose a building to remove.'
-  if (building.kind === 'storage' ? building.inventory > 0 : building.item !== null) return 'Empty this building before removing it.'
   return null
 }
 export function removeBuilding(world: World, x: number, y: number): boolean {
