@@ -2,9 +2,18 @@
 
 A playable factory prototype using React 19, TypeScript, Phaser 3, Zustand, Tailwind CSS 4 and Vite. Graphics are procedural.
 
-## Launch
+## Start the game locally
 
-Run `npm ci`, then `npm run dev`. On Windows PowerShell with scripts disabled, use `npm.cmd`.
+Install Node.js 24 with npm, then run these commands from the repository root:
+
+```bash
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite in your browser. Keep the terminal running while
+playing; press Ctrl+C to stop the server. On Windows PowerShell with scripts
+disabled, use `npm.cmd` instead of `npm`.
 
 ## Controls
 
