@@ -17,16 +17,19 @@ Use the versions and scripts in `package.json` as the source of truth. Do not ad
 
 ## Existing structure and architecture
 
-- `src/simulation/world.ts`: framework-independent terrain generation and tile-indexed building state, placement/removal validation, direction helpers. Terrain is a flat boolean array (`true` means iron); buildings form a parallel array of miner, belt, storage, or null. Functions mutate the supplied world.
+- `src/simulation/world.ts`: framework-independent terrain generation and tile-indexed building state, placement/removal validation, direction helpers. Terrain is a flat boolean array (`true` means iron); buildings form a parallel array of miner, belt, storage, furnace, or null. Functions mutate the supplied world.
+- `src/simulation/items.ts` and `recipes.ts`: item IDs, inventory helpers, quantity-based recipe definitions and two-item furnace capacities. Keep ore's existing `iron` ID; plates use `ironPlate`.
+- `src/simulation/smelting.ts`: pure recipe processing, operational status, consumed in-process inputs and explicit job output reservations. Input capacity excludes active-job ingredients; output capacity includes reserved products. New jobs start with zero elapsed time.
+- `src/simulation/inspection.ts`: derived world statistics and copied furnace/chest inspection snapshots; do not expose mutable world inventories to React.
 - `src/simulation/beltConnections.ts`: pure topology-derived input connections, independent of item activity. Rear input is visually primary, then side inputs in source tile order. This does not alter transport arbitration.
 - `src/game/beltPath.ts`: pure tile-local line/quarter-circle centerlines used for both Phaser lane strokes and continuous item positions at tile edges.
-- `src/simulation/transport.ts`: belt progress, directional acceptance, snapshot-based transfer arbitration and commit, and buffered miner output. Coordinate order resolves competing inputs; destinations occupied at the beginning of a step cannot receive in that step.
-- `src/simulation/step.ts`: `advanceWorld` retains elapsed time and runs fixed 50 ms steps in transport → buffered miner output → mining order. Keep all three simulation modules independent of React, Phaser, Zustand and the DOM.
+- `src/simulation/transport.ts`: belt progress, directional acceptance, snapshot-based transfer arbitration and commit, and shared buffered miner/furnace output. Reserve furnace input capacity across simultaneous deliveries before commit. Coordinate order resolves competing inputs; destinations occupied at the beginning of a step cannot receive in that step.
+- `src/simulation/step.ts`: `advanceWorld` retains elapsed time and runs fixed 50 ms steps in belt transport → buffered machine output → smelting completion/new job starts → mining order. Finished products can output on the following step. Keep all three simulation modules independent of React, Phaser, Zustand and the DOM.
 - `src/simulation/world.test.ts`: placement, removal, direction, production, transport, congestion, conservation (before any discard) and time-partition tests. Colocated connection and path tests cover topology changes, multiple inputs and geometric continuity.
-- `src/game/FactoryScene.ts`: owns the simulation world, draws procedural terrain/buildings/ore, handles input, advances the world and publishes changed summaries to Zustand.
+- `src/game/FactoryScene.ts`: owns the simulation world, draws procedural terrain/buildings/typed items and animated furnace glow, handles input, advances the world and publishes changed summaries to Zustand.
 - `src/game/cameraMovement.ts`: renderer-independent camera movement and viewport-aware bounds helpers, using structural TypeScript interfaces. `cameraMovement.test.ts` tests directions, diagonal speed, opposite keys, timing, zoom, and bounds.
 - `src/game/GameCanvas.tsx`: React host for Phaser. Creates the game in an effect, observes container resizing, and disconnects the observer and destroys the game on cleanup. Preserve compatibility with React Strict Mode.
-- `src/state/gameStore.ts`: Zustand state for cumulative mined/stored totals, miner count, tool/direction selection, inspected chest inventory and status messages. The scene's world remains the simulation source of truth; the store exposes UI data.
+- `src/state/gameStore.ts`: Zustand state for cumulative mined/stored totals, miner count, tool/direction selection, copied furnace/chest inspection details and status messages. The scene's world remains the simulation source of truth; the store exposes UI data.
 - `src/App.tsx`: React application shell, building selection, production sidebar, and control hints.
 - `src/main.tsx`: React entry point with Strict Mode.
 - `src/index.css`: active global styling, Tailwind import, and dark interface styles. `src/App.css` and starter assets remain in the tree but are not used by the current app.
@@ -39,16 +42,17 @@ Keep gameplay rules in simulation code, game rendering and input in Phaser, and 
 - A 40×40 world with random iron clusters and a guaranteed deposit at `(20, 20)`. Deposits are unlimited; buildings are free.
 - One building per tile. Miners require iron; belts and storage accept any free terrain tile.
 - Directional miners produce one ore per 1,000 ms into a one-item buffer, output only to the belt in front, and pause while blocked without accumulating blocked time.
-- Single-lane belts hold one ore item each, with 500 ms travel time. They accept rear/side inputs, reject head-on inputs, turn corners, and stop at blocked outputs. Procedural lanes follow automatic straight/curved connections, with additional paths for multiple inputs. Item motion follows each actual entry path. Connection appearance depends on adjacent building directions, not item state. New arrivals move on the next simulation step. Full loops jam; merge priority is deterministic, not fair.
-- Storage accepts incoming belts from all sides and holds an unlimited integer inventory. It has no output yet.
-- Keys: `1` miner, `2` belt, `3` storage, `R` clockwise placement rotation, `X` removal, Escape cancel/inspect. Click storage while placement is cancelled to inspect it. Buildings can be removed even when occupied, discarding contents but preserving lifetime production; redirect buildings by removing/replacing them.
-- Sidebar shows cumulative mined ore, total stored ore, maximum production and selected chest inventory. Simulation world remains authoritative; no item positions are stored in Zustand.
+- Single-lane belts hold one ore item each, with 500 ms travel time. They carry ore or plates and accept rear/side inputs, reject head-on inputs, turn corners, and stop at blocked outputs. Procedural lanes follow automatic straight/curved connections, with additional paths for multiple inputs. Item motion follows each actual entry path. Connection appearance depends on adjacent building directions, not item state. New arrivals move on the next simulation step. Full loops jam; merge priority is deterministic, not fair.
+- Storage accepts incoming belts from all sides and holds unlimited per-item counts. It has no output yet.
+- One-tile furnaces accept ore from belts on the rear/side faces, reserving the arrow face for output to a belt. Recipe: 1 ore → 1 plate in 2,000 ms, no fuel/electricity. Input and output buffers each hold two; an active job commits one additional ore and reserves its future output slot. Missing input idles; full output blocks new jobs. Wrong items stay on the incoming belt. Inspectors distinguish processing, waiting-input and output-full, plus an output-waiting warning.
+- Keys: `1` miner, `2` belt, `3` storage, `4` furnace, `R` clockwise placement rotation, `X` removal, Escape cancel/inspect. Click a furnace or storage while no tool is selected to inspect it directly. Buildings can be removed even when occupied, discarding contents and active jobs but preserving lifetime ore/plate production; redirect buildings by removing/replacing them.
+- Sidebar shows cumulative mined ore/smelted plates, stored ore/plates, maximum production and selected building details. Simulation world remains authoritative; no item positions are stored in Zustand.
 - WASD camera movement, normalized diagonal speed, wheel zoom and viewport-aware bounds remain supported. Preserve resizing and React Strict Mode cleanup.
 - Progress is in memory; reloading creates a new session.
 
 ## Planned features
 
-Splitters, furnaces, production chains, electricity, research, and further automation are future milestones. Do not implement or scaffold these systems unless the current task requests them.
+Splitters, additional recipes, assemblers, electricity, research, and further automation are future milestones. Do not implement or scaffold these systems unless the current task requests them.
 
 ## Coding conventions
 

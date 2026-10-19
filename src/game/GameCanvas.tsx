@@ -16,6 +16,6 @@ export function GameCanvas() {
     observer.observe(host.current)
     return () => { observer.disconnect(); game.destroy(true) }
   }, [])
-  return <div ref={host} className="game-canvas" aria-label="Factory world: WASD to move, scroll to zoom, 1 miner, 2 belt, 3 storage, R rotate, X remove, Escape inspect." />
+  return <div ref={host} className="game-canvas" aria-label="Factory world: WASD to move, scroll to zoom, 1 miner, 2 belt, 3 storage, 4 furnace, R rotate, X remove, Escape inspect." />
 }
 

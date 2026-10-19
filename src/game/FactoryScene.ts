@@ -3,6 +3,10 @@ import { buildingAt, createWorld, INTERVAL, offsets, opposite, placementError, p
 import { beltInputs } from '../simulation/beltConnections'
 import { BELT_TRAVEL_MS } from '../simulation/transport'
 import { beltPathPoint } from './beltPath'
+import { furnaceStatus } from '../simulation/smelting'
+import { RECIPES } from '../simulation/recipes'
+import { inventoryTotal } from '../simulation/items'
+import { inspectBuilding } from '../simulation/inspection'
 import { advanceWorld } from '../simulation/step'
 import type { Direction } from '../simulation/world'
 import { useGameStore } from '../state/gameStore'
@@ -15,7 +19,8 @@ export class FactoryScene extends Phaser.Scene {
   private items!: Phaser.GameObjects.Graphics
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ ore: 0, miners: 0, stored: 0, inspected: null, inventory: null })
+    useGameStore.setState({ inspected: null, inspection: null })
+    useGameStore.getState().publish(this.world)
     const terrain = this.add.graphics()
     const greens = [0x344e37, 0x36513a, 0x38543b, 0x324b35]
     this.world.tiles.forEach((iron, index) => {
@@ -40,6 +45,7 @@ export class FactoryScene extends Phaser.Scene {
     keyboard.on('keydown-ONE', () => useGameStore.getState().select('miner'))
     keyboard.on('keydown-TWO', () => useGameStore.getState().select('belt'))
     keyboard.on('keydown-THREE', () => useGameStore.getState().select('storage'))
+    keyboard.on('keydown-FOUR', () => useGameStore.getState().select('furnace'))
     keyboard.on('keydown-X', () => useGameStore.getState().select('remove'))
     keyboard.on('keydown-R', () => useGameStore.getState().rotate())
     keyboard.on('keydown-ESC', () => useGameStore.getState().select(null))
@@ -52,23 +58,24 @@ export class FactoryScene extends Phaser.Scene {
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
       if (!tool) {
-        const building = buildingAt(this.world, x, y)
-        useGameStore.setState({ inspected: building?.kind === 'storage' ? y * SIZE + x : null, inventory: building?.kind === 'storage' ? building.inventory : null })
+        const index = y * SIZE + x
+        const inspection = buildingAt(this.world, x, y) ? inspectBuilding(this.world, index) : null
+        useGameStore.setState({ inspected: inspection ? index : null, inspection })
         return
       }
       const error = tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, tool)
       if (error) { useGameStore.setState({ message: error }); return }
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained ore discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : 'Storage'} placed.` })
     })
   }
-  private arrow(x: number, y: number, direction: Direction, color = 0xe8dfac) {
+  private arrow(x: number, y: number, direction: Direction, color = 0xe8dfac, scale = 1) {
     const d = offsets[direction]
     const cx = x + TILE / 2, cy = y + TILE / 2
-    this.machines.lineStyle(2, color).lineBetween(cx - d.x * 6, cy - d.y * 6, cx + d.x * 7, cy + d.y * 7)
-    this.machines.lineBetween(cx + d.x * 7, cy + d.y * 7, cx + d.x * 2 - d.y * 4, cy + d.y * 2 + d.x * 4)
-    this.machines.lineBetween(cx + d.x * 7, cy + d.y * 7, cx + d.x * 2 + d.y * 4, cy + d.y * 2 - d.x * 4)
+    this.machines.lineStyle(2, color).lineBetween(cx - d.x * 6 * scale, cy - d.y * 6 * scale, cx + d.x * 7 * scale, cy + d.y * 7 * scale)
+    this.machines.lineBetween(cx + d.x * 7 * scale, cy + d.y * 7 * scale, cx + (d.x * 2 - d.y * 4) * scale, cy + (d.y * 2 + d.x * 4) * scale)
+    this.machines.lineBetween(cx + d.x * 7 * scale, cy + d.y * 7 * scale, cx + (d.x * 2 + d.y * 4) * scale, cy + (d.y * 2 - d.x * 4) * scale)
   }
   private lane(x: number, y: number, entry: Direction, output: Direction, width: number, color: number) {
     const graphics = this.machines
@@ -80,31 +87,49 @@ export class FactoryScene extends Phaser.Scene {
     }
     graphics.strokePath()
   }
-  update(_time: number, delta: number) {
+  update(time: number, delta: number) {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
     moveCamera(camera, this.keys, delta)
     advanceWorld(this.world, delta)
-    let miners = 0, stored = 0
     this.machines.clear()
     this.items.clear()
     for (const building of this.world.buildings) {
       if (!building) continue
       const x = building.x * TILE, y = building.y * TILE
       if (building.kind === 'storage') {
-        stored += building.inventory
         this.machines.fillStyle(0x392d20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.lineStyle(2, 0xb68b50).strokeRect(x + 5, y + 5, 22, 22)
         this.machines.fillStyle(0xb68b50).fillRect(x + 5, y + 13, 22, 5)
-        if (building.inventory) this.items.fillStyle(0xb4cbd0).fillCircle(x + 16, y + 16, 4)
+        if (inventoryTotal(building.inventory)) this.items.fillStyle(0xb4cbd0).fillCircle(x + 16, y + 16, 4)
       } else if (building.kind === 'miner') {
-        miners++
         this.machines.fillStyle(0x15201e).fillRoundedRect(x + 3, y + 4, 27, 27, 3)
         this.machines.fillStyle(0xc69a46).fillRect(x + 5, y + 4, 22, 21)
         this.machines.fillStyle(0x354346).fillRect(x + 9, y + 7, 14, 15)
         this.arrow(x, y, building.direction)
         this.machines.fillStyle(building.item ? 0xf08172 : 0x79e6a2).fillCircle(x + 25, y + 6, 2)
         this.machines.fillStyle(0x79e6a2).fillRect(x + 5, y + 27, 22 * (building.item ? 1 : building.elapsed / INTERVAL), 3)
+      } else if (building.kind === 'furnace') {
+        const status = furnaceStatus(building)
+        const active = status === 'processing'
+        const glow = active ? .7 + .3 * Math.sin(time / 110) : .15
+        this.machines.fillStyle(0x191e20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
+        this.machines.fillStyle(0x626d70).fillRect(x + 5, y + 3, 22, 24)
+        this.machines.fillStyle(0x3e302b).fillRect(x + 7, y + 5, 18, 20)
+        this.machines.lineStyle(1, 0x91705b).lineBetween(x + 7, y + 12, x + 25, y + 12)
+        this.machines.fillStyle(0x151a1c).fillRoundedRect(x + 9, y + 10, 14, 13, 2)
+        this.machines.fillStyle(active ? 0xff9d3c : 0x59636b, glow).fillRect(x + 10, y + 12, 12, 9)
+        if (active) this.machines.fillStyle(0xffdc7c, glow).fillTriangle(x + 11, y + 21, x + 17, y + 13 - 2 * Math.sin(time / 80), x + 21, y + 21)
+        this.machines.fillStyle(status === 'output-full' ? 0xf08172 : active ? 0xffc470 : 0x98a2a3).fillCircle(x + 26, y + 5, 2)
+        const progress = building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0
+        this.machines.fillStyle(0x111714).fillRect(x + 5, y + 28, 22, 3)
+        this.machines.fillStyle(0xffbd6c).fillRect(x + 5, y + 28, 22 * progress, 3)
+        this.machines.fillStyle(0x9aabad).fillRect(x + 4, y + 1, 6, 10)
+        this.machines.fillStyle(0x293237).fillRect(x + 3, y + 1, 8, 3)
+        this.machines.fillStyle(0xb6c2c3).fillCircle(x + 6, y + 25, 1)
+        this.machines.fillCircle(x + 26, y + 25, 1)
+        const output = offsets[building.direction]
+        this.arrow(x + output.x * 8, y + output.y * 8, building.direction, 0xffdb9d, .6)
       } else {
         const inputs = beltInputs(this.world, building)
         const paths = inputs.length ? inputs : [opposite(building.direction)]
@@ -126,16 +151,17 @@ export class FactoryScene extends Phaser.Scene {
           const progress = Math.min(1, building.progress + this.world.remainder / BELT_TRAVEL_MS)
           const p = beltPathPoint(building.entry, building.direction, progress)
           this.items.fillStyle(0x17222b).fillCircle(x + 16 + p.x * TILE, y + 16 + p.y * TILE, 5)
-          this.items.fillStyle(0xb4cbd0).fillCircle(x + 16 + p.x * TILE, y + 16 + p.y * TILE, 3.5)
+          if (building.item === 'iron') this.items.fillStyle(0xb4cbd0).fillCircle(x + 16 + p.x * TILE, y + 16 + p.y * TILE, 3.5)
+          else {
+            this.items.fillStyle(0xe2e8ec).fillRect(x + 12 + p.x * TILE, y + 13 + p.y * TILE, 8, 5)
+            this.items.lineStyle(1, 0x7a99ac).lineBetween(x + 12 + p.x * TILE, y + 18 + p.y * TILE, x + 20 + p.x * TILE, y + 18 + p.y * TILE)
+          }
         }
       }
     }
+    useGameStore.getState().publish(this.world)
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
-    const inventory = inspected?.kind === 'storage' ? inspected.inventory : null
-    if (state.ore !== this.world.ore || state.miners !== miners || state.stored !== stored || state.inventory !== inventory) {
-      useGameStore.setState({ ore: this.world.ore, miners, stored, inventory })
-    }
     this.preview.clear()
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
     const pointer = this.input.activePointer
@@ -146,7 +172,7 @@ export class FactoryScene extends Phaser.Scene {
       const color = error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
-      if (state.tool === 'miner' || state.tool === 'belt') this.arrow(x * TILE, y * TILE, state.direction, color)
+      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace') this.arrow(x * TILE, y * TILE, state.direction, color)
     }
   }
 }
