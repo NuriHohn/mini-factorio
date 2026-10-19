@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import { FactoryScene } from './FactoryScene'
 export function GameCanvas() {
@@ -16,6 +16,6 @@ export function GameCanvas() {
     observer.observe(host.current)
     return () => { observer.disconnect(); game.destroy(true) }
   }, [])
-  return <div ref={host} className="game-canvas" aria-label="Factory world: WASD to move, scroll to zoom, click iron to place a miner." />
+  return <div ref={host} className="game-canvas" aria-label="Factory world: WASD to move, scroll to zoom, 1 miner, 2 belt, 3 storage, R rotate, X remove, Escape inspect." />
 }
 
