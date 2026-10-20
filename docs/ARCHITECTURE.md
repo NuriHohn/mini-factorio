@@ -1,6 +1,6 @@
 # Implemented architecture
 
-This describes the current source, including assembler Auto detection and basic inserters. Gameplay values and selection policies are maintained in [Game design](GAME_DESIGN.md); proposed systems belong in [Roadmap](ROADMAP.md).
+This describes the current source, including offline persistence and categorized build tools. Gameplay values and selection policies are maintained in [Game design](GAME_DESIGN.md); proposed systems belong in [Roadmap](ROADMAP.md).
 
 ## Ownership and source map
 
@@ -33,7 +33,10 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 | [`cameraMovement.ts`](../src/game/cameraMovement.ts) | Framework-independent movement, normalized diagonals and viewport-aware bounds |
 | [`GameCanvas.tsx`](../src/game/GameCanvas.tsx) | Phaser host/effect, resize observer and cleanup |
 | [`gameStore.ts`](../src/state/gameStore.ts) | Authoritative tool enum, shared toggle/hotkey/inspection actions, direction, recipe intents and copied summaries |
-| [`App.tsx`](../src/App.tsx) | React toolbar, controls, statistics, inspector and electricity overview |
+| [`App.tsx`](../src/App.tsx) | React sidebar composition, statistics, inspector and electricity overview |
+| [`toolMetadata.ts`](../src/state/toolMetadata.ts), [`BuildToolbar.tsx`](../src/game/BuildToolbar.tsx) | Central player-tool/hotkey/category metadata and tabbed tool presentation |
+| [`saveGame.ts`](../src/persistence/saveGame.ts), [`validation.ts`](../src/persistence/validation.ts) | Versioned JSON encoding, strict validation, detached reconstruction and reference linking |
+| [`storage.ts`](../src/persistence/storage.ts), [`SaveControls.tsx`](../src/game/SaveControls.tsx) | Independent offline slots, active-gameplay autosave cadence, feedback and UI commands |
 | [`CraftingInspector.tsx`](../src/game/CraftingInspector.tsx), [`PowerInspector.tsx`](../src/game/PowerInspector.tsx), [`InventoryView.tsx`](../src/game/InventoryView.tsx) | Derived-value presentation; no production math or world mutations |
 | [`main.tsx`](../src/main.tsx), [`index.css`](../src/index.css), [`vite.config.ts`](../vite.config.ts) | Strict Mode entry, active styles, React/Tailwind Vite plugins |
 
@@ -121,3 +124,23 @@ Graphics reuse the existing effects layer and simulation snapshots; flashing lig
 Shared `canReceive`/`deliverItem` enforce rear-only splitter input and one intake reservation. `createInserterFrame` budgets physical outgoing packets; extraction rechecks the correct front/left slot, readiness, direction and budget, then counts the departure once. Existing buffers, recipes, actor occupancy, topology invalidation and machine exports keep their existing rules.
 
 `splitterDirections`/`splitterPorts` are the shared geometry authority for preview, transport, belt connections, inspection and inserters. Pure game path functions join rear edge → center → selected edge continuously and align with neighboring belt entry. Phaser draws static branching lanes and interpolates only simulation packet progress; no routing decisions occur in rendering. Inspector packets/arrays are value copies. Delivered average is cumulative departures divided by simulation time since placement, not an instantaneous throughput estimate.
+
+## Versioned offline persistence
+
+`src/persistence/saveGame.ts` owns `SAVE_FORMAT` and `SAVE_VERSION` (currently 1), JSON snapshots and detached reconstruction. `validation.ts` validates every required field, rejects unknown fields/IDs, checks finite bounded numbers, complete inventories, ports, buffer limits, recipe/job reservations, actor movement and cross-object references. No Phaser or React imports are needed. JSON is limited to 2 MiB. Unknown versions are rejected clearly; there is no implicit migration or best-effort partial loading.
+
+The document contains `{ format, version, savedAt, map, game, view }`. `savedAt` is ISO UTC wall-clock metadata only. `map` records the supported dimensions. `game` contains tiles, tile-indexed buildings, counters, time/remainder, topology revision, Pete's RNG/movement/effects/timers and police/prison authoritative state. Building fields retain all item packets, elapsed progress, recipe modes/locks, committed jobs/reserved outputs, inventories and splitter round robin/counters. Object references (prison and pumpkin target) become validated building indices, then are linked to candidate building objects on decode. A projectile whose target was already deleted is omitted, matching its next-step cancellation; no resource or timer is discarded.
+
+Power allocations/networks and police radar caches are derived and excluded. Decoder rebuilds power from buildings and invalidates the radar cache. Path/topology revisions remain serialized because they affect deterministic navigation decisions; cached future paths may be stale after placement and are revalidated by normal movement logic. Phaser graphics, input listeners, React state, active tools, inspection commands, DOM objects and file handles are never serialized. `view` restores camera scroll/zoom, output direction and power overlay; tool/inspection reset is intentional.
+
+`SaveSession` in `storage.ts` owns two localStorage keys: `mini-factorio.manual-save` and `mini-factorio.autosave`. It uses consistent synchronous snapshots, prevents reentrant saves, tracks last-success timestamps and accumulates 120,000 ms of active gameplay per autosave. Autosave never writes the manual slot. Storage exceptions do not erase old data. `download.ts` creates a local JSON download, with no network service or extra dependency.
+
+React `SaveControls` sends commands through Zustand. `FactoryScene` validates/reconstructs first, confirms replacement, stages terrain graphics while hidden and commits the candidate into the existing scene. Failure restores the old world/view/store; old terrain is destroyed only after success. Loading never restarts the scene or registers more listeners/loops. Confirmation-frame deltas are discarded so time spent in the browser dialog is not replayed into the simulation. Load/import/export do not write a browser slot. Startup only reads metadata; loading is explicit.
+
+### Extending persistence
+
+Keep stable building/item/recipe IDs. When authoritative fields change, update the encoder, strict validator and round-trip/determinism/corruption tests together. An incompatible schema needs a new `SAVE_VERSION`; add an explicit migration and fixture tests before claiming older-version support. Do not add silent defaults that drop items, jobs or NPC timers. Keep derived caches outside the file and reconstruct them through simulation APIs.
+
+### Build menu metadata
+
+`src/state/toolMetadata.ts` is the central source for player-selectable tools, labels, hotkeys and Factory/Pumpkin Pete category membership. `BuildToolbar` renders the selected category; `gameStore` remains the single authority for active tool and tab. Selecting a cross-category hotkey updates both together. Category changes call the same tool cancellation action as Escape. Automatic entities are absent from the tool registry. Save controls are a separate sidebar section and never become build tools.

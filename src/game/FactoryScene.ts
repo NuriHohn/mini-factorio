@@ -1,3 +1,7 @@
+import { SaveSession, errorMessage } from '../persistence/storage'
+import { decodeSave, encodeSave } from '../persistence/saveGame'
+import type { LoadedGame, ViewState } from '../persistence/saveGame'
+import { downloadSave } from '../persistence/download'
 import { splitterPorts, splitterDirections, SPLITTER_STAGE_MS } from '../simulation/splitters'
 import { splitterBlocked } from '../simulation/transport'
 import { splitterInputPoint, splitterOutputPoint } from './splitterPath'
@@ -20,12 +24,15 @@ import type { PolePlacementPreview } from '../simulation/power'
 import { electricalDetails } from '../simulation/inspection'
 import { advanceWorld } from '../simulation/step'
 import type { Item } from '../simulation/items'
-import type { Direction } from '../simulation/world'
+import type { World, Direction } from '../simulation/world'
 import { useGameStore } from '../state/gameStore'
 import { moveCamera, updateCameraBounds } from './cameraMovement'
 const TILE = 32
 export class FactoryScene extends Phaser.Scene {
   private world = createWorld()
+  private terrain!: Phaser.GameObjects.Graphics
+  private saves!: SaveSession
+  private skipNextDelta = false
   private keys!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>
   private wires!: Phaser.GameObjects.Graphics
   private coverage!: Phaser.GameObjects.Graphics
@@ -38,22 +45,12 @@ export class FactoryScene extends Phaser.Scene {
   private peteLabel!: Phaser.GameObjects.Text
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
-    const terrain = this.add.graphics()
-    const greens = [0x344e37, 0x36513a, 0x38543b, 0x324b35]
-    this.world.tiles.forEach((resource, index) => {
-      const x = index % SIZE * TILE, y = Math.floor(index / SIZE) * TILE
-      terrain.fillStyle(greens[(index * 7 + Math.floor(index / SIZE) * 3) % 4]).fillRect(x, y, TILE, TILE)
-      terrain.lineStyle(1, 0x14291e, .22).strokeRect(x, y, TILE, TILE)
-      if (resource) {
-        const visual = ITEM_DEFINITIONS[resource].visual
-        terrain.fillStyle(visual.color).fillRoundedRect(x + 3, y + 5, 25, 23, 5)
-        terrain.fillStyle(visual.accent).fillTriangle(x + 5, y + 19, x + 13, y + 6, x + 19, y + 19)
-        terrain.fillStyle(visual.shade).fillTriangle(x + 13, y + 24, x + 23, y + 9, x + 28, y + 24)
-        terrain.fillStyle(visual.highlight).fillRect(x + 11, y + 11, 3, 4)
-      } else terrain.fillStyle(0x65814b, .25).fillRect(x + 7 + index % 11, y + 10 + index % 13, 2, 3)
-    })
+    this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
+    useGameStore.setState({ saveStatus: this.saves.initialize() })
+    this.terrain = this.add.graphics().setDepth(-1)
+    this.drawTerrain(this.terrain, this.world)
     this.wires = this.add.graphics()
     this.coverage = this.add.graphics()
     this.machines = this.add.graphics()
@@ -100,6 +97,75 @@ export class FactoryScene extends Phaser.Scene {
       else placeBuilding(this.world, x, y, tool, direction)
       useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
     })
+  }
+  private drawTerrain(terrain: Phaser.GameObjects.Graphics, world: World) {
+    const greens = [0x344e37, 0x36513a, 0x38543b, 0x324b35]
+    world.tiles.forEach((resource, index) => {
+      const x = index % SIZE * TILE, y = Math.floor(index / SIZE) * TILE
+      terrain.fillStyle(greens[(index * 7 + Math.floor(index / SIZE) * 3) % 4]).fillRect(x, y, TILE, TILE)
+      terrain.lineStyle(1, 0x14291e, .22).strokeRect(x, y, TILE, TILE)
+      if (resource) {
+        const visual = ITEM_DEFINITIONS[resource].visual
+        terrain.fillStyle(visual.color).fillRoundedRect(x + 3, y + 5, 25, 23, 5)
+        terrain.fillStyle(visual.accent).fillTriangle(x + 5, y + 19, x + 13, y + 6, x + 19, y + 19)
+        terrain.fillStyle(visual.shade).fillTriangle(x + 13, y + 24, x + 23, y + 9, x + 28, y + 24)
+        terrain.fillStyle(visual.highlight).fillRect(x + 11, y + 11, 3, 4)
+      } else terrain.fillStyle(0x65814b, .25).fillRect(x + 7 + index % 11, y + 10 + index % 13, 2, 3)
+    })
+  }
+  private viewState(): ViewState {
+    const c = this.cameras.main, state = useGameStore.getState()
+    return { scrollX: c.scrollX, scrollY: c.scrollY, zoom: c.zoom, direction: state.direction, powerOverlay: state.powerOverlay }
+  }
+  private restore(candidate: LoadedGame) {
+    // Build replacement rendering while hidden. A failed preparation leaves the old world intact.
+    const terrain = this.add.graphics().setDepth(-1).setVisible(false)
+    try { this.drawTerrain(terrain, candidate.world) } catch (error) { terrain.destroy(); throw error }
+    const oldWorld = this.world, oldTerrain = this.terrain, oldView = this.viewState(), oldState = useGameStore.getState()
+    try {
+      this.cameras.main.setZoom(candidate.view.zoom).setScroll(candidate.view.scrollX, candidate.view.scrollY)
+      updateCameraBounds(this.cameras.main, SIZE * TILE)
+      this.world = candidate.world
+      this.terrain = terrain.setVisible(true)
+      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.getState().publish(this.world)
+    } catch (error) {
+      this.world = oldWorld; this.terrain = oldTerrain
+      terrain.destroy()
+      this.cameras.main.setZoom(oldView.zoom).setScroll(oldView.scrollX, oldView.scrollY)
+      updateCameraBounds(this.cameras.main, SIZE * TILE)
+      useGameStore.setState(oldState, true)
+      throw error
+    }
+    oldTerrain.destroy()
+    this.polePreviewKey = ''; this.poleCandidate = null; this.poleLinks.clear()
+    this.saves.resetAutosave()
+  }
+
+  private processSaveRequest(): boolean {
+    const request = useGameStore.getState().saveRequest
+    if (!request) return false
+    const loading = request.kind === 'load' || request.kind === 'load-auto' || request.kind === 'import'
+    useGameStore.setState({ saveRequest: null })
+    try {
+      if (request.kind === 'save') this.saves.save(this.world, this.viewState(), 'manual')
+      else if (request.kind === 'export') {
+        const savedAt = new Date().toISOString()
+        downloadSave(encodeSave(this.world, this.viewState(), savedAt), savedAt)
+        this.saves.feedback('JSON save exported. Browser save slots were kept.')
+      } else {
+        const candidate = request.kind === 'import' ? decodeSave(request.text) : this.saves.load(request.kind === 'load-auto' ? 'auto' : 'manual')
+        if (window.confirm('Replace the current running factory with this saved game? Unsaved progress will be replaced.')) {
+          this.restore(candidate)
+          this.saves.feedback(request.kind === 'import' ? 'JSON save imported. Browser save slots were kept.' : 'Game loaded locally.')
+        } else this.saves.feedback('Load cancelled. Current factory kept.')
+      }
+    } catch (error) { this.saves.feedback(errorMessage(error), true) }
+    finally {
+      useGameStore.setState({ saveBusy: false, saveStatus: { ...this.saves.status } })
+      if (loading) this.skipNextDelta = true
+    }
+    return loading
   }
   private drawItem(item: Item, x: number, y: number) {
     const visual = ITEM_DEFINITIONS[item].visual
@@ -198,7 +264,13 @@ export class FactoryScene extends Phaser.Scene {
         : changeFurnaceRecipe(this.world, position.x, position.y, request.recipeMode)
       useGameStore.setState({ recipeRequest: null, message: error ?? `Recipe mode: ${request.recipeMode === 'auto' ? 'Auto' : RECIPES[request.recipeMode].label}.` })
     }
-    advanceWorld(this.world, delta)
+    const loading = this.processSaveRequest()
+    const skip = this.skipNextDelta
+    if (skip && !loading) this.skipNextDelta = false
+    const before = this.world.timeMs
+    if (!loading && !skip) advanceWorld(this.world, delta)
+    const autosave = this.saves.tick(document.hidden ? 0 : this.world.timeMs - before, this.world, this.viewState(), !loading && !skip)
+    if (autosave) useGameStore.setState({ saveStatus: autosave })
     const power = allocatePower(this.world)
     const overlay = useGameStore.getState().powerOverlay
     this.wires.clear()

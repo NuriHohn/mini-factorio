@@ -64,3 +64,12 @@ kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; paddin
 .inspection select { width: 100%; padding: 8px; border: 1px solid #8d7858; border-radius: 4px; color: #efd8b4; background: #1c241f; font: inherit; font-size: 12px; }
 .inspection select:disabled { opacity: .7; cursor: not-allowed; }
 .copper-legend { color: #eda773; }
+.build-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.build-tab { flex: 1; min-width: 0; padding: 10px 4px; background: #202923; border: 1px solid #3b463d; border-radius: 4px; font-size: 12px; }
+.build-tab[aria-selected="true"] { border-bottom: 3px solid #83c0d4; color: #c6e5eb; }
+.build-tab:focus, .build-tab:focus-visible { outline: none; }
+.save-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
+.save-action { border: 1px solid #3b463d; border-radius: 4px; padding: 9px 5px; background: #202923; font-size: 12px; }
+.save-action:focus-visible { outline: 2px solid #83c0d4; }
+.save-action:disabled { opacity: .5; cursor: wait; }
+.save-error { color: #f0a094; }

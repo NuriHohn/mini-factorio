@@ -1,3 +1,8 @@
+import type { SaveRequest, SaveStatus } from '../persistence/storage'
+import { TOOL_HOTKEYS, toolMetadata } from './toolMetadata'
+import type { BuildTab, Tool } from './toolMetadata'
+export { TOOL_HOTKEYS } from './toolMetadata'
+export type { Tool } from './toolMetadata'
 import { releasePete } from '../simulation/police'
 import { clickPete } from '../simulation/pete'
 import type { Position } from '../simulation/world'
@@ -7,15 +12,17 @@ import { powerOverview } from '../simulation/power'
 import type { PowerOverview } from '../simulation/power'
 import { create } from 'zustand'
 import { buildingAt, rotate, SIZE } from '../simulation/world'
-import type { BuildingKind, Direction, World } from '../simulation/world'
+import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
-export type Tool = BuildingKind | 'remove' | null
-export const TOOL_HOTKEYS: Readonly<Record<string, Exclude<Tool, null>>> = {
-  Digit1: 'miner', Digit2: 'belt', Digit3: 'storage', Digit4: 'furnace',
-  Digit5: 'generator', Digit6: 'powerPole', Digit7: 'assembler', Digit8: 'inserter', Digit9: 'radar', Digit0: 'splitter', KeyX: 'remove',
-}
 interface State {
+  saveStatus: SaveStatus
+  saveBusy: boolean
+  saveRequest: SaveRequest | null
+  requestSave: (request: SaveRequest) => void
+  saveFeedback: (message: string, error?: boolean) => void
+  buildTab: BuildTab
+  setBuildTab: (tab: BuildTab) => void
   releaseRequest: { index: number; imprisonedAtMs: number } | null
   requestRelease: () => void
   applyRelease: (world: World) => void
@@ -38,6 +45,15 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  saveStatus: { manualAt: null, autoAt: null, message: '', error: false }, saveBusy: false, saveRequest: null,
+  requestSave: request => set(state => state.saveBusy ? state : { saveRequest: request, saveBusy: true }),
+  saveFeedback: (message, error = false) => set(state => ({ saveStatus: { ...state.saveStatus, message, error } })),
+  buildTab: 'factory',
+  setBuildTab: tab => {
+    if (get().buildTab === tab) return
+    get().select(null)
+    set({ buildTab: tab })
+  },
   releaseRequest: null,
   requestRelease: () => set(state => state.inspected !== null && state.inspection?.kind === 'prison' && state.inspection.imprisonedAtMs !== null ? { releaseRequest: { index: state.inspected, imprisonedAtMs: state.inspection.imprisonedAtMs } } : state),
   applyRelease: world => {
@@ -56,7 +72,7 @@ export const useGameStore = create<State>((set, get) => ({
   select: requested => set(state => {
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { tool, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { tool, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
     if (event.code === 'Escape') { get().select(null); return }

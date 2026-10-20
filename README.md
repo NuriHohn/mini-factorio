@@ -13,7 +13,7 @@ Open the URL printed by Vite. In Windows PowerShell, use `npm.cmd` if script exe
 
 ## First factory
 
-Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, feed iron plates and copper cables to separate inputs of an assembler; its initial Auto detection prioritizes complete circuit batches before permanently locking. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Progress is session-only: refresh starts a new world.
+Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, feed iron plates and copper cables to separate inputs of an assembler; its initial Auto detection prioritizes complete circuit batches before permanently locking. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Use **Save Game** to keep a local browser save, **Load Game** to restore it after refresh, or **Export JSON** for a portable offline backup. A separate autosave runs every two minutes of active gameplay.
 
 | Control | Action |
 | --- | --- |
@@ -38,3 +38,9 @@ Pumpkin Pete wanders the factory and occasionally disables a nearby production m
 Use **9** to place a powered radar trap (5 kW, 3-tile range). Police take Pete to an automatically created edge prison, where its inspector can release him; he escapes automatically after 60 simulation seconds. See [police and prison rules](docs/GAME_DESIGN.md#police-radar-traps-and-prison).
 
 Use **0** to place a compact **1×1 splitter**, with one rear input and front/left outputs. R rotates its placement direction. It shares items by round robin, keeps using an available output when the other blocks, and needs no electricity. See [splitter rules](docs/GAME_DESIGN.md#compact-splitter).
+
+## Save, load and building categories
+
+The build menu starts on **Factory**. **Pumpkin Pete** contains radar traps; police cars and prisons still spawn automatically. Switching categories cancels placement/removal. Existing hotkeys select their tool and its tab; Escape returns to inspection mode.
+
+Save & Load controls are below the inspector in the scrollable sidebar. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import JSON validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export JSON before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
