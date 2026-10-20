@@ -13,7 +13,7 @@ import type { Inspection, WorldStats } from '../simulation/inspection'
 export type Tool = BuildingKind | 'remove' | null
 export const TOOL_HOTKEYS: Readonly<Record<string, Exclude<Tool, null>>> = {
   Digit1: 'miner', Digit2: 'belt', Digit3: 'storage', Digit4: 'furnace',
-  Digit5: 'generator', Digit6: 'powerPole', Digit7: 'assembler', Digit8: 'inserter', Digit9: 'radar', KeyX: 'remove',
+  Digit5: 'generator', Digit6: 'powerPole', Digit7: 'assembler', Digit8: 'inserter', Digit9: 'radar', Digit0: 'splitter', KeyX: 'remove',
 }
 interface State {
   releaseRequest: { index: number; imprisonedAtMs: number } | null

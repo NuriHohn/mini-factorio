@@ -12,7 +12,9 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 | [`items.ts`](../src/simulation/items.ts) | `ITEM_DEFINITIONS`, ore/plate/component categories, typed IDs and inventory helpers |
 | [`recipes.ts`](../src/simulation/recipes.ts) | `RECIPES`, quantities, durations, compatibility, `MACHINE_DEFINITIONS`, `hasRecipeInputs` |
 | [`step.ts`](../src/simulation/step.ts) | `advanceWorld`, elapsed remainder, fixed-step orchestration and mining |
-| [`transport.ts`](../src/simulation/transport.ts) | Snapshot transfer arbitration, input reservations, commit and buffered machine output |
+| [`splitters.ts`](../src/simulation/splitters.ts) | Compact 1×1 relative ports/directions and stage duration; scheduling commits in shared transport |
+| [`splitterPath.ts`](../src/game/splitterPath.ts), [`SplitterInspector.tsx`](../src/game/SplitterInspector.tsx) | Continuous intake/front/left visual paths and copied status presentation |
+| [`transport.ts`](../src/simulation/transport.ts) | Shared belt/splitter transfer arbitration, recipe/input reservations, staged routing and buffered machine output |
 | [`inserters.ts`](../src/simulation/inserters.ts) | Step-start source budgets, deterministic pickup/delivery, powered swing/return, held items and port/status queries |
 | [`crafting.ts`](../src/simulation/crafting.ts) | Shared jobs, power-scaled processing, output reservations, status and assembler mode/manual validation |
 | [`smelting.ts`](../src/simulation/smelting.ts) | Furnace incoming recipe probes and `changeFurnaceRecipe`; legacy processing exports delegate to shared crafting |
@@ -109,3 +111,13 @@ Pete adds `ARRESTED`, `TRANSPORTED`, `IMPRISONED`, a prison identity, imprisonme
 The prison inspector receives copied elapsed/remaining times, occupancy and an imprisonment timestamp token. Zustand queues `{index, imprisonedAtMs}` release intent; the scene applies it through `releasePete` before stepping. Validation checks current mode, building identity and timestamp, so duplicate/stale commands cannot release another case. Switching tools/inspection cancels pending release intent. Imprisoned Pete yields pointer priority to his prison; during arrest/transport his clicks remain consumed. Removal is handled synchronously through the supported building-removal hook, which frees a captive or cancels an arrival before the prison disappears.
 
 Graphics reuse the existing effects layer and simulation snapshots; flashing lights, angry eyebrows, shaking bars and dust have no gameplay authority or independent timers. An empty prison remains inspectable. Removing it immediately removes bars; jailbreak dust is bounded and naturally expires. Police/prisons have no item inventories and do not participate in transport or recipes.
+
+## Compact splitter extension
+
+`Splitter` is one logical 1×1 building in the existing flat building array. It adds a direction, optional intake packet, two optional outgoing packets (front/left), next-output preference, per-output delivered counts and placement time. Packets hold an item type and stage progress; capacity is bounded at three total. No multi-tile occupancy structure or second transport engine is introduced.
+
+`advanceTransport` ages only existing belts/packets, reserves all external belt/splitter deliveries against unchanged occupancy and shared machine recipe/capacity maps, then plans intake-to-output routes against unchanged slots. External deliveries commit before internal routes, but all plans predate either commit. New arrivals cannot be routed, just-vacated output slots cannot be reused, and new outgoing packets start at zero progress. A route changes the round-robin preference only when committed; in-flight destination capacity is rechecked on actual delivery rather than reserved for 250 ms. Stuck output packets never block the other outgoing slot.
+
+Shared `canReceive`/`deliverItem` enforce rear-only splitter input and one intake reservation. `createInserterFrame` budgets physical outgoing packets; extraction rechecks the correct front/left slot, readiness, direction and budget, then counts the departure once. Existing buffers, recipes, actor occupancy, topology invalidation and machine exports keep their existing rules.
+
+`splitterDirections`/`splitterPorts` are the shared geometry authority for preview, transport, belt connections, inspection and inserters. Pure game path functions join rear edge → center → selected edge continuously and align with neighboring belt entry. Phaser draws static branching lanes and interpolates only simulation packet progress; no routing decisions occur in rendering. Inspector packets/arrays are value copies. Delivered average is cumulative departures divided by simulation time since placement, not an instantaneous throughput estimate.

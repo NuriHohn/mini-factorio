@@ -19,6 +19,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
 | Sprint 7.5: Pumpkin Pete | Deterministic immortal goblin, timed pumpkin sabotage, mush/slime feedback and click-to-scare corner crying |
 | Sprint 7.6: police and prison | Powered radar traps, single obstacle-aware police dispatch, visible arrest/transport, prison inspector/manual release, timed jailbreak and re-arrest grace |
+| Sprint 8: compact 1×1 splitters | Rotatable rear-input/front-and-left routing, independent outgoing buffers, round robin, congestion fallback, curves and shared inserter/transport integration |
 
 “Persistent project context” means versioned repository documentation, not persistent game saves or automatic agent memory. Future tasks must read the relevant files.
 
@@ -27,7 +28,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Proposal | Intended scope / prerequisite |
 | --- | --- |
 | Improved logistics | Build on basic inserters with separately approved filtering, priorities, stack/reach variants or throughput improvements |
-| Splitters and routing | Controlled branching, merging and resource routing while preserving conservation and deterministic arbitration |
+| Advanced routing | Future filtering, configurable output priorities and more complex junctions beyond the implemented compact splitter |
 | Save/load | Versioned world serialization, safe restoration of jobs, waits and topology; decide migration behavior |
 | Research and technology progression | Gradually unlock recipes, machines and assistance; introduce progression as a separate design change |
 | Blueprints | Capture layouts, preview placement and validate collisions/resources before player confirmation |

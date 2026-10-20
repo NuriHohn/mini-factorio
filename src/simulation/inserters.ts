@@ -1,3 +1,4 @@
+import { splitterDirections } from './splitters'
 import { emptyInventory, ITEMS } from './items'
 import type { Inventory, Item } from './items'
 import { canReceive, deliverItem } from './transport'
@@ -21,6 +22,12 @@ function neighbors(world: World, inserter: Inserter) {
 }
 function sourceCount(source: Building, inserter: Inserter, item: Item, requireReady = true): number {
   switch (source.kind) {
+    case 'splitter': {
+      const output = splitterDirections(source.direction).indexOf(inserter.direction)
+      if (output < 0) return 0
+      const packet = source.outputs[output]
+      return packet?.item === item && (!requireReady || packet.progress >= 1 - 1e-8) ? 1 : 0
+    }
     case 'storage': return source.inventory[item]
     case 'belt': return source.item === item && (!requireReady || source.progress >= 1 - 1e-8) ? 1 : 0
     case 'miner': return source.direction === inserter.direction && source.item === item ? 1 : 0
@@ -40,6 +47,7 @@ export function createInserterFrame(world: World): InserterFrame {
       // Direction is checked again per inserter; snapshot all physical source units.
       for (const item of ITEMS) {
         if (source.kind === 'furnace' || source.kind === 'assembler') inventory[item] = source.output[item]
+        else if (source.kind === 'splitter') inventory[item] = source.outputs.filter(packet => packet?.item === item).length
         else if (source.kind === 'miner') inventory[item] = Number(source.item === item)
         else inventory[item] = sourceCount(source, inserter, item, false)
       }
@@ -77,6 +85,12 @@ function pickup(world: World, inserter: Inserter, frame: InserterFrame): void {
   const budget = source ? frame.sources.get(source) : undefined
   if (!item || !source || !budget) return
   switch (source.kind) {
+    case 'splitter': {
+      const output = splitterDirections(source.direction).indexOf(inserter.direction) as 0 | 1
+      source.outputs[output] = null
+      source.delivered[output]++
+      break
+    }
     case 'storage': source.inventory[item]--; break
     case 'furnace':
     case 'assembler': source.output[item]--; break

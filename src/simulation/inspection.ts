@@ -1,3 +1,6 @@
+import { splitterPorts, splitterDirections } from './splitters'
+import { splitterBlocked } from './transport'
+import type { SplitterPacket } from './world'
 import { IMPRISONMENT_MS, RADAR_RANGE, radarPowered } from './police'
 import { sabotageRemaining } from './pete'
 import { GENERATOR_KW, POLE_COVERAGE_RADIUS, powerRequirement, withinRange } from './power'
@@ -11,7 +14,7 @@ import type { CraftingStatus } from './crafting'
 import type { FurnaceRecipeMode, RecipeId } from './recipes'
 import { MACHINE_DEFINITIONS, RECIPES } from './recipes'
 import { outputWaiting } from './transport'
-import { buildingAt, depositAt, INTERVAL, SIZE } from './world'
+import { buildingAt, depositAt, INTERVAL, SIZE, opposite } from './world'
 import type { BuildingKind, Direction, Position, World } from './world'
 
 export interface WorldStats {
@@ -40,7 +43,8 @@ export interface InserterInspection {
   target: BuildingKind | null
   electrical: ElectricalDetails
 }
-export type Inspection = InserterInspection | { kind: 'prison'; occupied: boolean; elapsedMs: number; remainingMs: number; imprisonedAtMs: number | null; exit: Position }
+export type Inspection = InserterInspection | { kind: 'splitter'; direction: Direction; inputDirection: Direction; outputDirections: [Direction, Direction]; ports: ReturnType<typeof splitterPorts>; input: SplitterPacket | null; outputs: [SplitterPacket | null, SplitterPacket | null]; nextOutput: 0 | 1; blocked: [boolean, boolean]; delivered: [number, number]; itemsPerSec: number }
+  | { kind: 'prison'; occupied: boolean; elapsedMs: number; remainingMs: number; imprisonedAtMs: number | null; exit: Position }
   | { kind: 'radar'; radius: number; active: boolean; operation: string; prison: Position | null; electrical: ElectricalDetails } | { kind: 'storage'; inventory: Inventory }
   | { kind: 'miner'; resource: Resource | null; progress: number; buffered: boolean; electrical: ElectricalDetails }
   | { kind: 'generator'; capacityKw: number; actualKw: number; electrical: ElectricalDetails }
@@ -90,6 +94,12 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   const building = index === null ? null : world.buildings[index]
   if (building?.kind === 'storage') return { kind: 'storage', inventory: { ...building.inventory } }
   if (!building || index === null) return null
+  if (building.kind === 'splitter') return {
+    kind: 'splitter', direction: building.direction, inputDirection: opposite(building.direction), outputDirections: splitterDirections(building.direction), ports: splitterPorts(building),
+    input: building.input ? { ...building.input } : null, outputs: [building.outputs[0] ? { ...building.outputs[0] } : null, building.outputs[1] ? { ...building.outputs[1] } : null],
+    nextOutput: building.nextOutput, blocked: [splitterBlocked(world, building, 0), splitterBlocked(world, building, 1)], delivered: [...building.delivered],
+    itemsPerSec: world.timeMs > building.placedAtMs ? (building.delivered[0] + building.delivered[1]) * 1000 / (world.timeMs - building.placedAtMs) : 0,
+  }
   if (building.kind === 'prison') {
     const occupied = world.pete.mode === 'IMPRISONED' && world.pete.prison === building
     const elapsedMs = occupied ? world.timeMs - world.pete.imprisonedAtMs! : 0

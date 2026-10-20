@@ -1,3 +1,6 @@
+import { splitterPorts, splitterDirections, SPLITTER_STAGE_MS } from '../simulation/splitters'
+import { splitterBlocked } from '../simulation/transport'
+import { splitterInputPoint, splitterOutputPoint } from './splitterPath'
 import { RADAR_RANGE } from '../simulation/police'
 import { drawSecurityBuilding, drawPoliceEffects } from './policeVisuals'
 import { drawPete, drawSabotage } from './peteVisuals'
@@ -311,7 +314,34 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.lineStyle(3, 0xe5d0a5).lineBetween(x + 5, y + 8, x + 27, y + 8)
         this.machines.fillStyle(0x94d5dc).fillCircle(x + 7, y + 5, 2)
         this.machines.fillCircle(x + 25, y + 5, 2)
-      } else {
+      } else if (building.kind === 'splitter') {
+        const rear = opposite(building.direction), rearOffset = offsets[rear]
+        this.machines.fillStyle(0x253c45).fillRoundedRect(x + 1, y + 1, 30, 30, 4)
+        this.machines.lineStyle(2, 0x87b6ba).strokeRoundedRect(x + 2, y + 2, 28, 28, 4)
+        this.machines.lineStyle(6, 0x15252c).lineBetween(x + 16 + rearOffset.x * 16, y + 16 + rearOffset.y * 16, x + 16, y + 16)
+        this.arrow(x + rearOffset.x * 10, y + rearOffset.y * 10, building.direction, 0xffbd6c, .45)
+        for (const output of [0, 1] as const) {
+          let previous = splitterOutputPoint(building.direction, output, 0)
+          for (let t = .1; t <= 1.001; t += .1) {
+            const next = splitterOutputPoint(building.direction, output, t)
+            this.machines.lineStyle(6, 0x15252c).lineBetween(x + 16 + previous.x * TILE, y + 16 + previous.y * TILE, x + 16 + next.x * TILE, y + 16 + next.y * TILE)
+            previous = next
+          }
+          const direction = splitterDirections(building.direction)[output], d = offsets[direction]
+          this.arrow(x + d.x * 10, y + d.y * 10, direction, output === 0 ? 0x9ee1ac : 0x85d1e8, .6)
+          this.machines.fillStyle(splitterBlocked(this.world, building, output) ? 0xf08172 : 0x79e6a2).fillCircle(x + 16 + d.x * 12, y + 16 + d.y * 12, 2)
+          const packet = building.outputs[output]
+          if (packet) {
+            const point = splitterOutputPoint(building.direction, output, Math.min(1, packet.progress + this.world.remainder / SPLITTER_STAGE_MS))
+            this.drawItem(packet.item, x + 16 + point.x * TILE, y + 16 + point.y * TILE)
+          }
+        }
+        this.machines.fillStyle(0xd8b369).fillCircle(x + 16, y + 16, 3)
+        if (building.input) {
+          const point = splitterInputPoint(building.direction, Math.min(1, building.input.progress + this.world.remainder / SPLITTER_STAGE_MS))
+          this.drawItem(building.input.item, x + 16 + point.x * TILE, y + 16 + point.y * TILE)
+        }
+      } else if (building.kind === 'belt') {
         const inputs = beltInputs(this.world, building)
         const paths = inputs.length ? inputs : [opposite(building.direction)]
         // Draw every valid input, with a stable main lane independent of items.
@@ -361,6 +391,16 @@ export class FactoryScene extends Phaser.Scene {
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       if (state.tool === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, RADAR_RANGE * TILE)
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
+      if (state.tool === 'splitter') {
+        const ports = splitterPorts({ x, y, direction: state.direction })
+        for (const [port, color] of [[ports.input, 0xffbd6c], [ports.outputs[0], 0x8df0b3], [ports.outputs[1], 0x85d1e8]] as const) {
+          if (!inside(port.x, port.y)) continue
+          this.preview.lineStyle(1, color, .8).strokeRect(port.x * TILE + 5, port.y * TILE + 5, TILE - 10, TILE - 10)
+          this.preview.lineBetween((x + .5) * TILE, (y + .5) * TILE, (port.x + .5) * TILE, (port.y + .5) * TILE)
+        }
+        const left = splitterDirections(state.direction)[1]
+        this.arrow(x * TILE + offsets[left].x * 8, y * TILE + offsets[left].y * 8, left, 0x85d1e8, .7)
+      }
       if (state.tool === 'inserter') {
         const ports = inserterPorts({ x, y, direction: state.direction })
         for (const [port, portColor] of [[ports.pickup, 0xffbd6c], [ports.drop, 0x8df0b3]] as const) {
@@ -374,7 +414,7 @@ export class FactoryScene extends Phaser.Scene {
       const color = pole ? pole.state === 'invalid' ? 0x929b9f : pole.state === 'connected' ? 0x8df0b3 : 0xf0ac60 : error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
-      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter') this.arrow(x * TILE, y * TILE, state.direction, color)
+      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, state.direction, color)
     }
   }
 }
