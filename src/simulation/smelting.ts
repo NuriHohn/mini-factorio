@@ -1,12 +1,13 @@
+import type { Item } from './items'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import { FURNACE_OUTPUT_CAPACITY, RECIPES } from './recipes'
 import { buildingAt, SIZE } from './world'
-import type { RecipeId } from './recipes'
+import type { FurnaceRecipeMode, RecipeId } from './recipes'
 import type { Furnace, World } from './world'
 export type FurnaceStatus = 'processing' | 'waiting-input' | 'output-full'
 
 function hasOutputSpace(furnace: Furnace): boolean {
-  const outputs = furnace.job?.outputs ?? RECIPES[furnace.recipeId].outputs
+  const outputs = furnace.job?.outputs ?? (furnace.recipeId ? RECIPES[furnace.recipeId].outputs : {})
   return inventoryTotal(furnace.output) + ITEMS.reduce((sum, item) => sum + (outputs[item] ?? 0), 0) <= FURNACE_OUTPUT_CAPACITY
 }
 export function furnaceStatus(furnace: Furnace): FurnaceStatus {
@@ -14,8 +15,8 @@ export function furnaceStatus(furnace: Furnace): FurnaceStatus {
   return furnace.job ? 'processing' : 'waiting-input'
 }
 export function canStartSmelting(furnace: Furnace): boolean {
-  const recipe = RECIPES[furnace.recipeId]
-  return !furnace.job && hasOutputSpace(furnace) && ITEMS.every(item => furnace.input[item] >= (recipe.inputs[item] ?? 0))
+  const recipe = furnace.recipeId ? RECIPES[furnace.recipeId] : null
+  return recipe !== null && !furnace.job && hasOutputSpace(furnace) && ITEMS.every(item => furnace.input[item] >= (recipe.inputs[item] ?? 0))
 }
 export function advanceSmelting(world: World, delta: number): void {
   for (const furnace of world.buildings) {
@@ -35,8 +36,8 @@ export function advanceSmelting(world: World, delta: number): void {
       }
     }
     if (furnace.job) continue
+    if (!furnace.recipeId || !canStartSmelting(furnace)) continue
     const recipe = RECIPES[furnace.recipeId]
-    if (!canStartSmelting(furnace)) continue
     const inputs = emptyInventory(), outputs = emptyInventory()
     for (const item of ITEMS) {
       inputs[item] = recipe.inputs[item] ?? 0
@@ -53,12 +54,20 @@ export function recipeChangeError(furnace: Furnace): string | null {
   if (inventoryTotal(furnace.input) || inventoryTotal(furnace.output)) return 'Empty both input and output buffers before changing recipes.'
   return null
 }
-export function changeFurnaceRecipe(world: World, x: number, y: number, recipeId: RecipeId): string | null {
+// A probe is read-only: transport reserves the returned recipe before committing arrivals.
+export function incomingRecipe(furnace: Furnace, item: Item): RecipeId | null {
+  if (furnace.recipeMode === 'auto' && recipeChangeError(furnace) === null) {
+    return Object.values(RECIPES).find(recipe => recipe.machine === furnace.kind && (recipe.inputs[item] ?? 0) > 0)?.id ?? null
+  }
+  return furnace.recipeId
+}
+export function changeFurnaceRecipe(world: World, x: number, y: number, recipeMode: FurnaceRecipeMode): string | null {
   const furnace = buildingAt(world, x, y)
   if (furnace?.kind !== 'furnace') return 'Select an existing furnace.'
-  if (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== furnace.kind) return 'This recipe is not compatible with this machine.'
+  if (recipeMode !== 'auto' && (!Object.hasOwn(RECIPES, recipeMode) || RECIPES[recipeMode].machine !== furnace.kind)) return 'This recipe is not compatible with this machine.'
   const error = recipeChangeError(furnace)
   if (error) return error
-  furnace.recipeId = recipeId
+  furnace.recipeMode = recipeMode
+  furnace.recipeId = recipeMode === 'auto' ? null : recipeMode
   return null
 }

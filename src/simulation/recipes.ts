@@ -1,4 +1,5 @@
 import type { Inventory } from './items'
+export type FurnaceRecipeMode = 'auto' | RecipeId
 export type RecipeId = 'ironSmelting' | 'copperSmelting'
 export interface Recipe {
   readonly id: RecipeId

@@ -135,14 +135,16 @@ describe('multi-resource terrain and mining', () => {
   })
 })
 describe('safe individual furnace recipe selection', () => {
-  it('defaults to iron, can switch both ways when empty, and reports requirements/products', () => {
+  it('defaults to Auto, can switch both ways when empty, and reports requirements/products', () => {
     const world = createWorld()
     add(world, 26, 20, 'furnace')
-    expect(f(world).recipeId).toBe('ironSmelting')
+    expect(f(world)).toMatchObject({ recipeMode: 'auto', recipeId: null })
     const snapshot = structuredClone(world)
     expect(changeFurnaceRecipe(world, 26, 20, 'copperSmelting')).toBe(null)
     expect(inspectBuilding(world, 20 * SIZE + 26)).toMatchObject({ recipeId: 'copperSmelting', requirements: { copper: 1 }, products: { copperPlate: 1 }, durationMs: 2000, recipeChangeError: null })
     expect(changeFurnaceRecipe(world, 26, 20, 'ironSmelting')).toBe(null)
+    expect(f(world)).toMatchObject({ recipeMode: 'ironSmelting', recipeId: 'ironSmelting' })
+    expect(changeFurnaceRecipe(world, 26, 20, 'auto')).toBe(null)
     expect(world).toEqual(snapshot)
     expect(changeFurnaceRecipe(world, -1, 20, 'copperSmelting')).not.toBe(null)
   })

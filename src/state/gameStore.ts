@@ -1,5 +1,5 @@
 import { emptyInventory } from '../simulation/items'
-import type { RecipeId } from '../simulation/recipes'
+import type { FurnaceRecipeMode } from '../simulation/recipes'
 import { powerOverview } from '../simulation/power'
 import type { PowerOverview } from '../simulation/power'
 import { create } from 'zustand'
@@ -9,8 +9,8 @@ import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 export type Tool = BuildingKind | 'remove' | null
 interface State {
-  recipeRequest: { index: number; recipeId: RecipeId } | null
-  requestRecipe: (recipeId: RecipeId) => void
+  recipeRequest: { index: number; recipeMode: FurnaceRecipeMode } | null
+  requestRecipe: (recipeMode: FurnaceRecipeMode) => void
   stats: WorldStats
   electricity: PowerOverview
   powerOverlay: boolean
@@ -26,7 +26,7 @@ interface State {
 }
 export const useGameStore = create<State>(set => ({
   recipeRequest: null,
-  requestRecipe: recipeId => set(state => state.inspected !== null && state.inspection?.kind === 'furnace' ? { recipeRequest: { index: state.inspected, recipeId } } : state),
+  requestRecipe: recipeMode => set(state => state.inspected !== null && state.inspection?.kind === 'furnace' ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
   stats: { mined: emptyInventory(), produced: emptyInventory(), stored: emptyInventory(), maxMiningPerSec: 0, maxSmeltingPerSec: 0, miners: 0, furnaces: 0 },
   electricity: { installedKw: 0, connectedKw: 0, requestedKw: 0, suppliedKw: 0, surplusKw: 0, deficitKw: 0, networks: 0 },
   powerOverlay: false, togglePowerOverlay: () => set(state => ({ powerOverlay: !state.powerOverlay })),

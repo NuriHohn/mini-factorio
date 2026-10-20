@@ -4,11 +4,13 @@ import { advanceWorld } from './step'
 import { buildingAt, createWorld, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Belt, BuildingKind, Direction, Furnace, Miner, World } from './world'
 import { electricalDetails, inspectBuilding } from './inspection'
+import { changeFurnaceRecipe } from './smelting'
 import { inventoryTotal } from './items'
 
 function add(world: World, x: number, y: number, kind: BuildingKind, direction: Direction = 'east') {
   if (kind === 'miner') world.tiles[y * SIZE + x] = 'iron'
   expect(placeBuilding(world, x, y, kind, direction)).toBe(true)
+  if (kind === 'furnace') expect(changeFurnaceRecipe(world, x, y, 'ironSmelting')).toBe(null)
 }
 function miner(world: World, x: number, y: number) { return buildingAt(world, x, y) as Miner }
 function furnace(world: World, x: number, y: number) { return buildingAt(world, x, y) as Furnace }

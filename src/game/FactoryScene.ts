@@ -160,8 +160,8 @@ export class FactoryScene extends Phaser.Scene {
     const request = useGameStore.getState().recipeRequest
     if (request) {
       const position = tilePosition(request.index)
-      const error = changeFurnaceRecipe(this.world, position.x, position.y, request.recipeId)
-      useGameStore.setState({ recipeRequest: null, message: error ?? `Recipe selected: ${RECIPES[request.recipeId].label}.` })
+      const error = changeFurnaceRecipe(this.world, position.x, position.y, request.recipeMode)
+      useGameStore.setState({ recipeRequest: null, message: error ?? `Recipe mode: ${request.recipeMode === 'auto' ? 'Auto' : RECIPES[request.recipeMode].label}.` })
     }
     advanceWorld(this.world, delta)
     const power = allocatePower(this.world)
