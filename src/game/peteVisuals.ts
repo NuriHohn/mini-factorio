@@ -21,6 +21,7 @@ export function drawSabotage(g: Phaser.GameObjects.Graphics, world: World, build
   }
 }
 export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: number): void {
+  if (world.pete.mode === 'TRANSPORTED') return
   const pete = world.pete, crying = pete.mode === 'CRYING'
   const x = (pete.x + .5) * tile, y = (pete.y + .5) * tile
   const bob = crying ? Math.sin(world.timeMs / 110) : pete.next !== null ? Math.sin(world.timeMs / (pete.mode === 'FLEEING' ? 55 : 95)) * 1.5 : 0
@@ -35,6 +36,11 @@ export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: num
   g.fillStyle(0xfff2b6).fillCircle(x - 4, y - 4 + bob, 3).fillCircle(x + 4, y - 4 + bob, 3)
   g.fillStyle(0x17251b).fillCircle(x - 4, y - 4 + bob, 1.5).fillCircle(x + 4, y - 4 + bob, 1.5)
   g.lineStyle(1.5, 0x3e682d).lineBetween(x - 3, y + 2 + bob, x + 3, y + (crying ? 0 : 2) + bob)
+  if (pete.mode === 'IMPRISONED') {
+    g.lineStyle(2, 0x334520).lineBetween(x - 7, y - 9, x - 2, y - 6).lineBetween(x + 2, y - 6, x + 7, y - 9)
+    const grimace = Math.sin(world.timeMs / 200) * 2
+    g.lineStyle(2, 0x3e682d).lineBetween(x - 4, y + 3, x, y + 1 + grimace).lineBetween(x, y + 1 + grimace, x + 4, y + 3)
+  }
   if (crying) for (const side of [-1, 1]) {
     const fall = world.timeMs % 650 / 650
     g.fillStyle(0x72d6ff).fillEllipse(x + side * (6 + fall * 3), y + fall * 15, 3, 5)

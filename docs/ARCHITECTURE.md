@@ -17,6 +17,9 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 | [`crafting.ts`](../src/simulation/crafting.ts) | Shared jobs, power-scaled processing, output reservations, status and assembler mode/manual validation |
 | [`smelting.ts`](../src/simulation/smelting.ts) | Furnace incoming recipe probes and `changeFurnaceRecipe`; legacy processing exports delegate to shared crafting |
 | [`assemblerRecipes.ts`](../src/simulation/assemblerRecipes.ts) | One-time Auto candidate selection/locking, initial wait clock and per-item capacities |
+| [`navigation.ts`](../src/simulation/navigation.ts) | Shared stable cardinal neighbors, breadth-first reachability and paths for Pete/police |
+| [`police.ts`](../src/simulation/police.ts) | Radar queries, single dispatch, pursuit/arrest/transport, timed imprisonment/release, actor/exit reservations and lifecycle validation |
+| [`policeVisuals.ts`](../src/game/policeVisuals.ts) | Radar/prison graphics, flash, car/passenger, bars and jailbreak dust |
 | [`pete.ts`](../src/simulation/pete.ts) | Seeded NPC movement/pathfinding, scare hit testing, projectile impact and authoritative sabotage timers |
 | [`peteVisuals.ts`](../src/game/peteVisuals.ts) | Procedural goblin, pumpkin/web/tear animation and transient sabotage splatter |
 | [`power.ts`](../src/simulation/power.ts) | Cached networks, assignment, working demand, allocation and read-only pole preview |
@@ -44,7 +47,7 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 2. `advanceTransport`: advance existing belt items and commit reserved transfers.
 3. `outputMachines`: export buffered miner/furnace/assembler items; exclude belts just vacated by belt transport.
 4. `prepareAssemblerRecipes`: resolve idle Auto recipes and advance unscaled waiting clocks before computing working demand.
-5. `allocatePower`: refresh topology if invalidated, then calculate current demand and proportional supply.
+5. `allocatePower`: refresh topology if invalidated, then calculate current demand and proportional supply. `advancePolice` then uses this current allocation for detection, advances one police operation or releases/escapes a prisoner.
 6. `advanceInserters`: atomically pick up/deliver in inserter tile order using allocated power and the step-start budget.
 7. `advanceCrafting`: progress/complete existing jobs, finalize undecided assembler detection, and start eligible jobs without changing locked recipes.
 8. Mining: advance unblocked miners by allocated power fraction; buffer completed ore and update `mined`.
@@ -87,10 +90,22 @@ Extend the existing item/recipe/machine metadata and shared core before adding s
 
 ## NPC state and rendering lifetime
 
-`World.pete` holds one `WANDERING`/`FLEEING`/`CRYING` state, tile-to-tile interpolation, a seeded 32-bit LCG, escape path, cooldown, crying/web clocks and at most one in-flight pumpkin. The NPC module uses stable cardinal neighbor order; breadth-first search only runs for a new escape route or topology change. A reachable destination minimizes distance to any corner, then tile index. Wandering tests empty adjacent tiles; construction reserves Pete's current/next tile, and cached pole previews include these reservations in their key.
+`World.pete` holds one `WANDERING`/`FLEEING`/`CRYING` state, tile-to-tile interpolation, a seeded 32-bit LCG, escape path, cooldown, crying/web clocks and at most one in-flight pumpkin. Pete and police share stable cardinal neighbor order and breadth-first path queries; breadth-first search only runs for a new escape route or topology change. A reachable destination minimizes distance to any corner, then tile index. Wandering tests empty adjacent tiles; construction reserves Pete's current/next tile, and cached pole previews include these reservations in their key.
 
 Projectile snapshots retain the target building identity as well as its tile index: deletion/replacement cannot redirect a hit. The target reference is serializable with `structuredClone`, and no unbounded event history is retained. Elapsed sabotage timestamps on removed buildings have no world effect. Existing fixed-step remainders make behavior independent of frame partitions.
 
 Phaser checks Pete's world-space hit region before tool/inspection dispatch. A consumed click cannot place/delete a building, including repeated clicks during fleeing/crying. Every hit restarts only the bounded web animation; only a wandering hit changes NPC behavior. Fleeing uses 3× its initial speed (4.5 tiles/second), carrying unused fixed-step movement time across tile boundaries; wandering remains one tile/second. Zustand only dispatches this command and copied inspection data; NPC positions/inventories remain authoritative in the scene's world. Camera conversion is shared with building clicks.
 
 A single reused graphics layer redraws Pete, the bounded projectile/web effect and currently sabotaged buildings. Splatter reads building position and authoritative remaining time on every frame; no particle objects or independent expiry timers are allocated. It disappears on expiry or deletion, with a building-identity check guarding stale references. Bubbles, tears and walking bobs derive from simulation time, so rendering cannot extend a disable duration. One reused text object labels Pete.
+
+## Police custody invariants
+
+`World.police` owns at most one car/case, a bounded radar-flash snapshot, retry time, and a topology-revision cache of radar indices. Empty factories do not run a tile scan per step. Radar working demand is always 5 kW; detection uses the current supplied allocation (full 5 kW required), never a Phaser approximation. Dispatch is arbitrated by radar tile order after allocation. Prison creation uses supported placement and invalidates topology; it never overwrites a building or consumes the only reachable edge entry.
+
+The car holds its continuous position, current/next tile, bounded route, route revision/target, `RESPONDING`/`ARRESTING`/`TRANSPORTING` phase, arrest elapsed time and the prison building identity. Routes replan at tile boundaries when the target or topology changes. Construction reserves car current/next tiles and prison exits. Obstructed/unreachable return routes abort safely with the passenger released, not moved through a wall.
+
+Pete adds `ARRESTED`, `TRANSPORTED`, `IMPRISONED`, a prison identity, imprisonment start boundary, re-arrest grace deadline and bounded jailbreak snapshot. His cooldown still advances in `advancePete`, but custody stops independent movement and sabotage. Arrest cancels in-flight pumpkin state. Prison arrival records `imprisonedAtMs`; escape is exactly `World.timeMs - imprisonedAtMs >= 60000`. Release/escape sets a 10-second absolute grace deadline without touching sabotage cooldown.
+
+The prison inspector receives copied elapsed/remaining times, occupancy and an imprisonment timestamp token. Zustand queues `{index, imprisonedAtMs}` release intent; the scene applies it through `releasePete` before stepping. Validation checks current mode, building identity and timestamp, so duplicate/stale commands cannot release another case. Switching tools/inspection cancels pending release intent. Imprisoned Pete yields pointer priority to his prison; during arrest/transport his clicks remain consumed. Removal is handled synchronously through the supported building-removal hook, which frees a captive or cancels an arrival before the prison disappears.
+
+Graphics reuse the existing effects layer and simulation snapshots; flashing lights, angry eyebrows, shaking bars and dust have no gameplay authority or independent timers. An empty prison remains inspectable. Removing it immediately removes bars; jailbreak dust is bounded and naturally expires. Police/prisons have no item inventories and do not participate in transport or recipes.
