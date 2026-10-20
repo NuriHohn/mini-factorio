@@ -48,10 +48,6 @@ export function advanceCrafting(world: World, delta: number): void {
     }
     // A new job starts at this boundary and receives no elapsed time yet.
     machine.job = { recipeId: recipe.id, elapsedMs: 0, inputs, outputs }
-    if (machine.kind === 'assembler' && machine.recipeMode === 'auto') {
-      machine.autoWaitElapsedMs = null
-      machine.lastAutoRecipe = recipe.id
-    }
   }
 }
 
@@ -67,9 +63,10 @@ export function changeCraftingRecipe(world: World, x: number, y: number, recipeI
   if (recipeId !== 'auto' && (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== machine.kind)) return 'This recipe is not compatible with this machine.'
   const error = recipeChangeError(machine)
   if (error) return error
+  if (recipeId === 'auto' && machine.recipeLocked) return 'Automatic detection is one-time only. Choose a manual recipe to change the locked recipe.'
+  machine.recipeLocked = recipeId !== 'auto'
   machine.recipeMode = recipeId === 'auto' ? 'auto' : 'manual'
   machine.recipeId = recipeId === 'auto' ? null : recipeId
   machine.autoWaitElapsedMs = null
-  machine.lastAutoRecipe = null
   return null
 }

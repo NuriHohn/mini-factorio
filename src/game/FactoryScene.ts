@@ -12,7 +12,6 @@ import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { allocatePower, polePlacementPreview, POLE_COVERAGE_RADIUS, powerRequirement, tilePosition, withinRange } from '../simulation/power'
 import type { PolePlacementPreview } from '../simulation/power'
 import { electricalDetails } from '../simulation/inspection'
-import { inspectBuilding } from '../simulation/inspection'
 import { advanceWorld } from '../simulation/step'
 import type { Item } from '../simulation/items'
 import type { Direction } from '../simulation/world'
@@ -60,18 +59,13 @@ export class FactoryScene extends Phaser.Scene {
     this.cameras.main.centerOn(SIZE * TILE / 2, SIZE * TILE / 2)
     this.keys = this.input.keyboard!.addKeys('W,A,S,D', true) as typeof this.keys
     const keyboard = this.input.keyboard!
-    keyboard.on('keydown-ONE', () => useGameStore.getState().select('miner'))
-    keyboard.on('keydown-TWO', () => useGameStore.getState().select('belt'))
-    keyboard.on('keydown-THREE', () => useGameStore.getState().select('storage'))
-    keyboard.on('keydown-FOUR', () => useGameStore.getState().select('furnace'))
-    keyboard.on('keydown-FIVE', () => useGameStore.getState().select('generator'))
-    keyboard.on('keydown-SIX', () => useGameStore.getState().select('powerPole'))
-    keyboard.on('keydown-SEVEN', () => useGameStore.getState().select('assembler'))
-    keyboard.on('keydown-EIGHT', () => useGameStore.getState().select('inserter'))
+    keyboard.on('keydown', (event: KeyboardEvent) => {
+      const target = event.target
+      if (target instanceof HTMLElement && (target.matches('input, select, textarea') || target.isContentEditable)) return
+      useGameStore.getState().handleToolKey(event)
+    })
     keyboard.on('keydown-P', () => useGameStore.getState().togglePowerOverlay())
-    keyboard.on('keydown-X', () => useGameStore.getState().select('remove'))
     keyboard.on('keydown-R', () => useGameStore.getState().rotate())
-    keyboard.on('keydown-ESC', () => useGameStore.getState().select(null))
     this.input.on('wheel', (_p: Phaser.Input.Pointer, _objects: unknown[], _dx: number, dy: number) => {
       this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom * (dy > 0 ? .9 : 1.1), .5, 2.5))
     })
@@ -81,9 +75,7 @@ export class FactoryScene extends Phaser.Scene {
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
       if (!tool) {
-        const index = y * SIZE + x
-        const inspection = buildingAt(this.world, x, y) ? inspectBuilding(this.world, index) : null
-        useGameStore.setState({ inspected: inspection ? index : null, inspection })
+        useGameStore.getState().inspect(this.world, x, y)
         return
       }
       const error = tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, tool)

@@ -13,12 +13,12 @@ Open the URL printed by Vite. In Windows PowerShell, use `npm.cmd` if script exe
 
 ## First factory
 
-Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore automatically. For circuits, feed iron plates and copper cables to separate inputs of an assembler; its Auto mode prioritizes complete circuit batches. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Progress is session-only: refresh starts a new world.
+Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, feed iron plates and copper cables to separate inputs of an assembler; its initial Auto detection prioritizes complete circuit batches before permanently locking. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Progress is session-only: refresh starts a new world.
 
 | Control | Action |
 | --- | --- |
 | WASD / mouse wheel | Move camera / zoom |
-| 1–8 | Miner, belt, chest, furnace, generator, pole, assembler, inserter |
+| 1–8 | Toggle miner, belt, chest, furnace, generator, pole, assembler, inserter |
 | R / X | Rotate placement direction / remove, discarding contents |
 | P | Electricity overlay |
 | Escape, then click | Cancel placement and inspect a building |

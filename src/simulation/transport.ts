@@ -29,7 +29,7 @@ function accept(target: Building, item: Item, direction: Direction): void {
     case 'storage': target.inventory[item]++; break
     case 'furnace': {
       const recipeId = incomingRecipe(target, item)
-      if (recipeId) target.recipeId = recipeId
+      if (recipeId) { target.recipeId = recipeId; target.recipeLocked = true }
       target.input[item]++
       break
     }

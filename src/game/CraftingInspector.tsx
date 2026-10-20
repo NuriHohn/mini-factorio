@@ -4,6 +4,7 @@ import { RECIPES } from '../simulation/recipes'
 import type { FurnaceRecipeMode } from '../simulation/recipes'
 import { InventoryView, RecipeAmounts } from './InventoryView'
 
+const detectionStatuses = { undetected: 'Waiting for automatic detection', choosing: 'Choosing initial recipe', 'automatic-locked': 'Locked automatically', 'manual-locked': 'Locked manually' }
 const statuses = { processing: 'Processing', 'waiting-input': 'Waiting for ingredients', 'output-full': 'Output full', 'waiting-recipe': 'Waiting for more ingredients' }
 export function CraftingInspector({ inspection, requestRecipe }: {
   inspection: Extract<Inspection, { kind: 'furnace' | 'assembler' }>
@@ -13,15 +14,17 @@ export function CraftingInspector({ inspection, requestRecipe }: {
   const selectorId = `${inspection.kind}-recipe`
   return <>
     <h2>{furnace ? 'Furnace' : 'Assembler'}</h2>
-    <div className="stats"><span>{furnace || inspection.recipeMode === 'auto' ? 'Detected recipe' : 'Selected recipe'}</span><b>{inspection.recipe}</b></div>
+    <div className="stats"><span>{inspection.recipeLocked ? 'Locked recipe' : 'Candidate recipe'}</span><b>{inspection.recipe}</b></div>
+    <div className="stats"><span>Detection status</span><b>{detectionStatuses[inspection.detectionStatus]}</b></div>
     {!furnace && <div className="stats"><span>Recipe mode</span><b>{inspection.recipeMode === 'auto' ? 'Auto' : 'Manual'}</b></div>}
     <label className="recipe-label" htmlFor={selectorId}>{furnace ? 'Recipe mode' : 'Assembler recipe'}</label>
     <select id={selectorId} value={inspection.recipeMode} disabled={inspection.recipeChangeError !== null} aria-describedby="recipe-help" onChange={event => {
       if (event.currentTarget.value === 'auto') { requestRecipe('auto'); return }
       const recipe = Object.values(RECIPES).find(recipe => recipe.machine === inspection.kind && recipe.id === event.currentTarget.value)
       if (recipe) requestRecipe(recipe.id)
-    }}><option value="auto">Auto</option>{Object.values(RECIPES).filter(recipe => recipe.machine === inspection.kind).map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.label}</option>)}</select>
-    <p className="inspection-note" id="recipe-help">{inspection.recipeChangeError ?? (furnace ? 'Auto detects incoming ore and stays locked until both buffers and the active batch are empty. Change mode only while empty and idle.' : 'Auto prioritizes complete circuit batches. Single-ingredient batches wait 2 seconds for more ingredients. Selecting a recipe locks Manual mode; mode changes require empty buffers and no active batch.')}</p>
+    }}><option value="auto" disabled={inspection.recipeLocked}>Auto (once after placement)</option>{Object.values(RECIPES).filter(recipe => recipe.machine === inspection.kind).map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.label}</option>)}</select>
+    <p className="inspection-note" id="recipe-help">{inspection.recipeLocked ? 'This recipe stays locked, even when empty. A manual change requires empty buffers and no active batch; automatic detection cannot be restarted.' : furnace ? 'The first accepted ore permanently locks its recipe.' : 'Complete circuits take priority during initial detection. Single-ingredient candidates wait 2 seconds, then lock permanently. Existing buffered items are retained.'}</p>
+    {inspection.recipeChangeError && <p className="inspection-note">{inspection.recipeChangeError}</p>}
     {inspection.recipeId && <p className="inspection-recipe"><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /> · {inspection.durationMs / 1000} seconds at full power</p>}
     <div className="stats"><span>Status</span><b>{inspection.status === 'processing' && inspection.electrical.speedFraction === 0 ? 'Paused · no power' : statuses[inspection.status]}</b></div>
     {!furnace && inspection.recipeMode === 'auto' && <div className="stats"><span>Recipe wait remaining</span><b>{(inspection.recipeWaitRemainingMs / 1000).toFixed(2)} s</b></div>}

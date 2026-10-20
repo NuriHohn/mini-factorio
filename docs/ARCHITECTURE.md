@@ -16,7 +16,7 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 | [`inserters.ts`](../src/simulation/inserters.ts) | Step-start source budgets, deterministic pickup/delivery, powered swing/return, held items and port/status queries |
 | [`crafting.ts`](../src/simulation/crafting.ts) | Shared jobs, power-scaled processing, output reservations, status and assembler mode/manual validation |
 | [`smelting.ts`](../src/simulation/smelting.ts) | Furnace incoming recipe probes and `changeFurnaceRecipe`; legacy processing exports delegate to shared crafting |
-| [`assemblerRecipes.ts`](../src/simulation/assemblerRecipes.ts) | Auto candidate selection, wait clock, tie rotation and per-item capacities |
+| [`assemblerRecipes.ts`](../src/simulation/assemblerRecipes.ts) | One-time Auto candidate selection/locking, initial wait clock and per-item capacities |
 | [`power.ts`](../src/simulation/power.ts) | Cached networks, assignment, working demand, allocation and read-only pole preview |
 | [`inspection.ts`](../src/simulation/inspection.ts) | Copied building/electrical snapshots and derived world statistics |
 | [`beltConnections.ts`](../src/simulation/beltConnections.ts) | Topology-derived visual inputs and stable primary lane |
@@ -25,7 +25,7 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 | [`inserterArm.ts`](../src/game/inserterArm.ts), [`InserterInspector.tsx`](../src/game/InserterInspector.tsx) | Pure arm path and copied inserter-state presentation |
 | [`cameraMovement.ts`](../src/game/cameraMovement.ts) | Framework-independent movement, normalized diagonals and viewport-aware bounds |
 | [`GameCanvas.tsx`](../src/game/GameCanvas.tsx) | Phaser host/effect, resize observer and cleanup |
-| [`gameStore.ts`](../src/state/gameStore.ts) | Zustand tools/direction, inspected index, recipe request intent and changed summary snapshots |
+| [`gameStore.ts`](../src/state/gameStore.ts) | Authoritative tool enum, shared toggle/hotkey/inspection actions, direction, recipe intents and copied summaries |
 | [`App.tsx`](../src/App.tsx) | React toolbar, controls, statistics, inspector and electricity overview |
 | [`CraftingInspector.tsx`](../src/game/CraftingInspector.tsx), [`PowerInspector.tsx`](../src/game/PowerInspector.tsx), [`InventoryView.tsx`](../src/game/InventoryView.tsx) | Derived-value presentation; no production math or world mutations |
 | [`main.tsx`](../src/main.tsx), [`index.css`](../src/index.css), [`vite.config.ts`](../vite.config.ts) | Strict Mode entry, active styles, React/Tailwind Vite plugins |
@@ -44,10 +44,10 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 4. `prepareAssemblerRecipes`: resolve idle Auto recipes and advance unscaled waiting clocks before computing working demand.
 5. `allocatePower`: refresh topology if invalidated, then calculate current demand and proportional supply.
 6. `advanceInserters`: atomically pick up/deliver in inserter tile order using allocated power and the step-start budget.
-7. `advanceCrafting`: progress/complete existing jobs, reselect idle Auto assemblers, and start eligible new jobs.
+7. `advanceCrafting`: progress/complete existing jobs, finalize undecided assembler detection, and start eligible jobs without changing locked recipes.
 8. Mining: advance unblocked miners by allocated power fraction; buffer completed ore and update `mined`.
 
-New crafting jobs begin with zero elapsed time; finished products export on a later step. An assembler completing a job can select another recipe at that boundary without advancing its wait clock again. Readiness newly supplied by an inserter receives processing power on a subsequent allocation; new jobs still start at zero. Phaser also calls `allocatePower` after stepping for current visual/inspection data; that call does not advance simulation time.
+New crafting jobs begin with zero elapsed time; finished products export on a later step. An assembler completing a job keeps its locked recipe and may start the next batch at that boundary. Readiness newly supplied by an inserter receives processing power on a subsequent allocation; new jobs still start at zero. Phaser also calls `allocatePower` after stepping for current visual/inspection data; that call does not advance simulation time.
 
 ## Crafting and inventories
 
@@ -55,7 +55,7 @@ Recipes contain quantity maps rather than one hardcoded ingredient/product. Furn
 
 Job creation atomically checks complete ingredients and output space, subtracts ingredients, and stores `ProcessingJob.inputs`, `outputs`, `recipeId` and `elapsedMs`. Committed inputs leave the input buffer but remain accountable in the job. Job outputs reserve capacity; they are not physical products yet. Completion atomically adds all outputs, increments `World.produced` by their actual quantities, and clears the job once. Missing input or insufficient output space prevents a new job. Zero power preserves jobs and prevents starting; fractional supply scales elapsed processing by machine crafting speed.
 
-Furnace `incomingRecipe` is read-only; transport reserves its chosen recipe across simultaneous deliveries. Assembler Auto selection instead examines buffered quantities, may change recipes with mixed input/output buffers, and never changes an active job. Its wait/last-started fields live in the assembler, not the renderer. Exact policies and capacities: [Game design](GAME_DESIGN.md#automatic-and-manual-recipes).
+Furnace `incomingRecipe` is read-only; transport reserves its chosen recipe across simultaneous deliveries. Assembler Auto examines buffered quantities only until its initial decision: candidates can change during the initial wait, then `recipeLocked` prevents all further automatic selection. Furnace detection locks on accepted ore. Manual selection also locks, and a locked building cannot rearm Auto. Initial wait and lock state live in simulation, not the renderer; unrelated pre-lock stock is retained and future deliveries are filtered by the locked ingredients. Exact policies and capacities: [Game design](GAME_DESIGN.md#automatic-and-manual-recipes).
 
 ## Transport and electricity
 
@@ -68,6 +68,8 @@ The ephemeral `InserterFrame` bounds pickups by old source quantities even if be
 Power topology is cached against `topologyRevision`; successful placement/removal increments it. Pole edges join connected components. Machines/generators use their lowest-index covering pole, giving one deterministic network assignment. Coverage overlap alone never joins networks. `allocatePower` recomputes working demand each call and supplies each requesting consumer at `min(1, network capacity / network demand)`. Uncovered consumers receive zero. `powerOverview` keeps network surpluses separate from deficits. `polePlacementPreview` uses the same connectivity functions without mutating topology.
 
 ## Commands, rendering and lifecycle
+
+Toolbar clicks and non-repeating placement/deletion hotkeys use the same atomic `select` toggle action; Escape explicitly requests null and is idempotent in normal mode. `tool` is the only placement/removal authority: React derives `aria-pressed` and styling from it, while Phaser reads it for previews and click behavior. Inspection is admitted only when it is null. Overlay and keyboard focus have separate visual styles and do not represent active tools.
 
 React sends a recipe intent through Zustand; `FactoryScene.update` revalidates it against the live building before stepping. `inspectBuilding`, `electricalDetails` and `worldStats` derive copied summaries. Store publication compares values and avoids unchanged updates; item positions stay outside Zustand.
 
