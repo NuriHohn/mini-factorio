@@ -2,7 +2,7 @@ import { SIZE, inside } from './world'
 import type { Building, Position, World } from './world'
 
 export const PETE_WALK_MS = 1000
-export const PETE_FLEE_MS = PETE_WALK_MS / 1.5
+export const PETE_FLEE_MS = PETE_WALK_MS / (1.5 * 3)
 export const PETE_COOLDOWN_MS = 30000
 export const SABOTAGE_MS = 10000
 export const PUMPKIN_FLIGHT_MS = 400
@@ -54,14 +54,14 @@ function escapePath(world: World): void {
 export function peteHit(world: World, position: Position): boolean {
   return Math.hypot(world.pete.x - position.x, world.pete.y - position.y) <= .65
 }
-// Returns true even for ignored repeated clicks, so tools can never act through Pete.
+// Every hit replays the web visual; only wandering hits change behavior.
 export function clickPete(world: World, position: Position): boolean {
   if (!peteHit(world, position)) return false
   const pete = world.pete
+  pete.webMs = 700
   if (pete.mode !== 'WANDERING') return true
   pete.travelMs = pete.travelMs / PETE_WALK_MS * PETE_FLEE_MS
   pete.mode = 'FLEEING'
-  pete.webMs = 700
   pete.escape = null
   pete.pathRevision = -1
   return true
@@ -91,25 +91,32 @@ export function advancePete(world: World, delta: number): void {
     return
   }
   if (pete.next !== null && world.buildings[pete.next]) { pete.next = null; pete.travelMs = 0; pete.x = pete.tile % SIZE; pete.y = Math.floor(pete.tile / SIZE); pete.pathRevision = -1 }
-  if (pete.mode === 'FLEEING' && pete.next === null && pete.pathRevision !== world.topologyRevision) escapePath(world)
-  if (pete.next === null) {
-    if (pete.mode === 'FLEEING') {
-      pete.next = pete.path.shift() ?? null
-      if (pete.next === null) { pete.mode = 'CRYING'; pete.cryingMs = SABOTAGE_MS; return }
-    } else {
-      const choices = neighbors(pete.tile).filter(tile => !world.buildings[tile])
-      if (choices.length) pete.next = choices[Math.floor(random(pete) * choices.length)]
+  // Carry the unused part of a fixed step across tile boundaries at the faster speed.
+  let remaining = delta
+  while (remaining > 1e-8) {
+    if (pete.mode === 'FLEEING' && pete.next === null && pete.pathRevision !== world.topologyRevision) escapePath(world)
+    if (pete.next === null) {
+      if (pete.mode === 'FLEEING') {
+        pete.next = pete.path.shift() ?? null
+        if (pete.next === null) { pete.mode = 'CRYING'; pete.cryingMs = SABOTAGE_MS; break }
+      } else {
+        const choices = neighbors(pete.tile).filter(tile => !world.buildings[tile])
+        if (choices.length) pete.next = choices[Math.floor(random(pete) * choices.length)]
+        else break
+      }
     }
-  }
-  if (pete.next !== null) {
-    const duration = pete.mode === 'FLEEING' ? PETE_FLEE_MS : PETE_WALK_MS
-    pete.travelMs = Math.min(duration, pete.travelMs + delta)
-    const progress = pete.travelMs / duration
-    pete.x = pete.tile % SIZE + (pete.next % SIZE - pete.tile % SIZE) * progress
-    pete.y = Math.floor(pete.tile / SIZE) + (Math.floor(pete.next / SIZE) - Math.floor(pete.tile / SIZE)) * progress
-    if (pete.travelMs >= duration - 1e-8) {
-      pete.tile = pete.next; pete.next = null; pete.travelMs = 0
-      if (pete.mode === 'FLEEING' && pete.tile === pete.escape && pete.path.length === 0) { pete.mode = 'CRYING'; pete.cryingMs = SABOTAGE_MS }
+    if (pete.next !== null) {
+      const duration = pete.mode === 'FLEEING' ? PETE_FLEE_MS : PETE_WALK_MS
+      const spent = Math.min(duration - pete.travelMs, remaining)
+      pete.travelMs += spent
+      remaining -= spent
+      const progress = pete.travelMs / duration
+      pete.x = pete.tile % SIZE + (pete.next % SIZE - pete.tile % SIZE) * progress
+      pete.y = Math.floor(pete.tile / SIZE) + (Math.floor(pete.next / SIZE) - Math.floor(pete.tile / SIZE)) * progress
+      if (pete.travelMs >= duration - 1e-8) {
+        pete.tile = pete.next; pete.next = null; pete.travelMs = 0
+        if (pete.mode === 'FLEEING' && pete.tile === pete.escape && pete.path.length === 0) { pete.mode = 'CRYING'; pete.cryingMs = SABOTAGE_MS; break }
+      }
     }
   }
   if (pete.mode !== 'WANDERING' || pete.cooldownMs > 0 || pete.pumpkin) return
