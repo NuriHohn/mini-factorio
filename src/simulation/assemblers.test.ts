@@ -37,7 +37,10 @@ function incoming(world: World, x: number, y: number, direction: Direction, item
   b.item = item
   b.progress = 1
 }
-function loadBatch(a: Assembler) { Object.assign(a.input, RECIPES[a.recipeId].inputs) }
+function loadBatch(a: Assembler) {
+  if (!a.recipeId) throw Error('Fixture requires a manual recipe')
+  Object.assign(a.input, RECIPES[a.recipeId].inputs)
+}
 function inventoryMaterials(inventory: Readonly<Partial<Inventory>>) {
   // Copper is measured in half-plate units, avoiding fractional conservation assertions.
   return {
@@ -60,7 +63,7 @@ function materials(world: World) {
       if (b.job) count(b.job.inputs) // Never double count promised products.
       expect(inventoryTotal(b.output) + inventoryTotal(b.job?.outputs ?? {})).toBeLessThanOrEqual(MACHINE_DEFINITIONS[b.kind].outputCapacity)
       if (b.kind === 'furnace') expect(inventoryTotal(b.input)).toBeLessThanOrEqual(2)
-      else for (const item of ITEMS) expect(b.input[item]).toBeLessThanOrEqual((RECIPES[b.recipeId].inputs[item] ?? 0) * 2)
+      else for (const item of ITEMS) expect(b.input[item]).toBeLessThanOrEqual(((b.recipeId ? RECIPES[b.recipeId].inputs[item] : 0) ?? 0) * 2)
     } else if (b.kind === 'storage') count(b.inventory)
     else if ((b.kind === 'miner' || b.kind === 'belt') && b.item) count({ [b.item]: 1 })
   }
@@ -268,6 +271,7 @@ describe('assembler electricity, inspection and removal', () => {
   it('shares a shortage proportionally and ignores inactive machines', () => {
     const world = setup(), a = assembler(world)
     add(world, 22, 20, 'assembler'); const other = assembler(world, 22, 20)
+    expect(changeCraftingRecipe(world, 22, 20, 'ironGear')).toBe(null)
     loadBatch(a)
     expect(allocatePower(world).consumers[20 * SIZE + 20]).toMatchObject({ requestedKw: 60, speedFraction: 1 })
     expect(workingDemand(other)).toBe(0)
@@ -297,7 +301,7 @@ describe('assembler electricity, inspection and removal', () => {
     expect(world.produced.copperCable).toBe(10); expect(world.mined.copper).toBe(8)
     expect(materials(world)).toEqual({ iron: 0, copper: 0 })
     expect(worldStats(world).assemblers).toBe(0)
-    add(world, 20, 20, 'assembler'); expect(assembler(world)).toMatchObject({ recipeId: 'ironGear', job: null, input: emptyInventory(), output: emptyInventory() })
+    add(world, 20, 20, 'assembler'); expect(assembler(world)).toMatchObject({ recipeMode: 'auto', recipeId: null, job: null, input: emptyInventory(), output: emptyInventory() })
   })
 })
 

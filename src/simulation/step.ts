@@ -2,6 +2,7 @@ import { depositAt, INTERVAL, SIZE } from './world'
 import type { World } from './world'
 import { advanceTransport, outputMachines } from './transport'
 import { allocatePower } from './power'
+import { prepareAssemblerRecipes } from './assemblerRecipes'
 import { advanceCrafting } from './crafting'
 export const STEP_MS = 50
 export function advanceWorld(world: World, delta: number): void {
@@ -11,6 +12,7 @@ export function advanceWorld(world: World, delta: number): void {
     world.remainder = Math.max(0, world.remainder - STEP_MS)
     const vacated = advanceTransport(world, STEP_MS)
     outputMachines(world, vacated)
+    prepareAssemblerRecipes(world, STEP_MS)
     const power = allocatePower(world)
     advanceCrafting(world, STEP_MS)
     for (const miner of world.buildings) {

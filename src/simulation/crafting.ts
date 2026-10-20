@@ -1,9 +1,10 @@
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
-import { MACHINE_DEFINITIONS, RECIPES } from './recipes'
+import { hasRecipeInputs, MACHINE_DEFINITIONS, RECIPES } from './recipes'
 import { buildingAt, SIZE } from './world'
-import type { RecipeId } from './recipes'
+import { assemblerWaitRemaining, selectAssemblerRecipe } from './assemblerRecipes'
+import type { FurnaceRecipeMode } from './recipes'
 import type { CraftingMachine, World } from './world'
-export type CraftingStatus = 'processing' | 'waiting-input' | 'output-full'
+export type CraftingStatus = 'processing' | 'waiting-input' | 'output-full' | 'waiting-recipe'
 
 function hasOutputSpace(machine: CraftingMachine): boolean {
   const outputs = machine.job?.outputs ?? (machine.recipeId ? RECIPES[machine.recipeId].outputs : {})
@@ -11,11 +12,12 @@ function hasOutputSpace(machine: CraftingMachine): boolean {
 }
 export function craftingStatus(machine: CraftingMachine): CraftingStatus {
   if (!hasOutputSpace(machine)) return 'output-full'
+  if (machine.kind === 'assembler' && assemblerWaitRemaining(machine) > 0) return 'waiting-recipe'
   return machine.job ? 'processing' : 'waiting-input'
 }
 export function canStartCrafting(machine: CraftingMachine): boolean {
   const recipe = machine.recipeId ? RECIPES[machine.recipeId] : null
-  return recipe !== null && recipe.machine === machine.kind && !machine.job && hasOutputSpace(machine) && ITEMS.every(item => machine.input[item] >= (recipe.inputs[item] ?? 0))
+  return recipe !== null && recipe.machine === machine.kind && !machine.job && hasOutputSpace(machine) && hasRecipeInputs(machine.input, recipe) && (machine.kind !== 'assembler' || assemblerWaitRemaining(machine) === 0)
 }
 export function advanceCrafting(world: World, delta: number): void {
   for (const machine of world.buildings) {
@@ -35,6 +37,7 @@ export function advanceCrafting(world: World, delta: number): void {
       }
     }
     if (machine.job) continue
+    if (machine.kind === 'assembler') selectAssemblerRecipe(machine, 0)
     if (!machine.recipeId || !canStartCrafting(machine)) continue
     const recipe = RECIPES[machine.recipeId]
     const inputs = emptyInventory(), outputs = emptyInventory()
@@ -45,6 +48,10 @@ export function advanceCrafting(world: World, delta: number): void {
     }
     // A new job starts at this boundary and receives no elapsed time yet.
     machine.job = { recipeId: recipe.id, elapsedMs: 0, inputs, outputs }
+    if (machine.kind === 'assembler' && machine.recipeMode === 'auto') {
+      machine.autoWaitElapsedMs = null
+      machine.lastAutoRecipe = recipe.id
+    }
   }
 }
 
@@ -53,13 +60,16 @@ export function recipeChangeError(machine: CraftingMachine): string | null {
   if (inventoryTotal(machine.input) || inventoryTotal(machine.output)) return 'Empty both input and output buffers before changing recipes.'
   return null
 }
-// Assemblers are manual only; callers cannot bypass compatibility or material locks.
-export function changeCraftingRecipe(world: World, x: number, y: number, recipeId: RecipeId): string | null {
+// Mode changes and manual selection cannot bypass compatibility or material locks.
+export function changeCraftingRecipe(world: World, x: number, y: number, recipeId: FurnaceRecipeMode): string | null {
   const machine = buildingAt(world, x, y)
   if (machine?.kind !== 'assembler') return 'Select an existing assembler.'
-  if (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== machine.kind) return 'This recipe is not compatible with this machine.'
+  if (recipeId !== 'auto' && (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== machine.kind)) return 'This recipe is not compatible with this machine.'
   const error = recipeChangeError(machine)
   if (error) return error
-  machine.recipeId = recipeId
+  machine.recipeMode = recipeId === 'auto' ? 'auto' : 'manual'
+  machine.recipeId = recipeId === 'auto' ? null : recipeId
+  machine.autoWaitElapsedMs = null
+  machine.lastAutoRecipe = null
   return null
 }

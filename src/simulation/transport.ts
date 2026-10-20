@@ -4,6 +4,7 @@ import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import type { Inventory, Item } from './items'
 import { MACHINE_DEFINITIONS, RECIPES } from './recipes'
 import type { RecipeId } from './recipes'
+import { assemblerInputCapacity } from './assemblerRecipes'
 import { incomingRecipe } from './smelting'
 export const BELT_TRAVEL_MS = 500
 
@@ -15,12 +16,11 @@ function canReceive(target: Building, item: Item, travel: Direction, reserved: R
   switch (target.kind) {
     case 'storage': return true
     case 'belt': return !target.item && inventoryTotal(reserved) === 0 && target.direction !== opposite(travel)
-    case 'assembler':
+    case 'assembler': return target.direction !== opposite(travel)
+      && target.input[item] + (reserved[item] ?? 0) < assemblerInputCapacity(target, item)
     case 'furnace': return target.direction !== opposite(travel)
       && recipeId !== null && (RECIPES[recipeId].inputs[item] ?? 0) > 0
-      && (target.kind === 'furnace'
-        ? inventoryTotal(target.input) + inventoryTotal(reserved) < MACHINE_DEFINITIONS.furnace.input.capacity
-        : target.input[item] + (reserved[item] ?? 0) < (RECIPES[recipeId].inputs[item] ?? 0) * MACHINE_DEFINITIONS.assembler.input.batches)
+      && inventoryTotal(target.input) + inventoryTotal(reserved) < MACHINE_DEFINITIONS.furnace.input.capacity
     default: return false
   }
 }
