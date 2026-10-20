@@ -10,7 +10,7 @@ function target(world: World, direction: Direction = 'east'): Belt {
 }
 function source(world: World, side: Direction, kind: 'belt' | 'miner' = 'belt') {
   const d = offsets[side]
-  world.tiles[(20 + d.y) * 40 + 20 + d.x] = true
+  world.tiles[(20 + d.y) * 40 + 20 + d.x] = 'iron'
   expect(placeBuilding(world, 20 + d.x, 20 + d.y, kind, opposite(side))).toBe(true)
 }
 describe('belt topology', () => {

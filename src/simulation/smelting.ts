@@ -1,6 +1,7 @@
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import { FURNACE_OUTPUT_CAPACITY, RECIPES } from './recipes'
-import { SIZE } from './world'
+import { buildingAt, SIZE } from './world'
+import type { RecipeId } from './recipes'
 import type { Furnace, World } from './world'
 export type FurnaceStatus = 'processing' | 'waiting-input' | 'output-full'
 
@@ -26,8 +27,10 @@ export function advanceSmelting(world: World, delta: number): void {
       const recipe = RECIPES[job.recipeId]
       job.elapsedMs = Math.min(recipe.durationMs, job.elapsedMs + delta * speed)
       if (job.elapsedMs >= recipe.durationMs - 1e-8 && hasOutputSpace(furnace)) {
-        for (const item of ITEMS) furnace.output[item] += job.outputs[item]
-        world.plates += job.outputs.ironPlate
+        for (const item of ITEMS) {
+          furnace.output[item] += job.outputs[item]
+          world.produced[item] += job.outputs[item]
+        }
         furnace.job = null
       }
     }
@@ -43,4 +46,19 @@ export function advanceSmelting(world: World, delta: number): void {
     // A new job starts at this boundary and receives no elapsed time yet.
     furnace.job = { recipeId: recipe.id, elapsedMs: 0, inputs, outputs }
   }
+}
+
+export function recipeChangeError(furnace: Furnace): string | null {
+  if (furnace.job) return 'Finish the active batch before changing recipes, including any reserved materials.'
+  if (inventoryTotal(furnace.input) || inventoryTotal(furnace.output)) return 'Empty both input and output buffers before changing recipes.'
+  return null
+}
+export function changeFurnaceRecipe(world: World, x: number, y: number, recipeId: RecipeId): string | null {
+  const furnace = buildingAt(world, x, y)
+  if (furnace?.kind !== 'furnace') return 'Select an existing furnace.'
+  if (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== furnace.kind) return 'This recipe is not compatible with this machine.'
+  const error = recipeChangeError(furnace)
+  if (error) return error
+  furnace.recipeId = recipeId
+  return null
 }

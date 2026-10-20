@@ -32,7 +32,7 @@ describe('power pole placement preview', () => {
   })
   it.each(['powerPole', 'generator', 'miner', 'belt', 'storage', 'furnace'] as const)('marks a tile occupied by a %s as invalid', kind => {
     const world = setup()
-    world.tiles[11 * SIZE + 10] = true
+    world.tiles[11 * SIZE + 10] = 'iron'
     placeBuilding(world, 10, 11, kind, 'east')
     expect(polePlacementPreview(world, { x: 10, y: 11 })).toMatchObject({ state: 'invalid', connections: [] })
   })

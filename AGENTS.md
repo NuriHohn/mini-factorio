@@ -17,21 +17,22 @@ Use the versions and scripts in `package.json` as the source of truth. Do not ad
 
 ## Existing structure and architecture
 
-- `src/simulation/world.ts`: framework-independent terrain generation and tile-indexed building state, placement/removal validation, direction helpers. Terrain is a flat boolean array (`true` means iron); buildings form a parallel array of miner, belt, storage, furnace, generator, power pole, or null. Functions mutate the supplied world.
+- `src/simulation/world.ts`: framework-independent terrain generation and tile-indexed building state, placement/removal validation, direction helpers. Terrain is a flat `(Resource | null)[]` array (ore ID or grass); buildings form a parallel array of miner, belt, storage, furnace, generator, power pole, or null. Functions mutate the supplied world.
 - `src/simulation/power.ts`: cached pole topology and deterministic single-network assignment; 6-tile pole links, 3-tile coverage, Euclidean/inclusive boundaries. Each generator supplies 100 kW. Working miners/furnaces request 30/50 kW; each network allocates proportionally and production scales by the fraction, capped at 1. Idle/blocked machines request zero. Use supported placement/removal operations to invalidate `topologyRevision`; no power is available by default.
-- `src/simulation/items.ts` and `recipes.ts`: item IDs, inventory helpers, quantity-based recipe definitions and two-item furnace capacities. Keep ore's existing `iron` ID; plates use `ironPlate`.
-- `src/simulation/smelting.ts`: pure recipe processing, operational status, consumed in-process inputs and explicit job output reservations. Input capacity excludes active-job ingredients; output capacity includes reserved products. New jobs start with zero elapsed time.
+- `src/simulation/items.ts` and `recipes.ts`: item IDs, inventory helpers, quantity-based recipe definitions and two-item furnace capacities. Item IDs are `iron`, `ironPlate`, `copper`, `copperPlate`; preserve existing IDs. Item metadata centrally defines labels, ore/plate categories and shape/color palettes. Recipes expose compatible machine, quantity maps and duration for future offline planners; do not implement a planner here.
+- `src/simulation/smelting.ts`: pure recipe processing, operational status, consumed in-process inputs and explicit job output reservations. Input capacity excludes active-job ingredients; output capacity includes reserved products. New jobs start with zero elapsed time. `changeFurnaceRecipe` only allows a completely empty, idle furnace; never discard resources to change a recipe.
 - `src/simulation/inspection.ts`: derived world statistics and copied machine, generator, pole and chest inspection snapshots, including assigned networks and shortage explanations; do not expose mutable world inventories to React.
 - `src/simulation/beltConnections.ts`: pure topology-derived input connections, independent of item activity. Rear input is visually primary, then side inputs in source tile order. This does not alter transport arbitration.
 - `src/game/beltPath.ts`: pure tile-local line/quarter-circle centerlines used for both Phaser lane strokes and continuous item positions at tile edges.
 - `src/simulation/transport.ts`: belt progress, directional acceptance, snapshot-based transfer arbitration and commit, and shared buffered miner/furnace output. Reserve furnace input capacity across simultaneous deliveries before commit. Coordinate order resolves competing inputs; destinations occupied at the beginning of a step cannot receive in that step.
 - `src/simulation/step.ts`: `advanceWorld` retains elapsed time and runs fixed 50 ms steps in belt transport → buffered machine output → power allocation → smelting completion/new job starts → mining order. Finished products can output on the following step. Keep all simulation modules independent of React, Phaser, Zustand and the DOM.
 - `src/simulation/world.test.ts`: placement, removal, direction, production, transport, congestion, conservation (before any discard) and time-partition tests. Colocated connection and path tests cover topology changes, multiple inputs and geometric continuity.
+- `src/game/InventoryView.tsx`: registry-based inventory and recipe amount presentation; no production calculations.
 - `src/game/PowerInspector.tsx`: React presentation of electrical status, supplied fraction and network statistics; derived values only.
 - `src/game/FactoryScene.ts`: owns the simulation world, draws procedural terrain/buildings/typed items, power wires, placement/inspection coverage with machine highlights, and power-scaled furnace glow, handles input, advances the world and publishes changed summaries to Zustand.
 - `src/game/cameraMovement.ts`: renderer-independent camera movement and viewport-aware bounds helpers, using structural TypeScript interfaces. `cameraMovement.test.ts` tests directions, diagonal speed, opposite keys, timing, zoom, and bounds.
 - `src/game/GameCanvas.tsx`: React host for Phaser. Creates the game in an effect, observes container resizing, and disconnects the observer and destroys the game on cleanup. Preserve compatibility with React Strict Mode.
-- `src/state/gameStore.ts`: Zustand state for cumulative mined/stored totals, miner count, tool/direction selection, copied furnace/chest inspection details and status messages. The scene's world remains the simulation source of truth; the store exposes UI data.
+- `src/state/gameStore.ts`: Zustand state for cumulative mined/stored totals, miner count, tool/direction selection, copied building inspection details and status messages. Recipe selection submits a command intent that the scene revalidates against the authoritative world before stepping; React must not mutate world state. The scene's world remains the simulation source of truth; the store exposes UI data.
 - `src/App.tsx`: React application shell, building selection, production sidebar, and control hints.
 - `src/main.tsx`: React entry point with Strict Mode.
 - `src/index.css`: active global styling, Tailwind import, and dark interface styles. `src/App.css` and starter assets remain in the tree but are not used by the current app.
@@ -41,21 +42,21 @@ Keep gameplay rules in simulation code, game rendering and input in Phaser, and 
 
 ## Current playable milestone
 
-- A 40×40 world with random iron clusters and a guaranteed deposit at `(20, 20)`. Deposits are unlimited; buildings are free.
-- One building per tile. Miners require iron; belts and storage accept any free terrain tile.
-- Directional miners produce one ore per 1,000 ms at full power into a one-item buffer, output only to the belt in front, and pause while blocked without accumulating blocked time.
-- Single-lane belts hold one ore item each, with 500 ms travel time. They carry ore or plates and accept rear/side inputs, reject head-on inputs, turn corners, and stop at blocked outputs. Procedural lanes follow automatic straight/curved connections, with additional paths for multiple inputs. Item motion follows each actual entry path. Connection appearance depends on adjacent building directions, not item state. New arrivals move on the next simulation step. Full loops jam; merge priority is deterministic, not fair.
+- A 40×40 world with injectable deterministic cluster generation and nonoverlapping guaranteed starter patches: iron at `(20, 20)`, copper at `(26, 20)`. Deposits are unlimited; buildings are free.
+- One building per tile. Miners require ore; belts and storage accept any free terrain tile.
+- Directional miners produce one item of the underlying ore per 1,000 ms at full power into a one-item buffer, output only to the belt in front, and pause while blocked without accumulating blocked time.
+- Single-lane belts hold one ore item each, with 500 ms travel time. They carry any of the four item types and accept rear/side inputs, reject head-on inputs, turn corners, and stop at blocked outputs. Procedural lanes follow automatic straight/curved connections, with additional paths for multiple inputs. Item motion follows each actual entry path. Connection appearance depends on adjacent building directions, not item state. New arrivals move on the next simulation step. Full loops jam; merge priority is deterministic, not fair.
 - Storage accepts incoming belts from all sides and holds unlimited per-item counts. It has no output yet.
-- One-tile furnaces accept ore from belts on the rear/side faces, reserving the arrow face for output to a belt. Recipe: 1 ore → 1 plate in 2,000 ms of power-scaled processing, no fuel. Input and output buffers each hold two; an active job commits one additional ore and reserves its future output slot. Missing input idles; full output blocks new jobs. Wrong items stay on the incoming belt. Inspectors distinguish processing, waiting-input and output-full, plus an output-waiting warning.
+- One-tile furnaces accept ore from belts on the rear/side faces, reserving the arrow face for output to a belt. Recipes: 1 iron ore → 1 iron plate, or 1 copper ore → 1 copper plate, in 2,000 ms of power-scaled processing, no fuel. Newly placed furnaces default to iron. Change recipes in the inspector only while completely empty and idle. Input and output buffers each hold two; an active job commits one additional ore and reserves its future output slot. Missing input idles; full output blocks new jobs. Wrong items stay on the incoming belt. Inspectors distinguish processing, waiting-input and output-full, plus an output-waiting warning.
 - Machines start unpowered until a generator and pole cover them. Generators must be covered by a pole too. Power loss preserves fractional progress and furnace job reservations; buffered output export and transport remain unpowered.
 - Keys: `1` miner, `2` belt, `3` storage, `4` furnace, `5` generator, `6` power pole, `P` electricity overlay, `R` clockwise placement rotation, `X` removal, Escape cancel/inspect. Click a miner, furnace, generator, pole or storage while no tool is selected to inspect it directly. Buildings can be removed even when occupied, discarding contents and active jobs but preserving lifetime ore/plate production; redirect buildings by removing/replacing them.
-- Sidebar shows cumulative mined ore/smelted plates, stored ore/plates, maximum production and selected building details plus the electricity overview. Surplus and deficit are summed separately per network; uncovered demand contributes to deficit. Simulation world remains authoritative; no item positions are stored in Zustand.
+- World lifetime counters use per-item `mined` and `produced` inventories. Sidebar shows all four stored/lifetime item counts, maximum production and selected building details plus the electricity overview. Surplus and deficit are summed separately per network; uncovered demand contributes to deficit. Simulation world remains authoritative; no item positions are stored in Zustand.
 - WASD camera movement, normalized diagonal speed, wheel zoom and viewport-aware bounds remain supported. Preserve resizing and React Strict Mode cleanup.
 - Progress is in memory; reloading creates a new session.
 
 ## Planned features
 
-Splitters, additional recipes, assemblers, fuel, solar, accumulators, research, and further automation are future milestones. Do not implement or scaffold these systems unless the current task requests them.
+Splitters, further recipes, assemblers, fuel, solar, accumulators, research, and further automation are future milestones. Do not implement or scaffold these systems unless the current task requests them.
 
 ## Coding conventions
 
@@ -83,6 +84,8 @@ Run commands from the project root. Dependencies are managed with npm. On PowerS
 | `npm run build` | Run TypeScript checks and create the Vite production build |
 | `npm run lint` | Run ESLint |
 | `npm run preview` | Serve the production build locally |
+
+Multi-resource generation, mining, smelting, switching and conservation tests live in `copper.test.ts`. Preserve per-metal conservation across committed job inputs, buffers, belts and storage; reserved outputs are not yet physical items.
 
 Power regression tests live in `power.test.ts`; `testFixtures.ts` provides explicit generator/pole infrastructure for full-power mining and smelting regressions. Do not bypass electricity in production code to keep old tests passing.
 

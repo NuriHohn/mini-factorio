@@ -7,7 +7,7 @@ import { electricalDetails, inspectBuilding } from './inspection'
 import { inventoryTotal } from './items'
 
 function add(world: World, x: number, y: number, kind: BuildingKind, direction: Direction = 'east') {
-  if (kind === 'miner') world.tiles[y * SIZE + x] = true
+  if (kind === 'miner') world.tiles[y * SIZE + x] = 'iron'
   expect(placeBuilding(world, x, y, kind, direction)).toBe(true)
 }
 function miner(world: World, x: number, y: number) { return buildingAt(world, x, y) as Miner }
@@ -179,7 +179,7 @@ describe('power-scaled production', () => {
     add(world, 10, 11, 'miner')
     advanceWorld(world, 10000)
     expect(miner(world, 10, 11).elapsed).toBe(0)
-    expect(world.ore).toBe(0)
+    expect(world.mined.iron).toBe(0)
     generatorAndPole(world)
     advanceWorld(world, 450)
     expect(miner(world, 10, 11).elapsed).toBe(450)
@@ -188,7 +188,7 @@ describe('power-scaled production', () => {
     expect(miner(world, 10, 11).elapsed).toBe(450)
     add(world, 10, 9, 'generator')
     advanceWorld(world, 550)
-    expect(world.ore).toBe(1)
+    expect(world.mined.iron).toBe(1)
     expect(miner(world, 10, 11).elapsed).toBe(0)
   })
   it('scales mining and smelting progress by the same supply fraction', () => {
@@ -214,12 +214,12 @@ describe('power-scaled production', () => {
     removeBuilding(world, 10, 9)
     advanceWorld(world, 10000)
     expect(f).toEqual(before)
-    expect(world.plates).toBe(0)
+    expect(world.produced.ironPlate).toBe(0)
     add(world, 10, 9, 'generator')
     advanceWorld(world, 999)
-    expect(world.plates).toBe(0)
+    expect(world.produced.ironPlate).toBe(0)
     advanceWorld(world, 1)
-    expect(world.plates).toBe(1)
+    expect(world.produced.ironPlate).toBe(1)
     expect(f.output.ironPlate).toBe(2)
     expect(f.input.iron).toBe(1)
     expect(f.job).toBe(null)
@@ -238,7 +238,7 @@ describe('power-scaled production', () => {
     expect(f.output.ironPlate).toBe(0)
     const chest = buildingAt(world, 12, 11)
     expect(chest?.kind === 'storage' && chest.inventory.ironPlate).toBe(1)
-    expect(world.plates).toBe(0)
+    expect(world.produced.ironPlate).toBe(0)
   })
   it('preserves all physical items and reservations through generator and pole removal/replacement', () => {
     const world = poweredChain()
@@ -248,12 +248,12 @@ describe('power-scaled production', () => {
       if (tick === 700) removeBuilding(world, 21, 19)
       if (tick === 800) add(world, 21, 19, 'powerPole')
       advanceWorld(world, 50)
-      expect(accounted(world)).toBe(world.ore)
+      expect(accounted(world)).toBe(world.mined.iron)
       const f = furnace(world, 22, 20)
       expect(inventoryTotal(f.input)).toBeLessThanOrEqual(2)
       expect(inventoryTotal(f.output) + (f.job ? inventoryTotal(f.job.outputs) : 0)).toBeLessThanOrEqual(2)
     }
-    expect(world.plates).toBeGreaterThan(5)
+    expect(world.produced.ironPlate).toBeGreaterThan(5)
   })
   it('is deterministic across large, irregular and 60 FPS time partitions under shortages', () => {
     const a = shortageWorld(), b = shortageWorld(), c = shortageWorld()
@@ -263,8 +263,8 @@ describe('power-scaled production', () => {
     expect(b).toEqual(a)
     expect(c.buildings).toEqual(a.buildings)
     expect(c.power).toEqual(a.power)
-    expect(c.ore).toBe(a.ore)
-    expect(c.plates).toBe(a.plates)
+    expect(c.mined.iron).toBe(a.mined.iron)
+    expect(c.produced.ironPlate).toBe(a.produced.ironPlate)
   })
 })
 describe('power inspection and removal', () => {
@@ -284,15 +284,15 @@ describe('power inspection and removal', () => {
   it('discards an occupied furnace on removal, retaining lifetime production counters', () => {
     const world = poweredChain()
     advanceWorld(world, 10000)
-    const ore = world.ore, plates = world.plates
+    const ore = world.mined.iron, plates = world.produced.ironPlate
     const f = furnace(world, 22, 20)
     expect(f.job || f.input.iron || f.output.ironPlate).toBeTruthy()
     removeBuilding(world, 22, 20)
     allocatePower(world)
     expect(inspectBuilding(world, 20 * SIZE + 22)).toBe(null)
     expect(world.power?.consumers[20 * SIZE + 22]).toBe(undefined)
-    expect(world.ore).toBe(ore)
-    expect(world.plates).toBe(plates)
+    expect(world.mined.iron).toBe(ore)
+    expect(world.produced.ironPlate).toBe(plates)
   })
   it('keeps straight and curved belt movement independent of generation', () => {
     const world = createWorld()

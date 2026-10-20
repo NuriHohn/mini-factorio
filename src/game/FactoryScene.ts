@@ -3,14 +3,15 @@ import { buildingAt, createWorld, INTERVAL, offsets, opposite, placementError, p
 import { beltInputs } from '../simulation/beltConnections'
 import { BELT_TRAVEL_MS } from '../simulation/transport'
 import { beltPathPoint } from './beltPath'
-import { furnaceStatus } from '../simulation/smelting'
+import { changeFurnaceRecipe, furnaceStatus } from '../simulation/smelting'
 import { RECIPES } from '../simulation/recipes'
-import { inventoryTotal } from '../simulation/items'
+import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { allocatePower, polePlacementPreview, POLE_COVERAGE_RADIUS, powerRequirement, tilePosition, withinRange } from '../simulation/power'
 import type { PolePlacementPreview } from '../simulation/power'
 import { electricalDetails } from '../simulation/inspection'
 import { inspectBuilding } from '../simulation/inspection'
 import { advanceWorld } from '../simulation/step'
+import type { Item } from '../simulation/items'
 import type { Direction } from '../simulation/world'
 import { useGameStore } from '../state/gameStore'
 import { moveCamera, updateCameraBounds } from './cameraMovement'
@@ -27,19 +28,20 @@ export class FactoryScene extends Phaser.Scene {
   private poleCandidate: PolePlacementPreview | null = null
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null })
     useGameStore.getState().publish(this.world)
     const terrain = this.add.graphics()
     const greens = [0x344e37, 0x36513a, 0x38543b, 0x324b35]
-    this.world.tiles.forEach((iron, index) => {
+    this.world.tiles.forEach((resource, index) => {
       const x = index % SIZE * TILE, y = Math.floor(index / SIZE) * TILE
       terrain.fillStyle(greens[(index * 7 + Math.floor(index / SIZE) * 3) % 4]).fillRect(x, y, TILE, TILE)
       terrain.lineStyle(1, 0x14291e, .22).strokeRect(x, y, TILE, TILE)
-      if (iron) {
-        terrain.fillStyle(0x526769).fillRoundedRect(x + 3, y + 5, 25, 23, 5)
-        terrain.fillStyle(0x8da9b1).fillTriangle(x + 5, y + 19, x + 13, y + 6, x + 19, y + 19)
-        terrain.fillStyle(0x69848e).fillTriangle(x + 13, y + 24, x + 23, y + 9, x + 28, y + 24)
-        terrain.fillStyle(0xb4cbd0).fillRect(x + 11, y + 11, 3, 4)
+      if (resource) {
+        const visual = ITEM_DEFINITIONS[resource].visual
+        terrain.fillStyle(visual.color).fillRoundedRect(x + 3, y + 5, 25, 23, 5)
+        terrain.fillStyle(visual.accent).fillTriangle(x + 5, y + 19, x + 13, y + 6, x + 19, y + 19)
+        terrain.fillStyle(visual.shade).fillTriangle(x + 13, y + 24, x + 23, y + 9, x + 28, y + 24)
+        terrain.fillStyle(visual.highlight).fillRect(x + 11, y + 11, 3, 4)
       } else terrain.fillStyle(0x65814b, .25).fillRect(x + 7 + index % 11, y + 10 + index % 13, 2, 3)
     })
     this.wires = this.add.graphics()
@@ -85,6 +87,18 @@ export class FactoryScene extends Phaser.Scene {
       else placeBuilding(this.world, x, y, tool, direction)
       useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
     })
+  }
+  private drawItem(item: Item, x: number, y: number) {
+    const visual = ITEM_DEFINITIONS[item].visual
+    if (visual.shape === 'ore') {
+      this.items.fillStyle(0x17222b).fillCircle(x, y, 5)
+      this.items.fillStyle(visual.color).fillTriangle(x - 4, y + 3, x - 2, y - 4, x + 4, y + 2)
+      this.items.fillStyle(visual.highlight).fillCircle(x + 1, y, 2.5)
+    } else {
+      this.items.fillStyle(visual.shade).fillRect(x - 5, y - 3, 10, 7)
+      this.items.fillStyle(visual.color).fillRect(x - 4, y - 3, 8, 5)
+      this.items.lineStyle(1, visual.highlight).lineBetween(x - 4, y - 3, x + 4, y - 3)
+    }
   }
   private arrow(x: number, y: number, direction: Direction, color = 0xe8dfac, scale = 1) {
     const d = offsets[direction]
@@ -143,6 +157,12 @@ export class FactoryScene extends Phaser.Scene {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
     moveCamera(camera, this.keys, delta)
+    const request = useGameStore.getState().recipeRequest
+    if (request) {
+      const position = tilePosition(request.index)
+      const error = changeFurnaceRecipe(this.world, position.x, position.y, request.recipeId)
+      useGameStore.setState({ recipeRequest: null, message: error ?? `Recipe selected: ${RECIPES[request.recipeId].label}.` })
+    }
     advanceWorld(this.world, delta)
     const power = allocatePower(this.world)
     const overlay = useGameStore.getState().powerOverlay
@@ -168,7 +188,7 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillStyle(0x392d20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.lineStyle(2, 0xb68b50).strokeRect(x + 5, y + 5, 22, 22)
         this.machines.fillStyle(0xb68b50).fillRect(x + 5, y + 13, 22, 5)
-        if (inventoryTotal(building.inventory)) this.items.fillStyle(0xb4cbd0).fillCircle(x + 16, y + 16, 4)
+        ITEMS.filter(item => building.inventory[item] > 0).forEach((item, index) => this.drawItem(item, x + 11 + index % 2 * 10, y + 12 + Math.floor(index / 2) * 10))
       } else if (building.kind === 'miner') {
         this.machines.fillStyle(0x15201e).fillRoundedRect(x + 3, y + 4, 27, 27, 3)
         this.machines.fillStyle(0xc69a46).fillRect(x + 5, y + 4, 22, 21)
@@ -234,12 +254,7 @@ export class FactoryScene extends Phaser.Scene {
         if (building.item) {
           const progress = Math.min(1, building.progress + this.world.remainder / BELT_TRAVEL_MS)
           const p = beltPathPoint(building.entry, building.direction, progress)
-          this.items.fillStyle(0x17222b).fillCircle(x + 16 + p.x * TILE, y + 16 + p.y * TILE, 5)
-          if (building.item === 'iron') this.items.fillStyle(0xb4cbd0).fillCircle(x + 16 + p.x * TILE, y + 16 + p.y * TILE, 3.5)
-          else {
-            this.items.fillStyle(0xe2e8ec).fillRect(x + 12 + p.x * TILE, y + 13 + p.y * TILE, 8, 5)
-            this.items.lineStyle(1, 0x7a99ac).lineBetween(x + 12 + p.x * TILE, y + 18 + p.y * TILE, x + 20 + p.x * TILE, y + 18 + p.y * TILE)
-          }
+          this.drawItem(building.item, x + 16 + p.x * TILE, y + 16 + p.y * TILE)
         }
       }
       if (powerRequirement(building)) {
