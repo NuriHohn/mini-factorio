@@ -13,7 +13,7 @@ Open the URL printed by Vite. In Windows PowerShell, use `npm.cmd` if script exe
 
 ## First factory
 
-Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, feed iron plates and copper cables to separate inputs of an assembler; its initial Auto detection prioritizes complete circuit batches before permanently locking. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Use **Save Game** to keep a local browser save, **Load Game** to restore it after refresh, or **Export JSON** for a portable offline backup. A separate autosave runs every two minutes of active gameplay.
+Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, choose Electronic circuit in an assembler’s inspector, then feed iron plates and copper cables to separate inputs. Assemblers require a manual recipe. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Use **Save Game** to keep a local browser save, **Load Game** to restore it after refresh, or **Export JSON** for a portable offline backup. A separate autosave runs every two minutes of active gameplay. Expand **Analytics** on the right for actual item rates, production history, utilization and clickable bottlenecks; see [Production analytics](docs/GAME_DESIGN.md#production-analytics).
 
 | Control | Action |
 | --- | --- |
@@ -24,7 +24,7 @@ Place a generator and a nearby power pole, then build **miner → belt → furna
 | B | Toggle Spider Web in the Pete tab |
 | Escape, then click | Cancel placement and inspect a building |
 
-All buildings are free. For exact recipes, buffers, power rules, previews and Auto waiting behavior, read [Game design](docs/GAME_DESIGN.md).
+All buildings are free. For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
 
 ## Project context
 

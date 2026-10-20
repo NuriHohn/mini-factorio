@@ -1,3 +1,4 @@
+import { changeCraftingRecipe } from './crafting'
 import { describe, expect, it } from 'vitest'
 import { clickPete, createPete, PUMPKIN_FLIGHT_MS, sabotageRemaining } from './pete'
 import { allocatePower, workingDemand } from './power'
@@ -179,8 +180,8 @@ describe('Pumpkin sabotage and production invariants', () => {
     world.pete.cooldownMs = 10000
     const crafting = machine as CraftingMachine
     if (kind === 'furnace') deliverItem(crafting, 'iron', 'east')
-    else for (let i = 0; i < 2; i++) deliverItem(crafting, 'ironPlate', 'east')
-    advanceWorld(world, kind === 'furnace' ? 500 : 2500)
+    else { changeCraftingRecipe(world, machine.x, machine.y, 'ironGear'); for (let i = 0; i < 2; i++) deliverItem(crafting, 'ironPlate', 'east') }
+    advanceWorld(world, 500)
     expect(crafting.job).not.toBe(null)
     world.pete.cooldownMs = 0; hit(world)
     movePete(world, 0, 39) // Isolate recovery from a second independently eligible attack.

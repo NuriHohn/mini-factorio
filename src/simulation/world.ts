@@ -1,3 +1,5 @@
+import { createAnalytics } from './analytics'
+import type { AnalyticsState } from './analytics'
 import { createWebs } from './webs'
 import type { WebState } from './webs'
 import { removeSprinkler } from './sprinklers'
@@ -73,7 +75,7 @@ export interface Splitter extends BuildingPosition {
   placedAtMs: number
 }
 export type Building = Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { webs: WebState; timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -102,7 +104,7 @@ export function createWorld(random = Math.random): World {
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  return { webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  return { analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
 }
 export function depositAt(world: World, x: number, y: number): Resource | null {
   return inside(x, y) ? world.tiles[y * SIZE + x] : null
@@ -131,7 +133,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
     case 'storage': building = { kind, x, y, inventory: emptyInventory() }; break
     case 'miner': building = { kind, x, y, direction, elapsed: 0, item: null }; break
     case 'belt': building = { kind, x, y, direction, item: null, progress: 0, entry: opposite(direction) }; break
-    case 'assembler': building = { kind, x, y, direction, recipeMode: 'auto', recipeId: null, recipeLocked: false, autoWaitElapsedMs: null, input: emptyInventory(), output: emptyInventory(), job: null }; break
+    case 'assembler': building = { kind, x, y, direction, recipeMode: 'manual', recipeId: null, recipeLocked: false, autoWaitElapsedMs: null, input: emptyInventory(), output: emptyInventory(), job: null }; break
     case 'furnace': building = { kind, x, y, direction, recipeMode: 'auto', recipeId: null, recipeLocked: false, input: emptyInventory(), output: emptyInventory(), job: null }; break
   }
   world.buildings[y * SIZE + x] = building
@@ -147,6 +149,7 @@ export function removeBuilding(world: World, x: number, y: number): boolean {
   if (removalError(world, x, y)) return false
   removePoliceBuilding(world, world.buildings[y * SIZE + x]!)
   removeSprinkler(world, world.buildings[y * SIZE + x]!)
+  delete world.analytics.machines[y * SIZE + x]
   world.buildings[y * SIZE + x] = null
   world.topologyRevision++
   return true

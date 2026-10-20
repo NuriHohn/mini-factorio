@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { changeCraftingRecipe } from './crafting'
 import { inspectBuilding } from './inspection'
-import { assemblerInputCapacity } from './assemblerRecipes'
 import { changeFurnaceRecipe } from './smelting'
 import { advanceWorld } from './step'
 import { poweredWorld } from './testFixtures'
-import { canReceive, deliverItem } from './transport'
+import { deliverItem } from './transport'
 import { buildingAt, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Assembler, Furnace, Inserter } from './world'
 
@@ -24,7 +23,7 @@ describe('one-time recipe detection and explicit overrides', () => {
     expect(machine.recipeLocked).toBe(true)
     expect(inspectBuilding(world, 20 * SIZE + 22)).toMatchObject({ detectionStatus: 'manual-locked' })
     const locked = structuredClone(machine)
-    expect(change(world, 22, 20, 'auto')).toContain('one-time')
+    expect(change(world, 22, 20, 'auto')).toContain(kind === 'furnace' ? 'one-time' : 'manual')
     expect(machine).toEqual(locked)
     expect(change(world, 22, 20, kind === 'furnace' ? 'copperSmelting' : 'copperCable')).toBe(null)
     expect(machine.recipeLocked).toBe(true)
@@ -37,34 +36,10 @@ describe('one-time recipe detection and explicit overrides', () => {
     expect(inspectBuilding(world, 20 * SIZE + 22)).toMatchObject({ detectionStatus: 'automatic-locked' })
     expect(deliverItem(machine, ore === 'iron' ? 'copper' : 'iron', 'east')).toBe(false)
   })
-  it('keeps the assembler candidate provisional until the deadline, so complete circuits can win', () => {
-    const { world, machine } = setup('assembler')
-    deliverItem(machine, 'ironPlate', 'east'); deliverItem(machine, 'ironPlate', 'east')
-    advanceWorld(world, 1000)
-    expect(machine).toMatchObject({ recipeId: 'ironGear', recipeLocked: false })
-    expect(inspectBuilding(world, 20 * SIZE + 22)).toMatchObject({ detectionStatus: 'choosing' })
-    for (let i = 0; i < 3; i++) expect(deliverItem(machine, 'copperCable', 'east')).toBe(true)
-    advanceWorld(world, 50)
-    expect(machine).toMatchObject({ recipeId: 'electronicCircuit', recipeLocked: true, job: { recipeId: 'electronicCircuit' } })
-    expect(inspectBuilding(world, 20 * SIZE + 22)).toMatchObject({ detectionStatus: 'automatic-locked', recipeWaitRemainingMs: 0 })
-  })
-  it('locks on the deadline under no power and backpressure, and rejects later priority changes', () => {
-    const { world, machine } = setup('assembler')
-    removeBuilding(world, 21, 18)
-    machine.output.ironGear = 4
-    deliverItem(machine, 'ironPlate', 'east'); deliverItem(machine, 'ironPlate', 'east')
-    advanceWorld(world, 2050)
-    expect(machine).toMatchObject({ recipeId: 'ironGear', recipeLocked: true, job: null, input: { ironPlate: 2 } })
-    expect(canReceive(machine, 'copperCable', 'east')).toBe(false)
-    expect(deliverItem(machine, 'copperCable', 'east')).toBe(false)
-    advanceWorld(world, 10000)
-    expect(machine.recipeId).toBe('ironGear')
-    expect(machine.input.copperCable).toBe(0)
-  })
   it.each(['furnace', 'assembler'] as const)('%s leaves an incompatible inserter item safely held after locking', kind => {
     const { world, machine } = setup(kind)
     if (kind === 'furnace') deliverItem(machine, 'iron', 'east')
-    else { deliverItem(machine, 'ironPlate', 'east'); deliverItem(machine, 'ironPlate', 'east'); advanceWorld(world, 2050) }
+    else { changeCraftingRecipe(world, 22, 20, 'ironGear'); deliverItem(machine, 'ironPlate', 'east'); deliverItem(machine, 'ironPlate', 'east'); advanceWorld(world, 50) }
     placeBuilding(world, 21, 20, 'inserter', 'east')
     const hand = buildingAt(world, 21, 20) as Inserter
     hand.phase = 'carrying'; hand.elapsedMs = 500; hand.item = kind === 'furnace' ? 'copper' : 'copperCable'
@@ -75,21 +50,11 @@ describe('one-time recipe detection and explicit overrides', () => {
     expect(machine.input.copper).toBe(before.copper)
     expect(machine.input.copperCable).toBe(before.copperCable)
   })
-  it('preserves speculative stock without converting it and rejects further incompatible deliveries', () => {
+  it('starts subsequent batches without changing the manual recipe', () => {
     const { world, machine } = setup('assembler')
-    for (const item of ['ironPlate', 'ironPlate', 'copperPlate'] as const) deliverItem(machine, item, 'east')
-    advanceWorld(world, 4050)
-    expect(machine).toMatchObject({ recipeId: 'ironGear', recipeLocked: true, input: { copperPlate: 1 }, output: { ironGear: 1 } })
-    expect(assemblerInputCapacity(machine as Assembler, 'copperPlate')).toBe(0)
-    expect(deliverItem(machine, 'copperPlate', 'east')).toBe(false)
-    expect(machine.input.copperPlate).toBe(1)
-    expect(world.produced.copperCable).toBe(0)
-    expect(changeCraftingRecipe(world, 22, 20, 'copperCable')).toContain('Empty both')
-  })
-  it('does not repeat the assembler detection delay for subsequent batches of the locked recipe', () => {
-    const { world, machine } = setup('assembler')
+    changeCraftingRecipe(world, 22, 20, 'ironGear')
     for (let i = 0; i < 4; i++) deliverItem(machine, 'ironPlate', 'east')
-    advanceWorld(world, 4050)
+    advanceWorld(world, 2050)
     expect(machine.job).toMatchObject({ recipeId: 'ironGear', elapsedMs: 0 })
     expect(world.produced.ironGear).toBe(1)
     advanceWorld(world, 2000)

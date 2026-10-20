@@ -1,3 +1,4 @@
+import { createAnalytics } from '../simulation/analytics'
 import { describe, expect, it } from 'vitest'
 import { advanceWorld } from '../simulation/step'
 import { createWorld, placeBuilding, removeBuilding } from '../simulation/world'
@@ -49,19 +50,19 @@ describe('sprinkler and water-reaction persistence', () => {
     placeBuilding(world, 20, 20, 'miner', 'east'); placeBuilding(world, 21, 20, 'belt', 'south')
     advanceWorld(world, 725.5)
     const current = document(world), legacy = structuredClone(current)
-    Object.assign(legacy, { version: 1 }); Reflect.deleteProperty(legacy.game.pete, 'water'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs'); Reflect.deleteProperty(legacy.game, 'webs'); legacy.game.pete.travelMs *= 1.3
+    Object.assign(legacy, { version: 1 }); Reflect.deleteProperty(legacy.game.pete, 'water'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs'); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy))
     expect(loaded.world.pete.water).toBeNull()
-    expect(document(loaded.world)).toEqual(current)
+    expect(document(loaded.world)).toEqual({ ...current, game: { ...current.game, analytics: createAnalytics(world.timeMs) } })
     expect(document(loaded.world).version).toBe(SAVE_VERSION)
   })
   it('rejects pretending new water fields or buildings are version 1 and preserves unknown-version rejection', () => {
     const current = document(setup())
-    for (const version of [0, 1, 4, '3']) {
+    for (const version of [0, 1, 5, '3']) {
       const copy = structuredClone(current); Object.assign(copy, { version })
       expect(() => decodeSave(JSON.stringify(copy))).toThrow()
     }
-    const fake = structuredClone(current); Object.assign(fake, { version: 1 }); Reflect.deleteProperty(fake.game.pete, 'water'); Reflect.deleteProperty(fake.game, 'webs')
+    const fake = structuredClone(current); Object.assign(fake, { version: 1 }); Reflect.deleteProperty(fake.game.pete, 'water'); Reflect.deleteProperty(fake.game, 'webs'); Reflect.deleteProperty(fake.game, 'analytics')
     expect(() => decodeSave(JSON.stringify(fake))).toThrow('sprinklers require save version 2')
   })
   it.each([

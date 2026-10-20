@@ -32,7 +32,7 @@ These are the existing npm scripts; run them from the root.
 
 Before delivery, run the full test suite, TypeScript checks, lint and production build. Fix introduced failures and identify any remaining failures or unavailable checks. Do not weaken tests, skip regressions or bypass electricity to make a change pass.
 
-For a focused run, use `npm test -- src/simulation/autoAssemblers.test.ts` or `npm test -- src/game/cameraMovement.test.ts`. Simulation tests must remain independent of Phaser, React and the DOM. Use explicit power infrastructure; [`testFixtures.ts`](../src/simulation/testFixtures.ts) supplies a full-power world. Test timing changes with equivalent elapsed-time partitions, not only a single frame sequence. Test changed transfer/capacity rules with rejection, contention, backpressure and outages; use the [material-accounting invariants](ARCHITECTURE.md#invariants-and-extension-points).
+For a focused run, use `npm test -- src/simulation/manualAssemblers.test.ts` or `npm test -- src/game/cameraMovement.test.ts`. Simulation tests must remain independent of Phaser, React and the DOM. Use explicit power infrastructure; [`testFixtures.ts`](../src/simulation/testFixtures.ts) supplies a full-power world. Test timing changes with equivalent elapsed-time partitions, not only a single frame sequence. Test changed transfer/capacity rules with rejection, contention, backpressure and outages; use the [material-accounting invariants](ARCHITECTURE.md#invariants-and-extension-points).
 
 For persistence changes, verify strict validation and detached failure handling, round trips, resource accounting, and continuous N-step simulation versus K steps/save/load/N−K steps. Include fractional remainder, active jobs/reservations, transport buffers, NPC phases and timers, and supported old-version upgrades where affected. Compare authoritative state with a fixed metadata timestamp; JSON key order and derived caches are not gameplay state. Failed load/import must leave the live world and browser slots intact. Schema policy belongs in [Extending persistence](ARCHITECTURE.md#extending-persistence).
 
@@ -76,7 +76,7 @@ The delivery summary should state what changed, validation actually performed, m
 | `simulation/smelting.test.ts`, `simulation/copper.test.ts` | Exact batches/reservations, both metals, switching, typed inventory and production |
 | `simulation/autoRecipes.test.ts` | One-time furnace detection/locks, simultaneous mixed ore, outages and conservation |
 | `simulation/assemblers.test.ts` | Quantities, multi-input/per-item capacity, power, removal and complete circuit chain |
-| `simulation/autoAssemblers.test.ts` | Initial waiting boundaries, candidate priority, permanent locking, mixed input order, backpressure, Manual locks and determinism |
+| `simulation/manualAssemblers.test.ts` | Explicit selection, unconfigured rejection, independent inputs, safe switching, backpressure and outages |
 | `state/gameStore.test.ts`, `simulation/recipeLock.test.ts` | Shared toolbar/keyboard toggles, ESC (including form focus and repeated keydown), inspection gating, permanent recipe locks and safe manual overrides |
 | `simulation/inserters.test.ts`, `game/inserterArm.test.ts` | Source/destination contention, snapshot budgets, ports, cycles, power, held-item conservation, full production and arm continuity |
 | `simulation/power.test.ts`, `simulation/polePlacementPreview.test.ts` | Network splitting/merging, coverage, proportional allocation, deterministic assignment and preview boundaries |
@@ -93,6 +93,9 @@ The delivery summary should state what changed, validation actually performed, m
 | `persistence/sprinklerSave.test.ts` | Each reaction phase/cooldown, powered-off sprays, deleted sources, deterministic restoration, explicit version-1 upgrade and invalid state rejection |
 | `game/sprinklerVisuals.test.ts` | Power-gated jets, splash/bubble rendering, bounded puddle expiry/world replacement and read-only rendering |
 
+| `simulation/analytics.test.ts`, `persistence/analyticsSave.test.ts` | Creation/consumption versus relocation, rate/history boundaries, utilization, diagnostic priority/reset/sorting, removal, persistence/migration/rejection and deterministic continuation |
+| `simulation/uniqueRecipes.test.ts` | Unique ore recipe probes and rejection of future ambiguous candidates |
+
 ## Browser verification
 
 For input/rendering changes, verify affected flows in an available browser and identify whether checks were manual or automated. Unit tests alone do not establish browser behavior. Use the gameplay sections linked below for expected values and mechanics rather than copying their rules into test instructions.
@@ -100,14 +103,15 @@ For input/rendering changes, verify affected flows in an available browser and i
 | Area / expected behavior | Verification scenarios |
 | --- | --- |
 | [Controls](GAME_DESIGN.md#world-items-and-controls), [categories](GAME_DESIGN.md#build-categories) | Toolbar/hotkey toggles, direct tool/deletion switching, repeated/form-focused Escape, selection/inspection, one highlight, no dashed tool outline, explicit Spider Web gating, cross-category 9/0/X/G/B hotkeys and tab-switch cancellation; placement, rotation and occupied-building removal |
-| [Production](GAME_DESIGN.md#recipes-and-buffers), [recipe selection](GAME_DESIGN.md#automatic-and-manual-recipes) | Both ore chains around straight/curved belts; typed moving items; gear/cable/circuit batches; initial Auto countdown/priority, permanent locks after draining, safe manual switching, incompatible inputs and stored versus lifetime counts |
+| [Production](GAME_DESIGN.md#recipes-and-buffers), [recipe selection](GAME_DESIGN.md#automatic-and-manual-recipes) | Both ore chains around straight/curved belts; typed moving items; gear/cable/circuit batches; unique furnace Auto detection, explicit assembler selection, permanent locks after draining, safe manual switching, incompatible inputs and stored versus lifetime counts |
 | [Power](GAME_DESIGN.md#electricity-and-feedback) | Range boundaries, overlapping coverage/assigned networks, cached dashed pole previews/colors, isolated placement, shortages, interruption/recovery, frozen progress/reservations and continuing transport |
 | [Inserters](GAME_DESIGN.md#basic-inserters) | Ports/arm/held-item previews and animation, chest extraction, belt/machine transfers, blocked drops, outages, cycle timing and direct belt chains |
 | [Splitters](GAME_DESIGN.md#compact-splitter) | All rotations/port previews, balanced exits, one/both outputs blocked then recovery, throughput/counts, curves, chains and inserter extraction |
 | [Pete](GAME_DESIGN.md#pete) | Walking/throwing, sabotage inspector/countdown/recovery, mush/slime cleanup, selected-tool direct/ground targeting, repeated web hits without timer resets, trapping/overlap immunity/fleeing/crying and target/building deletion |
 | [Police/prison](GAME_DESIGN.md#police-radar-traps-and-prison) | Range/power/flash, competing traps, pursuit/arrest/transport, angry prison inspector, manual release, timed jailbreak, grace/cooldown continuity, duplicate release commands, unreachable routes and removal during custody |
 | [Sprinklers](GAME_DESIGN.md#anti-goblin-sprinkler) | Category/shortcut, radius preview/inspector, jet/wet Pete/slip/complaint/flee/puddles at normal zoom, power pause/recovery, consumed deletion clicks, police priority and source deletion |
-| [Save & Load](GAME_DESIGN.md#offline-save-and-load) | Save, mutate, cancel/confirm load, export, valid/invalid import, refresh then explicit load, manual/autosave independence/timestamps, storage denial/quota, transactional rendering failure, version-1/2 import/version-3 export, mid-job/NPC/spray/flee restoration and no duplicate input handlers/loops after repeated loads |
+| [Save & Load](GAME_DESIGN.md#offline-save-and-load) | Save, mutate, cancel/confirm load, export, valid/invalid import, refresh then explicit load, manual/autosave independence/timestamps, storage denial/quota, transactional rendering failure, version-1/2/3 import/version-4 export, mid-job/NPC/spray/flee restoration and no duplicate input handlers/loops after repeated loads |
+| [Analytics](GAME_DESIGN.md#production-analytics) | Collapse/expand, rates and signed net values, up-to-three item selection/defaults, chart empty/partial windows, bottleneck camera focus/inspection, manual assembler selector, refresh/load continuation and narrow viewport/save-control coexistence |
 | Camera/lifecycle | WASD/normalized diagonals, wheel zoom, bounds, viewport resizing, responsive sidebar/save controls, canvas cleanup/remount and errors |
 
 ## Documentation maintenance and technical limits

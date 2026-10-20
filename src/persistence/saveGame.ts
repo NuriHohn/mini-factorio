@@ -1,3 +1,4 @@
+import { createAnalytics, restoreAnalytics } from './analyticsValidation'
 import { createWebs, MAX_GROUND_WEBS, WEB_FLIGHT_MS, WEB_LIFETIME_MS, peteWebTile } from '../simulation/webs'
 import { isSabotageable } from '../simulation/buildingCapabilities'
 import { SPRAY_MS, SLIP_MS, COMPLAIN_MS, WATER_FLEE_MS, WATER_COMPLAINTS } from '../simulation/sprinklers'
@@ -13,7 +14,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 3
+export const SAVE_VERSION = 4
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -162,23 +163,32 @@ export function decodeSave(text: string): LoadedGame {
   try { parsed = JSON.parse(text) } catch { throw new Error('Invalid save JSON. Choose a Mini-Factorio JSON save file.') }
   const root = v.object(parsed, 'save', ['format', 'version', 'savedAt', 'map', 'game', 'view'])
   if (root.format !== SAVE_FORMAT) throw new Error('This is not a Mini-Factorio save file.')
-  if (root.version !== 1 && root.version !== 2 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2 and ${SAVE_VERSION}.`)
+  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2, 3 and ${SAVE_VERSION}.`)
+  const version = root.version
   const savedAt = timestamp(root.savedAt), map = v.object(root.map, 'map', ['width', 'height'])
   if (map.width !== SIZE || map.height !== SIZE) throw new Error(`Unsupported map dimensions; this version requires ${SIZE}×${SIZE}.`)
-  const data = v.object(root.game, 'game', ['timeMs', 'remainder', 'topologyRevision', 'tiles', 'buildings', 'mined', 'produced', 'pete', 'police', ...(root.version === SAVE_VERSION ? ['webs'] : [])])
+  const data = v.object(root.game, 'game', ['timeMs', 'remainder', 'topologyRevision', 'tiles', 'buildings', 'mined', 'produced', 'pete', 'police', ...(root.version >= 3 ? ['webs'] : []), ...(root.version >= 4 ? ['analytics'] : [])])
   const timeMs = v.count(data.timeMs, 'game.timeMs')
   if (timeMs % 50 !== 0) v.invalid('game.timeMs', 'expected a 50 ms simulation boundary')
   const tiles = v.array(data.tiles, 'game.tiles', SIZE * SIZE).map((r, i) => r === null ? null : v.choice(r, `tiles[${i}]`, RESOURCES))
   const buildings = v.array(data.buildings, 'game.buildings', SIZE * SIZE).map((b, i) => {
     const building = v.building(b, `buildings[${i}]`, i, timeMs)
     if (root.version === 1 && building?.kind === 'sprinkler') v.invalid(`buildings[${i}]`, 'sprinklers require save version 2')
-    if (root.version !== SAVE_VERSION && building?.sabotageUntilMs !== undefined && !['miner', 'furnace', 'assembler'].includes(building.kind)) v.invalid(`buildings[${i}]`, 'unsupported legacy sabotage target')
+    if (version < 3 && building?.sabotageUntilMs !== undefined && !['miner', 'furnace', 'assembler'].includes(building.kind)) v.invalid(`buildings[${i}]`, 'unsupported legacy sabotage target')
     return building
   })
   // Reconstruct into a detached candidate. No live world or storage is touched.
-  const world = { webs: root.version === SAVE_VERSION ? restoreWebs(data.webs, timeMs) : createWebs(), timeMs, remainder: v.number(data.remainder, 'game.remainder', 0, 49.999999999), topologyRevision: v.count(data.topologyRevision, 'game.topologyRevision'), tiles, buildings, mined: v.inventory(data.mined, 'game.mined'), produced: v.inventory(data.produced, 'game.produced'), power: null } as World
+  const world = { analytics: createAnalytics(timeMs), webs: root.version >= 3 ? restoreWebs(data.webs, timeMs) : createWebs(), timeMs, remainder: v.number(data.remainder, 'game.remainder', 0, 49.999999999), topologyRevision: v.count(data.topologyRevision, 'game.topologyRevision'), tiles, buildings, mined: v.inventory(data.mined, 'game.mined'), produced: v.inventory(data.produced, 'game.produced'), power: null } as World
   world.pete = restorePete(data.pete, world, root.version)
   world.police = restorePolice(data.police, world)
+  if (root.version < 4) {
+    for (const b of world.buildings) if (b?.kind === 'assembler') {
+      // Preserve committed jobs and all buffered legacy stock. Provisional candidates are not selections.
+      if (!b.recipeLocked) b.recipeId = null
+      b.autoWaitElapsedMs = null
+    }
+  }
+  if (root.version >= 4) world.analytics = restoreAnalytics(data.analytics, world)
   validateLinks(world)
   const rawView = v.object(root.view, 'view', ['scrollX', 'scrollY', 'zoom', 'direction', 'powerOverlay'])
   const view: ViewState = { scrollX: v.number(rawView.scrollX, 'view.scrollX', -1e7, 1e7), scrollY: v.number(rawView.scrollY, 'view.scrollY', -1e7, 1e7), zoom: v.number(rawView.zoom, 'view.zoom', .5, 2.5), direction: v.direction(rawView.direction, 'view.direction'), powerOverlay: v.boolean(rawView.powerOverlay, 'view.powerOverlay') }
@@ -195,7 +205,7 @@ export function encodeSave(world: World, view: ViewState, savedAt = new Date().t
   const shot = world.pete.pumpkin
   const document: SaveDocument = {
     format: SAVE_FORMAT, version: SAVE_VERSION, savedAt, map: { width: SIZE, height: SIZE }, view: { ...view },
-    game: { webs: world.webs, timeMs: world.timeMs, remainder: world.remainder, topologyRevision: world.topologyRevision, tiles: world.tiles, buildings: world.buildings, mined: world.mined, produced: world.produced,
+    game: { analytics: world.analytics, webs: world.webs, timeMs: world.timeMs, remainder: world.remainder, topologyRevision: world.topologyRevision, tiles: world.tiles, buildings: world.buildings, mined: world.mined, produced: world.produced,
       pete: { ...world.pete, prison: prisonId(world.pete.prison), pumpkin: shot && world.buildings[shot.index] === shot.target ? { ...shot, target: shot.index } : null },
       police: { car: world.police.car ? { ...world.police.car, prison: prisonId(world.police.car.prison)! } : null, flash: world.police.flash, retryAtMs: world.police.retryAtMs },
     },

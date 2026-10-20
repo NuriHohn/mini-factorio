@@ -1,3 +1,4 @@
+import { createAnalytics } from '../simulation/analytics'
 import { describe, expect, it } from 'vitest'
 import { createWorld, placeBuilding, removeBuilding } from '../simulation/world'
 import type { World } from '../simulation/world'
@@ -36,14 +37,14 @@ describe('Pete 2.0 versioned persistence and continuation', () => {
   it.each([1, 2])('upgrades version %i with movement interpolation and old remaining cooldown intact', version => {
     const w = createWorld(() => .5); advanceWorld(w, 350); w.pete.cooldownMs = 12345
     const before = snapshot(w), legacy = structuredClone(before)
-    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'webs')
+    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics')
     for (const key of ['trappedBy', 'ignoredWebs', ...(version === 1 ? ['water'] : [])]) Reflect.deleteProperty(legacy.game.pete, key)
     legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy)).world
     expect(loaded.pete.x).toBe(w.pete.x); expect(loaded.pete.y).toBe(w.pete.y)
     expect(loaded.pete.travelMs).toBeCloseTo(w.pete.travelMs)
     expect(loaded.pete.cooldownMs).toBe(12345); expect(loaded.webs).toEqual({ nextId: 1, patches: [] })
-    expect(snapshot(loaded)).toEqual(before)
+    expect(snapshot(loaded)).toEqual({ ...before, game: { ...before.game, analytics: createAnalytics(w.timeMs) } })
   })
   it('upgrades a version-2 active water escape without moving Pete or resetting its remaining duration', () => {
     const w = createWorld(() => .5)
@@ -51,10 +52,11 @@ describe('Pete 2.0 versioned persistence and continuation', () => {
     advanceWorld(w, 4750)
     expect(w.pete.mode).toBe('WATER_FLEEING')
     const before = snapshot(w), legacy = structuredClone(before)
-    Object.assign(legacy, { version: 2 }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs')
+    Object.assign(legacy, { version: 2 }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs')
     legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy)).world
-    expect(snapshot(loaded)).toEqual(before)
+    expect(snapshot(loaded)).toEqual({ ...before, game: { ...before.game, analytics: createAnalytics(w.timeMs) } })
+    w.analytics = createAnalytics(w.timeMs) // Old files have no analytics history to restore.
     advanceWorld(w, 8000); advanceWorld(loaded, 8000); expect(snapshot(loaded)).toEqual(snapshot(w))
   })
   it('preserves disabled generators/inserters and carried items through reconstruction and recovery', () => {

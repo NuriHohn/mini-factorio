@@ -1,3 +1,4 @@
+import { AnalyticsPanel } from './game/AnalyticsPanel'
 import { useEffect, useRef } from 'react'
 import { InventoryView } from './game/InventoryView'
 import { PowerInspector } from './game/PowerInspector'
@@ -16,7 +17,7 @@ export default function App() {
   return <div className="app-shell">
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
-      <span className="version"><i /> PETE 2.0</span>
+      <span className="version"><i /> SPRINT 10</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
@@ -82,11 +83,12 @@ export default function App() {
           <button className={`building mt-3 ${powerOverlay ? 'overlay-enabled' : ''}`} aria-pressed={powerOverlay} onClick={togglePowerOverlay}><span><strong>Electricity overlay</strong><small>Coverage, wires and machine power</small></span><span className="key">P</span></button>
         </section>
         <BuildToolbar />
-        <section className="mission"><p className="eyebrow">POWER YOUR FACTORY</p><h2>Generate. Connect. Produce.</h2><p>Place a generator (5) and a pole (6). Machines need a pole within 3 tiles; poles connect within 6 tiles. Shortages slow all working machines proportionally. Belts always run. Furnaces detect ore automatically. Assemblers detect recipes from buffered ingredients, prioritizing circuits. Supply ingredients by belt, or lock a manual recipe in an empty inspector.</p></section>
+        <section className="mission"><p className="eyebrow">POWER YOUR FACTORY</p><h2>Generate. Connect. Produce.</h2><p>Place a generator (5) and a pole (6). Machines need a pole within 3 tiles; poles connect within 6 tiles. Shortages slow all working machines proportionally. Belts always run. Furnaces detect ore automatically. Choose an assembler recipe in its inspector before supplying ingredients. The analytics panel shows actual production and bottlenecks.</p></section>
         <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9 / 0 / G / B</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
         <p className="session-note">Offline saves · Load to restore your factory</p>
       </aside>
       <section className="world-panel"><div className="world-heading"><span><i /> GRASSLAND / SECTOR 01</span><span>40 × 40 TILES</span></div><GameCanvas /><div className="world-footer"><span role="status">{message}</span><span className="legend">{powerOverlay ? 'Green full · Amber reduced · Red no power · Blue idle' : <>◆ Iron · <span className="copper-legend">◆ Copper</span></>}</span></div></section>
+      <AnalyticsPanel />
     </main>
   </div>
 }

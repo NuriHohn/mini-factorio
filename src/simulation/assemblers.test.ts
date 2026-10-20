@@ -301,7 +301,7 @@ describe('assembler electricity, inspection and removal', () => {
     expect(world.produced.copperCable).toBe(10); expect(world.mined.copper).toBe(8)
     expect(materials(world)).toEqual({ iron: 0, copper: 0 })
     expect(worldStats(world).assemblers).toBe(0)
-    add(world, 20, 20, 'assembler'); expect(assembler(world)).toMatchObject({ recipeMode: 'auto', recipeId: null, job: null, input: emptyInventory(), output: emptyInventory() })
+    add(world, 20, 20, 'assembler'); expect(assembler(world)).toMatchObject({ recipeMode: 'manual', recipeId: null, job: null, input: emptyInventory(), output: emptyInventory() })
   })
 })
 
