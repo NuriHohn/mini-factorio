@@ -1,6 +1,8 @@
 import { placementError, SIZE } from './world'
 import type { Building, Position, World } from './world'
 import { canStartCrafting, craftingStatus } from './crafting'
+import { inserterDemand, INSERTER_KW } from './inserters'
+import type { InserterFrame } from './inserters'
 import { MACHINE_DEFINITIONS } from './recipes'
 
 export const GENERATOR_KW = 100
@@ -60,9 +62,10 @@ export function polePlacementPreview(world: World, position: Position): PolePlac
   return { state: connections.length ? 'connected' : 'disconnected', error: null, connections }
 }
 export function powerRequirement(building: Building): number {
-  return building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
+  return building.kind === 'inserter' ? INSERTER_KW : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
 }
-export function workingDemand(building: Building): number {
+export function workingDemand(building: Building, world?: World, frame?: InserterFrame): number {
+  if (building.kind === 'inserter') return world ? inserterDemand(world, building, frame) : 0
   if (building.kind === 'miner') return building.item ? 0 : MINER_KW
   if (building.kind !== 'furnace' && building.kind !== 'assembler') return 0
   return (building.job && craftingStatus(building) !== 'output-full') || (!building.job && canStartCrafting(building)) ? powerRequirement(building) : 0
@@ -106,7 +109,7 @@ function discover(world: World): PowerState {
   })
   return { topologyRevision: world.topologyRevision, networks, assignments, consumers: {}, poleConnections: edges }
 }
-export function allocatePower(world: World): PowerState {
+export function allocatePower(world: World, frame?: InserterFrame): PowerState {
   if (!world.power || world.power.topologyRevision !== world.topologyRevision) world.power = discover(world)
   const power = world.power
   power.consumers = {}
@@ -119,7 +122,7 @@ export function allocatePower(world: World): PowerState {
   world.buildings.forEach((building, index) => {
     if (!building || powerRequirement(building) === 0) return
     const networkId = power.assignments[index] ?? null
-    const requestedKw = workingDemand(building)
+    const requestedKw = workingDemand(building, world, frame)
     power.consumers[index] = { networkId, requestedKw, suppliedKw: 0, speedFraction: 0 }
     if (networkId !== null) byId.get(networkId)!.requestedKw += requestedKw
   })

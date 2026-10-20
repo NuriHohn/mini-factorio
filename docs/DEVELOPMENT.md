@@ -63,11 +63,12 @@ Verify that the remote hash matches the commit. Create/review a pull request tar
 | `simulation/autoRecipes.test.ts` | Furnace detection/locks, simultaneous mixed ore, outages and conservation |
 | `simulation/assemblers.test.ts` | Quantities, multi-input/per-item capacity, power, removal and complete circuit chain |
 | `simulation/autoAssemblers.test.ts` | Waiting boundaries, priority/tie rotation, mixed input order, backpressure, Manual locks and determinism |
+| `simulation/inserters.test.ts`, `game/inserterArm.test.ts` | Source/destination contention, snapshot budgets, ports, cycles, power, held-item conservation, full production and arm continuity |
 | `simulation/power.test.ts`, `simulation/polePlacementPreview.test.ts` | Network splitting/merging, coverage, proportional allocation, deterministic assignment and preview boundaries |
 | `simulation/beltConnections.test.ts`, `game/beltPath.test.ts` | Stable visual topology and straight/curve continuity |
 | `game/cameraMovement.test.ts` | Directions, diagonals, timing, zoom and bounds |
 
-Use explicit power infrastructure in production fixtures; [`testFixtures.ts`](../src/simulation/testFixtures.ts) supplies a full-power world. Never bypass electricity in application code for legacy tests. For changed simulation behavior, test rejected transfers, simultaneous reservations, exact timing, blockage/outages and equivalent time partitions where relevant. Conservation must include committed job inputs and exclude reserved products; use component material weights from [Architecture](ARCHITECTURE.md#invariants-and-extension-points). Removal intentionally discards contents.
+Use explicit power infrastructure in production fixtures; [`testFixtures.ts`](../src/simulation/testFixtures.ts) supplies a full-power world. Never bypass electricity in application code for legacy tests. For changed simulation behavior, test rejected transfers, simultaneous reservations, exact timing, blockage/outages and equivalent time partitions where relevant. Conservation must include held inserter items and committed job inputs and exclude reserved products; use component material weights from [Architecture](ARCHITECTURE.md#invariants-and-extension-points). Removal intentionally discards contents.
 
 ## Manual gameplay acceptance
 
@@ -78,7 +79,8 @@ For input/rendering changes, check in an available browser and report whether ch
 3. Route iron plates and cables through separate circuit-assembler inputs. Check Auto waiting/countdown, circuit priority, safe Manual switching, two-output cable batches and stored versus lifetime counts.
 4. Place poles near range boundaries and overlapping coverage. Check dashed preview links/colors, disconnected placement, coverage highlights and assigned networks without hover mutating topology.
 5. Create a shortage, interrupt generation, then restore it. Check proportional speed, frozen processing animations/progress, reservations and continued belt/export behavior.
-6. Check WASD, normalized diagonal movement, wheel zoom, camera bounds, viewport resizing and canvas cleanup/remount without errors or duplicate games.
+6. Place/rotate inserters with 8/R; check pickup/drop previews, chest selection, belt and machine ports, held items under blocked output/outages, and nominal outward/return timing. Preserve existing direct belt chains.
+7. Check WASD, normalized diagonal movement, wheel zoom, camera bounds, viewport resizing and canvas cleanup/remount without errors or duplicate games.
 
 ## Documentation maintenance and technical limits
 

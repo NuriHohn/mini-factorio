@@ -1,7 +1,9 @@
 import Phaser from 'phaser'
-import { buildingAt, createWorld, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, SIZE } from '../simulation/world'
+import { buildingAt, createWorld, inside, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, SIZE } from '../simulation/world'
 import { beltInputs } from '../simulation/beltConnections'
 import { BELT_TRAVEL_MS } from '../simulation/transport'
+import { inserterPorts } from '../simulation/inserters'
+import { inserterArmPoint } from './inserterArm'
 import { beltPathPoint } from './beltPath'
 import { changeFurnaceRecipe, furnaceStatus } from '../simulation/smelting'
 import { changeCraftingRecipe, craftingStatus } from '../simulation/crafting'
@@ -65,6 +67,7 @@ export class FactoryScene extends Phaser.Scene {
     keyboard.on('keydown-FIVE', () => useGameStore.getState().select('generator'))
     keyboard.on('keydown-SIX', () => useGameStore.getState().select('powerPole'))
     keyboard.on('keydown-SEVEN', () => useGameStore.getState().select('assembler'))
+    keyboard.on('keydown-EIGHT', () => useGameStore.getState().select('inserter'))
     keyboard.on('keydown-P', () => useGameStore.getState().togglePowerOverlay())
     keyboard.on('keydown-X', () => useGameStore.getState().select('remove'))
     keyboard.on('keydown-R', () => useGameStore.getState().rotate())
@@ -87,7 +90,7 @@ export class FactoryScene extends Phaser.Scene {
       if (error) { useGameStore.setState({ message: error }); return }
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
     })
   }
   private drawItem(item: Item, x: number, y: number) {
@@ -268,6 +271,21 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillStyle(status === 'output-full' ? 0xf08172 : active ? 0x79e6a2 : 0x98a2a3).fillCircle(x + 26, y + 5, 2)
         this.machines.fillStyle(0x101b22).fillRect(x + 5, y + 28, 22, 3)
         this.machines.fillStyle(0x79e6a2).fillRect(x + 5, y + 28, 22 * progress, 3)
+      } else if (building.kind === 'inserter') {
+        const d = offsets[building.direction]
+        const arm = inserterArmPoint(building.phase, building.elapsedMs)
+        const cx = x + 16, cy = y + 16
+        const handX = cx + (d.x * arm.x - d.y * arm.y) * TILE
+        const handY = cy + (d.y * arm.x + d.x * arm.y) * TILE
+        this.machines.fillStyle(0x18262c).fillRoundedRect(x + 5, y + 5, 22, 22, 4)
+        this.machines.lineStyle(2, 0xa9bac0).strokeRect(x + 8, y + 8, 16, 16)
+        this.machines.lineStyle(5, 0x433a22).lineBetween(cx, cy, handX, handY)
+        this.machines.lineStyle(3, 0xe8ba56).lineBetween(cx, cy, handX, handY)
+        this.machines.fillStyle(0xe4c782).fillCircle(cx, cy, 5)
+        this.machines.fillStyle(0x33474d).fillCircle(cx, cy, 2)
+        this.machines.lineStyle(2, 0xe8dfb6).strokeCircle(handX, handY, 5)
+        this.arrow(x + d.x * 9, y + d.y * 9, building.direction, 0xa5edcf, .35)
+        if (building.item) this.drawItem(building.item, handX, handY)
       } else if (building.kind === 'generator') {
         const networkId = power.assignments[building.y * SIZE + building.x]
         const network = power.networks.find(n => n.id === networkId)
@@ -327,12 +345,20 @@ export class FactoryScene extends Phaser.Scene {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
+      if (state.tool === 'inserter') {
+        const ports = inserterPorts({ x, y, direction: state.direction })
+        for (const [port, portColor] of [[ports.pickup, 0xffbd6c], [ports.drop, 0x8df0b3]] as const) {
+          if (!inside(port.x, port.y)) continue
+          this.preview.lineStyle(2, portColor, .9).strokeRect(port.x * TILE + 3, port.y * TILE + 3, TILE - 6, TILE - 6)
+          this.preview.lineStyle(1, portColor, .8).lineBetween((x + .5) * TILE, (y + .5) * TILE, (port.x + .5) * TILE, (port.y + .5) * TILE)
+        }
+      }
       const pole = state.tool === 'powerPole' ? this.previewPole(x, y) : null
       const error = pole ? pole.error : state.tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, state.tool)
       const color = pole ? pole.state === 'invalid' ? 0x929b9f : pole.state === 'connected' ? 0x8df0b3 : 0xf0ac60 : error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
-      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler') this.arrow(x * TILE, y * TILE, state.direction, color)
+      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter') this.arrow(x * TILE, y * TILE, state.direction, color)
     }
   }
 }
