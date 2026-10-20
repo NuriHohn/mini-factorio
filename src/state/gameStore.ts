@@ -25,7 +25,7 @@ interface State {
   inspected: number | null
   inspection: Inspection | null
   select: (tool: Tool) => void
-  handleToolKey: (event: { code: string; repeat: boolean }) => void
+  handleToolKey: (event: { code: string; repeat: boolean; editing?: boolean }) => void
   inspect: (world: World, x: number, y: number) => void
   rotate: () => void
   publish: (world: World) => void
@@ -44,9 +44,9 @@ export const useGameStore = create<State>((set, get) => ({
     return { tool, inspected: null, inspection: null, recipeRequest: null, message: tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
-    if (event.repeat) return
-    if (event.code === 'Escape') get().select(null)
-    else if (Object.hasOwn(TOOL_HOTKEYS, event.code)) get().select(TOOL_HOTKEYS[event.code])
+    if (event.code === 'Escape') { get().select(null); return }
+    if (event.repeat || event.editing) return
+    if (Object.hasOwn(TOOL_HOTKEYS, event.code)) get().select(TOOL_HOTKEYS[event.code])
   },
   inspect: (world, x, y) => set(state => {
     if (state.tool !== null) return state

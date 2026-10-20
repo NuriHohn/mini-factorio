@@ -63,7 +63,7 @@ Verify that the remote hash matches the commit. Create/review a pull request tar
 | `simulation/autoRecipes.test.ts` | One-time furnace detection/locks, simultaneous mixed ore, outages and conservation |
 | `simulation/assemblers.test.ts` | Quantities, multi-input/per-item capacity, power, removal and complete circuit chain |
 | `simulation/autoAssemblers.test.ts` | Initial waiting boundaries, candidate priority, permanent locking, mixed input order, backpressure, Manual locks and determinism |
-| `state/gameStore.test.ts`, `simulation/recipeLock.test.ts` | Shared toolbar/keyboard toggles, ESC, inspection gating, permanent recipe locks and safe manual overrides |
+| `state/gameStore.test.ts`, `simulation/recipeLock.test.ts` | Shared toolbar/keyboard toggles, ESC (including form focus and repeated keydown), inspection gating, permanent recipe locks and safe manual overrides |
 | `simulation/inserters.test.ts`, `game/inserterArm.test.ts` | Source/destination contention, snapshot budgets, ports, cycles, power, held-item conservation, full production and arm continuity |
 | `simulation/power.test.ts`, `simulation/polePlacementPreview.test.ts` | Network splitting/merging, coverage, proportional allocation, deterministic assignment and preview boundaries |
 | `simulation/beltConnections.test.ts`, `game/beltPath.test.ts` | Stable visual topology and straight/curve continuity |

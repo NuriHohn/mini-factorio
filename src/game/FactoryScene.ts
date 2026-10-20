@@ -59,11 +59,16 @@ export class FactoryScene extends Phaser.Scene {
     this.cameras.main.centerOn(SIZE * TILE / 2, SIZE * TILE / 2)
     this.keys = this.input.keyboard!.addKeys('W,A,S,D', true) as typeof this.keys
     const keyboard = this.input.keyboard!
-    keyboard.on('keydown', (event: KeyboardEvent) => {
+    // DOM delivery keeps Escape available even when a form control has focus.
+    const toolKeyDown = (event: KeyboardEvent) => {
       const target = event.target
-      if (target instanceof HTMLElement && (target.matches('input, select, textarea') || target.isContentEditable)) return
-      useGameStore.getState().handleToolKey(event)
-    })
+      const editing = target instanceof HTMLElement && (target.matches('input, select, textarea') || target.isContentEditable)
+      useGameStore.getState().handleToolKey({ code: event.code, repeat: event.repeat, editing })
+    }
+    window.addEventListener('keydown', toolKeyDown)
+    const removeToolKeyListener = () => window.removeEventListener('keydown', toolKeyDown)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeToolKeyListener)
+    this.events.once(Phaser.Scenes.Events.DESTROY, removeToolKeyListener)
     keyboard.on('keydown-P', () => useGameStore.getState().togglePowerOverlay())
     keyboard.on('keydown-R', () => useGameStore.getState().rotate())
     this.input.on('wheel', (_p: Phaser.Input.Pointer, _objects: unknown[], _dx: number, dy: number) => {

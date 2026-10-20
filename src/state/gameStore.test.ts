@@ -27,6 +27,23 @@ describe('one authoritative tool mode', () => {
     key('Escape'); expect(useGameStore.getState()).toBe(state)
     key('KeyX'); key('Escape'); expect(useGameStore.getState().tool).toBe(null)
   })
+  it.each(Object.entries(TOOL_HOTKEYS))('ESC cancels %s even with form focus or repeated keydown', (_code, tool) => {
+    useGameStore.getState().select(tool)
+    useGameStore.getState().handleToolKey({ code: 'Escape', repeat: true, editing: true })
+    expect(useGameStore.getState().tool).toBe(null)
+    const cancelled = useGameStore.getState()
+    key('Escape')
+    expect(useGameStore.getState()).toBe(cancelled)
+  })
+  it('protects form editing shortcuts while allowing ESC and subsequent direct switching', () => {
+    key('Digit2')
+    useGameStore.getState().handleToolKey({ code: 'Digit4', repeat: false, editing: true })
+    expect(useGameStore.getState().tool).toBe('belt')
+    useGameStore.getState().handleToolKey({ code: 'Escape', repeat: false, editing: true })
+    key('Digit4'); expect(useGameStore.getState().tool).toBe('furnace')
+    useGameStore.getState().select('belt'); expect(useGameStore.getState().tool).toBe('belt')
+    key('Escape'); expect(useGameStore.getState().tool).toBe(null)
+  })
   it('ignores key repeat and unrelated keys rather than repeatedly toggling', () => {
     key('Digit2'); key('Digit2', true); key('Space'); key('KeyW')
     expect(useGameStore.getState().tool).toBe('belt')
