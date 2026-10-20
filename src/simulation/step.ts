@@ -1,3 +1,4 @@
+import { advancePete } from './pete'
 import { depositAt, INTERVAL, SIZE } from './world'
 import type { World } from './world'
 import { advanceTransport, outputMachines } from './transport'
@@ -11,6 +12,8 @@ export function advanceWorld(world: World, delta: number): void {
   world.remainder += delta
   while (world.remainder + 1e-8 >= STEP_MS) {
     world.remainder = Math.max(0, world.remainder - STEP_MS)
+    world.timeMs += STEP_MS
+    advancePete(world, STEP_MS)
     const inserterFrame = createInserterFrame(world)
     const vacated = advanceTransport(world, STEP_MS)
     outputMachines(world, vacated)

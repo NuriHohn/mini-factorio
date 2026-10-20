@@ -1,3 +1,5 @@
+import { clickPete } from '../simulation/pete'
+import type { Position } from '../simulation/world'
 import { emptyInventory } from '../simulation/items'
 import type { FurnaceRecipeMode } from '../simulation/recipes'
 import { powerOverview } from '../simulation/power'
@@ -26,6 +28,7 @@ interface State {
   inspection: Inspection | null
   select: (tool: Tool) => void
   handleToolKey: (event: { code: string; repeat: boolean; editing?: boolean }) => void
+  scarePete: (world: World, position: Position) => boolean
   inspect: (world: World, x: number, y: number) => void
   rotate: () => void
   publish: (world: World) => void
@@ -47,6 +50,11 @@ export const useGameStore = create<State>((set, get) => ({
     if (event.code === 'Escape') { get().select(null); return }
     if (event.repeat || event.editing) return
     if (Object.hasOwn(TOOL_HOTKEYS, event.code)) get().select(TOOL_HOTKEYS[event.code])
+  },
+  scarePete: (world, position) => {
+    if (!clickPete(world, position)) return false
+    set({ message: 'Pumpkin Pete is frightened! He will cry in a safe corner, then return.' })
+    return true
   },
   inspect: (world, x, y) => set(state => {
     if (state.tool !== null) return state

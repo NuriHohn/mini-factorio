@@ -90,3 +90,17 @@ describe('normal selection and inspection', () => {
     expect(useGameStore.getState().inspected).toBe(null)
   })
 })
+
+describe('Pete click priority over every tool', () => {
+  it.each([null, ...Object.values(TOOL_HOTKEYS)])('consumes Pete clicks while %s is selected without mutating buildings', tool => {
+    const world = createWorld(() => .5)
+    useGameStore.setState({ tool })
+    const buildings = structuredClone(world.buildings)
+    expect(useGameStore.getState().scarePete(world, world.pete)).toBe(true)
+    expect(world.pete.mode).toBe('FLEEING')
+    expect(world.buildings).toEqual(buildings)
+    expect(useGameStore.getState().tool).toBe(tool)
+    expect(useGameStore.getState().scarePete(world, world.pete)).toBe(true)
+    expect(useGameStore.getState().scarePete(world, { x: 0, y: 0 })).toBe(false)
+  })
+})

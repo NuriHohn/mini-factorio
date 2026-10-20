@@ -17,6 +17,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Sprint 6.5: persistent project context | Concise contributor rules and linked architecture, game design, roadmap and development documentation; no gameplay change |
 | Sprint 7: basic inserters | Powered one-item arms, chest extraction, direct machine bridges, held-item safety, previews and inspection |
 | Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
+| Sprint 7.5: Pumpkin Pete | Deterministic immortal goblin, timed pumpkin sabotage, mush/slime feedback and click-to-scare corner crying |
 
 “Persistent project context” means versioned repository documentation, not persistent game saves or automatic agent memory. Future tasks must read the relevant files.
 

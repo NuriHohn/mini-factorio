@@ -1,3 +1,4 @@
+import { drawPete, drawSabotage } from './peteVisuals'
 import Phaser from 'phaser'
 import { buildingAt, createWorld, inside, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, SIZE } from '../simulation/world'
 import { beltInputs } from '../simulation/beltConnections'
@@ -28,6 +29,8 @@ export class FactoryScene extends Phaser.Scene {
   private poleLinks!: Phaser.GameObjects.Graphics
   private polePreviewKey = ''
   private poleCandidate: PolePlacementPreview | null = null
+  private peteEffects!: Phaser.GameObjects.Graphics
+  private peteLabel!: Phaser.GameObjects.Text
   private preview!: Phaser.GameObjects.Graphics
   create() {
     useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null })
@@ -53,6 +56,8 @@ export class FactoryScene extends Phaser.Scene {
     this.poleLinks = this.add.graphics()
     this.polePreviewKey = ''
     this.poleCandidate = null
+    this.peteEffects = this.add.graphics().setDepth(5)
+    this.peteLabel = this.add.text(0, 0, 'Pumpkin Pete', { fontFamily: 'monospace', fontSize: '9px', color: '#f8cf86', backgroundColor: '#17221cbb', padding: { x: 3, y: 2 } }).setOrigin(.5, 1).setDepth(6)
     this.preview = this.add.graphics()
     this.cameras.main.setZoom(1.3)
     updateCameraBounds(this.cameras.main, SIZE * TILE)
@@ -77,6 +82,7 @@ export class FactoryScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.leftButtonDown()) return
       const p = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2
+      if (useGameStore.getState().scarePete(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
       if (!tool) {
@@ -150,7 +156,7 @@ export class FactoryScene extends Phaser.Scene {
     }
   }
   private previewPole(x: number, y: number): PolePlacementPreview {
-    const key = `${x},${y},${this.world.topologyRevision}`
+    const key = `${x},${y},${this.world.topologyRevision},${this.world.pete.tile},${this.world.pete.next}`
     // World-space graphics follow camera transforms without being rebuilt.
     if (!this.poleCandidate || this.polePreviewKey !== key) {
       this.polePreviewKey = key
@@ -204,6 +210,7 @@ export class FactoryScene extends Phaser.Scene {
     if (overlay) for (const network of power.networks) for (const index of network.poleIndices) this.showCoverage(tilePosition(index), network.id, .035)
     this.machines.clear()
     this.items.clear()
+    this.peteEffects.clear()
     for (const building of this.world.buildings) {
       if (!building) continue
       const x = building.x * TILE, y = building.y * TILE
@@ -322,14 +329,18 @@ export class FactoryScene extends Phaser.Scene {
           this.drawItem(building.item, x + 16 + p.x * TILE, y + 16 + p.y * TILE)
         }
       }
+      drawSabotage(this.peteEffects, this.world, building, TILE)
       if (powerRequirement(building)) {
         const details = electricalDetails(this.world, building.y * SIZE + building.x)
-        const color = details.state === 'disconnected' || details.state === 'no-generation' ? 0xf08172 : details.state === 'reduced' ? 0xffbd6c : details.state === 'idle' ? 0x83c0d4 : 0x79e6a2
+        const color = details.state === 'sabotaged' ? 0xf69a38 : details.state === 'disconnected' || details.state === 'no-generation' ? 0xf08172 : details.state === 'reduced' ? 0xffbd6c : details.state === 'idle' ? 0x83c0d4 : 0x79e6a2
         this.items.fillStyle(0x111714).fillCircle(x + 5, y + 5, 4)
         this.items.fillStyle(color).fillCircle(x + 5, y + 5, 2.5)
         if (overlay) this.items.lineStyle(2, color).strokeRect(x + 1, y + 1, TILE - 2, TILE - 2)
       }
     }
+    drawPete(this.peteEffects, this.world, TILE)
+    this.peteLabel.setPosition((this.world.pete.x + .5) * TILE, (this.world.pete.y + .5) * TILE - 15)
+    this.peteLabel.setText(this.world.pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pumpkin Pete')
     useGameStore.getState().publish(this.world)
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]

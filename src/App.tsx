@@ -25,7 +25,7 @@ export default function App() {
   return <div className="app-shell">
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
-      <span className="version"><i /> LOGISTICS / SPRINT 07</span>
+      <span className="version"><i /> PUMPKIN PETE / SPRINT 7.5</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">

@@ -1,3 +1,4 @@
+import { sabotageRemaining } from './pete'
 import { placementError, SIZE } from './world'
 import type { Building, Position, World } from './world'
 import { canStartCrafting, craftingStatus } from './crafting'
@@ -65,6 +66,7 @@ export function powerRequirement(building: Building): number {
   return building.kind === 'inserter' ? INSERTER_KW : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
 }
 export function workingDemand(building: Building, world?: World, frame?: InserterFrame): number {
+  if (world && sabotageRemaining(world, building) > 0) return 0
   if (building.kind === 'inserter') return world ? inserterDemand(world, building, frame) : 0
   if (building.kind === 'miner') return building.item ? 0 : MINER_KW
   if (building.kind !== 'furnace' && building.kind !== 'assembler') return 0
