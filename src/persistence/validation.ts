@@ -1,3 +1,4 @@
+import { SPRINKLER_COOLDOWN_MS } from '../simulation/sprinklers'
 import { ITEMS, inventoryTotal } from '../simulation/items'
 import type { Inventory, Item } from '../simulation/items'
 import { MACHINE_DEFINITIONS, RECIPES } from '../simulation/recipes'
@@ -74,12 +75,12 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
   const fields = {
     miner: ['direction', 'elapsed', 'item'], belt: ['direction', 'item', 'progress', 'entry'], storage: ['inventory'],
     furnace: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'input', 'output', 'job'],
     assembler: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'autoWaitElapsedMs', 'input', 'output', 'job'],
-    inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], prison: ['exit'],
+    inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
     splitter: ['direction', 'input', 'outputs', 'nextOutput', 'delivered', 'placedAtMs'],
   }
   const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs'])
@@ -101,6 +102,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }
+    case 'sprinkler': return { ...base, kind, cooldownUntilMs: count(r.cooldownUntilMs, `${path}.cooldownUntilMs`, timeMs + SPRINKLER_COOLDOWN_MS), sprays: count(r.sprays, `${path}.sprays`) }
     case 'prison': return { ...base, kind, exit: tile(r.exit, `${path}.exit`) }
     case 'inserter': {
       const phase = choice(r.phase, `${path}.phase`, ['idle', 'carrying', 'returning'] as const), item = nullableItem(r.item, `${path}.item`), elapsedMs = number(r.elapsedMs, `${path}.elapsedMs`, 0, 500)

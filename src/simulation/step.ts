@@ -1,3 +1,4 @@
+import { advanceSprinklers } from './sprinklers'
 import { advancePolice } from './police'
 import { advancePete } from './pete'
 import { depositAt, INTERVAL, SIZE } from './world'
@@ -14,6 +15,7 @@ export function advanceWorld(world: World, delta: number): void {
   while (world.remainder + 1e-8 >= STEP_MS) {
     world.remainder = Math.max(0, world.remainder - STEP_MS)
     world.timeMs += STEP_MS
+    const reactingToWater = world.pete.water !== null
     advancePete(world, STEP_MS)
     const inserterFrame = createInserterFrame(world)
     const vacated = advanceTransport(world, STEP_MS)
@@ -21,6 +23,7 @@ export function advanceWorld(world: World, delta: number): void {
     prepareAssemblerRecipes(world, STEP_MS)
     const power = allocatePower(world, inserterFrame)
     advancePolice(world, STEP_MS)
+    advanceSprinklers(world, STEP_MS, !reactingToWater)
     advanceInserters(world, STEP_MS, inserterFrame)
     advanceCrafting(world, STEP_MS)
     for (const miner of world.buildings) {

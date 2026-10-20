@@ -1,3 +1,4 @@
+import { SPRAY_MS, SLIP_MS, COMPLAIN_MS, WATER_FLEE_MS, WATER_COMPLAINTS } from '../simulation/sprinklers'
 import { allocatePower } from '../simulation/power'
 import { RESOURCES } from '../simulation/items'
 import { edgeTile, neighboringTiles } from '../simulation/navigation'
@@ -10,7 +11,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -40,9 +41,17 @@ function effect(value: unknown, name: string, world: World, duration: number): {
   const r = v.object(value, name, ['position', 'untilMs'])
   return { position: v.position(r.position, `${name}.position`), untilMs: v.count(r.untilMs, `${name}.untilMs`, world.timeMs + duration) }
 }
-function restorePete(value: unknown, world: World): Pete {
-  const p = v.object(value, 'game.pete', ['x', 'y', 'mode', 'prison', 'imprisonedAtMs', 'graceUntilMs', 'jailbreak', 'tile', 'next', 'travelMs', 'seed', 'cooldownMs', 'cryingMs', 'escape', 'path', 'pathRevision', 'webMs', 'pumpkin'])
-  const mode = v.choice(p.mode, 'pete.mode', ['WANDERING', 'FLEEING', 'CRYING', 'ARRESTED', 'TRANSPORTED', 'IMPRISONED'] as const)
+function restorePete(value: unknown, world: World, legacy: boolean): Pete {
+  const p = v.object(value, 'game.pete', ['x', 'y', 'mode', 'prison', 'imprisonedAtMs', 'graceUntilMs', 'jailbreak', 'tile', 'next', 'travelMs', 'seed', 'cooldownMs', 'cryingMs', 'escape', 'path', 'pathRevision', 'webMs', 'pumpkin', ...(legacy ? [] : ['water'])])
+  const oldModes = ['WANDERING', 'FLEEING', 'CRYING', 'ARRESTED', 'TRANSPORTED', 'IMPRISONED'] as const
+  const mode = v.choice(p.mode, 'pete.mode', legacy ? oldModes : [...oldModes, 'SPRAYED', 'SLIPPING', 'COMPLAINING', 'WATER_FLEEING'] as const)
+  let water: Pete['water'] = null
+  if (!legacy && p.water !== null) {
+    const w = v.object(p.water, 'pete.water', ['origin', 'source', 'remainingMs', 'complaint'])
+    const limit = mode === 'SPRAYED' ? SPRAY_MS : mode === 'SLIPPING' ? SLIP_MS : mode === 'COMPLAINING' ? COMPLAIN_MS : WATER_FLEE_MS
+    water = { origin: v.position(w.origin, 'water.origin'), source: w.source === null ? null : v.tile(w.source, 'water.source'), remainingMs: v.number(w.remainingMs, 'water.remainingMs', 50, limit), complaint: v.count(w.complaint, 'water.complaint', WATER_COMPLAINTS.length - 1) }
+    if (water.remainingMs % 50 !== 0 || !Number.isInteger(water.origin.x) || !Number.isInteger(water.origin.y)) v.invalid('water', 'invalid timer boundary or sprinkler position')
+  }
   let pumpkin: Pete['pumpkin'] = null
   if (p.pumpkin !== null) {
     const shot = v.object(p.pumpkin, 'pete.pumpkin', ['target', 'index', 'from', 'elapsedMs'])
@@ -51,11 +60,11 @@ function restorePete(value: unknown, world: World): Pete {
     pumpkin = { target, index, from: v.position(shot.from, 'pumpkin.from'), elapsedMs: v.number(shot.elapsedMs, 'pumpkin.elapsedMs', 0, 399.999) }
   }
   return {
-    ...v.position({ x: p.x, y: p.y }, 'pete'), mode,
+    ...v.position({ x: p.x, y: p.y }, 'pete'), mode, water,
     prison: p.prison === null ? null : prisonReference(p.prison, world, 'pete.prison'),
     imprisonedAtMs: p.imprisonedAtMs === null ? null : v.count(p.imprisonedAtMs, 'pete.imprisonedAtMs', world.timeMs),
     graceUntilMs: v.count(p.graceUntilMs, 'pete.graceUntilMs', world.timeMs + 10000), jailbreak: effect(p.jailbreak, 'pete.jailbreak', world, 1200),
-    tile: v.tile(p.tile, 'pete.tile'), next: p.next === null ? null : v.tile(p.next, 'pete.next'), travelMs: v.number(p.travelMs, 'pete.travelMs', 0, mode === 'FLEEING' ? PETE_FLEE_MS : PETE_WALK_MS),
+    tile: v.tile(p.tile, 'pete.tile'), next: p.next === null ? null : v.tile(p.next, 'pete.next'), travelMs: v.number(p.travelMs, 'pete.travelMs', 0, (mode === 'FLEEING' || mode === 'WATER_FLEEING') ? PETE_FLEE_MS : PETE_WALK_MS),
     seed: v.count(p.seed, 'pete.seed', 0xffffffff), cooldownMs: v.number(p.cooldownMs, 'pete.cooldownMs', 0, 30000), cryingMs: v.number(p.cryingMs, 'pete.cryingMs', 0, 10000),
     escape: p.escape === null ? null : v.tile(p.escape, 'pete.escape'), path: path(p.path, 'pete.path'), pathRevision: revision(p.pathRevision, 'pete.pathRevision', world), webMs: v.number(p.webMs, 'pete.webMs', 0, 700), pumpkin,
   }
@@ -84,6 +93,15 @@ function validateLinks(world: World): void {
       exits.add(b.exit)
     }
   }
+  const wetMode = ['SPRAYED', 'SLIPPING', 'COMPLAINING', 'WATER_FLEEING'].includes(p.mode)
+  if (wetMode !== (p.water !== null)) v.invalid('pete.water', 'reaction and mode disagree')
+  if (p.water) {
+    if (car || p.pumpkin || p.webMs || world.timeMs < p.graceUntilMs) v.invalid('pete.water', 'reaction overlaps a protected state')
+    const source = p.water.source === null ? null : world.buildings[p.water.source]
+    if (p.mode === 'SPRAYED') {
+      if (source?.kind !== 'sprinkler' || source.x !== p.water.origin.x || source.y !== p.water.origin.y || source.cooldownUntilMs > world.timeMs) v.invalid('water.source', 'invalid active sprinkler reference')
+    } else if (p.water.source !== null) v.invalid('water.source', 'finished spray retains a target')
+  }
   const custody = ['ARRESTED', 'TRANSPORTED', 'IMPRISONED'].includes(p.mode)
   for (const actor of [p, ...(car ? [car] : [])]) {
     // Arrest preserves Pete's old flee path, but custody never consumes it.
@@ -99,7 +117,7 @@ function validateLinks(world: World): void {
     if (car || p.x !== p.prison!.x || p.y !== p.prison!.y || p.tile !== p.prison!.y * SIZE + p.prison!.x || world.timeMs - p.imprisonedAtMs! >= 60000) v.invalid('pete', 'invalid prisoner position or timer')
   } else if (!custody) {
     if (world.buildings[p.tile] || (p.next !== null && (world.buildings[p.next] || !neighboringTiles(p.tile).includes(p.next)))) v.invalid('pete', 'movement overlaps buildings or skips a tile')
-    const t = p.next === null ? 0 : p.travelMs / (p.mode === 'FLEEING' ? PETE_FLEE_MS : PETE_WALK_MS)
+    const t = p.next === null ? 0 : p.travelMs / ((p.mode === 'FLEEING' || p.mode === 'WATER_FLEEING') ? PETE_FLEE_MS : PETE_WALK_MS)
     const x = p.tile % SIZE + ((p.next ?? p.tile) % SIZE - p.tile % SIZE) * t
     const y = Math.floor(p.tile / SIZE) + (Math.floor((p.next ?? p.tile) / SIZE) - Math.floor(p.tile / SIZE)) * t
     if (Math.abs(p.x - x) > 1e-7 || Math.abs(p.y - y) > 1e-7 || (p.next === null && p.travelMs !== 0)) v.invalid('pete', 'position disagrees with movement progress')
@@ -119,17 +137,21 @@ export function decodeSave(text: string): LoadedGame {
   try { parsed = JSON.parse(text) } catch { throw new Error('Invalid save JSON. Choose a Mini-Factorio JSON save file.') }
   const root = v.object(parsed, 'save', ['format', 'version', 'savedAt', 'map', 'game', 'view'])
   if (root.format !== SAVE_FORMAT) throw new Error('This is not a Mini-Factorio save file.')
-  if (root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports version ${SAVE_VERSION}.`)
+  if (root.version !== 1 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1 and ${SAVE_VERSION}.`)
   const savedAt = timestamp(root.savedAt), map = v.object(root.map, 'map', ['width', 'height'])
   if (map.width !== SIZE || map.height !== SIZE) throw new Error(`Unsupported map dimensions; this version requires ${SIZE}×${SIZE}.`)
   const data = v.object(root.game, 'game', ['timeMs', 'remainder', 'topologyRevision', 'tiles', 'buildings', 'mined', 'produced', 'pete', 'police'])
   const timeMs = v.count(data.timeMs, 'game.timeMs')
   if (timeMs % 50 !== 0) v.invalid('game.timeMs', 'expected a 50 ms simulation boundary')
   const tiles = v.array(data.tiles, 'game.tiles', SIZE * SIZE).map((r, i) => r === null ? null : v.choice(r, `tiles[${i}]`, RESOURCES))
-  const buildings = v.array(data.buildings, 'game.buildings', SIZE * SIZE).map((b, i) => v.building(b, `buildings[${i}]`, i, timeMs))
+  const buildings = v.array(data.buildings, 'game.buildings', SIZE * SIZE).map((b, i) => {
+    const building = v.building(b, `buildings[${i}]`, i, timeMs)
+    if (root.version === 1 && building?.kind === 'sprinkler') v.invalid(`buildings[${i}]`, 'sprinklers require save version 2')
+    return building
+  })
   // Reconstruct into a detached candidate. No live world or storage is touched.
   const world = { timeMs, remainder: v.number(data.remainder, 'game.remainder', 0, 49.999999999), topologyRevision: v.count(data.topologyRevision, 'game.topologyRevision'), tiles, buildings, mined: v.inventory(data.mined, 'game.mined'), produced: v.inventory(data.produced, 'game.produced'), power: null } as World
-  world.pete = restorePete(data.pete, world)
+  world.pete = restorePete(data.pete, world, root.version === 1)
   world.police = restorePolice(data.police, world)
   validateLinks(world)
   const rawView = v.object(root.view, 'view', ['scrollX', 'scrollY', 'zoom', 'direction', 'powerOverlay'])

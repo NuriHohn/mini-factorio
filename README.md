@@ -41,6 +41,8 @@ Use **0** to place a compact **1×1 splitter**, with one rear input and front/le
 
 ## Save, load and building categories
 
-The build menu starts on **Factory**. **Pumpkin Pete** contains radar traps; police cars and prisons still spawn automatically. Switching categories cancels placement/removal. Existing hotkeys select their tool and its tab; Escape returns to inspection mode.
+The build menu starts on **Factory**. **Pumpkin Pete** contains radar traps and Anti-Goblin Sprinklers; police cars and prisons still spawn automatically. Switching categories cancels placement/removal. Existing hotkeys select their tool and its tab; Escape returns to inspection mode.
 
 Save & Load controls are below the inspector in the scrollable sidebar. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import JSON validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export JSON before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
+
+Use **G** to place an **Anti-Goblin Sprinkler** from Pumpkin Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; new version-2 saves preserve active reactions and cooldowns. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).

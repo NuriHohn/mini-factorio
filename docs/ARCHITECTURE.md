@@ -23,6 +23,8 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 | [`police.ts`](../src/simulation/police.ts) | Radar queries, single dispatch, pursuit/arrest/transport, timed imprisonment/release, actor/exit reservations and lifecycle validation |
 | [`policeVisuals.ts`](../src/game/policeVisuals.ts) | Radar/prison graphics, flash, car/passenger, bars and jailbreak dust |
 | [`pete.ts`](../src/simulation/pete.ts) | Seeded NPC movement/pathfinding, scare hit testing, projectile impact and authoritative sabotage timers |
+| [`sprinklers.ts`](../src/simulation/sprinklers.ts) | Full-power/range queries, deterministic targeting, water phases, source removal and obstacle-aware escape |
+| [`sprinklerVisuals.ts`](../src/game/sprinklerVisuals.ts) | Procedural sprinkler/jet/wet Pete and bounded cosmetic puddles |
 | [`peteVisuals.ts`](../src/game/peteVisuals.ts) | Procedural goblin, pumpkin/web/tear animation and transient sabotage splatter |
 | [`power.ts`](../src/simulation/power.ts) | Cached networks, assignment, working demand, allocation and read-only pole preview |
 | [`inspection.ts`](../src/simulation/inspection.ts) | Copied building/electrical snapshots and derived world statistics |
@@ -52,7 +54,7 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 2. `advanceTransport`: advance existing belt items and commit reserved transfers.
 3. `outputMachines`: export buffered miner/furnace/assembler items; exclude belts just vacated by belt transport.
 4. `prepareAssemblerRecipes`: resolve idle Auto recipes and advance unscaled waiting clocks before computing working demand.
-5. `allocatePower`: refresh topology if invalidated, then calculate current demand and proportional supply. `advancePolice` then uses this current allocation for detection, advances one police operation or releases/escapes a prisoner.
+5. `allocatePower`: refresh topology if invalidated, then calculate current demand and proportional supply. `advancePolice` then uses this current allocation for detection, advances one police operation or releases/escapes a prisoner. `advanceSprinklers` then uses the same current allocation; a dispatched/committed police case blocks new spraying.
 6. `advanceInserters`: atomically pick up/deliver in inserter tile order using allocated power and the step-start budget.
 7. `advanceCrafting`: progress/complete existing jobs, finalize undecided assembler detection, and start eligible jobs without changing locked recipes.
 8. Mining: advance unblocked miners by allocated power fraction; buffer completed ore and update `mined`.
@@ -95,7 +97,7 @@ Extend the existing item/recipe/machine metadata and shared core before adding s
 
 ## NPC state and rendering lifetime
 
-`World.pete` holds one `WANDERING`/`FLEEING`/`CRYING` state, tile-to-tile interpolation, a seeded 32-bit LCG, escape path, cooldown, crying/web clocks and at most one in-flight pumpkin. Pete and police share stable cardinal neighbor order and breadth-first path queries; breadth-first search only runs for a new escape route or topology change. A reachable destination minimizes distance to any corner, then tile index. Wandering tests empty adjacent tiles; construction reserves Pete's current/next tile, and cached pole previews include these reservations in their key.
+`World.pete` holds a normal, web-reaction, police-custody or water-reaction state, tile-to-tile interpolation, a seeded 32-bit LCG, escape path, cooldown, crying/web clocks and at most one in-flight pumpkin. Pete and police share stable cardinal neighbor order and breadth-first path queries; breadth-first search only runs for a new escape route or topology change. A reachable destination minimizes distance to any corner, then tile index. Wandering tests empty adjacent tiles; construction reserves Pete's current/next tile, and cached pole previews include these reservations in their key.
 
 Projectile snapshots retain the target building identity as well as its tile index: deletion/replacement cannot redirect a hit. The target reference is serializable with `structuredClone`, and no unbounded event history is retained. Elapsed sabotage timestamps on removed buildings have no world effect. Existing fixed-step remainders make behavior independent of frame partitions.
 
@@ -127,7 +129,7 @@ Shared `canReceive`/`deliverItem` enforce rear-only splitter input and one intak
 
 ## Versioned offline persistence
 
-`src/persistence/saveGame.ts` owns `SAVE_FORMAT` and `SAVE_VERSION` (currently 1), JSON snapshots and detached reconstruction. `validation.ts` validates every required field, rejects unknown fields/IDs, checks finite bounded numbers, complete inventories, ports, buffer limits, recipe/job reservations, actor movement and cross-object references. No Phaser or React imports are needed. JSON is limited to 2 MiB. Unknown versions are rejected clearly; there is no implicit migration or best-effort partial loading.
+`src/persistence/saveGame.ts` owns `SAVE_FORMAT` and `SAVE_VERSION` (currently 2), JSON snapshots and detached reconstruction. `validation.ts` validates every required field, rejects unknown fields/IDs, checks finite bounded numbers, complete inventories, ports, buffer limits, recipe/job reservations, actor movement and cross-object references. No Phaser or React imports are needed. JSON is limited to 2 MiB. Version 1 (Sprint 9) is explicitly accepted with its original strict Pete/building shape, then reconstructed with `water: null`; it cannot contain new sprinkler buildings or water fields/modes. All other authoritative values and references follow the same validation and reconstruction. Subsequent saves write version 2. Unknown versions are rejected clearly; there is no best-effort partial loading.
 
 The document contains `{ format, version, savedAt, map, game, view }`. `savedAt` is ISO UTC wall-clock metadata only. `map` records the supported dimensions. `game` contains tiles, tile-indexed buildings, counters, time/remainder, topology revision, Pete's RNG/movement/effects/timers and police/prison authoritative state. Building fields retain all item packets, elapsed progress, recipe modes/locks, committed jobs/reserved outputs, inventories and splitter round robin/counters. Object references (prison and pumpkin target) become validated building indices, then are linked to candidate building objects on decode. A projectile whose target was already deleted is omitted, matching its next-step cancellation; no resource or timer is discarded.
 
@@ -144,3 +146,15 @@ Keep stable building/item/recipe IDs. When authoritative fields change, update t
 ### Build menu metadata
 
 `src/state/toolMetadata.ts` is the central source for player-selectable tools, labels, hotkeys and Factory/Pumpkin Pete category membership. `BuildToolbar` renders the selected category; `gameStore` remains the single authority for active tool and tab. Selecting a cross-category hotkey updates both together. Category changes call the same tool cancellation action as Escape. Automatic entities are absent from the tool registry. Save controls are a separate sidebar section and never become build tools.
+
+## Sprinkler and water reaction ownership
+
+`Sprinkler` adds only `cooldownUntilMs` and completed `sprays` to the one-tile building union. `sprinklers.ts` reuses shared power, Euclidean range, cardinal neighbors and breadth-first paths. It adds no inventory, transport branch, recipe or independent NPC loop. Placement/removal still invalidates topology normally. Demand is continuously 5 kW; readiness/jet progress require full current allocation.
+
+`Pete.water` is null outside `SPRAYED`/`SLIPPING`/`COMPLAINING`/`WATER_FLEEING`. During a reaction it holds the source position snapshot, an active source index only while spraying, remaining phase milliseconds and deterministic complaint index. Existing Pete tile/next/progress/path/revision/escape fields carry navigation. Stationary phases preserve sub-tile position and reserve existing current/next tiles; entering/leaving water fleeing rescales interpolation to/from ordinary movement speed without teleporting. The reachable escape destination maximizes squared distance from the source, ties by tile index, with topology-based replanning. Reaching the destination/enclosure does not shorten the eight-second reaction or trigger crying.
+
+`advancePete` always advances shared sabotage/web/jailbreak clocks first. Water slip/complaint/flee phases advance there and return before ordinary wandering/sabotage. Spraying waits until `advanceSprinklers` after current power allocation and police processing; its first boundary starts at 1,000 ms without aging immediately. Completion enters slipping with a fresh 1,000 ms and starts the source's 10-second cooldown. The later 2,000/8,000 ms phases are unscaled simulation time. Step-start water state suppresses new sprinkler activation on the same boundary that its reaction ends; this ephemeral guard is reconstructed naturally from saved state. Police dispatch wins simultaneous eligibility; existing approach/custody and post-release grace block activation. Water reactions block new dispatch, not committed cases. Interrupting the projectile discards only its not-yet-landed action and never changes already-disabled machines or sabotage cooldown.
+
+Version-2 persistence validates the phase/mode pair, 50 ms bounded phase time, source type/position, complaint index, cooldown, navigation and absence of conflicting custody/projectile/grace state. Source deletion synchronously starts slipping and clears its index; later navigation uses a position snapshot rather than a removed building reference. Version-1 upgrade is explicit and tested; slots are not overwritten by migration/loading. Detached reconstruction and transactional scene restoration remain unchanged. No rendering entities are saved.
+
+`WaterVisuals` samples rendered flee positions at most every 400 simulation ms into a maximum of 14 puddles, expiring after 5 seconds. This cosmetic history resets on world replacement and never affects movement, resources, placement or power. Immediate-mode jets/droplets/slip splashes and wet-goblin poses have bounded draw counts. The existing single Pete text label becomes the complaint bubble text, so loads and repeated reactions do not add labels/listeners/emitters.

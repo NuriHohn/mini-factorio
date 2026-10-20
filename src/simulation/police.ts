@@ -58,7 +58,7 @@ function prisonFor(world: World, reachable: Map<number, number>): Prison | null 
 }
 function dispatch(world: World): void {
   const pete = world.pete
-  if (world.police.car || world.timeMs < world.police.retryAtMs || world.timeMs < pete.graceUntilMs || pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' || pete.mode === 'IMPRISONED') return
+  if (pete.water || world.police.car || world.timeMs < world.police.retryAtMs || world.timeMs < pete.graceUntilMs || pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' || pete.mode === 'IMPRISONED') return
   if (world.police.radarRevision !== world.topologyRevision) {
     world.police.radars = world.buildings.flatMap((b, i) => b?.kind === 'radar' ? [i] : [])
     world.police.radarRevision = world.topologyRevision

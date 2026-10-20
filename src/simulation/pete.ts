@@ -1,3 +1,5 @@
+import { advanceWaterReaction } from './sprinklers'
+import type { WaterReaction } from './sprinklers'
 import { neighboringTiles, reachableTiles, tilePath } from './navigation'
 import { SIZE } from './world'
 import type { Building, Position, Prison, World } from './world'
@@ -8,7 +10,8 @@ export const PETE_COOLDOWN_MS = 30000
 export const SABOTAGE_MS = 10000
 export const PUMPKIN_FLIGHT_MS = 400
 export interface Pete extends Position {
-  mode: 'WANDERING' | 'FLEEING' | 'CRYING' | 'ARRESTED' | 'TRANSPORTED' | 'IMPRISONED'
+  mode: 'WANDERING' | 'FLEEING' | 'CRYING' | 'ARRESTED' | 'TRANSPORTED' | 'IMPRISONED' | 'SPRAYED' | 'SLIPPING' | 'COMPLAINING' | 'WATER_FLEEING'
+  water: WaterReaction | null
   prison: Prison | null
   imprisonedAtMs: number | null
   graceUntilMs: number
@@ -26,7 +29,7 @@ export interface Pete extends Position {
   pumpkin: { target: Building; index: number; from: Position; elapsedMs: number } | null
 }
 export function createPete(): Pete {
-  return { prison: null, imprisonedAtMs: null, graceUntilMs: 0, jailbreak: null, x: 17, y: 23, tile: 23 * SIZE + 17, next: null, travelMs: 0, seed: 0x70657465, mode: 'WANDERING', cooldownMs: PETE_COOLDOWN_MS, cryingMs: 0, escape: null, path: [], pathRevision: -1, webMs: 0, pumpkin: null }
+  return { water: null, prison: null, imprisonedAtMs: null, graceUntilMs: 0, jailbreak: null, x: 17, y: 23, tile: 23 * SIZE + 17, next: null, travelMs: 0, seed: 0x70657465, mode: 'WANDERING', cooldownMs: PETE_COOLDOWN_MS, cryingMs: 0, escape: null, path: [], pathRevision: -1, webMs: 0, pumpkin: null }
 }
 export function sabotageRemaining(world: World, building: Building): number {
   return Math.max(0, (building.sabotageUntilMs ?? 0) - world.timeMs)
@@ -52,9 +55,10 @@ function escapePath(world: World): void {
 export function peteHit(world: World, position: Position): boolean {
   return Math.hypot(world.pete.x - position.x, world.pete.y - position.y) <= .65
 }
-// Every hit replays the web visual; only wandering hits change behavior.
+// Free web hits replay visuals; water/custody clicks are consumed without a scare.
 export function clickPete(world: World, position: Position): boolean {
   if (world.pete.mode === 'IMPRISONED' || !peteHit(world, position)) return false
+  if (world.pete.water) return true
   if (world.pete.mode === 'ARRESTED' || world.pete.mode === 'TRANSPORTED') return true
   const pete = world.pete
   pete.webMs = 700
@@ -75,6 +79,7 @@ export function advancePete(world: World, delta: number): void {
   pete.cooldownMs = Math.max(0, pete.cooldownMs - delta)
   pete.webMs = Math.max(0, pete.webMs - delta)
   if (pete.jailbreak && world.timeMs >= pete.jailbreak.untilMs) pete.jailbreak = null
+  if (pete.water) { advanceWaterReaction(world, delta); return }
   if (pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' || pete.mode === 'IMPRISONED') return
   if (pete.pumpkin) {
     const shot = pete.pumpkin
