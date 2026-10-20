@@ -1,0 +1,131 @@
+import { SIZE } from './world'
+import type { Building, Position, World } from './world'
+import { canStartSmelting, furnaceStatus } from './smelting'
+
+export const GENERATOR_KW = 100
+export const MINER_KW = 30
+export const FURNACE_KW = 50
+export const POLE_CONNECTION_RANGE = 6
+export const POLE_COVERAGE_RADIUS = 3
+export interface ConsumerPower {
+  networkId: number | null
+  requestedKw: number
+  suppliedKw: number
+  speedFraction: number
+}
+export interface PowerNetwork {
+  id: number
+  poleIndices: number[]
+  generatorIndices: number[]
+  consumerIndices: number[]
+  capacityKw: number
+  requestedKw: number
+  suppliedKw: number
+}
+export interface PowerState {
+  topologyRevision: number
+  networks: PowerNetwork[]
+  assignments: Record<number, number>
+  consumers: Record<number, ConsumerPower>
+  poleConnections: [number, number][]
+}
+export interface PowerOverview {
+  installedKw: number
+  connectedKw: number
+  requestedKw: number
+  suppliedKw: number
+  surplusKw: number
+  deficitKw: number
+  networks: number
+}
+export function withinRange(a: Position, b: Position, radius: number): boolean {
+  return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= radius ** 2
+}
+export function powerRequirement(building: Building): number {
+  return building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' ? FURNACE_KW : 0
+}
+export function workingDemand(building: Building): number {
+  if (building.kind === 'miner') return building.item ? 0 : MINER_KW
+  if (building.kind !== 'furnace') return 0
+  return (building.job && furnaceStatus(building) !== 'output-full') || (!building.job && canStartSmelting(building)) ? FURNACE_KW : 0
+}
+function discover(world: World): PowerState {
+  const poles = world.buildings.flatMap((b, i) => b?.kind === 'powerPole' ? [i] : [])
+  const edges: [number, number][] = []
+  const adjacency = new Map(poles.map(i => [i, [] as number[]]))
+  for (let a = 0; a < poles.length; a++) for (let b = a + 1; b < poles.length; b++) {
+    const i = poles[a], j = poles[b]
+    if (!withinRange(world.buildings[i]!, world.buildings[j]!, POLE_CONNECTION_RANGE)) continue
+    edges.push([i, j])
+    adjacency.get(i)!.push(j)
+    adjacency.get(j)!.push(i)
+  }
+  const assignments: Record<number, number> = {}
+  const networks: PowerNetwork[] = []
+  for (const root of poles) {
+    if (assignments[root] !== undefined) continue
+    const members = [root]
+    assignments[root] = root
+    for (let cursor = 0; cursor < members.length; cursor++) {
+      for (const next of adjacency.get(members[cursor])!) {
+        if (assignments[next] !== undefined) continue
+        assignments[next] = root
+        members.push(next)
+      }
+    }
+    networks.push({ id: root, poleIndices: members.sort((a, b) => a - b), generatorIndices: [], consumerIndices: [], capacityKw: 0, requestedKw: 0, suppliedKw: 0 })
+  }
+  const byId = new Map(networks.map(n => [n.id, n]))
+  world.buildings.forEach((building, index) => {
+    if (!building || (building.kind !== 'generator' && powerRequirement(building) === 0)) return
+    const pole = poles.find(i => withinRange(building, world.buildings[i]!, POLE_COVERAGE_RADIUS))
+    if (pole === undefined) return
+    const networkId = assignments[pole]
+    assignments[index] = networkId
+    const network = byId.get(networkId)!
+    if (building.kind === 'generator') network.generatorIndices.push(index)
+    else network.consumerIndices.push(index)
+  })
+  return { topologyRevision: world.topologyRevision, networks, assignments, consumers: {}, poleConnections: edges }
+}
+export function allocatePower(world: World): PowerState {
+  if (!world.power || world.power.topologyRevision !== world.topologyRevision) world.power = discover(world)
+  const power = world.power
+  power.consumers = {}
+  for (const network of power.networks) {
+    network.capacityKw = network.generatorIndices.length * GENERATOR_KW
+    network.requestedKw = 0
+    network.suppliedKw = 0
+  }
+  const byId = new Map(power.networks.map(n => [n.id, n]))
+  world.buildings.forEach((building, index) => {
+    if (!building || powerRequirement(building) === 0) return
+    const networkId = power.assignments[index] ?? null
+    const requestedKw = workingDemand(building)
+    power.consumers[index] = { networkId, requestedKw, suppliedKw: 0, speedFraction: 0 }
+    if (networkId !== null) byId.get(networkId)!.requestedKw += requestedKw
+  })
+  for (const consumer of Object.values(power.consumers)) {
+    const network = consumer.networkId === null ? null : byId.get(consumer.networkId)
+    if (!network || consumer.requestedKw === 0) continue
+    consumer.speedFraction = Math.min(1, network.capacityKw / network.requestedKw)
+    consumer.suppliedKw = consumer.requestedKw * consumer.speedFraction
+  }
+  for (const network of power.networks) network.suppliedKw = Math.min(network.capacityKw, network.requestedKw)
+  return power
+}
+export function powerOverview(world: World): PowerOverview {
+  const power = world.power
+  const summary: PowerOverview = { installedKw: world.buildings.filter(b => b?.kind === 'generator').length * GENERATOR_KW, connectedKw: 0, requestedKw: 0, suppliedKw: 0, surplusKw: 0, deficitKw: 0, networks: power?.networks.length ?? 0 }
+  for (const network of power?.networks ?? []) {
+    summary.connectedKw += network.capacityKw
+    summary.suppliedKw += network.suppliedKw
+    summary.surplusKw += Math.max(0, network.capacityKw - network.requestedKw)
+  }
+  for (const consumer of Object.values(power?.consumers ?? {})) {
+    summary.requestedKw += consumer.requestedKw
+    summary.deficitKw += Math.max(0, consumer.requestedKw - consumer.suppliedKw)
+  }
+  return summary
+}
+export function tilePosition(index: number): Position { return { x: index % SIZE, y: Math.floor(index / SIZE) } }

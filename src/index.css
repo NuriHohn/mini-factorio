@@ -48,3 +48,7 @@ kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; paddin
 .inspection progress::-webkit-progress-bar { background: #41463e; border-radius: 3px; }
 .inspection progress::-webkit-progress-value { background: #efac58; border-radius: 3px; }
 .inspection progress::-moz-progress-bar { background: #efac58; border-radius: 3px; }
+.electricity-overview { padding-top: 12px; border-top: 1px solid #384a42; }
+.power-details { margin-top: 16px; border-top: 1px solid #65533b; }
+.power-disconnected .inspection-note,.power-no-generation .inspection-note { color: #f0a094; }
+.power-reduced .inspection-note { color: #efbe77; }

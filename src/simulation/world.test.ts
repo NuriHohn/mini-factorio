@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildingAt, createWorld, DIRECTIONS, placeBuilding, placementError, removalError, removeBuilding, rotate, SIZE } from './world'
 import type { Belt, BuildingKind, Direction, Miner, Storage, World } from './world'
 import { inventoryTotal } from './items'
+import { poweredWorld } from './testFixtures'
 import { advanceWorld } from './step'
 function place(world: World, x: number, y: number, kind: BuildingKind, direction: Direction = 'east') {
   expect(placeBuilding(world, x, y, kind, direction)).toBe(true)
@@ -10,7 +11,7 @@ function belt(world: World, x: number, y: number) { return buildingAt(world, x, 
 function miner(world: World, x = 20, y = 20) { return buildingAt(world, x, y) as Miner }
 function chest(world: World, x: number, y: number) { return buildingAt(world, x, y) as Storage }
 function supplyLine() {
-  const world = createWorld(() => .5)
+  const world = poweredWorld(() => .5)
   place(world, 20, 20, 'miner')
   place(world, 21, 20, 'belt', 'south')
   place(world, 21, 21, 'belt', 'east')
@@ -18,7 +19,7 @@ function supplyLine() {
   return world
 }
 function accounted(world: World) {
-  return world.buildings.reduce((sum, b) => sum + (!b ? 0 : b.kind === 'storage' ? inventoryTotal(b.inventory) : b.kind === 'furnace' ? inventoryTotal(b.input) + inventoryTotal(b.output) + (b.job ? inventoryTotal(b.job.inputs) : 0) : Number(b.item !== null)), 0)
+  return world.buildings.reduce((sum, b) => sum + (!b ? 0 : b.kind === 'storage' ? inventoryTotal(b.inventory) : b.kind === 'furnace' ? inventoryTotal(b.input) + inventoryTotal(b.output) + (b.job ? inventoryTotal(b.job.inputs) : 0) : (b.kind === 'miner' || b.kind === 'belt' ? Number(b.item !== null) : 0)), 0)
 }
 describe('building tools', () => {
   it('generates terrain with a guaranteed central deposit and empty occupancy', () => {
@@ -29,8 +30,8 @@ describe('building tools', () => {
     expect(world.buildings.every(b => b === null)).toBe(true)
   })
   it('validates coordinates, terrain and shared occupancy for every building', () => {
-    const world = createWorld(() => .5)
-    for (const kind of ['miner', 'belt', 'storage', 'furnace'] as const) {
+    const world = poweredWorld(() => .5)
+    for (const kind of ['miner', 'belt', 'storage', 'furnace', 'generator', 'powerPole'] as const) {
       for (const [x, y] of [[-1, 20], [40, 20], [20.5, 20], [NaN, 20]]) expect(placeBuilding(world, x, y, kind, 'east')).toBe(false)
     }
     expect(placeBuilding(world, 0, 0, 'miner', 'east')).toBe(false)
@@ -40,7 +41,7 @@ describe('building tools', () => {
     expect(placeBuilding(world, 20, 20, 'belt', 'east')).toBe(false)
   })
   it('rotates through all directions and preserves placement direction', () => {
-    const world = createWorld()
+    const world = poweredWorld()
     let direction: Direction = 'north'
     for (const [x, expected] of DIRECTIONS.entries()) {
       expect(direction).toBe(expected)
@@ -75,7 +76,7 @@ describe('building tools', () => {
 })
 describe('mining and transport', () => {
   it('buffers one ore then pauses without accumulating blocked time', () => {
-    const world = createWorld(() => .5)
+    const world = poweredWorld(() => .5)
     place(world, 20, 20, 'miner')
     advanceWorld(world, 999)
     expect(world.ore).toBe(0)
@@ -103,7 +104,7 @@ describe('mining and transport', () => {
     expect(chest(world, 22, 21).inventory.iron).toBeGreaterThan(10)
   })
   it.each(DIRECTIONS)('outputs miners in the %s direction', direction => {
-    const world = createWorld(() => .5)
+    const world = poweredWorld(() => .5)
     const offset = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] }[direction]
     place(world, 20, 20, 'miner', direction)
     place(world, 20 + offset[0], 20 + offset[1], 'belt', direction)
@@ -111,7 +112,7 @@ describe('mining and transport', () => {
     expect(belt(world, 20 + offset[0], 20 + offset[1]).item).toBe('iron')
   })
   it('blocks head-on inputs and direct miner-to-chest output', () => {
-    const world = createWorld(() => .5)
+    const world = poweredWorld(() => .5)
     place(world, 20, 20, 'miner')
     place(world, 21, 20, 'belt', 'west')
     advanceWorld(world, 2000)
@@ -123,7 +124,7 @@ describe('mining and transport', () => {
     expect(world.ore).toBe(1)
   })
   it('uses tile order for merges and never moves a new arrival twice', () => {
-    const world = createWorld()
+    const world = poweredWorld()
     place(world, 2, 1, 'belt', 'south')
     place(world, 1, 2, 'belt', 'east')
     place(world, 2, 2, 'belt', 'east')
@@ -135,7 +136,7 @@ describe('mining and transport', () => {
     expect(belt(world, 2, 2).entry).toBe('north')
   })
   it('blocks missing connections and recovers when a route is extended', () => {
-    const world = createWorld()
+    const world = poweredWorld()
     place(world, 39, 0, 'belt')
     belt(world, 39, 0).item = 'iron'
     advanceWorld(world, 1000)
@@ -149,7 +150,7 @@ describe('mining and transport', () => {
     expect(belt(world, 0, 0).item).toBe(null)
   })
   it('does not reuse a destination vacated in the same step; full loops jam', () => {
-    const world = createWorld()
+    const world = poweredWorld()
     for (const [x, y, direction] of [[0, 0, 'east'], [1, 0, 'south'], [1, 1, 'west'], [0, 1, 'north']] as const) {
       place(world, x, y, 'belt', direction)
       belt(world, x, y).item = 'iron'
@@ -159,7 +160,7 @@ describe('mining and transport', () => {
     expect(accounted(world)).toBe(4)
   })
   it('waits until the next step before a miner reuses a vacated belt', () => {
-    const world = createWorld(() => .5)
+    const world = poweredWorld(() => .5)
     place(world, 20, 20, 'miner')
     place(world, 21, 20, 'belt')
     place(world, 22, 20, 'storage')
@@ -176,7 +177,7 @@ describe('mining and transport', () => {
     expect(miner(world).item).toBe(null)
   })
   it('accepts simultaneous belt deliveries into a chest from all four sides', () => {
-    const world = createWorld()
+    const world = poweredWorld()
     place(world, 10, 10, 'storage')
     for (const [x, y, direction] of [[10, 9, 'south'], [11, 10, 'west'], [10, 11, 'north'], [9, 10, 'east']] as const) {
       place(world, x, y, 'belt', direction)

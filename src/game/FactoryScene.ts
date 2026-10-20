@@ -6,6 +6,8 @@ import { beltPathPoint } from './beltPath'
 import { furnaceStatus } from '../simulation/smelting'
 import { RECIPES } from '../simulation/recipes'
 import { inventoryTotal } from '../simulation/items'
+import { allocatePower, POLE_COVERAGE_RADIUS, powerRequirement, tilePosition, withinRange } from '../simulation/power'
+import { electricalDetails } from '../simulation/inspection'
 import { inspectBuilding } from '../simulation/inspection'
 import { advanceWorld } from '../simulation/step'
 import type { Direction } from '../simulation/world'
@@ -15,6 +17,8 @@ const TILE = 32
 export class FactoryScene extends Phaser.Scene {
   private world = createWorld()
   private keys!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>
+  private wires!: Phaser.GameObjects.Graphics
+  private coverage!: Phaser.GameObjects.Graphics
   private machines!: Phaser.GameObjects.Graphics
   private items!: Phaser.GameObjects.Graphics
   private preview!: Phaser.GameObjects.Graphics
@@ -34,6 +38,8 @@ export class FactoryScene extends Phaser.Scene {
         terrain.fillStyle(0xb4cbd0).fillRect(x + 11, y + 11, 3, 4)
       } else terrain.fillStyle(0x65814b, .25).fillRect(x + 7 + index % 11, y + 10 + index % 13, 2, 3)
     })
+    this.wires = this.add.graphics()
+    this.coverage = this.add.graphics()
     this.machines = this.add.graphics()
     this.items = this.add.graphics()
     this.preview = this.add.graphics()
@@ -46,6 +52,9 @@ export class FactoryScene extends Phaser.Scene {
     keyboard.on('keydown-TWO', () => useGameStore.getState().select('belt'))
     keyboard.on('keydown-THREE', () => useGameStore.getState().select('storage'))
     keyboard.on('keydown-FOUR', () => useGameStore.getState().select('furnace'))
+    keyboard.on('keydown-FIVE', () => useGameStore.getState().select('generator'))
+    keyboard.on('keydown-SIX', () => useGameStore.getState().select('powerPole'))
+    keyboard.on('keydown-P', () => useGameStore.getState().togglePowerOverlay())
     keyboard.on('keydown-X', () => useGameStore.getState().select('remove'))
     keyboard.on('keydown-R', () => useGameStore.getState().rotate())
     keyboard.on('keydown-ESC', () => useGameStore.getState().select(null))
@@ -67,7 +76,7 @@ export class FactoryScene extends Phaser.Scene {
       if (error) { useGameStore.setState({ message: error }); return }
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
     })
   }
   private arrow(x: number, y: number, direction: Direction, color = 0xe8dfac, scale = 1) {
@@ -87,11 +96,38 @@ export class FactoryScene extends Phaser.Scene {
     }
     graphics.strokePath()
   }
-  update(time: number, delta: number) {
+  private showCoverage(position: { x: number; y: number }, networkId: number | null, alpha = .1) {
+    const graphics = this.coverage
+    graphics.fillStyle(0x66c6e0, alpha).fillCircle((position.x + .5) * TILE, (position.y + .5) * TILE, POLE_COVERAGE_RADIUS * TILE)
+    graphics.lineStyle(1, 0x83d5ec, .8).strokeCircle((position.x + .5) * TILE, (position.y + .5) * TILE, POLE_COVERAGE_RADIUS * TILE)
+    for (const machine of this.world.buildings) {
+      if (!machine || !powerRequirement(machine) || !withinRange(position, machine, POLE_COVERAGE_RADIUS)) continue
+      const assigned = this.world.power?.assignments[machine.y * SIZE + machine.x] ?? null
+      const color = networkId !== null && assigned !== null && assigned !== networkId ? 0xffbd6c : 0x8df0b3
+      graphics.fillStyle(color, .25).fillRect(machine.x * TILE, machine.y * TILE, TILE, TILE)
+      graphics.lineStyle(3, color).strokeRect(machine.x * TILE + 1, machine.y * TILE + 1, TILE - 2, TILE - 2)
+    }
+  }
+  update(_time: number, delta: number) {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
     moveCamera(camera, this.keys, delta)
     advanceWorld(this.world, delta)
+    const power = allocatePower(this.world)
+    const overlay = useGameStore.getState().powerOverlay
+    this.wires.clear()
+    this.coverage.clear()
+    for (const [a, b] of power.poleConnections) {
+      const from = tilePosition(a), to = tilePosition(b)
+      this.wires.lineStyle(overlay ? 2 : 1, 0xd7b66c, .8).lineBetween((from.x + .5) * TILE, (from.y + .5) * TILE, (to.x + .5) * TILE, (to.y + .5) * TILE)
+    }
+    for (const network of power.networks) for (const index of network.generatorIndices) {
+      const generator = this.world.buildings[index]!
+      const pole = network.poleIndices.find(i => withinRange(generator, tilePosition(i), POLE_COVERAGE_RADIUS))!
+      const to = tilePosition(pole)
+      this.wires.lineStyle(1, 0x78c9bc, .8).lineBetween((generator.x + .5) * TILE, (generator.y + .5) * TILE, (to.x + .5) * TILE, (to.y + .5) * TILE)
+    }
+    if (overlay) for (const network of power.networks) for (const index of network.poleIndices) this.showCoverage(tilePosition(index), network.id, .035)
     this.machines.clear()
     this.items.clear()
     for (const building of this.world.buildings) {
@@ -111,15 +147,16 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillStyle(0x79e6a2).fillRect(x + 5, y + 27, 22 * (building.item ? 1 : building.elapsed / INTERVAL), 3)
       } else if (building.kind === 'furnace') {
         const status = furnaceStatus(building)
-        const active = status === 'processing'
-        const glow = active ? .7 + .3 * Math.sin(time / 110) : .15
+        const speed = power.consumers[building.y * SIZE + building.x]?.speedFraction ?? 0
+        const active = status === 'processing' && speed > 0
+        const glow = active ? .7 + .3 * Math.sin(building.job ? building.job.elapsedMs / 110 : 0) : .15
         this.machines.fillStyle(0x191e20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.fillStyle(0x626d70).fillRect(x + 5, y + 3, 22, 24)
         this.machines.fillStyle(0x3e302b).fillRect(x + 7, y + 5, 18, 20)
         this.machines.lineStyle(1, 0x91705b).lineBetween(x + 7, y + 12, x + 25, y + 12)
         this.machines.fillStyle(0x151a1c).fillRoundedRect(x + 9, y + 10, 14, 13, 2)
         this.machines.fillStyle(active ? 0xff9d3c : 0x59636b, glow).fillRect(x + 10, y + 12, 12, 9)
-        if (active) this.machines.fillStyle(0xffdc7c, glow).fillTriangle(x + 11, y + 21, x + 17, y + 13 - 2 * Math.sin(time / 80), x + 21, y + 21)
+        if (active) this.machines.fillStyle(0xffdc7c, glow).fillTriangle(x + 11, y + 21, x + 17, y + 13 - 2 * Math.sin(building.job ? building.job.elapsedMs / 80 : 0), x + 21, y + 21)
         this.machines.fillStyle(status === 'output-full' ? 0xf08172 : active ? 0xffc470 : 0x98a2a3).fillCircle(x + 26, y + 5, 2)
         const progress = building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0
         this.machines.fillStyle(0x111714).fillRect(x + 5, y + 28, 22, 3)
@@ -130,6 +167,22 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillCircle(x + 26, y + 25, 1)
         const output = offsets[building.direction]
         this.arrow(x + output.x * 8, y + output.y * 8, building.direction, 0xffdb9d, .6)
+      } else if (building.kind === 'generator') {
+        const networkId = power.assignments[building.y * SIZE + building.x]
+        const network = power.networks.find(n => n.id === networkId)
+        const supplying = (network?.suppliedKw ?? 0) > 0
+        this.machines.fillStyle(0x15242b).fillRoundedRect(x + 2, y + 3, 28, 27, 4)
+        this.machines.lineStyle(2, 0x72b9c1).strokeRect(x + 4, y + 5, 24, 23)
+        for (let n = 0; n < 4; n++) this.machines.fillStyle(0x3d6571).fillRect(x + 6, y + 8 + n * 4, 9, 2)
+        this.machines.fillStyle(0xffdd79).fillTriangle(x + 22, y + 7, x + 16, y + 18, x + 21, y + 18)
+        this.machines.fillTriangle(x + 19, y + 15, x + 25, y + 15, x + 19, y + 26)
+        this.machines.fillStyle(networkId === undefined ? 0xf08172 : supplying ? 0x79e6a2 : 0x78bdd3).fillCircle(x + 6, y + 5, 2)
+      } else if (building.kind === 'powerPole') {
+        this.machines.fillStyle(0x322a20).fillEllipse(x + 16, y + 27, 16, 7)
+        this.machines.lineStyle(5, 0xb89a6a).lineBetween(x + 16, y + 27, x + 16, y + 5)
+        this.machines.lineStyle(3, 0xe5d0a5).lineBetween(x + 5, y + 8, x + 27, y + 8)
+        this.machines.fillStyle(0x94d5dc).fillCircle(x + 7, y + 5, 2)
+        this.machines.fillCircle(x + 25, y + 5, 2)
       } else {
         const inputs = beltInputs(this.world, building)
         const paths = inputs.length ? inputs : [opposite(building.direction)]
@@ -158,16 +211,25 @@ export class FactoryScene extends Phaser.Scene {
           }
         }
       }
+      if (powerRequirement(building)) {
+        const details = electricalDetails(this.world, building.y * SIZE + building.x)
+        const color = details.state === 'disconnected' || details.state === 'no-generation' ? 0xf08172 : details.state === 'reduced' ? 0xffbd6c : details.state === 'idle' ? 0x83c0d4 : 0x79e6a2
+        this.items.fillStyle(0x111714).fillCircle(x + 5, y + 5, 4)
+        this.items.fillStyle(color).fillCircle(x + 5, y + 5, 2.5)
+        if (overlay) this.items.lineStyle(2, color).strokeRect(x + 1, y + 1, TILE - 2, TILE - 2)
+      }
     }
     useGameStore.getState().publish(this.world)
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
     this.preview.clear()
+    if (inspected?.kind === 'powerPole') this.showCoverage(inspected, power.assignments[state.inspected!] ?? null)
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
     const pointer = this.input.activePointer
     if (state.tool && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
+      if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
       const error = state.tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, state.tool)
       const color = error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
