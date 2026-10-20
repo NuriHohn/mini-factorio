@@ -19,6 +19,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
 | Sprint 7.5: Pete | Deterministic immortal goblin, timed pumpkin sabotage, mush/slime feedback and click-to-scare corner crying |
 | Sprint 7.6: police and prison | Powered radar traps, single obstacle-aware police dispatch, visible arrest/transport, prison inspector/manual release, timed jailbreak and re-arrest grace |
+| Sprint 12.2: animation polish and visual design guidelines | Phased 3.4-second arrests with legacy pickup continuation, gentle police/prison/boss/tool/furnace/UI effects, EMP charge telegraph, animation audit and design guidelines; pause/save/load and immediate-release regressions |
 | Sprint 12.1: escalating arrest presentation | Cycle-based unrestrained/cuffs/rope overlays, comic captions, rendered pickup hold/car wobble, visible green passenger and optional version-6 mid-effect continuation; gameplay timings unchanged |
 | Sprint 12: Pete’s Revenge | Escalating completed-arrest boss events, EMPs/one-time stomp, research-gated mouse combat/shared cooldown, police/sprinkler support, procedural breakdown/ejection/stun, and version-6 deterministic encounter persistence with legacy upgrades |
 | Sprint 11: research and technology | Productive-time integer RP, permanent prerequisite purchases, authoritative placement/dashboard gates, Technology dialog, and exact version-5 saves with all-technology legacy upgrades |

@@ -30,14 +30,14 @@ export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, 
   if (flash) {
     const x = (flash.position.x + .5) * tile, y = (flash.position.y + .5) * tile
     const alpha = Math.max(0, (flash.untilMs - world.timeMs) / 350)
-    g.fillStyle(0xffffff, alpha * .8).fillCircle(x, y, 26)
-    g.lineStyle(3, 0xfff7c6, alpha)
+    g.fillStyle(0xe8d9b5, alpha * .12).fillCircle(x, y, 26)
+    g.lineStyle(2, 0xe8d9b5, alpha * .7)
     for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.lineBetween(x + Math.cos(a) * 28, y + Math.sin(a) * 28, x + Math.cos(a) * 36, y + Math.sin(a) * 36) }
   }
   for (const prison of world.buildings) if (prison?.kind === 'prison') {
     const occupied = world.pete.mode === 'IMPRISONED' && world.pete.prison === prison
     const escaping = world.pete.jailbreak && world.pete.jailbreak.position.x === prison.x && world.pete.jailbreak.position.y === prison.y
-    const rattle = escaping ? Math.sin(world.timeMs / 25) * 3 : occupied && world.timeMs % 3000 < 650 ? Math.sin(world.timeMs / 40) * 1.5 : 0
+    const rattle = escaping ? Math.sin(world.timeMs / 140) * 1.5 : occupied && world.timeMs % 3000 < 650 ? Math.sin(world.timeMs / 150) * .8 : 0
     const x = (prison.x + .5) * tile, y = (prison.y + .5) * tile
     g.lineStyle(2, 0xbdcbd7)
     for (let i = -1; i <= 1; i++) g.lineBetween(x + i * 8 + rattle, y - 11, x + i * 8 - rattle, y + 12)
@@ -62,24 +62,25 @@ export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, 
   g.fillStyle(0xe2ebee).fillRoundedRect(x - 12, y - 7, 24, 14, 3)
   g.fillStyle(0x315b76).fillRect(x - (horizontal ? 5 : 9), y - 5, horizontal ? 10 : 18, 10)
   g.fillStyle(0x28313c).fillRect(x - 10, y - 11, 5, 3).fillRect(x + 5, y - 11, 5, 3).fillRect(x - 10, y + 8, 5, 3).fillRect(x + 5, y + 8, 5, 3)
-  g.fillStyle(world.timeMs % 300 < 150 ? 0xff6c6c : 0x4b7ea3).fillRect(x - 5, y - 9, 5, 4)
-  g.fillStyle(world.timeMs % 300 >= 150 ? 0x72caff : 0x7b4f58).fillRect(x, y - 9, 5, 4)
-  if (car.phase === 'TRANSPORTING') { g.fillStyle(0x173c48).fillRoundedRect(x - 3, y - 7, 15, 14, 3); g.fillStyle(0x91dd60).fillCircle(x + 4, y, 5.5); g.fillStyle(0x17251b).fillCircle(x + 3, y - 1, 1).fillCircle(x + 5, y - 1, 1) }
+  const beacon = .5 + Math.sin(world.timeMs / 500) * .15
+  g.fillStyle(0xd98176, beacon).fillRect(x - 5, y - 9, 5, 4)
+  g.fillStyle(0x82b8cf, 1 - beacon).fillRect(x, y - 9, 5, 4)
+  if (arrest?.passenger) { g.fillStyle(0x173c48).fillRoundedRect(x - 3, y - 7, 15, 14, 3); g.fillStyle(0x91dd60).fillCircle(x + 4, y, 5.5); g.fillStyle(0x17251b).fillCircle(x + 3, y - 1, 1).fillCircle(x + 5, y - 1, 1) }
   if (arrest?.active) {
     // Oversized cuffs stay readable without adding tiny character detail.
-    g.fillStyle(0x14202b, .9).fillRoundedRect(x - 31, y - 54, 62, 34, 5)
-    g.lineStyle(5, 0x314351).strokeCircle(x - 13, y - 37, 10).strokeCircle(x + 13, y - 37, 10)
-    g.lineStyle(3, 0xe3edf5).strokeCircle(x - 13, y - 37, 9).strokeCircle(x + 13, y - 37, 9)
-    g.lineStyle(3, 0xc0d4e3).lineBetween(x - 4, y - 37, x + 4, y - 37)
-    g.lineStyle(1, 0xffffff).lineBetween(x - 19, y - 43, x - 14, y - 46).lineBetween(x + 7, y - 43, x + 12, y - 46)
+    g.fillStyle(0x2d352b, .85 * arrest.alpha).fillRoundedRect(x - 31, y - 54, 62, 34, 5)
+    g.lineStyle(5, 0x314351, arrest.alpha).strokeCircle(x - 13, y - 37, 10).strokeCircle(x + 13, y - 37, 10)
+    g.lineStyle(3, 0xdde5df, arrest.alpha).strokeCircle(x - 13, y - 37, 9).strokeCircle(x + 13, y - 37, 9)
+    g.lineStyle(3, 0xc0cdbd, arrest.alpha).lineBetween(x - 4, y - 37, x + 4, y - 37)
+    g.lineStyle(1, 0xf2ead7, arrest.alpha).lineBetween(x - 19, y - 43, x - 14, y - 46).lineBetween(x + 7, y - 43, x + 12, y - 46)
     if (arrest.rope) {
       const px = car.phase === 'ARRESTING' ? (arrest.pete.x + .5) * tile : x + 4
       const py = car.phase === 'ARRESTING' ? (arrest.pete.y + .5) * tile : y
       for (let i = -1; i <= 1; i++) {
-        g.lineStyle(5, 0x694323).strokeEllipse(px, py + 5 + i * 6, 34, 12)
-        g.lineStyle(3, 0xf5ca7c).strokeEllipse(px, py + 5 + i * 6, 34, 12)
+        g.lineStyle(5, 0x694323, arrest.ropeAlpha).strokeEllipse(px, py + 5 + i * 6, 34, 12)
+        g.lineStyle(3, 0xe3bc7f, arrest.ropeAlpha).strokeEllipse(px, py + 5 + i * 6, 34, 12)
       }
-      g.lineStyle(3, 0xf5ca7c).strokeCircle(px + 17, py + 5, 4).strokeCircle(px + 23, py + 5, 4)
+      g.lineStyle(3, 0xe3bc7f, arrest.ropeAlpha).strokeCircle(px + 17, py + 5, 4).strokeCircle(px + 23, py + 5, 4)
       g.lineBetween(px + 20, py + 8, px + 23, py + 18).lineBetween(px + 20, py + 8, px + 15, py + 16)
     }
   }
