@@ -4,7 +4,7 @@ import type { CraftingMachine, World } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 import { changeCraftingRecipe } from '../simulation/crafting'
 import { changeFurnaceRecipe } from '../simulation/smelting'
-import { createResearch, purchaseTechnology, RP_UNITS, TECHNOLOGY_IDS } from '../simulation/research'
+import { createResearch, purchaseTechnology, RP_UNITS, SPRINT11_TECHNOLOGIES } from '../simulation/research'
 import { createAnalytics } from '../simulation/analytics'
 import { decodeSave, encodeSave, SAVE_VERSION } from './saveGame'
 import type { SaveDocument } from './saveGame'
@@ -28,7 +28,7 @@ describe('version-5 research persistence', () => {
   it('restores fractional currency, exact unlocks and deterministic continuation alongside analytics and jobs', () => {
     const world = setup(), before = document(world)
     const loaded = decodeSave(JSON.stringify(before))
-    expect(SAVE_VERSION).toBe(5)
+    expect(SAVE_VERSION).toBe(6)
     expect(loaded.world.research).toEqual(world.research)
     expect(loaded.world.research.unlocked).toEqual(['basicIndustry', 'automation1'])
     expect(loaded.view).toEqual(view)
@@ -41,7 +41,7 @@ describe('version-5 research persistence', () => {
   it.each([1, 2, 3, 4])('migrates genuine version %i fields with zero RP and every Sprint 11 unlock', version => {
     const world = setup(), legacy = document(world)
     Object.assign(legacy, { version })
-    Reflect.deleteProperty(legacy.game, 'research')
+    Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'revenge')
     if (version < 4) Reflect.deleteProperty(legacy.game, 'analytics')
     if (version < 3) {
       Reflect.deleteProperty(legacy.game, 'webs')
@@ -50,7 +50,7 @@ describe('version-5 research persistence', () => {
     }
     if (version === 1) Reflect.deleteProperty(legacy.game.pete, 'water')
     const loaded = decodeSave(JSON.stringify(legacy)).world
-    expect(loaded.research).toEqual({ balanceUnits: '0', unlocked: TECHNOLOGY_IDS })
+    expect(loaded.research).toEqual({ balanceUnits: '0', unlocked: SPRINT11_TECHNOLOGIES })
     expect(loaded.buildings).toEqual(world.buildings)
     expect(loaded.mined).toEqual(world.mined)
     expect(loaded.produced).toEqual(world.produced)

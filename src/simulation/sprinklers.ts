@@ -1,3 +1,4 @@
+import { bossAlive, damageWalker, peteUnavailable } from './revenge'
 import { neighboringTiles, reachableTiles, tilePath } from './navigation'
 import { PETE_FLEE_MS, PETE_WALK_MS } from './pete'
 import { withinRange } from './power'
@@ -36,6 +37,18 @@ export function removeSprinkler(world: World, building: Building): void {
 }
 // Called after current power allocation and police dispatch: a committed police case wins.
 export function advanceSprinklers(world: World, delta: number, allowDetection = true): void {
+  if (bossAlive(world)) {
+    const r = world.revenge
+    if (world.timeMs < r.sprinklerReadyAtMs) return
+    const source = world.buildings.find(b => b?.kind === 'sprinkler' && b.cooldownUntilMs <= world.timeMs && sprinklerPowered(world, b.y * SIZE + b.x) && withinRange(b, r.boss!, SPRINKLER_RANGE))
+    if (source?.kind === 'sprinkler') {
+      source.cooldownUntilMs = world.timeMs + SPRINKLER_COOLDOWN_MS; source.sprays++
+      r.sprinklerReadyAtMs = world.timeMs + 2000
+      damageWalker(world, 2)
+    }
+    return
+  }
+  if (peteUnavailable(world)) return
   const pete = world.pete, water = pete.water
   if (pete.mode === 'SPRAYED' && water) {
     const index = water.source!, source = world.buildings[index]

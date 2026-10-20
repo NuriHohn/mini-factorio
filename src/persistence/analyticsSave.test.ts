@@ -50,7 +50,7 @@ describe('analytics persistence and deterministic continuation', () => {
   it('starts legacy analytics at the load boundary without inventing historical production', () => {
     const world = setup(); advanceWorld(world, 1050)
     const legacy = document(world)
-    Object.assign(legacy, { version: 3 }); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research')
+    Object.assign(legacy, { version: 3 }); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'revenge')
     const loaded = decodeSave(JSON.stringify(legacy)).world
     expect(loaded.analytics).toEqual(createAnalytics(1050))
     expect(loaded.produced).toEqual(world.produced)
@@ -62,7 +62,7 @@ describe('analytics persistence and deterministic continuation', () => {
     const world = setup(); advanceWorld(world, 1050)
     const legacy = document(world), machine = legacy.game.buildings[820] as Assembler
     machine.recipeMode = 'auto'
-    Object.assign(legacy, { version: 3 }); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research')
+    Object.assign(legacy, { version: 3 }); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'revenge')
     const loaded = decodeSave(JSON.stringify(legacy)).world
     expect((loaded.buildings[820] as Assembler).job).toEqual(machine.job)
     advanceWorld(loaded, 1000)

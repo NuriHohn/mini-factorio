@@ -5,7 +5,7 @@ import { allocatePower } from './power'
 import { advanceWorld } from './step'
 import { changeCraftingRecipe } from './crafting'
 import { changeFurnaceRecipe } from './smelting'
-import { createResearch, purchaseTechnology, researchBalance, researchRate, RP_UNITS, TECHNOLOGY_IDS } from './research'
+import { createResearch, purchaseTechnology, researchBalance, researchRate, RP_UNITS, SPRINT11_TECHNOLOGIES } from './research'
 
 function machineWorld(kind: 'miner' | 'furnace' | 'assembler') {
   const world = createWorld(() => .5)
@@ -67,7 +67,7 @@ describe('research currency and technology commands', () => {
     expect(placeBuilding(world, 10, 10, 'assembler', 'east')).toBe(true)
     world.research.balanceUnits = (80n * RP_UNITS).toString()
     expect(purchaseTechnology(world, 'analytics1')).toBeNull()
-    expect(world.research).toEqual({ balanceUnits: '0', unlocked: TECHNOLOGY_IDS })
+    expect(world.research).toEqual({ balanceUnits: '0', unlocked: SPRINT11_TECHNOLOGIES })
   })
   it.each([['miner', 2], ['furnace', 5], ['assembler', 12]] as const)('awards %s at %i RP per productive minute', (kind, rate) => {
     const world = machineWorld(kind)

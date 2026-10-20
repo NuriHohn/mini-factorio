@@ -1,8 +1,9 @@
+import { combatTool } from '../simulation/revenge'
 import { buildingTechnologyError } from '../simulation/research'
 import { useGameStore } from '../state/gameStore'
 import { BUILD_TABS, PLAYER_TOOLS } from '../state/toolMetadata'
 export function BuildToolbar() {
-  const { research, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
+  const { revenge, simulationTime, research, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
   return <section aria-label="Build toolbar">
     <div className="build-tabs" role="tablist" aria-label="Building categories">{BUILD_TABS.map(tab => <button key={tab.id} className="build-tab" role="tab" id={`tab-${tab.id}`} aria-controls="build-panel" aria-selected={buildTab === tab.id} tabIndex={buildTab === tab.id ? 0 : -1} onClick={() => setBuildTab(tab.id)} onKeyDown={event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
@@ -11,7 +12,7 @@ export function BuildToolbar() {
       setBuildTab(next.id)
       document.getElementById(`tab-${next.id}`)?.focus()
     }}>{tab.label}</button>)}</div>
-    <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="flex flex-col gap-2">{PLAYER_TOOLS.filter(option => option.tab === buildTab).map(option => <button key={option.tool} className="building" disabled={!!buildingTechnologyError(research, option.tool)} title={buildingTechnologyError(research, option.tool) ?? option.hint} data-tool={option.tool} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}><span className="machine-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{buildingTechnologyError(research, option.tool) ?? option.hint}</small></span><span className="key">{option.key}</span></button>)}</div>
+    <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="flex flex-col gap-2">{PLAYER_TOOLS.filter(option => option.tab === buildTab).map(option => <button key={option.tool} className="building" disabled={!!buildingTechnologyError(research, option.tool)} title={buildingTechnologyError(research, option.tool) ?? option.hint} data-tool={option.tool} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}><span className="machine-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{buildingTechnologyError(research, option.tool) ?? option.hint}</small>{combatTool(option.tool) && <small>{revenge.playerReadyAtMs > simulationTime ? `Shared cooldown: ${((revenge.playerReadyAtMs - simulationTime) / 1000).toFixed(1)} s` : 'Shared cooldown: Ready'}</small>}{combatTool(option.tool) && <progress aria-label={`${option.label} shared cooldown`} max={revenge.playerCooldownMs || 1} value={Math.max(0, (revenge.playerCooldownMs || 1) - Math.max(0, revenge.playerReadyAtMs - simulationTime))} />}</span><span className="key">{option.key}</span></button>)}</div>
     <button className="building mt-3" onClick={rotate} disabled={!['miner', 'belt', 'furnace', 'assembler', 'inserter', 'splitter'].includes(tool ?? '')}><span><strong>Output: {direction}</strong><small>Remove and replace to redirect buildings</small></span><span className="key">R</span></button>
   </section>
 }

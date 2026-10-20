@@ -1,3 +1,5 @@
+import { attackWalker, combatPosition, combatTool, peteUnavailable } from '../simulation/revenge'
+import { RevengeVisuals } from './RevengeVisuals'
 import { hasTechnology } from '../simulation/research'
 import { WebVisuals } from './webVisuals'
 import { peteHit, sabotageRemaining } from '../simulation/pete'
@@ -34,6 +36,7 @@ import { useGameStore } from '../state/gameStore'
 import { moveCamera, updateCameraBounds } from './cameraMovement'
 const TILE = 32
 export class FactoryScene extends Phaser.Scene {
+  private revengeVisuals = new RevengeVisuals()
   private world = createWorld()
   private terrain!: Phaser.GameObjects.Graphics
   private saves!: SaveSession
@@ -82,6 +85,7 @@ export class FactoryScene extends Phaser.Scene {
     }
     window.addEventListener('keydown', toolKeyDown)
     const removeToolKeyListener = () => window.removeEventListener('keydown', toolKeyDown)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.revengeVisuals.destroy())
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeToolKeyListener)
     this.events.once(Phaser.Scenes.Events.DESTROY, removeToolKeyListener)
     keyboard.on('keydown-P', () => { if (!useGameStore.getState().researchOpen) useGameStore.getState().togglePowerOverlay() })
@@ -91,11 +95,21 @@ export class FactoryScene extends Phaser.Scene {
     })
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.leftButtonDown()) return
+      const selected = useGameStore.getState().tool
+      if (combatTool(selected)) {
+        const position = combatPosition(pointer, this.cameras.main, TILE)
+        const impact = attackWalker(this.world, selected, position)
+        if (impact) {
+          this.revengeVisuals.impact(impact, this.world, this.cameras.main)
+          useGameStore.setState({ message: impact.hit ? `Hit! -${impact.damage} HP` : 'Miss! Click the walker hitbox.' })
+        }
+        return
+      }
       const p = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2
       if (useGameStore.getState().useWebTool(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
-      if (tool === 'spiderWeb') return
+      if (tool === 'spiderWeb' || combatTool(tool)) return
       if (!tool) {
         useGameStore.getState().inspect(this.world, x, y)
         return
@@ -468,11 +482,13 @@ export class FactoryScene extends Phaser.Scene {
     }
     this.webVisuals.draw(this.peteEffects, this.world, TILE)
     this.waterVisuals.draw(this.peteEffects, this.world, TILE)
-    drawPete(this.peteEffects, this.world, TILE)
+    this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this)
+    if (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned') drawPete(this.peteEffects, this.world, TILE)
     drawPoliceEffects(this.peteEffects, this.world, TILE)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
+    this.peteLabel.setVisible(!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')
     this.peteLabel.setPosition((pete.x + .5) * TILE, (pete.y + .5) * TILE - (complaining ? 29 : 15))
-    const label = complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete'
+    const label = this.world.revenge.stage === 'stunned' ? 'Pete · seeing stars!' : complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete'
     if (this.peteLabel.text !== label) {
       this.peteLabel.setText(label).setStyle({ color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
     }
@@ -486,7 +502,7 @@ export class FactoryScene extends Phaser.Scene {
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
     this.poleLinks.setVisible(state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer
-    if (state.tool && this.input.isOver) {
+    if (state.tool && !combatTool(state.tool) && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       if (state.tool === 'spiderWeb' && peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) this.preview.lineStyle(2, 0xeaf3f5).strokeCircle((this.world.pete.x + .5) * TILE, (this.world.pete.y + .5) * TILE, .8 * TILE)

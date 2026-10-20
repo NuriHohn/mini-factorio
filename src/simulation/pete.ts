@@ -1,3 +1,4 @@
+import { peteUnavailable } from './revenge'
 import { isSabotageable } from './buildingCapabilities'
 import { releaseWebTrap, tryWebTrap } from './webs'
 import { allocatePower } from './power'
@@ -55,6 +56,7 @@ function escapePath(world: World): void {
   pete.pathRevision = world.topologyRevision
 }
 export function peteHit(world: World, position: Position): boolean {
+  if (peteUnavailable(world)) return false
   return Math.hypot(world.pete.x - position.x, world.pete.y - position.y) <= .8
 }
 // Free web hits replay visuals; water/custody clicks are consumed without a scare.
@@ -79,6 +81,7 @@ export function peteOccupiesTile(world: World, x: number, y: number): boolean {
   return world.pete.tile === tile || world.pete.next === tile
 }
 export function advancePete(world: World, delta: number): void {
+  if (peteUnavailable(world)) return
   const pete = world.pete
   pete.cooldownMs = Math.max(0, pete.cooldownMs - delta)
   pete.webMs = Math.max(0, pete.webMs - delta)

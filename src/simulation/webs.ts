@@ -1,3 +1,4 @@
+import { peteUnavailable } from './revenge'
 import { clickPete, peteHit } from './pete'
 import { inside, SIZE } from './world'
 import type { Position, World } from './world'
@@ -21,7 +22,7 @@ export function releaseWebTrap(world: World): void {
 }
 export function tryWebTrap(world: World): boolean {
   const p = world.pete
-  if (p.mode !== 'WANDERING' || p.water) return false
+  if (peteUnavailable(world) || p.mode !== 'WANDERING' || p.water) return false
   const web = activeUnderPete(world).find(w => !p.ignoredWebs.includes(w.id))
   if (!web) return false
   p.trappedBy = web.id; p.mode = 'TRAPPED'; p.pumpkin = null

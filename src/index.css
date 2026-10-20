@@ -104,3 +104,9 @@ kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; paddin
 .research-feedback { min-height: 20px; color: #c3d9a6; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 @media (max-width: 700px) { .technology-cards { grid-template-columns: 1fr; } .research-panel { padding: 16px; } }
+
+.revenge-progress { color: #d1bb9d; font: 11px monospace; padding-bottom: 10px; }
+.revenge-hud { border: 1px solid #c8874c; border-radius: 5px; background: #30231d; padding: 10px 14px; margin-bottom: 10px; font-size: 12px; color: #ffe1ad; }
+.revenge-hud strong, .revenge-hud span { display: block; }
+.revenge-hud progress { width: 100%; height: 14px; accent-color: #ef9257; margin: 6px 0; }
+.revenge-hud p { margin: 6px 0 0; color: #bce2ff; }
