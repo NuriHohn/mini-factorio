@@ -1,3 +1,4 @@
+import { advanceRevenge } from './revenge'
 import { awardResearch } from './research'
 import { observeMachines, pruneAnalytics, recordProduction } from './analytics'
 import { advanceWebs } from './webs'
@@ -24,6 +25,8 @@ export function advanceWorld(world: World, delta: number): void {
     const vacated = advanceTransport(world, STEP_MS)
     outputMachines(world, vacated)
     const power = allocatePower(world, inserterFrame)
+    advanceRevenge(world, STEP_MS)
+    if (world.revenge.blast?.atMs === world.timeMs) allocatePower(world, inserterFrame)
     advancePolice(world, STEP_MS)
     advanceSprinklers(world, STEP_MS, !reactingToWater)
     advanceInserters(world, STEP_MS, inserterFrame)

@@ -19,6 +19,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
 | Sprint 7.5: Pete | Deterministic immortal goblin, timed pumpkin sabotage, mush/slime feedback and click-to-scare corner crying |
 | Sprint 7.6: police and prison | Powered radar traps, single obstacle-aware police dispatch, visible arrest/transport, prison inspector/manual release, timed jailbreak and re-arrest grace |
+| Sprint 12: Pete’s Revenge | Escalating completed-arrest boss events, EMPs/one-time stomp, research-gated mouse combat/shared cooldown, police/sprinkler support, procedural breakdown/ejection/stun, and version-6 deterministic encounter persistence with legacy upgrades |
 | Sprint 11: research and technology | Productive-time integer RP, permanent prerequisite purchases, authoritative placement/dashboard gates, Technology dialog, and exact version-5 saves with all-technology legacy upgrades |
 | Sprint 10: production analytics | Actual rolling item rates and minute history, configured utilization, prioritized clickable bottlenecks, explicit assembler recipes, unambiguous furnace probes and version-4 analytics persistence |
 | Pete 2.0 | Player-facing rename, faster walking, two-second sabotage cooldown, inserter/generator sabotage, explicit Spider Web tool, timed ground traps and version-3 saves with version-1/2 upgrades |

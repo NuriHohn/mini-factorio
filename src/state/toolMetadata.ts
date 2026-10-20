@@ -1,8 +1,8 @@
 import type { BuildingKind } from '../simulation/world'
 export type BuildTab = 'factory' | 'pete'
-export type ToolKind = Exclude<BuildingKind, 'prison'> | 'remove' | 'spiderWeb'
+export type ToolKind = Exclude<BuildingKind, 'prison'> | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam'
 export type Tool = ToolKind | null
-export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code: string; tab: BuildTab }
+export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code?: string; tab: BuildTab }
 export const BUILD_TABS: readonly { id: BuildTab; label: string }[] = [{ id: 'factory', label: 'Factory' }, { id: 'pete', label: 'Pete' }]
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec at full power · on ore', key: '1', icon: '⚙', code: 'Digit1', tab: 'factory' },
@@ -16,8 +16,11 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'radar', label: 'Radar trap', hint: '3-tile detection · requires full 5 kW', key: '9', icon: '◉', code: 'Digit9', tab: 'pete' },
   { tool: 'spiderWeb', label: 'Spider Web', hint: 'Click Pete to scare · ground webs last 10 sec', key: 'B', icon: '🕸', code: 'KeyB', tab: 'pete' },
   { tool: 'sprinkler', label: 'Anti-Goblin Sprinkler', hint: '3-tile range · 5 kW · sends Pete slipping', key: 'G', icon: '☔', code: 'KeyG', tab: 'pete' },
+  { tool: 'flySwatter', label: 'Fly Swatter', hint: 'Click walker · 5 HP · shared 1 s cooldown', key: 'Click', icon: '✳', tab: 'pete' },
+  { tool: 'drill', label: 'Drill', hint: 'Click walker · 15 HP · shared 1.5 s cooldown', key: 'Click', icon: '⛏', tab: 'pete' },
+  { tool: 'lightningBeam', label: 'Lightning Beam', hint: 'Click walker · 30 HP · shared 2 s cooldown', key: 'Click', icon: 'ϟ', tab: 'pete' },
   { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂', code: 'Digit0', tab: 'factory' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'factory' },
 ]
-export const TOOL_HOTKEYS: Readonly<Record<string, ToolKind>> = Object.fromEntries(PLAYER_TOOLS.map(tool => [tool.code, tool.tool]))
+export const TOOL_HOTKEYS: Readonly<Record<string, ToolKind>> = Object.fromEntries(PLAYER_TOOLS.filter(tool => tool.code).map(tool => [tool.code, tool.tool]))
 export function toolMetadata(tool: ToolKind): ToolMetadata { return PLAYER_TOOLS.find(metadata => metadata.tool === tool)! }

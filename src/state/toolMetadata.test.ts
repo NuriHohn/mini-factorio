@@ -1,17 +1,17 @@
-import { createResearch } from '../simulation/research'
+import { TECHNOLOGY_IDS } from '../simulation/research'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from './gameStore'
 import { PLAYER_TOOLS, TOOL_HOTKEYS } from './toolMetadata'
-beforeEach(() => useGameStore.setState({ ...useGameStore.getInitialState(), research: createResearch(true) }, true))
+beforeEach(() => useGameStore.setState({ ...useGameStore.getInitialState(), research: { balanceUnits: '0', unlocked: TECHNOLOGY_IDS } }, true))
 const key = (code: string) => useGameStore.getState().handleToolKey({ code, repeat: false })
 describe('categorized build menu', () => {
   it('defaults to Factory and categorizes every existing player tool exactly once', () => {
     expect(useGameStore.getState().buildTab).toBe('factory')
     expect(new Set(PLAYER_TOOLS.map(t => t.tool)).size).toBe(PLAYER_TOOLS.length)
-    expect(PLAYER_TOOLS.filter(t => t.tab === 'pete').map(t => t.tool)).toEqual(['radar', 'spiderWeb', 'sprinkler'])
+    expect(PLAYER_TOOLS.filter(t => t.tab === 'pete').map(t => t.tool)).toEqual(['radar', 'spiderWeb', 'sprinkler', 'flySwatter', 'drill', 'lightningBeam'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'factory').map(t => t.tool)).toEqual(expect.arrayContaining(['miner', 'belt', 'splitter', 'furnace', 'assembler', 'inserter', 'storage', 'powerPole', 'generator', 'remove']))
     expect(PLAYER_TOOLS.map(t => t.tool)).not.toContain('prison')
-    expect(Object.keys(TOOL_HOTKEYS)).toHaveLength(PLAYER_TOOLS.length)
+    expect(Object.keys(TOOL_HOTKEYS)).toHaveLength(PLAYER_TOOLS.filter(t => t.code).length)
   })
   it.each(['belt', 'remove', 'furnace'] as const)('cancels %s on a category change', tool => {
     useGameStore.getState().select(tool)
@@ -23,7 +23,8 @@ describe('categorized build menu', () => {
   it('auto-selects the correct tab for every hotkey and keeps ESC idempotent', () => {
     for (const metadata of PLAYER_TOOLS) {
       useGameStore.getState().setBuildTab(metadata.tab === 'factory' ? 'pete' : 'factory')
-      key(metadata.code)
+      if (metadata.code) key(metadata.code)
+      else useGameStore.getState().select(metadata.tool)
       expect(useGameStore.getState()).toMatchObject({ tool: metadata.tool, buildTab: metadata.tab })
       key('Escape'); key('Escape')
       expect(useGameStore.getState()).toMatchObject({ tool: null, buildTab: metadata.tab })

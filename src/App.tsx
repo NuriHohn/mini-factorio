@@ -1,3 +1,4 @@
+import { RevengeHUD } from './game/RevengeHUD'
 import { ResearchPanel } from './game/ResearchPanel'
 import { AnalyticsPanel } from './game/AnalyticsPanel'
 import { useEffect, useRef } from 'react'
@@ -19,7 +20,7 @@ export default function App() {
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
       <ResearchPanel />
-      <span className="version"><i /> SPRINT 11</span>
+      <span className="version"><i /> SPRINT 12</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
@@ -89,7 +90,7 @@ export default function App() {
         <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9 / 0 / G / B</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
         <p className="session-note">Offline saves · Load to restore your factory</p>
       </aside>
-      <section className="world-panel"><div className="world-heading"><span><i /> GRASSLAND / SECTOR 01</span><span>40 × 40 TILES</span></div><GameCanvas /><div className="world-footer"><span role="status">{message}</span><span className="legend">{powerOverlay ? 'Green full · Amber reduced · Red no power · Blue idle' : <>◆ Iron · <span className="copper-legend">◆ Copper</span></>}</span></div></section>
+      <section className="world-panel"><div className="world-heading"><span><i /> GRASSLAND / SECTOR 01</span><span>40 × 40 TILES</span></div><RevengeHUD /><GameCanvas /><div className="world-footer"><span role="status">{message}</span><span className="legend">{powerOverlay ? 'Green full · Amber reduced · Red no power · Blue idle' : <>◆ Iron · <span className="copper-legend">◆ Copper</span></>}</span></div></section>
       <AnalyticsPanel />
     </main>
   </div>

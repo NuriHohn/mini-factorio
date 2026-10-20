@@ -38,7 +38,7 @@ describe('Pete 2.0 versioned persistence and continuation', () => {
   it.each([1, 2])('upgrades version %i with movement interpolation and old remaining cooldown intact', version => {
     const w = createUnlockedWorld(() => .5); advanceWorld(w, 350); w.pete.cooldownMs = 12345
     const before = snapshot(w), legacy = structuredClone(before)
-    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research')
+    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'revenge')
     for (const key of ['trappedBy', 'ignoredWebs', ...(version === 1 ? ['water'] : [])]) Reflect.deleteProperty(legacy.game.pete, key)
     legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy)).world
@@ -53,7 +53,7 @@ describe('Pete 2.0 versioned persistence and continuation', () => {
     advanceWorld(w, 4750)
     expect(w.pete.mode).toBe('WATER_FLEEING')
     const before = snapshot(w), legacy = structuredClone(before)
-    Object.assign(legacy, { version: 2 }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs')
+    Object.assign(legacy, { version: 2 }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'revenge'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs')
     legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy)).world
     expect(snapshot(loaded)).toEqual({ ...before, game: { ...before.game, analytics: createAnalytics(w.timeMs) } })

@@ -87,12 +87,14 @@ New games start with **0 RP** and only **Basic Industry** researched. RP are an 
 | `automation1` | Automation I | 40 RP | Basic Industry | Assemblers and all existing assembler recipes |
 | `logistics2` | Logistics II | 60 RP | Logistics I | Compact splitters |
 | `analytics1` | Analytics I | 80 RP | Automation I | Production Analytics dashboard |
+| `revengeDefense1` | Revenge Defense I | 60 RP | Basic Industry | Drill combat tool |
+| `revengeDefense2` | Revenge Defense II | 120 RP | Revenge Defense I | Lightning Beam combat tool |
 
 Purchases are manual, permanent and atomic: validate the prerequisite and full balance, deduct once, then unlock. Repeated purchases do not charge again. Placement is checked by the simulation; toolbar disabling cannot bypass research. Locked tools remain visible with the required technology, and locked hotkeys leave the current tool unchanged with explanatory feedback. After unlocking, all existing tool toggles, rotation and category behavior remain. Existing buildings keep running and remain inspectable/configurable. Pete tools, their hotkeys and automatic police/prison behavior remain available as before; Sprint 11 adds no technology for them.
 
 The compact **Research** button shows available RP (two decimal places, truncated so an unaffordable technology never appears funded) and the current effective RP/min, excluding idle or blocked machines. It opens a separate, closable Technology dialog with prerequisite relationships, costs, unlock descriptions, researched/locked/available/affordable cards and selected-technology details. Purchases show a brief confirmation. Close or Escape restores focus to Research. Game tool/camera shortcuts are suspended inside the dialog; research and simulation continue. Opening Research collapses Analytics, keeping the two interfaces separate. Analytics remains visible but disabled with “Requires Analytics I” until unlocked; its underlying simulation and history collection always continue.
 
-Research balance and technology IDs are persisted with nanosecond-resolution integer accounting; saving/loading preserves fractional RP exactly. Legacy version-1–4 saves initialize RP to 0 and unlock **all five** Sprint 11 technologies; retained buildings, production, inventories, analytics (where present), NPCs and saves keep their existing behavior. Version-5 malformed research state is rejected rather than silently reset.
+Research balance and technology IDs are persisted with nanosecond-resolution integer accounting; saving/loading preserves fractional RP exactly. Legacy version-1–4 saves initialize RP to 0 and unlock **all five** Sprint 11 technologies; retained buildings, production, inventories, analytics (where present), NPCs and saves keep their existing behavior. Malformed research state is rejected rather than silently reset.
 
 ## Production analytics
 
@@ -168,13 +170,44 @@ In `IMPRISONED`, Pete stays inside the prison, grimaces angrily and rattles the 
 
 All custody time counts down Pete's existing sabotage cooldown normally; arrest, release and escape never reset it. Release/escape grants **10 simulation seconds of grace against every radar**, including the original trap. After grace, remaining in a powered detection radius can trigger another case. Repeated/stale release commands cannot affect a new imprisonment.
 
-Construction reserves the car's current/next tile and every prison exit. X can remove an empty or occupied prison. Removal during arrest/transport safely frees Pete at the car's free tile; removal while imprisoned frees him at the exit. Removing a prison during police arrival cancels that dispatch. If new walls disconnect a return route, the car safely releases its passenger where it is, with grace; it never drives through buildings or teleports a captive through them. A later valid dispatch can reuse an existing prison or create a replacement. No police combat, road network, prison power demand or prison management system is added.
+Construction reserves the car's current/next tile and every prison exit. X can remove an empty or occupied prison. Removal during arrest/transport safely frees Pete at the car's free tile; removal while imprisoned frees him at the exit. Removing a prison during police arrival cancels that dispatch. If new walls disconnect a return route, the car safely releases its passenger where it is, with grace; it never drives through buildings or teleports a captive through them. A later valid dispatch can reuse an existing prison or create a replacement. Outside Revenge encounters police retain this arrest-only behavior; there is no road network, prison power demand or prison management system.
+
+## Pete’s Revenge
+
+Completed police arrests count when the 750 ms escort finishes and Pete enters the car, once per arrest. **3 arrests** trigger the first Revenge-O-Matic 3000 event. The HUD warns for **5 simulation seconds** before spawning; no second event or additional progress can accumulate during warning, combat, breakdown or recovery. Defeat resets progress to zero and raises the next threshold by two (**3, 5, 7, 9, …**). Outside the encounter, the factory shows `Pete’s Revenge: current / threshold arrests`.
+
+The oversized mechanical walker has **100 HP**, with Pete visible in its cockpit. Its logical movement occupies one tile plus its reserved next tile; its larger body/hitbox is visual and never overwrites buildings or items. It spawns at the first free map-edge tile in tile order, excluding police reservations, prison exits and Pete’s current/next tile. If none is free, the warning remains pending until an edge opens. At **one tile per 1.5 seconds**, it hunts currently productive powered machines: **assembler → furnace → miner**, then avoids the previous target where equal priority permits, chooses the nearest squared distance and breaks ties by tile index. Cardinal paths use existing empty-tile navigation to approach within range. It waits safely when targets or routes are unavailable, and replans after obstruction/removal. EMP fire stops movement at a tile boundary.
+
+| State | Behavior |
+| --- | --- |
+| Phase 1: Revenge (100–51 HP) | EMP every 8 s when a productive target is within 6 tiles; blast centered on target, inclusive radius 3, 6 s sabotage |
+| STOMP transition (first surviving hit crossing to ≤50 HP) | Hold position and raise a foot for 1.5 s, then one radial radius-5 stomp with 8 s sabotage, dust/shockwave and camera shake |
+| Phase 2: Furious Pete (50–1 HP) | Same hunting behavior, EMP interval 6 s; stomp never repeats |
+| Defeat (0 HP) | Cancel movement/attacks/damage, 2 s sparking breakdown and visible cockpit ejection, then remove walker and stun Pete on a free nearby tile for exactly 5 s |
+
+EMP and stomp use the existing sabotage eligibility (miners, furnaces, assemblers, inserters and generators) and absolute `sabotageUntilMs`, extending rather than shortening an existing disable. Belts, chests, power poles, splitters, radar, sprinklers and prisons are unaffected. Buildings and every item/job remain intact. A direct lethal hit from above 50 HP skips stomp; defeating a telegraphing walker cancels its pending stomp. Stomp resets the next EMP to six seconds after impact. If no ejection tile is free, breakdown waits safely instead of overwriting anything.
+
+Select these mouse-only tools in **Pete**; all old keyboard bindings and tool toggles remain unchanged:
+
+| Tool | Damage | Shared cooldown after hit **or miss** | Research |
+| --- | --- | --- | --- |
+| Fly Swatter | 5 HP | 1 s | Available by default |
+| Drill | 15 HP | 1.5 s | Revenge Defense I (see technology table) |
+| Lightning Beam | 30 HP | 2 s | Revenge Defense II (see technology table) |
+
+Click the walker’s rectangular hitbox (±1.25 tiles horizontally, ±1.1 vertically from its center). Canvas clicks elsewhere, including empty ground, miss, do zero damage and still consume cooldown. During cooldown all clicks are ignored without new impact effects. Switching tools, categories, research panels or loading cannot bypass the persisted shared timer. The toolbar shows selection, research explanations and shared cooldown text/progress. Combat clicks consume their mouse action; they never place, inspect or delete a building. Camera unprojection accounts for zoom and viewport position. Swatter hits show SMACK, stars, wobble and `-5`; misses show PLOP and dust. Drilling produces orange sparks/shake or ground debris; lightning produces a blue beam/arcs or a glowing ground ring, with `-30` and brief camera shake on hits. These bounded effects do not cause damage themselves.
+
+Normal powered radars dispatch the existing police car toward a visible active walker. Within 2 tiles, the car deals **2 HP per 2 s**, using one shared police timer. Powered ready sprinklers within their existing 3-tile range deal **2 HP**, then take their normal 10 s cooldown; all sprinklers additionally share a **2 s** boss-attack timer. Overlap cannot multiply instantaneous support damage. A dispatched car still works without continuing radar power. Unpowered sprinklers do not attack. Every damage source uses the same phase/defeat path.
+
+While piloting, Pete’s ordinary movement, webs, sabotage, custody and water reactions pause; spawn cancels his current custody/reaction and leaves the prison/buildings intact. His normal rendering is replaced by the cockpit. Breakdown/ejection happens once, then stars show the five-second stun. Police and sprinklers leave him alone during recovery; afterward normal wandering, sabotage and arrest rules resume. The event is entirely driven by the existing 50 ms simulation clock, with no wall-clock catch-up.
+
+Version-6 saves retain progress/threshold, warning, walker movement/target/HP/phase/EMP/stomp, breakdown/stun, blast presentation and shared attack/support timers. Loading resumes instead of replaying damage, stomp, defeat, escalation or ejection. Transient player impact particles/text reset on load. Versions 1–5 initialize Revenge to 0 / 3 with no active event; version-5 RP and researched IDs remain exact, and Revenge Defense I/II start locked. Earlier versions retain their established Sprint 11 migration and unlock only those five technologies.
 
 ## Production chains and limitations
 
 Build miner → belt → furnace → belt → storage for either metal. For circuits, route iron plates to one assembler input and copper plates through a cable assembler to another input; send finished circuits by belt to storage. Separate ingredient belts avoid a blocked incompatible/excess item hiding needed ingredients behind it. One miner nominally supplies two full-power furnaces; actual throughput depends on power, delays and congestion.
 
-Reloading creates a new session until a save is explicitly loaded. There is no automatic chest output, research, blueprint or Factory Architect yet. Chests require an inserter for extraction. Mixed-input head-of-line blocking and incomplete ingredient sets still require suitable deliveries/routing; Auto cannot invent missing materials. Rotation after placement requires destructive remove-and-replace. No fuel, depletion, electricity storage or player economy is implemented. Future proposals are listed separately in [Roadmap](ROADMAP.md).
+Reloading creates a new session until a save is explicitly loaded. There is no automatic chest output, blueprint or Factory Architect yet. Chests require an inserter for extraction. Mixed-input head-of-line blocking and incomplete ingredient sets still require suitable deliveries/routing; Auto cannot invent missing materials. Rotation after placement requires destructive remove-and-replace. No fuel, depletion, electricity storage or player economy is implemented. Future proposals are listed separately in [Roadmap](ROADMAP.md).
 
 ## Offline save and load
 
@@ -182,7 +215,7 @@ Reloading creates a new session until a save is explicitly loaded. There is no a
 
 **Export JSON** downloads the current factory with a timestamped filename. **Import JSON** reads a local file, fully validates it, then asks before replacing the factory. Import/export leave browser slots unchanged. Saves include terrain, every building and item, crafting reservations/progress, splitter preferences, inserter-held items, electricity topology, Pete/police/prison state, simulation clock/remainder, camera, output direction and electricity overlay. Loads cancel tools and inspection and return the menu to Factory. Simulation advances only from the saved clock; no production is awarded for time away.
 
-Malformed/incompatible saves, unsupported versions, invalid references, oversized files (over 2 MiB), unavailable storage and quota failures show errors without replacing the running factory. A failed write preserves the previous browser save. Clearing site data removes browser saves: export JSON for a portable backup. Startup checks slot metadata but never automatically loads a factory. New saves use version 5; valid version-1/2/3/4 saves load through explicit validated upgrades. All pre-Sprint-11 saves receive every Sprint 11 technology and 0 RP, preserving existing factories and dashboard access. Normal version-5 loading restores the exact research balance and unlocks. Unsupported versions remain rejected. The schema and migration contract are in [Architecture](ARCHITECTURE.md#versioned-offline-persistence).
+Malformed/incompatible saves, unsupported versions, invalid references, oversized files (over 2 MiB), unavailable storage and quota failures show errors without replacing the running factory. A failed write preserves the previous browser save. Clearing site data removes browser saves: export JSON for a portable backup. Startup checks slot metadata but never automatically loads a factory. New saves use version 6; valid version-1/2/3/4/5 saves load through explicit validated upgrades. All pre-Sprint-11 saves receive every Sprint 11 technology and 0 RP, preserving existing factories and dashboard access. Version-5 and newer loading restores the exact research balance and unlocks; new Revenge technologies remain locked in older files. Unsupported versions remain rejected. The schema and migration contract are in [Architecture](ARCHITECTURE.md#versioned-offline-persistence).
 
 ## Build categories
 
