@@ -8,7 +8,7 @@ export function beltInputs(world: World, belt: Belt): Direction[] {
     if (side === belt.direction) return false
     const offset = offsets[side]
     const source = buildingAt(world, belt.x + offset.x, belt.y + offset.y)
-    return (source?.kind === 'belt' || source?.kind === 'miner' || source?.kind === 'furnace') && source.direction === opposite(side)
+    return (source?.kind === 'belt' || source?.kind === 'miner' || source?.kind === 'furnace' || source?.kind === 'assembler') && source.direction === opposite(side)
   })
   const rear = opposite(belt.direction)
   return inputs.sort((a, b) => {

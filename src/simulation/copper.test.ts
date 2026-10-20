@@ -75,13 +75,14 @@ function expectConserved(world: World) {
   }
 }
 describe('central item and recipe definitions', () => {
-  it('has unique typed IDs, labels, categories and distinct visual properties for all four items', () => {
-    expect(new Set(ITEMS).size).toBe(4)
+  it('has unique typed IDs, labels, categories and distinct visual properties for all registered items', () => {
+    expect(new Set(ITEMS).size).toBe(7)
     for (const item of ITEMS) {
       const definition = ITEM_DEFINITIONS[item]
       expect(definition.id).toBe(item)
       expect(definition.label.length).toBeGreaterThan(0)
-      expect(definition.visual.shape).toBe(definition.category)
+      if (definition.category !== 'component') expect(definition.visual.shape).toBe(definition.category)
+      else expect(['gear', 'cable', 'circuit']).toContain(definition.visual.shape)
     }
     expect(ITEM_DEFINITIONS.iron.visual.color).not.toBe(ITEM_DEFINITIONS.copper.visual.color)
     expect(ITEM_DEFINITIONS.ironPlate.visual.color).not.toBe(ITEM_DEFINITIONS.copperPlate.visual.color)
@@ -239,12 +240,12 @@ describe('both smelting recipes and typed transport', () => {
     expect(storage(world, 11, 11).inventory[item]).toBe(1)
     expect(inventoryTotal(storage(world, 11, 11).inventory)).toBe(1)
   })
-  it('stores a mixed sequence independently for all four item types', () => {
+  it('stores a mixed sequence independently for all registered item types', () => {
     const world = createWorld()
     add(world, 10, 10, 'belt'); add(world, 11, 10, 'belt', 'south'); add(world, 11, 11, 'storage')
     for (const item of [...ITEMS, ...ITEMS].reverse()) { b(world, 10, 10).item = item; advanceWorld(world, 1050) }
     for (const item of ITEMS) expect(storage(world, 11, 11).inventory[item]).toBe(2)
-    expect(inventoryTotal(storage(world, 11, 11).inventory)).toBe(8)
+    expect(inventoryTotal(storage(world, 11, 11).inventory)).toBe(ITEMS.length * 2)
     expect(inspectBuilding(world, 11 * SIZE + 11)).toMatchObject({ kind: 'storage', inventory: { iron: 2, ironPlate: 2, copper: 2, copperPlate: 2 } })
   })
   it.each(chains)('keeps $resource progress, buffers and reservations intact during power interruption', ({ resource, product, recipeId }) => {

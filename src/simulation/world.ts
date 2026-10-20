@@ -7,7 +7,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace' | 'generator' | 'powerPole'
+export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'generator' | 'powerPole'
 export interface Position { x: number; y: number }
 export interface Miner extends Position { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
 export interface Belt extends Position { kind: 'belt'; direction: Direction; item: Item | null; progress: number; entry: Direction }
@@ -28,9 +28,18 @@ export interface Furnace extends Position {
   output: Inventory
   job: ProcessingJob | null
 }
+export interface Assembler extends Position {
+  kind: 'assembler'
+  direction: Direction
+  recipeId: RecipeId
+  input: Inventory
+  output: Inventory
+  job: ProcessingJob | null
+}
+export type CraftingMachine = Furnace | Assembler
 export interface Generator extends Position { kind: 'generator' }
 export interface PowerPole extends Position { kind: 'powerPole' }
-export type Building = Miner | Belt | Storage | Furnace | Generator | PowerPole
+export type Building = Miner | Belt | Storage | Furnace | Assembler | Generator | PowerPole
 export interface World { tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
@@ -81,6 +90,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
     case 'storage': building = { kind, x, y, inventory: emptyInventory() }; break
     case 'miner': building = { kind, x, y, direction, elapsed: 0, item: null }; break
     case 'belt': building = { kind, x, y, direction, item: null, progress: 0, entry: opposite(direction) }; break
+    case 'assembler': building = { kind, x, y, direction, recipeId: 'ironGear', input: emptyInventory(), output: emptyInventory(), job: null }; break
     case 'furnace': building = { kind, x, y, direction, recipeMode: 'auto', recipeId: null, input: emptyInventory(), output: emptyInventory(), job: null }; break
   }
   world.buildings[y * SIZE + x] = building

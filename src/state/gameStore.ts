@@ -26,8 +26,8 @@ interface State {
 }
 export const useGameStore = create<State>(set => ({
   recipeRequest: null,
-  requestRecipe: recipeMode => set(state => state.inspected !== null && state.inspection?.kind === 'furnace' ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
-  stats: { mined: emptyInventory(), produced: emptyInventory(), stored: emptyInventory(), maxMiningPerSec: 0, maxSmeltingPerSec: 0, miners: 0, furnaces: 0 },
+  requestRecipe: recipeMode => set(state => state.inspected !== null && (state.inspection?.kind === 'furnace' || state.inspection?.kind === 'assembler') ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
+  stats: { mined: emptyInventory(), produced: emptyInventory(), stored: emptyInventory(), maxMiningPerSec: 0, maxSmeltingPerSec: 0, miners: 0, furnaces: 0, assemblers: 0, maxCraftingPerSec: 0 },
   electricity: { installedKw: 0, connectedKw: 0, requestedKw: 0, suppliedKw: 0, surplusKw: 0, deficitKw: 0, networks: 0 },
   powerOverlay: false, togglePowerOverlay: () => set(state => ({ powerOverlay: !state.powerOverlay })),
   tool: 'miner', direction: 'east', inspected: null, inspection: null,

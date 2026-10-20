@@ -2,7 +2,7 @@ import { depositAt, INTERVAL, SIZE } from './world'
 import type { World } from './world'
 import { advanceTransport, outputMachines } from './transport'
 import { allocatePower } from './power'
-import { advanceSmelting } from './smelting'
+import { advanceCrafting } from './crafting'
 export const STEP_MS = 50
 export function advanceWorld(world: World, delta: number): void {
   if (!Number.isFinite(delta) || delta <= 0) return
@@ -12,7 +12,7 @@ export function advanceWorld(world: World, delta: number): void {
     const vacated = advanceTransport(world, STEP_MS)
     outputMachines(world, vacated)
     const power = allocatePower(world)
-    advanceSmelting(world, STEP_MS)
+    advanceCrafting(world, STEP_MS)
     for (const miner of world.buildings) {
       if (miner?.kind !== 'miner' || miner.item) continue
       const resource = depositAt(world, miner.x, miner.y)

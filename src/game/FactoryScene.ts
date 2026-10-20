@@ -4,6 +4,7 @@ import { beltInputs } from '../simulation/beltConnections'
 import { BELT_TRAVEL_MS } from '../simulation/transport'
 import { beltPathPoint } from './beltPath'
 import { changeFurnaceRecipe, furnaceStatus } from '../simulation/smelting'
+import { changeCraftingRecipe, craftingStatus } from '../simulation/crafting'
 import { RECIPES } from '../simulation/recipes'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { allocatePower, polePlacementPreview, POLE_COVERAGE_RADIUS, powerRequirement, tilePosition, withinRange } from '../simulation/power'
@@ -63,6 +64,7 @@ export class FactoryScene extends Phaser.Scene {
     keyboard.on('keydown-FOUR', () => useGameStore.getState().select('furnace'))
     keyboard.on('keydown-FIVE', () => useGameStore.getState().select('generator'))
     keyboard.on('keydown-SIX', () => useGameStore.getState().select('powerPole'))
+    keyboard.on('keydown-SEVEN', () => useGameStore.getState().select('assembler'))
     keyboard.on('keydown-P', () => useGameStore.getState().togglePowerOverlay())
     keyboard.on('keydown-X', () => useGameStore.getState().select('remove'))
     keyboard.on('keydown-R', () => useGameStore.getState().rotate())
@@ -85,7 +87,7 @@ export class FactoryScene extends Phaser.Scene {
       if (error) { useGameStore.setState({ message: error }); return }
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
     })
   }
   private drawItem(item: Item, x: number, y: number) {
@@ -94,6 +96,24 @@ export class FactoryScene extends Phaser.Scene {
       this.items.fillStyle(0x17222b).fillCircle(x, y, 5)
       this.items.fillStyle(visual.color).fillTriangle(x - 4, y + 3, x - 2, y - 4, x + 4, y + 2)
       this.items.fillStyle(visual.highlight).fillCircle(x + 1, y, 2.5)
+    } else if (visual.shape === 'gear') {
+      this.items.lineStyle(3, visual.color)
+      for (let i = 0; i < 8; i++) {
+        const angle = i * Math.PI / 4
+        this.items.lineBetween(x + Math.cos(angle) * 3, y + Math.sin(angle) * 3, x + Math.cos(angle) * 6, y + Math.sin(angle) * 6)
+      }
+      this.items.fillStyle(visual.highlight).fillCircle(x, y, 4)
+      this.items.fillStyle(visual.shade).fillCircle(x, y, 2)
+    } else if (visual.shape === 'cable') {
+      this.items.lineStyle(2, visual.shade).strokeEllipse(x, y, 10, 8)
+      this.items.lineStyle(2, visual.color).strokeEllipse(x, y - 1, 8, 6)
+      this.items.lineStyle(1, visual.highlight).lineBetween(x + 3, y + 1, x + 6, y + 4)
+    } else if (visual.shape === 'circuit') {
+      this.items.fillStyle(visual.shade).fillRect(x - 6, y - 5, 12, 10)
+      this.items.fillStyle(visual.color).fillRect(x - 5, y - 4, 10, 8)
+      this.items.fillStyle(0x182b25).fillRect(x - 2, y - 2, 4, 4)
+      this.items.lineStyle(1, visual.highlight).lineBetween(x - 4, y + 3, x - 4, y - 2)
+      this.items.lineBetween(x + 2, y, x + 5, y)
     } else {
       this.items.fillStyle(visual.shade).fillRect(x - 5, y - 3, 10, 7)
       this.items.fillStyle(visual.color).fillRect(x - 4, y - 3, 8, 5)
@@ -160,7 +180,10 @@ export class FactoryScene extends Phaser.Scene {
     const request = useGameStore.getState().recipeRequest
     if (request) {
       const position = tilePosition(request.index)
-      const error = changeFurnaceRecipe(this.world, position.x, position.y, request.recipeMode)
+      const machine = buildingAt(this.world, position.x, position.y)
+      const error = machine?.kind === 'assembler'
+        ? request.recipeMode === 'auto' ? 'Assemblers require a manual recipe.' : changeCraftingRecipe(this.world, position.x, position.y, request.recipeMode)
+        : changeFurnaceRecipe(this.world, position.x, position.y, request.recipeMode)
       useGameStore.setState({ recipeRequest: null, message: error ?? `Recipe mode: ${request.recipeMode === 'auto' ? 'Auto' : RECIPES[request.recipeMode].label}.` })
     }
     advanceWorld(this.world, delta)
@@ -188,7 +211,7 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillStyle(0x392d20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.lineStyle(2, 0xb68b50).strokeRect(x + 5, y + 5, 22, 22)
         this.machines.fillStyle(0xb68b50).fillRect(x + 5, y + 13, 22, 5)
-        ITEMS.filter(item => building.inventory[item] > 0).forEach((item, index) => this.drawItem(item, x + 11 + index % 2 * 10, y + 12 + Math.floor(index / 2) * 10))
+        ITEMS.filter(item => building.inventory[item] > 0).slice(0, 4).forEach((item, index) => this.drawItem(item, x + 11 + index % 2 * 10, y + 12 + Math.floor(index / 2) * 10))
       } else if (building.kind === 'miner') {
         this.machines.fillStyle(0x15201e).fillRoundedRect(x + 3, y + 4, 27, 27, 3)
         this.machines.fillStyle(0xc69a46).fillRect(x + 5, y + 4, 22, 21)
@@ -218,6 +241,33 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillCircle(x + 26, y + 25, 1)
         const output = offsets[building.direction]
         this.arrow(x + output.x * 8, y + output.y * 8, building.direction, 0xffdb9d, .6)
+      } else if (building.kind === 'assembler') {
+        const status = craftingStatus(building)
+        const speed = power.consumers[building.y * SIZE + building.x]?.speedFraction ?? 0
+        const active = status === 'processing' && speed > 0
+        // Job time advances only with allocated power, so the mechanism freezes on outages.
+        const angle = (building.job?.elapsedMs ?? 0) / 240
+        const progress = building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0
+        this.machines.fillStyle(0x15252c).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
+        this.machines.lineStyle(2, 0x659bab).strokeRect(x + 4, y + 4, 24, 23)
+        this.machines.fillStyle(0x2c515d).fillRect(x + 6, y + 6, 20, 19)
+        for (const side of ['north', 'east', 'south', 'west'] as const) {
+          if (side === building.direction) continue
+          const d = offsets[side]
+          this.machines.fillStyle(0x8fc6c4).fillCircle(x + 16 + d.x * 12, y + 16 + d.y * 12, 2)
+        }
+        this.machines.lineStyle(3, active ? 0xc4e2e6 : 0x81969c)
+        for (let i = 0; i < 6; i++) {
+          const a = angle + i * Math.PI / 3
+          this.machines.lineBetween(x + 16 + Math.cos(a) * 4, y + 15 + Math.sin(a) * 4, x + 16 + Math.cos(a) * 8, y + 15 + Math.sin(a) * 8)
+        }
+        this.machines.fillStyle(0xa1bec7).fillCircle(x + 16, y + 15, 5)
+        this.machines.fillStyle(0x203d46).fillCircle(x + 16, y + 15, 2)
+        const output = offsets[building.direction]
+        this.arrow(x + output.x * 10, y + output.y * 10, building.direction, 0xb9f3df, .45)
+        this.machines.fillStyle(status === 'output-full' ? 0xf08172 : active ? 0x79e6a2 : 0x98a2a3).fillCircle(x + 26, y + 5, 2)
+        this.machines.fillStyle(0x101b22).fillRect(x + 5, y + 28, 22, 3)
+        this.machines.fillStyle(0x79e6a2).fillRect(x + 5, y + 28, 22 * progress, 3)
       } else if (building.kind === 'generator') {
         const networkId = power.assignments[building.y * SIZE + building.x]
         const network = power.networks.find(n => n.id === networkId)
@@ -282,7 +332,7 @@ export class FactoryScene extends Phaser.Scene {
       const color = pole ? pole.state === 'invalid' ? 0x929b9f : pole.state === 'connected' ? 0x8df0b3 : 0xf0ac60 : error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
-      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace') this.arrow(x * TILE, y * TILE, state.direction, color)
+      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler') this.arrow(x * TILE, y * TILE, state.direction, color)
     }
   }
 }
