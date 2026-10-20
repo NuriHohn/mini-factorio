@@ -182,7 +182,7 @@ export class FactoryScene extends Phaser.Scene {
       const position = tilePosition(request.index)
       const machine = buildingAt(this.world, position.x, position.y)
       const error = machine?.kind === 'assembler'
-        ? request.recipeMode === 'auto' ? 'Assemblers require a manual recipe.' : changeCraftingRecipe(this.world, position.x, position.y, request.recipeMode)
+        ? changeCraftingRecipe(this.world, position.x, position.y, request.recipeMode)
         : changeFurnaceRecipe(this.world, position.x, position.y, request.recipeMode)
       useGameStore.setState({ recipeRequest: null, message: error ?? `Recipe mode: ${request.recipeMode === 'auto' ? 'Auto' : RECIPES[request.recipeMode].label}.` })
     }

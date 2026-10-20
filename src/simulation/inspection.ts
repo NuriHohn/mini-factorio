@@ -1,6 +1,7 @@
 import { GENERATOR_KW, POLE_COVERAGE_RADIUS, powerRequirement, withinRange } from './power'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import type { Inventory, Resource } from './items'
+import { assemblerInputCapacity, assemblerWaitRemaining } from './assemblerRecipes'
 import { craftingStatus, recipeChangeError } from './crafting'
 import type { CraftingStatus } from './crafting'
 import type { FurnaceRecipeMode, RecipeId } from './recipes'
@@ -42,6 +43,7 @@ export type Inspection = { kind: 'storage'; inventory: Inventory }
   inputCapacity: number | null
   outputCapacity: number
   craftingSpeed: number
+  recipeWaitRemainingMs: number
   outputWaiting: boolean
   electrical: ElectricalDetails
 }
@@ -72,11 +74,12 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   if (building.kind !== 'furnace' && building.kind !== 'assembler') return null
   const recipe = building.recipeId ? RECIPES[building.recipeId] : null
   return {
-    kind: building.kind, direction: building.direction, recipeMode: building.kind === 'furnace' ? building.recipeMode : building.recipeId, recipe: recipe?.label ?? 'Waiting for ore', recipeId: building.recipeId,
+    kind: building.kind, direction: building.direction, recipeMode: building.kind === 'furnace' ? building.recipeMode : building.recipeMode === 'auto' ? 'auto' : building.recipeId ?? 'auto', recipe: recipe?.label ?? (building.kind === 'furnace' ? 'Waiting for ore' : 'Waiting for ingredients'), recipeId: building.recipeId,
     requirements: { ...recipe?.inputs }, products: { ...recipe?.outputs }, durationMs: recipe?.durationMs ?? 0, recipeChangeError: recipeChangeError(building),
     input: { ...building.input }, output: { ...building.output }, reserved: { ...(building.job?.outputs ?? emptyInventory()) },
     progress: building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0,
-    inputCapacities: building.kind === 'assembler' ? Object.fromEntries(ITEMS.filter(item => (recipe?.inputs[item] ?? 0) > 0).map(item => [item, (recipe?.inputs[item] ?? 0) * MACHINE_DEFINITIONS.assembler.input.batches])) : {},
+    inputCapacities: building.kind === 'assembler' ? Object.fromEntries(ITEMS.filter(item => assemblerInputCapacity(building, item) > 0).map(item => [item, assemblerInputCapacity(building, item)])) : {},
+    recipeWaitRemainingMs: building.kind === 'assembler' ? assemblerWaitRemaining(building) : 0,
     inputCapacity: building.kind === 'furnace' ? MACHINE_DEFINITIONS.furnace.input.capacity : null,
     outputCapacity: MACHINE_DEFINITIONS[building.kind].outputCapacity, craftingSpeed: MACHINE_DEFINITIONS[building.kind].craftingSpeed,
     electrical, status: craftingStatus(building), outputWaiting: outputWaiting(world, building),

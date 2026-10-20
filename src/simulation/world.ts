@@ -31,7 +31,10 @@ export interface Furnace extends Position {
 export interface Assembler extends Position {
   kind: 'assembler'
   direction: Direction
-  recipeId: RecipeId
+  recipeMode: 'auto' | 'manual'
+  recipeId: RecipeId | null
+  autoWaitElapsedMs: number | null
+  lastAutoRecipe: RecipeId | null
   input: Inventory
   output: Inventory
   job: ProcessingJob | null
@@ -90,7 +93,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
     case 'storage': building = { kind, x, y, inventory: emptyInventory() }; break
     case 'miner': building = { kind, x, y, direction, elapsed: 0, item: null }; break
     case 'belt': building = { kind, x, y, direction, item: null, progress: 0, entry: opposite(direction) }; break
-    case 'assembler': building = { kind, x, y, direction, recipeId: 'ironGear', input: emptyInventory(), output: emptyInventory(), job: null }; break
+    case 'assembler': building = { kind, x, y, direction, recipeMode: 'auto', recipeId: null, autoWaitElapsedMs: null, lastAutoRecipe: null, input: emptyInventory(), output: emptyInventory(), job: null }; break
     case 'furnace': building = { kind, x, y, direction, recipeMode: 'auto', recipeId: null, input: emptyInventory(), output: emptyInventory(), job: null }; break
   }
   world.buildings[y * SIZE + x] = building

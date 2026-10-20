@@ -1,3 +1,4 @@
+import { ITEMS } from './items'
 import type { Inventory } from './items'
 export type FurnaceRecipeMode = 'auto' | RecipeId
 export type RecipeId = 'ironSmelting' | 'copperSmelting' | 'ironGear' | 'copperCable' | 'electronicCircuit'
@@ -25,3 +26,7 @@ export const MACHINE_DEFINITIONS = {
   furnace: { craftingSpeed: 1, powerKw: 50, input: { kind: 'total', capacity: FURNACE_INPUT_CAPACITY }, outputCapacity: FURNACE_OUTPUT_CAPACITY, inputSides: ['rear', 'left', 'right'], outputSide: 'front' },
   assembler: { craftingSpeed: 1, powerKw: 60, input: { kind: 'per-ingredient', batches: 2 }, outputCapacity: 4, inputSides: ['rear', 'left', 'right'], outputSide: 'front' },
 } as const
+
+export function hasRecipeInputs(input: Readonly<Inventory>, recipe: Recipe): boolean {
+  return ITEMS.every(item => input[item] >= (recipe.inputs[item] ?? 0))
+}
