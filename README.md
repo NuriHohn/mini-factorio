@@ -37,7 +37,7 @@ Machines start **unpowered**. Start with a generator (`5`) and a pole (`6`) near
 - Belts, chests and the export of already-buffered machine items work without electricity.
 - Each machine/generator belongs to the network of its lowest-index covering pole (row first, then column). Overlapping coverage never double-counts supply or demand. Only pole connections join networks.
 
-While placing or inspecting a pole, its coverage circle and covered machines are highlighted. `P` toggles coverage for all networks; wires and machine power badges remain visible without the overlay. Green means full power, amber reduced speed, red outside coverage/no generation, and blue connected but idle. Furnace fire pauses during an outage and animates with processing progress.
+While placing or inspecting a pole, its coverage circle and covered machines are highlighted. During placement, dashed lines preview every pole connection: green means a valid tile with connections, orange means a valid isolated pole, and gray means placement is blocked. Isolated placement is allowed; hovering never changes the real network. `P` toggles coverage for all networks; wires and machine power badges remain visible without the overlay. Green means full power, amber reduced speed, red outside coverage/no generation, and blue connected but idle. Furnace fire pauses during an outage and animates with processing progress.
 
 With no building tool selected, click a machine to see its assigned network, requested/supplied kW, production speed and the reason it is idle, unpowered or slowed. Inspect a generator for capacity/actual generation, or a pole for coverage and network details. Inspections appear at the top of the sidebar.
 

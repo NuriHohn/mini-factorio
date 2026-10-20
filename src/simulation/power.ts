@@ -1,4 +1,4 @@
-import { SIZE } from './world'
+import { placementError, SIZE } from './world'
 import type { Building, Position, World } from './world'
 import { canStartSmelting, furnaceStatus } from './smelting'
 
@@ -41,6 +41,22 @@ export interface PowerOverview {
 export function withinRange(a: Position, b: Position, radius: number): boolean {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= radius ** 2
 }
+export function polesConnect(a: Position, b: Position): boolean {
+  return withinRange(a, b, POLE_CONNECTION_RANGE)
+}
+export interface PolePlacementPreview {
+  state: 'connected' | 'disconnected' | 'invalid'
+  error: string | null
+  connections: number[]
+}
+// A read-only query: previewing never allocates power or changes topology.
+export function polePlacementPreview(world: World, position: Position): PolePlacementPreview {
+  const error = placementError(world, position.x, position.y, 'powerPole')
+  if (error) return { state: 'invalid', error, connections: [] }
+  const connections = world.buildings.flatMap((building, index) =>
+    building?.kind === 'powerPole' && polesConnect(position, building) ? [index] : [])
+  return { state: connections.length ? 'connected' : 'disconnected', error: null, connections }
+}
 export function powerRequirement(building: Building): number {
   return building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' ? FURNACE_KW : 0
 }
@@ -55,7 +71,7 @@ function discover(world: World): PowerState {
   const adjacency = new Map(poles.map(i => [i, [] as number[]]))
   for (let a = 0; a < poles.length; a++) for (let b = a + 1; b < poles.length; b++) {
     const i = poles[a], j = poles[b]
-    if (!withinRange(world.buildings[i]!, world.buildings[j]!, POLE_CONNECTION_RANGE)) continue
+    if (!polesConnect(world.buildings[i]!, world.buildings[j]!)) continue
     edges.push([i, j])
     adjacency.get(i)!.push(j)
     adjacency.get(j)!.push(i)
