@@ -1,0 +1,72 @@
+# Implemented architecture
+
+This describes the current source, including assembler Auto detection. Gameplay values and selection policies are maintained in [Game design](GAME_DESIGN.md); proposed systems belong in [Roadmap](ROADMAP.md).
+
+## Ownership and source map
+
+TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand or DOM dependency. Functions mutate an explicitly supplied `World`; `FactoryScene` owns the live instance. React never owns a second simulation.
+
+| Source | Responsibility |
+| --- | --- |
+| [`world.ts`](../src/simulation/world.ts) | `World`, building union, flat terrain/building arrays, injectable generation, direction helpers, placement/removal validation |
+| [`items.ts`](../src/simulation/items.ts) | `ITEM_DEFINITIONS`, ore/plate/component categories, typed IDs and inventory helpers |
+| [`recipes.ts`](../src/simulation/recipes.ts) | `RECIPES`, quantities, durations, compatibility, `MACHINE_DEFINITIONS`, `hasRecipeInputs` |
+| [`step.ts`](../src/simulation/step.ts) | `advanceWorld`, elapsed remainder, fixed-step orchestration and mining |
+| [`transport.ts`](../src/simulation/transport.ts) | Snapshot transfer arbitration, input reservations, commit and buffered machine output |
+| [`crafting.ts`](../src/simulation/crafting.ts) | Shared jobs, power-scaled processing, output reservations, status and assembler mode/manual validation |
+| [`smelting.ts`](../src/simulation/smelting.ts) | Furnace incoming recipe probes and `changeFurnaceRecipe`; legacy processing exports delegate to shared crafting |
+| [`assemblerRecipes.ts`](../src/simulation/assemblerRecipes.ts) | Auto candidate selection, wait clock, tie rotation and per-item capacities |
+| [`power.ts`](../src/simulation/power.ts) | Cached networks, assignment, working demand, allocation and read-only pole preview |
+| [`inspection.ts`](../src/simulation/inspection.ts) | Copied building/electrical snapshots and derived world statistics |
+| [`beltConnections.ts`](../src/simulation/beltConnections.ts) | Topology-derived visual inputs and stable primary lane |
+| [`FactoryScene.ts`](../src/game/FactoryScene.ts) | Live world, input, command validation, stepping, procedural rendering and summary publication |
+| [`beltPath.ts`](../src/game/beltPath.ts) | Pure tile-local straight/quarter-circle paths for lanes and item positions |
+| [`cameraMovement.ts`](../src/game/cameraMovement.ts) | Framework-independent movement, normalized diagonals and viewport-aware bounds |
+| [`GameCanvas.tsx`](../src/game/GameCanvas.tsx) | Phaser host/effect, resize observer and cleanup |
+| [`gameStore.ts`](../src/state/gameStore.ts) | Zustand tools/direction, inspected index, recipe request intent and changed summary snapshots |
+| [`App.tsx`](../src/App.tsx) | React toolbar, controls, statistics, inspector and electricity overview |
+| [`CraftingInspector.tsx`](../src/game/CraftingInspector.tsx), [`PowerInspector.tsx`](../src/game/PowerInspector.tsx), [`InventoryView.tsx`](../src/game/InventoryView.tsx) | Derived-value presentation; no production math or world mutations |
+| [`main.tsx`](../src/main.tsx), [`index.css`](../src/index.css), [`vite.config.ts`](../vite.config.ts) | Strict Mode entry, active styles, React/Tailwind Vite plugins |
+
+`App.css` and starter assets remain in the repository but are not used by the current application. Tests are colocated with source; see [Development](DEVELOPMENT.md#regression-coverage).
+
+## State and exact update order
+
+`World` holds ore-ID-or-null terrain, tile-indexed buildings (`y * SIZE + x`), per-item lifetime `mined`/`produced` inventories, elapsed remainder, topology revision and derived power state. Buildings contain buffers, belt progress/entry direction, machine jobs and selection state. Terrain generation accepts an RNG; equal initial state and equal inputs/time progression must produce equivalent outcomes.
+
+`advanceWorld` rejects nonpositive/nonfinite deltas, retains elapsed remainder and runs complete **50 ms** steps in this order:
+
+1. `advanceTransport`: advance existing belt items and commit reserved transfers.
+2. `outputMachines`: export buffered miner/furnace/assembler items; exclude belts just vacated in step 1.
+3. `prepareAssemblerRecipes`: resolve idle Auto recipes and advance unscaled waiting clocks before computing working demand.
+4. `allocatePower`: refresh topology if invalidated, then calculate current demand and proportional supply.
+5. `advanceCrafting`: progress/complete existing jobs, reselect idle Auto assemblers, and start eligible new jobs.
+6. Mining: advance unblocked miners by allocated power fraction; buffer completed ore and update `mined`.
+
+New crafting jobs begin with zero elapsed time; finished products export on a later step. An assembler completing a job can select another recipe at that boundary without advancing its wait clock again. Phaser also calls `allocatePower` after stepping for current visual/inspection data; that call does not advance simulation time.
+
+## Crafting and inventories
+
+Recipes contain quantity maps rather than one hardcoded ingredient/product. Furnace and assembler selection policies feed the same `canStartCrafting`/`advanceCrafting` core. Manual changes pass `recipeChangeError` and compatibility checks; UI disabling alone is insufficient.
+
+Job creation atomically checks complete ingredients and output space, subtracts ingredients, and stores `ProcessingJob.inputs`, `outputs`, `recipeId` and `elapsedMs`. Committed inputs leave the input buffer but remain accountable in the job. Job outputs reserve capacity; they are not physical products yet. Completion atomically adds all outputs, increments `World.produced` by their actual quantities, and clears the job once. Missing input or insufficient output space prevents a new job. Zero power preserves jobs and prevents starting; fractional supply scales elapsed processing by machine crafting speed.
+
+Furnace `incomingRecipe` is read-only; transport reserves its chosen recipe across simultaneous deliveries. Assembler Auto selection instead examines buffered quantities, may change recipes with mixed input/output buffers, and never changes an active job. Its wait/last-started fields live in the assembler, not the renderer. Exact policies and capacities: [Game design](GAME_DESIGN.md#automatic-and-manual-recipes).
+
+## Transport and electricity
+
+Transport first plans against unchanged occupancy, reserving capacity per destination and item, then commits accepted transfers. Furnace recipe reservations prevent mixed simultaneous arrivals selecting different recipes. Source tile order resolves competing inputs. New arrivals do not travel twice in the same step. Machine outputs target only front belts and choose the first available product in item registry order, one unit per machine per step. Rejections retain the source item. Visual input priority is separate from transport arbitration.
+
+Power topology is cached against `topologyRevision`; successful placement/removal increments it. Pole edges join connected components. Machines/generators use their lowest-index covering pole, giving one deterministic network assignment. Coverage overlap alone never joins networks. `allocatePower` recomputes working demand each call and supplies each requesting consumer at `min(1, network capacity / network demand)`. Uncovered consumers receive zero. `powerOverview` keeps network surpluses separate from deficits. `polePlacementPreview` uses the same connectivity functions without mutating topology.
+
+## Commands, rendering and lifecycle
+
+React sends a recipe intent through Zustand; `FactoryScene.update` revalidates it against the live building before stepping. `inspectBuilding`, `electricalDetails` and `worldStats` derive copied summaries. Store publication compares values and avoids unchanged updates; item positions stay outside Zustand.
+
+Phaser draws terrain, machines, wires, coverage, items and placement previews procedurally. Furnace glow and assembler gear angles derive from actual job elapsed time, so processing animation pauses without power. Straight/curved item paths use the actual belt entry; topology connections remain visible when empty. Pole preview links are cached by hovered tile and topology revision in world coordinates, so camera transforms do not require connectivity recalculation. React's canvas effect disconnects its observer and destroys Phaser on cleanup, including Strict Mode remounts.
+
+## Invariants and extension points
+
+Preserve nonnegative integer quantities, complete atomic batches, output inventory plus reservations within capacity, and stable transfer/selection priorities. Count active job inputs in material conservation, never promised outputs. A gear represents two iron units; a cable half a copper unit; a circuit one iron plus 1.5 copper units. Deliberate building removal is the discard exception and preserves lifetime counters. Chest totals are stored inventory, not total world inventory.
+
+Extend the existing item/recipe/machine metadata and shared core before adding special cases. Keep future machine ports/capacity policies in simulation data, invalidate topology through supported operations, and extend snapshot/UI presentation without exposing live state. Do not introduce a second crafting engine or renderer-dependent planning rules. Preserve the two distinct Auto policies and their regression suites.
