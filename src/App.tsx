@@ -16,23 +16,37 @@ const tools: { tool: Tool; label: string; hint: string; key: string; icon: strin
   { tool: 'powerPole', label: 'Power pole', hint: '3-tile coverage · 6-tile wires', key: '6', icon: '┬' },
   { tool: 'assembler', label: 'Assembler', hint: 'Gears, cables & circuits · 60 kW', key: '7', icon: '⚒' },
   { tool: 'inserter', label: 'Inserter', hint: 'Behind → ahead · 1 item / sec · 10 kW', key: '8', icon: '⌁' },
+  { tool: 'radar', label: 'Radar trap', hint: '3-tile detection · requires full 5 kW', key: '9', icon: '◉' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×' },
 ]
 export default function App() {
-  const { stats, electricity, powerOverlay, togglePowerOverlay, tool, direction, message, requestRecipe, inspected, inspection, select, rotate } = useGameStore()
+  const { stats, electricity, powerOverlay, togglePowerOverlay, tool, direction, message, requestRecipe, requestRelease, inspected, inspection, select, rotate } = useGameStore()
   const sidebar = useRef<HTMLElement>(null)
   useEffect(() => { if (inspected !== null && sidebar.current) sidebar.current.scrollTop = 0 }, [inspected])
   return <div className="app-shell">
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
-      <span className="version"><i /> PUMPKIN PETE / SPRINT 7.5</span>
+      <span className="version"><i /> POLICE & PRISON / SPRINT 7.6</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
         {inspection && <section className="inspection" aria-label="Building inspection">
           <p className="eyebrow">{inspection.kind === 'powerPole' ? 'POWER POLE' : inspection.kind.toUpperCase()} INSPECTION</p>
-          {inspection.kind !== 'storage' && <PowerInspector details={inspection.electrical} />}
-          {inspection.kind === 'storage' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
+          {inspection.kind !== 'storage' && inspection.kind !== 'prison' && <PowerInspector details={inspection.electrical} />}
+          {inspection.kind === 'prison' ? <>
+            <h2>Pete’s prison</h2>
+            <div className="stats"><span>Occupant</span><b>{inspection.occupied ? 'Angry Pumpkin Pete' : 'Empty'}</b></div>
+            <div className="stats"><span>Imprisonment elapsed</span><b>{(inspection.elapsedMs / 1000).toFixed(2)} s</b></div>
+            <div className="stats"><span>Automatic escape in</span><b>{(inspection.remainingMs / 1000).toFixed(2)} s</b></div>
+            <button className="building" disabled={!inspection.occupied} onClick={requestRelease}>Release Pumpkin Pete</button>
+            <p className="inspection-note">Release is immediate. Pete escapes after 60 simulation seconds; release grants 10 seconds of radar grace. Exit: {inspection.exit.x}, {inspection.exit.y}.</p>
+          </> : inspection.kind === 'radar' ? <>
+            <h2>Radar trap</h2>
+            <div className="stats"><span>Detection radius</span><b>{inspection.radius} tiles</b></div>
+            <div className="stats"><span>Radar</span><b>{inspection.active ? 'Active' : 'Inactive · needs full 5 kW'}</b></div>
+            <div className="stats"><span>Police operation</span><b>{inspection.operation}</b></div>
+            <p className="inspection-note">One police operation at a time. {inspection.prison ? `Prison at ${inspection.prison.x}, ${inspection.prison.y}.` : 'A prison appears at a reachable map edge on first dispatch.'}</p>
+          </> : inspection.kind === 'storage' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
             <div className="stats"><span>Extracting</span><b>{inspection.resource ? ITEM_DEFINITIONS[inspection.resource].label : 'No deposit'}</b></div>
             <div className="stats"><span>Mining progress</span><b>{Math.round(inspection.progress * 100)}%</b></div>
             <div className="stats"><span>Output buffer</span><b>{inspection.buffered ? '1 ore · blocked' : 'Empty'}</b></div>
@@ -73,7 +87,7 @@ export default function App() {
           <button className="building mt-3" onClick={rotate} disabled={tool !== 'miner' && tool !== 'belt' && tool !== 'furnace' && tool !== 'assembler' && tool !== 'inserter'}><span><strong>Output: {direction}</strong><small>Remove and replace to redirect buildings</small></span><span className="key">R</span></button>
         </section>
         <section className="mission"><p className="eyebrow">POWER YOUR FACTORY</p><h2>Generate. Connect. Produce.</h2><p>Place a generator (5) and a pole (6). Machines need a pole within 3 tiles; poles connect within 6 tiles. Shortages slow all working machines proportionally. Belts always run. Furnaces detect ore automatically. Assemblers detect recipes from buffered ingredients, prioritizing circuits. Supply ingredients by belt, or lock a manual recipe in an empty inspector.</p></section>
-        <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–8</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
+        <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
         <p className="session-note">Session only · Refresh to start a new world</p>
       </aside>
       <section className="world-panel"><div className="world-heading"><span><i /> GRASSLAND / SECTOR 01</span><span>40 × 40 TILES</span></div><GameCanvas /><div className="world-footer"><span role="status">{message}</span><span className="legend">{powerOverlay ? 'Green full · Amber reduced · Red no power · Blue idle' : <>◆ Iron · <span className="copper-legend">◆ Copper</span></>}</span></div></section>

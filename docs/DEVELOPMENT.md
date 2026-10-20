@@ -32,6 +32,8 @@ These are the existing npm scripts; run them from the root.
 
 For a focused run, use `npm test -- src/simulation/autoAssemblers.test.ts` or `npm test -- src/game/cameraMovement.test.ts`. Before review, run all tests, typecheck, lint and build. Report failures, warnings and unrun checks accurately; fix regressions caused by the task. A documentation-only sprint needs no new application tests; verify links, source claims and documentation-only scope as well.
 
+On CPU-limited cloud hosts, `npm test -- --maxWorkers=2` runs the same full suite with less contention. Sprint 7.6 validation passed all 381 tests with this setting; the default parallel run intermittently exceeded the existing 5-second timeout in the long circuit-conservation regression. No tests were skipped and no timeout thresholds changed.
+
 ## Branch, commit and pull request
 
 Check for user changes before switching branches. For a new sprint, use:
@@ -67,6 +69,7 @@ Verify that the remote hash matches the commit. Create/review a pull request tar
 | `simulation/inserters.test.ts`, `game/inserterArm.test.ts` | Source/destination contention, snapshot budgets, ports, cycles, power, held-item conservation, full production and arm continuity |
 | `simulation/power.test.ts`, `simulation/polePlacementPreview.test.ts` | Network splitting/merging, coverage, proportional allocation, deterministic assignment and preview boundaries |
 | `simulation/beltConnections.test.ts`, `game/beltPath.test.ts` | Stable visual topology and straight/curve continuity |
+| `simulation/police.test.ts` | Power/range boundaries, deterministic competing radar dispatch, edge reachability, obstacle-aware pursuit, arrest/transport, release/escape/grace clocks, cooldowns, removal and stale commands |
 | `simulation/pete.test.ts`, `game/peteVisuals.test.ts`, `state/gameStore.test.ts` | Seeded navigation, reachable escape fallback, cooldown/impact/disable/cry timing, zero-demand pause/resume, conservation, click priority and splatter cleanup |
 | `game/cameraMovement.test.ts` | Directions, diagonals, timing, zoom and bounds |
 
@@ -83,7 +86,8 @@ For input/rendering changes, check in an available browser and report whether ch
 5. Create a shortage, interrupt generation, then restore it. Check proportional speed, frozen processing animations/progress, reservations and continued belt/export behavior.
 6. Place/rotate inserters with 8/R; check pickup/drop previews, chest selection, belt and machine ports, held items under blocked output/outages, and nominal outward/return timing. Preserve existing direct belt chains.
 7. Observe Pete walking/throwing; inspect a slimed machine, verify zero demand and countdown, then automatic recovery. Click Pete with placement/deletion selected, verify only webs/fright occur, and observe fast fleeing and corner crying/recovery. Click repeatedly while fleeing/crying: webs replay but destination, crying duration and cooldown do not reset. Delete a flying pumpkin target and a slimed building; check cleanup.
-8. Check WASD, normalized diagonal movement, wheel zoom, camera bounds, viewport resizing and canvas cleanup/remount without errors or duplicate games.
+8. Place radar with 9, verify range preview, full 5 kW requirement, flash and one police car. Follow pursuit/arrest/transport to the edge prison. Inspect angry Pete and release him; repeat and wait for the 60-second jailbreak. Verify grace, cooldown continuity, duplicate commands, unpowered radar, competing traps and prison removal during custody.
+9. Check WASD, normalized diagonal movement, wheel zoom, camera bounds, viewport resizing and canvas cleanup/remount without errors or duplicate games.
 
 ## Documentation maintenance and technical limits
 

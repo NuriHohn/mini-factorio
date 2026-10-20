@@ -1,3 +1,5 @@
+import { advanceWorld } from '../simulation/step'
+import { removeBuilding } from '../simulation/world'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createWorld, placeBuilding, SIZE } from '../simulation/world'
 import { TOOL_HOTKEYS, useGameStore } from './gameStore'
@@ -110,5 +112,54 @@ describe('Pete click priority over every tool', () => {
       expect(world.buildings).toEqual(buildings)
     }
     expect(useGameStore.getState().scarePete(world, { x: 0, y: 0 })).toBe(false)
+  })
+})
+
+describe('prison inspection and validated release commands', () => {
+  function prisoner() {
+    const world = createWorld(() => .5)
+    Object.assign(world.pete, { x: 8, y: 8, tile: 328, mode: 'CRYING', cryingMs: 100000 })
+    for (const [x, y, kind] of [[9, 8, 'radar'], [9, 7, 'powerPole'], [9, 6, 'generator']] as const) placeBuilding(world, x, y, kind, 'east')
+    for (let i = 0; i < 1500 && world.pete.mode !== 'IMPRISONED'; i++) advanceWorld(world, 50)
+    expect(world.pete.mode).toBe('IMPRISONED')
+    const prison = world.pete.prison!
+    return { world, prison }
+  }
+  it('allows prison clicks through Pete to inspect and release from a copied snapshot exactly once', () => {
+    const { world, prison } = prisoner()
+    expect(useGameStore.getState().scarePete(world, world.pete)).toBe(false)
+    useGameStore.getState().inspect(world, prison.x, prison.y)
+    expect(useGameStore.getState().inspection).toMatchObject({ kind: 'prison', occupied: true, remainingMs: 60000 })
+    useGameStore.getState().requestRelease(); useGameStore.getState().requestRelease()
+    const cooldown = world.pete.cooldownMs
+    useGameStore.getState().applyRelease(world)
+    expect(world.pete.mode).toBe('WANDERING'); expect(world.pete.cooldownMs).toBe(cooldown)
+    const released = structuredClone(world)
+    useGameStore.getState().applyRelease(world)
+    expect(world).toEqual(released)
+  })
+  it('rejects a queued command for a prison removed before the scene applies it', () => {
+    const { world, prison } = prisoner()
+    useGameStore.getState().inspect(world, prison.x, prison.y)
+    useGameStore.getState().requestRelease()
+    removeBuilding(world, prison.x, prison.y)
+    const freed = structuredClone(world)
+    useGameStore.getState().applyRelease(world)
+    expect(world).toEqual(freed)
+    expect(useGameStore.getState().releaseRequest).toBe(null)
+  })
+  it('cancels a queued release when switching tools or inspecting another building', () => {
+    const { world, prison } = prisoner()
+    useGameStore.getState().inspect(world, prison.x, prison.y)
+    useGameStore.getState().requestRelease()
+    key('Digit9')
+    expect(useGameStore.getState().releaseRequest).toBe(null)
+    expect(useGameStore.getState().tool).toBe('radar')
+    key('Escape')
+    useGameStore.getState().inspect(world, prison.x, prison.y)
+    useGameStore.getState().requestRelease()
+    useGameStore.getState().inspect(world, 9, 8)
+    expect(useGameStore.getState().releaseRequest).toBe(null)
+    expect(useGameStore.getState().inspection?.kind).toBe('radar')
   })
 })

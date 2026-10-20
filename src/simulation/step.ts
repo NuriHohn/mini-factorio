@@ -1,3 +1,4 @@
+import { advancePolice } from './police'
 import { advancePete } from './pete'
 import { depositAt, INTERVAL, SIZE } from './world'
 import type { World } from './world'
@@ -19,6 +20,7 @@ export function advanceWorld(world: World, delta: number): void {
     outputMachines(world, vacated)
     prepareAssemblerRecipes(world, STEP_MS)
     const power = allocatePower(world, inserterFrame)
+    advancePolice(world, STEP_MS)
     advanceInserters(world, STEP_MS, inserterFrame)
     advanceCrafting(world, STEP_MS)
     for (const miner of world.buildings) {

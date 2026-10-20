@@ -1,3 +1,4 @@
+import { releasePete } from '../simulation/police'
 import { clickPete } from '../simulation/pete'
 import type { Position } from '../simulation/world'
 import { emptyInventory } from '../simulation/items'
@@ -12,9 +13,12 @@ import type { Inspection, WorldStats } from '../simulation/inspection'
 export type Tool = BuildingKind | 'remove' | null
 export const TOOL_HOTKEYS: Readonly<Record<string, Exclude<Tool, null>>> = {
   Digit1: 'miner', Digit2: 'belt', Digit3: 'storage', Digit4: 'furnace',
-  Digit5: 'generator', Digit6: 'powerPole', Digit7: 'assembler', Digit8: 'inserter', KeyX: 'remove',
+  Digit5: 'generator', Digit6: 'powerPole', Digit7: 'assembler', Digit8: 'inserter', Digit9: 'radar', KeyX: 'remove',
 }
 interface State {
+  releaseRequest: { index: number; imprisonedAtMs: number } | null
+  requestRelease: () => void
+  applyRelease: (world: World) => void
   recipeRequest: { index: number; recipeMode: FurnaceRecipeMode } | null
   requestRecipe: (recipeMode: FurnaceRecipeMode) => void
   stats: WorldStats
@@ -34,6 +38,14 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  releaseRequest: null,
+  requestRelease: () => set(state => state.inspected !== null && state.inspection?.kind === 'prison' && state.inspection.imprisonedAtMs !== null ? { releaseRequest: { index: state.inspected, imprisonedAtMs: state.inspection.imprisonedAtMs } } : state),
+  applyRelease: world => {
+    const request = get().releaseRequest
+    if (!request) return
+    const released = releasePete(world, request.index, request.imprisonedAtMs)
+    set({ releaseRequest: null, message: released ? 'Pumpkin Pete released · 10 seconds of radar grace.' : 'Pete is no longer held by this prison.' })
+  },
   recipeRequest: null,
   requestRecipe: recipeMode => set(state => state.inspected !== null && (state.inspection?.kind === 'furnace' || state.inspection?.kind === 'assembler') ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
   stats: { mined: emptyInventory(), produced: emptyInventory(), stored: emptyInventory(), maxMiningPerSec: 0, maxSmeltingPerSec: 0, miners: 0, furnaces: 0, assemblers: 0, inserters: 0, maxCraftingPerSec: 0 },
@@ -44,7 +56,7 @@ export const useGameStore = create<State>((set, get) => ({
   select: requested => set(state => {
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { tool, inspected: null, inspection: null, recipeRequest: null, message: tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { tool, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
     if (event.code === 'Escape') { get().select(null); return }
@@ -53,13 +65,13 @@ export const useGameStore = create<State>((set, get) => ({
   },
   scarePete: (world, position) => {
     if (!clickPete(world, position)) return false
-    set({ message: 'Pumpkin Pete is frightened! He will cry in a safe corner, then return.' })
+    set({ message: world.pete.mode === 'ARRESTED' || world.pete.mode === 'TRANSPORTED' ? 'Pete is in police custody.' : 'Pumpkin Pete is frightened! He will cry in a safe corner, then return.' })
     return true
   },
   inspect: (world, x, y) => set(state => {
     if (state.tool !== null) return state
     const inspection = buildingAt(world, x, y) ? inspectBuilding(world, y * SIZE + x) : null
-    return { inspected: inspection ? y * SIZE + x : null, inspection, recipeRequest: null }
+    return { inspected: inspection ? y * SIZE + x : null, inspection, recipeRequest: null, releaseRequest: null }
   }),
   rotate: () => set(state => ({ direction: rotate(state.direction) })),
   publish: world => set(state => {

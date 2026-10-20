@@ -1,3 +1,5 @@
+import { RADAR_RANGE } from '../simulation/police'
+import { drawSecurityBuilding, drawPoliceEffects } from './policeVisuals'
 import { drawPete, drawSabotage } from './peteVisuals'
 import Phaser from 'phaser'
 import { buildingAt, createWorld, inside, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, SIZE } from '../simulation/world'
@@ -33,7 +35,7 @@ export class FactoryScene extends Phaser.Scene {
   private peteLabel!: Phaser.GameObjects.Text
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null })
     useGameStore.getState().publish(this.world)
     const terrain = this.add.graphics()
     const greens = [0x344e37, 0x36513a, 0x38543b, 0x324b35]
@@ -156,7 +158,7 @@ export class FactoryScene extends Phaser.Scene {
     }
   }
   private previewPole(x: number, y: number): PolePlacementPreview {
-    const key = `${x},${y},${this.world.topologyRevision},${this.world.pete.tile},${this.world.pete.next}`
+    const key = `${x},${y},${this.world.topologyRevision},${this.world.pete.tile},${this.world.pete.next},${this.world.police.car?.tile},${this.world.police.car?.next}`
     // World-space graphics follow camera transforms without being rebuilt.
     if (!this.poleCandidate || this.polePreviewKey !== key) {
       this.polePreviewKey = key
@@ -183,6 +185,7 @@ export class FactoryScene extends Phaser.Scene {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
     moveCamera(camera, this.keys, delta)
+    useGameStore.getState().applyRelease(this.world)
     const request = useGameStore.getState().recipeRequest
     if (request) {
       const position = tilePosition(request.index)
@@ -214,7 +217,9 @@ export class FactoryScene extends Phaser.Scene {
     for (const building of this.world.buildings) {
       if (!building) continue
       const x = building.x * TILE, y = building.y * TILE
-      if (building.kind === 'storage') {
+      if (building.kind === 'radar' || building.kind === 'prison') {
+        drawSecurityBuilding(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'storage') {
         this.machines.fillStyle(0x392d20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.lineStyle(2, 0xb68b50).strokeRect(x + 5, y + 5, 22, 22)
         this.machines.fillStyle(0xb68b50).fillRect(x + 5, y + 13, 22, 5)
@@ -339,12 +344,14 @@ export class FactoryScene extends Phaser.Scene {
       }
     }
     drawPete(this.peteEffects, this.world, TILE)
+    drawPoliceEffects(this.peteEffects, this.world, TILE)
     this.peteLabel.setPosition((this.world.pete.x + .5) * TILE, (this.world.pete.y + .5) * TILE - 15)
-    this.peteLabel.setText(this.world.pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pumpkin Pete')
+    this.peteLabel.setText(this.world.pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : this.world.pete.mode === 'ARRESTED' || this.world.pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : this.world.pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pumpkin Pete')
     useGameStore.getState().publish(this.world)
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
     this.preview.clear()
+    if (inspected?.kind === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, RADAR_RANGE * TILE)
     if (inspected?.kind === 'powerPole') this.showCoverage(inspected, power.assignments[state.inspected!] ?? null)
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
     this.poleLinks.setVisible(state.tool === 'powerPole' && this.input.isOver)
@@ -352,6 +359,7 @@ export class FactoryScene extends Phaser.Scene {
     if (state.tool && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
+      if (state.tool === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, RADAR_RANGE * TILE)
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
       if (state.tool === 'inserter') {
         const ports = inserterPorts({ x, y, direction: state.direction })

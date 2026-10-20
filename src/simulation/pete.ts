@@ -1,5 +1,6 @@
-import { SIZE, inside } from './world'
-import type { Building, Position, World } from './world'
+import { neighboringTiles, reachableTiles, tilePath } from './navigation'
+import { SIZE } from './world'
+import type { Building, Position, Prison, World } from './world'
 
 export const PETE_WALK_MS = 1000
 export const PETE_FLEE_MS = PETE_WALK_MS / (1.5 * 3)
@@ -7,7 +8,11 @@ export const PETE_COOLDOWN_MS = 30000
 export const SABOTAGE_MS = 10000
 export const PUMPKIN_FLIGHT_MS = 400
 export interface Pete extends Position {
-  mode: 'WANDERING' | 'FLEEING' | 'CRYING'
+  mode: 'WANDERING' | 'FLEEING' | 'CRYING' | 'ARRESTED' | 'TRANSPORTED' | 'IMPRISONED'
+  prison: Prison | null
+  imprisonedAtMs: number | null
+  graceUntilMs: number
+  jailbreak: { position: Position; untilMs: number } | null
   tile: number
   next: number | null
   travelMs: number
@@ -21,7 +26,7 @@ export interface Pete extends Position {
   pumpkin: { target: Building; index: number; from: Position; elapsedMs: number } | null
 }
 export function createPete(): Pete {
-  return { x: 17, y: 23, tile: 23 * SIZE + 17, next: null, travelMs: 0, seed: 0x70657465, mode: 'WANDERING', cooldownMs: PETE_COOLDOWN_MS, cryingMs: 0, escape: null, path: [], pathRevision: -1, webMs: 0, pumpkin: null }
+  return { prison: null, imprisonedAtMs: null, graceUntilMs: 0, jailbreak: null, x: 17, y: 23, tile: 23 * SIZE + 17, next: null, travelMs: 0, seed: 0x70657465, mode: 'WANDERING', cooldownMs: PETE_COOLDOWN_MS, cryingMs: 0, escape: null, path: [], pathRevision: -1, webMs: 0, pumpkin: null }
 }
 export function sabotageRemaining(world: World, building: Building): number {
   return Math.max(0, (building.sabotageUntilMs ?? 0) - world.timeMs)
@@ -29,24 +34,17 @@ export function sabotageRemaining(world: World, building: Building): number {
 export function isProductionMachine(building: Building): boolean {
   return building.kind === 'miner' || building.kind === 'furnace' || building.kind === 'assembler'
 }
-function neighbors(tile: number): number[] {
-  const x = tile % SIZE, y = Math.floor(tile / SIZE)
-  return [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]].filter(([a, b]) => inside(a, b)).map(([a, b]) => b * SIZE + a)
-}
 function random(pete: Pete): number {
   pete.seed = (Math.imul(1664525, pete.seed) + 1013904223) >>> 0
   return pete.seed / 4294967296
 }
 function escapePath(world: World): void {
-  const pete = world.pete, queue = [pete.tile], parents = new Map<number, number>([[pete.tile, -1]])
-  for (let head = 0; head < queue.length; head++) for (const tile of neighbors(queue[head])) {
-    if (!world.buildings[tile] && !parents.has(tile)) { parents.set(tile, queue[head]); queue.push(tile) }
-  }
+  const pete = world.pete, parents = reachableTiles(world, pete.tile)
+  const queue = [...parents.keys()]
   const corners = [0, SIZE - 1, SIZE * SIZE - 1, SIZE * (SIZE - 1)]
   const cornerDistance = (tile: number) => Math.min(...corners.map(c => Math.abs(tile % SIZE - c % SIZE) + Math.abs(Math.floor(tile / SIZE) - Math.floor(c / SIZE))))
   const destination = queue.slice().sort((a, b) => cornerDistance(a) - cornerDistance(b) || a - b)[0]
-  const path: number[] = []
-  for (let tile = destination; tile !== pete.tile; tile = parents.get(tile)!) path.unshift(tile)
+  const path = tilePath(parents, destination)!
   pete.escape = destination
   pete.path = path
   pete.pathRevision = world.topologyRevision
@@ -56,7 +54,8 @@ export function peteHit(world: World, position: Position): boolean {
 }
 // Every hit replays the web visual; only wandering hits change behavior.
 export function clickPete(world: World, position: Position): boolean {
-  if (!peteHit(world, position)) return false
+  if (world.pete.mode === 'IMPRISONED' || !peteHit(world, position)) return false
+  if (world.pete.mode === 'ARRESTED' || world.pete.mode === 'TRANSPORTED') return true
   const pete = world.pete
   pete.webMs = 700
   if (pete.mode !== 'WANDERING') return true
@@ -68,12 +67,15 @@ export function clickPete(world: World, position: Position): boolean {
 }
 export function peteOccupiesTile(world: World, x: number, y: number): boolean {
   const tile = y * SIZE + x
+  if (world.pete.mode === 'IMPRISONED') return false
   return world.pete.tile === tile || world.pete.next === tile
 }
 export function advancePete(world: World, delta: number): void {
   const pete = world.pete
   pete.cooldownMs = Math.max(0, pete.cooldownMs - delta)
   pete.webMs = Math.max(0, pete.webMs - delta)
+  if (pete.jailbreak && world.timeMs >= pete.jailbreak.untilMs) pete.jailbreak = null
+  if (pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' || pete.mode === 'IMPRISONED') return
   if (pete.pumpkin) {
     const shot = pete.pumpkin
     if (world.buildings[shot.index] !== shot.target) pete.pumpkin = null
@@ -100,7 +102,7 @@ export function advancePete(world: World, delta: number): void {
         pete.next = pete.path.shift() ?? null
         if (pete.next === null) { pete.mode = 'CRYING'; pete.cryingMs = SABOTAGE_MS; break }
       } else {
-        const choices = neighbors(pete.tile).filter(tile => !world.buildings[tile])
+        const choices = neighboringTiles(pete.tile).filter(tile => !world.buildings[tile])
         if (choices.length) pete.next = choices[Math.floor(random(pete) * choices.length)]
         else break
       }

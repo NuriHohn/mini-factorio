@@ -34,3 +34,5 @@ All buildings are free. For exact recipes, buffers, power rules, previews and Au
 - [AGENTS.md](AGENTS.md): mandatory contributor instructions.
 
 Pumpkin Pete wanders the factory and occasionally disables a nearby production machine for 10 seconds with pumpkin mush and goblin slime. Click him to scare him into a corner; your selected building tool stays active. See [gameplay rules](docs/GAME_DESIGN.md#pumpkin-pete).
+
+Use **9** to place a powered radar trap (5 kW, 3-tile range). Police take Pete to an automatically created edge prison, where its inspector can release him; he escapes automatically after 60 simulation seconds. See [police and prison rules](docs/GAME_DESIGN.md#police-radar-traps-and-prison).

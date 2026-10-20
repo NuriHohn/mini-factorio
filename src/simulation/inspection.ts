@@ -1,3 +1,4 @@
+import { IMPRISONMENT_MS, RADAR_RANGE, radarPowered } from './police'
 import { sabotageRemaining } from './pete'
 import { GENERATOR_KW, POLE_COVERAGE_RADIUS, powerRequirement, withinRange } from './power'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
@@ -10,7 +11,7 @@ import type { CraftingStatus } from './crafting'
 import type { FurnaceRecipeMode, RecipeId } from './recipes'
 import { MACHINE_DEFINITIONS, RECIPES } from './recipes'
 import { outputWaiting } from './transport'
-import { buildingAt, depositAt, INTERVAL } from './world'
+import { buildingAt, depositAt, INTERVAL, SIZE } from './world'
 import type { BuildingKind, Direction, Position, World } from './world'
 
 export interface WorldStats {
@@ -39,7 +40,8 @@ export interface InserterInspection {
   target: BuildingKind | null
   electrical: ElectricalDetails
 }
-export type Inspection = InserterInspection | { kind: 'storage'; inventory: Inventory }
+export type Inspection = InserterInspection | { kind: 'prison'; occupied: boolean; elapsedMs: number; remainingMs: number; imprisonedAtMs: number | null; exit: Position }
+  | { kind: 'radar'; radius: number; active: boolean; operation: string; prison: Position | null; electrical: ElectricalDetails } | { kind: 'storage'; inventory: Inventory }
   | { kind: 'miner'; resource: Resource | null; progress: number; buffered: boolean; electrical: ElectricalDetails }
   | { kind: 'generator'; capacityKw: number; actualKw: number; electrical: ElectricalDetails }
   | { kind: 'powerPole'; coverageRadius: number; coveredMachines: number; electrical: ElectricalDetails } | {
@@ -88,7 +90,16 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   const building = index === null ? null : world.buildings[index]
   if (building?.kind === 'storage') return { kind: 'storage', inventory: { ...building.inventory } }
   if (!building || index === null) return null
+  if (building.kind === 'prison') {
+    const occupied = world.pete.mode === 'IMPRISONED' && world.pete.prison === building
+    const elapsedMs = occupied ? world.timeMs - world.pete.imprisonedAtMs! : 0
+    return { kind: 'prison', occupied, elapsedMs, remainingMs: occupied ? Math.max(0, IMPRISONMENT_MS - elapsedMs) : 0, imprisonedAtMs: occupied ? world.pete.imprisonedAtMs : null, exit: { x: building.exit % SIZE, y: Math.floor(building.exit / SIZE) } }
+  }
   const electrical = electricalDetails(world, index)
+  if (building.kind === 'radar') {
+    const prison = world.buildings.find(b => b?.kind === 'prison')
+    return { kind: 'radar', radius: RADAR_RANGE, active: radarPowered(world, index), operation: world.police.car?.phase ?? (world.pete.mode === 'IMPRISONED' ? 'Pete in prison' : world.pete.graceUntilMs > world.timeMs ? 'Release grace period' : world.police.retryAtMs > world.timeMs ? 'Waiting for a reachable edge route' : 'Monitoring'), prison: prison ? { x: prison.x, y: prison.y } : null, electrical }
+  }
   if (building.kind === 'inserter') {
     const { pickup, drop } = inserterPorts(building)
     return { kind: 'inserter', direction: building.direction, item: building.item, phase: building.phase, status: inserterStatus(world, building), progress: building.phase === 'idle' ? 0 : (building.elapsedMs + (building.phase === 'returning' ? INSERTER_SWING_MS : 0)) / INSERTER_CYCLE_MS, cycleMs: INSERTER_CYCLE_MS, pickup, drop, source: buildingAt(world, pickup.x, pickup.y)?.kind ?? null, target: buildingAt(world, drop.x, drop.y)?.kind ?? null, electrical }
