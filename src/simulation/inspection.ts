@@ -118,7 +118,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
     return { kind: 'inserter', direction: building.direction, item: building.item, phase: building.phase, status: inserterStatus(world, building), progress: building.phase === 'idle' ? 0 : (building.elapsedMs + (building.phase === 'returning' ? INSERTER_SWING_MS : 0)) / INSERTER_CYCLE_MS, cycleMs: INSERTER_CYCLE_MS, pickup, drop, source: buildingAt(world, pickup.x, pickup.y)?.kind ?? null, target: buildingAt(world, drop.x, drop.y)?.kind ?? null, electrical }
   }
   if (building.kind === 'miner') return { kind: 'miner', resource: depositAt(world, building.x, building.y), progress: building.elapsed / INTERVAL, buffered: building.item !== null, electrical }
-  if (building.kind === 'generator') return { kind: 'generator', capacityKw: GENERATOR_KW, actualKw: electrical.network ? electrical.network.suppliedKw / electrical.network.generators : 0, electrical }
+  if (building.kind === 'generator') return { kind: 'generator', capacityKw: GENERATOR_KW, actualKw: electrical.sabotageRemainingMs === 0 && electrical.network?.activeGenerators ? electrical.network.suppliedKw / electrical.network.activeGenerators : 0, electrical }
   if (building.kind === 'powerPole') return { kind: 'powerPole', coverageRadius: POLE_COVERAGE_RADIUS, coveredMachines: world.buildings.filter(b => b && powerRequirement(b) > 0 && withinRange(building, b, POLE_COVERAGE_RADIUS)).length, electrical }
   if (building.kind !== 'furnace' && building.kind !== 'assembler') return null
   const recipe = building.recipeId ? RECIPES[building.recipeId] : null
@@ -146,7 +146,7 @@ export interface ElectricalDetails {
   sabotageRemainingMs: number
   state: 'sabotaged' | 'disconnected' | 'no-generation' | 'idle' | 'reduced' | 'powered'
   explanation: string
-  network: { capacityKw: number; requestedKw: number; suppliedKw: number; poles: number; generators: number } | null
+  network: { capacityKw: number; requestedKw: number; suppliedKw: number; poles: number; generators: number; activeGenerators: number } | null
 }
 export function electricalDetails(world: World, index: number): ElectricalDetails {
   const building = world.buildings[index]
@@ -157,7 +157,7 @@ export function electricalDetails(world: World, index: number): ElectricalDetail
   let state: ElectricalDetails['state']
   let explanation: string
   const remaining = building ? sabotageRemaining(world, building) : 0
-  if (remaining > 0) { state = 'sabotaged'; explanation = 'Sabotaged by Pumpkin Pete. Production is paused without consuming power; buffers and progress are preserved.' }
+  if (remaining > 0) { state = 'sabotaged'; explanation = 'Sabotaged by Pete. Operation is paused without consuming power; buffers and progress are preserved.' }
   else if (!network) { state = 'disconnected'; explanation = building?.kind === 'generator' ? 'Generator disconnected. Place a pole within 3 tiles; generators do not power machines directly.' : 'Outside pole coverage. Place a pole within 3 tiles and connect a generator.' }
   else if (network.capacityKw === 0) { state = 'no-generation'; explanation = 'Assigned network has no generator. Connect a generator within 3 tiles of a pole.' }
   else if (building?.kind === 'generator' && network.suppliedKw > 0) { state = 'powered'; explanation = 'Supplying the assigned network. Generators share its load equally.' }
@@ -167,6 +167,6 @@ export function electricalDetails(world: World, index: number): ElectricalDetail
   return {
     sabotageRemainingMs: remaining, networkId, requirementKw, requestedKw: consumer?.requestedKw ?? 0, suppliedKw: consumer?.suppliedKw ?? 0,
     speedFraction: consumer?.speedFraction ?? 0, state, explanation,
-    network: network ? { capacityKw: network.capacityKw, requestedKw: network.requestedKw, suppliedKw: network.suppliedKw, poles: network.poleIndices.length, generators: network.generatorIndices.length } : null,
+    network: network ? { capacityKw: network.capacityKw, requestedKw: network.requestedKw, suppliedKw: network.suppliedKw, poles: network.poleIndices.length, generators: network.generatorIndices.length, activeGenerators: network.generatorIndices.filter(i => sabotageRemaining(world, world.buildings[i]!) === 0).length } : null,
   }
 }

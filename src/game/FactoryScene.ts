@@ -1,3 +1,5 @@
+import { WebVisuals } from './webVisuals'
+import { peteHit, sabotageRemaining } from '../simulation/pete'
 import { WaterVisuals, drawSprinkler } from './sprinklerVisuals'
 import { SPRINKLER_RANGE, WATER_COMPLAINTS } from '../simulation/sprinklers'
 import { SaveSession, errorMessage } from '../persistence/storage'
@@ -45,6 +47,7 @@ export class FactoryScene extends Phaser.Scene {
   private poleCandidate: PolePlacementPreview | null = null
   private peteEffects!: Phaser.GameObjects.Graphics
   private peteLabel!: Phaser.GameObjects.Text
+  private webVisuals = new WebVisuals()
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
@@ -62,7 +65,7 @@ export class FactoryScene extends Phaser.Scene {
     this.polePreviewKey = ''
     this.poleCandidate = null
     this.peteEffects = this.add.graphics().setDepth(5)
-    this.peteLabel = this.add.text(0, 0, 'Pumpkin Pete', { fontFamily: 'monospace', fontSize: '9px', color: '#f8cf86', backgroundColor: '#17221cbb', padding: { x: 3, y: 2 } }).setOrigin(.5, 1).setDepth(6)
+    this.peteLabel = this.add.text(0, 0, 'Pete', { fontFamily: 'monospace', fontSize: '9px', color: '#f8cf86', backgroundColor: '#17221cbb', padding: { x: 3, y: 2 } }).setOrigin(.5, 1).setDepth(6)
     this.preview = this.add.graphics()
     this.cameras.main.setZoom(1.3)
     updateCameraBounds(this.cameras.main, SIZE * TILE)
@@ -87,9 +90,10 @@ export class FactoryScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.leftButtonDown()) return
       const p = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2
-      if (useGameStore.getState().scarePete(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
+      if (useGameStore.getState().useWebTool(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
+      if (tool === 'spiderWeb') return
       if (!tool) {
         useGameStore.getState().inspect(this.world, x, y)
         return
@@ -378,7 +382,7 @@ export class FactoryScene extends Phaser.Scene {
       } else if (building.kind === 'generator') {
         const networkId = power.assignments[building.y * SIZE + building.x]
         const network = power.networks.find(n => n.id === networkId)
-        const supplying = (network?.suppliedKw ?? 0) > 0
+        const supplying = sabotageRemaining(this.world, building) === 0 && (network?.suppliedKw ?? 0) > 0
         this.machines.fillStyle(0x15242b).fillRoundedRect(x + 2, y + 3, 28, 27, 4)
         this.machines.lineStyle(2, 0x72b9c1).strokeRect(x + 4, y + 5, 24, 23)
         for (let n = 0; n < 4; n++) this.machines.fillStyle(0x3d6571).fillRect(x + 6, y + 8 + n * 4, 9, 2)
@@ -450,12 +454,13 @@ export class FactoryScene extends Phaser.Scene {
         if (overlay) this.items.lineStyle(2, color).strokeRect(x + 1, y + 1, TILE - 2, TILE - 2)
       }
     }
+    this.webVisuals.draw(this.peteEffects, this.world, TILE)
     this.waterVisuals.draw(this.peteEffects, this.world, TILE)
     drawPete(this.peteEffects, this.world, TILE)
     drawPoliceEffects(this.peteEffects, this.world, TILE)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
     this.peteLabel.setPosition((pete.x + .5) * TILE, (pete.y + .5) * TILE - (complaining ? 29 : 15))
-    const label = complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pumpkin Pete'
+    const label = complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete'
     if (this.peteLabel.text !== label) {
       this.peteLabel.setText(label).setStyle({ color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
     }
@@ -472,6 +477,7 @@ export class FactoryScene extends Phaser.Scene {
     if (state.tool && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
+      if (state.tool === 'spiderWeb' && peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) this.preview.lineStyle(2, 0xeaf3f5).strokeCircle((this.world.pete.x + .5) * TILE, (this.world.pete.y + .5) * TILE, .8 * TILE)
       if (state.tool === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, SPRINKLER_RANGE * TILE)
       if (state.tool === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, RADAR_RANGE * TILE)
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
@@ -494,7 +500,7 @@ export class FactoryScene extends Phaser.Scene {
         }
       }
       const pole = state.tool === 'powerPole' ? this.previewPole(x, y) : null
-      const error = pole ? pole.error : state.tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, state.tool)
+      const error = pole ? pole.error : state.tool === 'spiderWeb' ? inside(x, y) ? null : 'Choose a tile inside the world.' : state.tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, state.tool)
       const color = pole ? pole.state === 'invalid' ? 0x929b9f : pole.state === 'connected' ? 0x8df0b3 : 0xf0ac60 : error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)

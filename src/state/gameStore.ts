@@ -4,7 +4,7 @@ import type { BuildTab, Tool } from './toolMetadata'
 export { TOOL_HOTKEYS } from './toolMetadata'
 export type { Tool } from './toolMetadata'
 import { releasePete } from '../simulation/police'
-import { clickPete } from '../simulation/pete'
+import { shootWeb } from '../simulation/webs'
 import type { Position } from '../simulation/world'
 import { emptyInventory } from '../simulation/items'
 import type { FurnaceRecipeMode } from '../simulation/recipes'
@@ -39,7 +39,7 @@ interface State {
   inspection: Inspection | null
   select: (tool: Tool) => void
   handleToolKey: (event: { code: string; repeat: boolean; editing?: boolean }) => void
-  scarePete: (world: World, position: Position) => boolean
+  useWebTool: (world: World, position: Position) => boolean
   inspect: (world: World, x: number, y: number) => void
   rotate: () => void
   publish: (world: World) => void
@@ -60,7 +60,7 @@ export const useGameStore = create<State>((set, get) => ({
     const request = get().releaseRequest
     if (!request) return
     const released = releasePete(world, request.index, request.imprisonedAtMs)
-    set({ releaseRequest: null, message: released ? 'Pumpkin Pete released · 10 seconds of radar grace.' : 'Pete is no longer held by this prison.' })
+    set({ releaseRequest: null, message: released ? 'Pete released · 10 seconds of radar grace.' : 'Pete is no longer held by this prison.' })
   },
   recipeRequest: null,
   requestRecipe: recipeMode => set(state => state.inspected !== null && (state.inspection?.kind === 'furnace' || state.inspection?.kind === 'assembler') ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
@@ -72,16 +72,17 @@ export const useGameStore = create<State>((set, get) => ({
   select: requested => set(state => {
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { tool, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { tool, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
     if (event.code === 'Escape') { get().select(null); return }
     if (event.repeat || event.editing) return
     if (Object.hasOwn(TOOL_HOTKEYS, event.code)) get().select(TOOL_HOTKEYS[event.code])
   },
-  scarePete: (world, position) => {
-    if (!clickPete(world, position)) return false
-    set({ message: world.pete.water ? 'Pete is soaked! Let his water reaction finish.' : world.pete.mode === 'ARRESTED' || world.pete.mode === 'TRANSPORTED' ? 'Pete is in police custody.' : 'Pumpkin Pete is frightened! He will cry in a safe corner, then return.' })
+  useWebTool: (world, position) => {
+    if (get().tool !== 'spiderWeb') return false
+    const result = shootWeb(world, position)
+    set({ message: result === 'ground' ? 'Web fired · lands for 10 seconds. Click Pete directly to scare him.' : result === 'outside' ? 'Choose a tile inside the world.' : result === 'full' ? 'Too many active webs. Wait for some to expire.' : world.pete.water ? 'Pete is soaked! Let his water reaction finish.' : ['ARRESTED', 'TRANSPORTED', 'IMPRISONED'].includes(world.pete.mode) ? 'Pete is in police custody.' : 'Pete is frightened! He will cry in a safe corner, then return.' })
     return true
   },
   inspect: (world, x, y) => set(state => {

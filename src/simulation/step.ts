@@ -1,3 +1,4 @@
+import { advanceWebs } from './webs'
 import { advanceSprinklers } from './sprinklers'
 import { advancePolice } from './police'
 import { advancePete } from './pete'
@@ -16,6 +17,7 @@ export function advanceWorld(world: World, delta: number): void {
     world.remainder = Math.max(0, world.remainder - STEP_MS)
     world.timeMs += STEP_MS
     const reactingToWater = world.pete.water !== null
+    advanceWebs(world)
     advancePete(world, STEP_MS)
     const inserterFrame = createInserterFrame(world)
     const vacated = advanceTransport(world, STEP_MS)

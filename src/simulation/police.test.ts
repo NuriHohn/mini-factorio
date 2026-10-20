@@ -147,7 +147,7 @@ describe('police pursuit, arrest and visible transport states', () => {
     until(world, 'IMPRISONED')
     expect(world.pete.cooldownMs).toBe(Math.max(0, 12345 - world.timeMs))
     const imprisoned = structuredClone(world.pete)
-    expect(clickPete(world, world.pete)).toBe(false) // allow the prison inspector click through
+    expect(clickPete(world, world.pete)).toBe(true) // Web mode consumes the hit; ordinary selection opens the prison inspector.
     expect(world.pete).toEqual(imprisoned)
     advanceWorld(world, 2000)
     expect(world.pete.x).toBe(imprisoned.x); expect(world.pete.y).toBe(imprisoned.y)

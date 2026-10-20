@@ -84,6 +84,8 @@ The delivery summary should state what changed, validation actually performed, m
 | `simulation/splitters.test.ts`, `game/splitterPath.test.ts`, `state/gameStore.test.ts` | One-tile rotations/ports, rear-only input, round robin, congestion/recovery, three-slot capacity, atomic conflicts, chains/cycles, conservation, curves, inserters and tool 0/ESC |
 | `simulation/police.test.ts` | Power/range boundaries, deterministic competing radar dispatch, edge reachability, obstacle-aware pursuit, arrest/transport, release/escape/grace clocks, cooldowns, removal and stale commands |
 | `simulation/pete.test.ts`, `game/peteVisuals.test.ts`, `state/gameStore.test.ts` | Seeded navigation, reachable escape fallback, cooldown/impact/disable/cry timing, zero-demand pause/resume, conservation, click priority and splatter cleanup |
+| `simulation/webs.test.ts`, `game/webVisuals.test.ts` | Ground flight/lifetime, trapping/release/overlap immunity, protected states, bounded effects and rendering cleanup |
+| `simulation/peteSabotage.test.ts`, `persistence/pete2Save.test.ts` | Expanded targets, generator allocation, carried-item/job conservation, web/trap continuation, version-1/2 migration and corrupt-reference rejection |
 | `game/cameraMovement.test.ts` | Directions, diagonals, timing, zoom and bounds |
 | `persistence/saveGame.test.ts`, `persistence/storage.test.ts` | Authoritative snapshots, jobs/transport/NPC continuation, clock remainder, corruption/version rejection, independent slots, autosave cadence and storage failures |
 | `state/toolMetadata.test.ts` | Central category/hotkey membership, tab cancellation, selection and save-command guarding |
@@ -97,15 +99,15 @@ For input/rendering changes, verify affected flows in an available browser and i
 
 | Area / expected behavior | Verification scenarios |
 | --- | --- |
-| [Controls](GAME_DESIGN.md#world-items-and-controls), [categories](GAME_DESIGN.md#build-categories) | Toolbar/hotkey toggles, direct tool/deletion switching, repeated/form-focused Escape, selection/inspection, one highlight, no dashed tool outline, cross-category 9/0/X/G hotkeys and tab-switch cancellation; placement, rotation and occupied-building removal |
+| [Controls](GAME_DESIGN.md#world-items-and-controls), [categories](GAME_DESIGN.md#build-categories) | Toolbar/hotkey toggles, direct tool/deletion switching, repeated/form-focused Escape, selection/inspection, one highlight, no dashed tool outline, explicit Spider Web gating, cross-category 9/0/X/G/B hotkeys and tab-switch cancellation; placement, rotation and occupied-building removal |
 | [Production](GAME_DESIGN.md#recipes-and-buffers), [recipe selection](GAME_DESIGN.md#automatic-and-manual-recipes) | Both ore chains around straight/curved belts; typed moving items; gear/cable/circuit batches; initial Auto countdown/priority, permanent locks after draining, safe manual switching, incompatible inputs and stored versus lifetime counts |
 | [Power](GAME_DESIGN.md#electricity-and-feedback) | Range boundaries, overlapping coverage/assigned networks, cached dashed pole previews/colors, isolated placement, shortages, interruption/recovery, frozen progress/reservations and continuing transport |
 | [Inserters](GAME_DESIGN.md#basic-inserters) | Ports/arm/held-item previews and animation, chest extraction, belt/machine transfers, blocked drops, outages, cycle timing and direct belt chains |
 | [Splitters](GAME_DESIGN.md#compact-splitter) | All rotations/port previews, balanced exits, one/both outputs blocked then recovery, throughput/counts, curves, chains and inserter extraction |
-| [Pete](GAME_DESIGN.md#pumpkin-pete) | Walking/throwing, sabotage inspector/countdown/recovery, mush/slime cleanup, repeated consumed web clicks without timer resets, fleeing/crying and target/building deletion |
+| [Pete](GAME_DESIGN.md#pete) | Walking/throwing, sabotage inspector/countdown/recovery, mush/slime cleanup, selected-tool direct/ground targeting, repeated web hits without timer resets, trapping/overlap immunity/fleeing/crying and target/building deletion |
 | [Police/prison](GAME_DESIGN.md#police-radar-traps-and-prison) | Range/power/flash, competing traps, pursuit/arrest/transport, angry prison inspector, manual release, timed jailbreak, grace/cooldown continuity, duplicate release commands, unreachable routes and removal during custody |
 | [Sprinklers](GAME_DESIGN.md#anti-goblin-sprinkler) | Category/shortcut, radius preview/inspector, jet/wet Pete/slip/complaint/flee/puddles at normal zoom, power pause/recovery, consumed deletion clicks, police priority and source deletion |
-| [Save & Load](GAME_DESIGN.md#offline-save-and-load) | Save, mutate, cancel/confirm load, export, valid/invalid import, refresh then explicit load, manual/autosave independence/timestamps, storage denial/quota, transactional rendering failure, version-1 import/version-2 export, mid-job/NPC/spray/flee restoration and no duplicate input handlers/loops after repeated loads |
+| [Save & Load](GAME_DESIGN.md#offline-save-and-load) | Save, mutate, cancel/confirm load, export, valid/invalid import, refresh then explicit load, manual/autosave independence/timestamps, storage denial/quota, transactional rendering failure, version-1/2 import/version-3 export, mid-job/NPC/spray/flee restoration and no duplicate input handlers/loops after repeated loads |
 | Camera/lifecycle | WASD/normalized diagonals, wheel zoom, bounds, viewport resizing, responsive sidebar/save controls, canvas cleanup/remount and errors |
 
 ## Documentation maintenance and technical limits

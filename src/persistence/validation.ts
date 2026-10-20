@@ -1,3 +1,4 @@
+import { isSabotageable } from '../simulation/buildingCapabilities'
 import { SPRINKLER_COOLDOWN_MS } from '../simulation/sprinklers'
 import { ITEMS, inventoryTotal } from '../simulation/items'
 import type { Inventory, Item } from '../simulation/items'
@@ -87,7 +88,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   const x = count(r.x, `${path}.x`, SIZE - 1), y = count(r.y, `${path}.y`, SIZE - 1)
   if (y * SIZE + x !== index) invalid(path, 'building position disagrees with its tile')
   const base = { x, y, ...(r.sabotageUntilMs === undefined ? {} : { sabotageUntilMs: count(r.sabotageUntilMs, `${path}.sabotageUntilMs`) }) }
-  if (r.sabotageUntilMs !== undefined && !['miner', 'furnace', 'assembler'].includes(kind)) invalid(path, 'ineligible sabotage target')
+  if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
     case 'miner': {

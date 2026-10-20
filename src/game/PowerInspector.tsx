@@ -1,5 +1,5 @@
 import type { ElectricalDetails } from '../simulation/inspection'
-const labels = { sabotaged: 'Sabotaged by Pumpkin Pete', disconnected: 'Outside coverage', 'no-generation': 'No generation', idle: 'Connected · idle', reduced: 'Reduced speed', powered: 'Fully powered' }
+const labels = { sabotaged: 'Sabotaged by Pete', disconnected: 'Outside coverage', 'no-generation': 'No generation', idle: 'Connected · idle', reduced: 'Reduced speed', powered: 'Fully powered' }
 export function PowerInspector({ details }: { details: ElectricalDetails }) {
   const network = details.network
   return <div className={`power-details power-${details.state}`}>
@@ -17,6 +17,7 @@ export function PowerInspector({ details }: { details: ElectricalDetails }) {
       <div className="stats"><span>Network demand</span><b>{network.requestedKw.toFixed(1)} kW</b></div>
       <div className="stats"><span>Network supplied</span><b>{network.suppliedKw.toFixed(1)} kW</b></div>
       <div className="stats"><span>Poles / generators</span><b>{network.poles} / {network.generators}</b></div>
+      {network.activeGenerators !== network.generators && <div className="stats"><span>Active generators</span><b>{network.activeGenerators} / {network.generators}</b></div>}
     </>}
     <p className="inspection-note">Overlapping coverage uses the lowest pole tile index. Machines never bridge networks.</p>
   </div>

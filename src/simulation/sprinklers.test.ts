@@ -107,7 +107,7 @@ describe('exact deterministic slapstick sequence', () => {
     advanceWorld(w, 50); expect(w.pete.mode).toBe('WATER_FLEEING')
     advanceWorld(w, 7950); expect(w.pete.mode).toBe('WATER_FLEEING'); expect(w.pete.water!.remainingMs).toBe(50)
     advanceWorld(w, 50); expect(w.pete.mode).toBe('WANDERING'); expect(w.pete.water).toBeNull()
-    expect(w.timeMs).toBe(12050); expect(w.pete.cooldownMs).toBe(cooldown - 12000)
+    expect(w.timeMs).toBe(12050); expect(w.pete.cooldownMs).toBe(Math.max(0, cooldown - 12000))
     expect(sprinkler(w).sprays).toBe(1)
   })
   it('pauses spray progress and the jet during power loss, then resumes once', () => {

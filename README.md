@@ -21,6 +21,7 @@ Place a generator and a nearby power pole, then build **miner → belt → furna
 | 1–8 | Toggle miner, belt, chest, furnace, generator, pole, assembler, inserter |
 | R / X | Rotate placement direction / remove, discarding contents |
 | P | Electricity overlay |
+| B | Toggle Spider Web in the Pete tab |
 | Escape, then click | Cancel placement and inspect a building |
 
 All buildings are free. For exact recipes, buffers, power rules, previews and Auto waiting behavior, read [Game design](docs/GAME_DESIGN.md).
@@ -33,7 +34,7 @@ All buildings are free. For exact recipes, buffers, power rules, previews and Au
 - [Development](docs/DEVELOPMENT.md): setup, checks and contribution workflow.
 - [AGENTS.md](AGENTS.md): mandatory contributor instructions.
 
-Pumpkin Pete wanders the factory and occasionally disables a nearby production machine for 10 seconds with pumpkin mush and goblin slime. Click him to scare him into a corner; your selected building tool stays active. See [gameplay rules](docs/GAME_DESIGN.md#pumpkin-pete).
+Pete walks at 1.3 tiles/second and can sabotage nearby machinery every 2 seconds, disabling it for 10 seconds with pumpkin mush and goblin slime. Select **Spider Web (B)** in the Pete tab first: click him to scare him into a corner, or a map tile to leave a ten-second trap. Ordinary clicks no longer throw webs. See [gameplay rules](docs/GAME_DESIGN.md#pete).
 
 Use **9** to place a powered radar trap (5 kW, 3-tile range). Police take Pete to an automatically created edge prison, where its inspector can release him; he escapes automatically after 60 simulation seconds. See [police and prison rules](docs/GAME_DESIGN.md#police-radar-traps-and-prison).
 
@@ -41,8 +42,8 @@ Use **0** to place a compact **1×1 splitter**, with one rear input and front/le
 
 ## Save, load and building categories
 
-The build menu starts on **Factory**. **Pumpkin Pete** contains radar traps and Anti-Goblin Sprinklers; police cars and prisons still spawn automatically. Switching categories cancels placement/removal. Existing hotkeys select their tool and its tab; Escape returns to inspection mode.
+The build menu starts on **Factory**. **Pete** contains radar traps and Anti-Goblin Sprinklers; police cars and prisons still spawn automatically. Switching categories cancels placement/removal. Existing hotkeys select their tool and its tab; Escape returns to inspection mode.
 
 Save & Load controls are below the inspector in the scrollable sidebar. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import JSON validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export JSON before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
 
-Use **G** to place an **Anti-Goblin Sprinkler** from Pumpkin Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; new version-2 saves preserve active reactions and cooldowns. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
+Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; new version-3 saves preserve reactions, webs and cooldowns, while version-1/2 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
