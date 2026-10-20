@@ -93,25 +93,27 @@ describe('normal selection and inspection', () => {
   })
 })
 
-describe('Pete click priority over every tool', () => {
-  it.each([null, ...Object.values(TOOL_HOTKEYS)])('consumes Pete clicks while %s is selected without mutating buildings', tool => {
-    const world = createWorld(() => .5)
+describe('explicit Spider Web tool', () => {
+  it.each([null, ...Object.values(TOOL_HOTKEYS).filter(t => t !== 'spiderWeb')])('does not scare Pete while %s is selected', tool => {
+    const world = createWorld(() => .5), before = structuredClone(world)
     useGameStore.setState({ tool })
-    const buildings = structuredClone(world.buildings)
-    expect(useGameStore.getState().scarePete(world, world.pete)).toBe(true)
-    expect(world.pete.mode).toBe('FLEEING')
+    expect(useGameStore.getState().useWebTool(world, world.pete)).toBe(false)
+    expect(world).toEqual(before)
+  })
+  it('consumes direct hits and ground shots without changing tools or buildings', () => {
+    const world = createWorld(() => .5), buildings = structuredClone(world.buildings)
+    key('KeyB')
+    expect(useGameStore.getState()).toMatchObject({ tool: 'spiderWeb', buildTab: 'pete' })
+    expect(useGameStore.getState().useWebTool(world, world.pete)).toBe(true)
+    expect(world.pete.mode).toBe('FLEEING'); expect(world.webs.patches).toHaveLength(0)
+    const before = structuredClone(world.pete)
+    expect(useGameStore.getState().useWebTool(world, world.pete)).toBe(true)
+    expect(world.pete).toEqual(before)
+    expect(useGameStore.getState().useWebTool(world, { x: 0, y: 0 })).toBe(true)
+    expect(world.webs.patches).toHaveLength(1)
     expect(world.buildings).toEqual(buildings)
-    expect(useGameStore.getState().tool).toBe(tool)
-    for (const mode of ['FLEEING', 'CRYING'] as const) {
-      Object.assign(world.pete, { mode, webMs: 200 })
-      const before = structuredClone(world.pete)
-      expect(useGameStore.getState().scarePete(world, world.pete)).toBe(true)
-      expect(world.pete).toEqual({ ...before, webMs: 700 })
-      expect(useGameStore.getState().tool).toBe(tool)
-      expect(useGameStore.getState().inspected).toBe(null)
-      expect(world.buildings).toEqual(buildings)
-    }
-    expect(useGameStore.getState().scarePete(world, { x: 0, y: 0 })).toBe(false)
+    key('Escape'); expect(useGameStore.getState().tool).toBeNull()
+    key('KeyB'); key('Digit2'); expect(useGameStore.getState().tool).toBe('belt')
   })
 })
 
@@ -127,7 +129,7 @@ describe('prison inspection and validated release commands', () => {
   }
   it('allows prison clicks through Pete to inspect and release from a copied snapshot exactly once', () => {
     const { world, prison } = prisoner()
-    expect(useGameStore.getState().scarePete(world, world.pete)).toBe(false)
+    expect(useGameStore.getState().useWebTool(world, world.pete)).toBe(false)
     useGameStore.getState().inspect(world, prison.x, prison.y)
     expect(useGameStore.getState().inspection).toMatchObject({ kind: 'prison', occupied: true, remainingMs: 60000 })
     useGameStore.getState().requestRelease(); useGameStore.getState().requestRelease()

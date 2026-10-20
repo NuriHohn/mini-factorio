@@ -1,3 +1,4 @@
+import { drawWeb } from './webVisuals'
 import { drawWetPete } from './sprinklerVisuals'
 import type Phaser from 'phaser'
 import { PUMPKIN_FLIGHT_MS, sabotageRemaining } from '../simulation/pete'
@@ -46,6 +47,12 @@ export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: num
   if (crying) for (const side of [-1, 1]) {
     const fall = world.timeMs % 650 / 650
     g.fillStyle(0x72d6ff).fillEllipse(x + side * (6 + fall * 3), y + fall * 15, 3, 5)
+  }
+  if (pete.mode === 'TRAPPED') {
+    drawWeb(g, x, y + 6, 13)
+    g.lineStyle(1.5, 0x3e682d).strokeCircle(x, y + 2, 3)
+    const struggle = Math.sin(world.timeMs / 90) * 3
+    g.lineStyle(2, 0x91dd60).lineBetween(x - 5, y + 4, x - 14, y - 1 + struggle).lineBetween(x + 5, y + 4, x + 14, y - 1 - struggle)
   }
   if (pete.webMs > 0) {
     const progress = 1 - pete.webMs / 700

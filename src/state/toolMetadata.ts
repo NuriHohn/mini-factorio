@@ -1,9 +1,9 @@
 import type { BuildingKind } from '../simulation/world'
 export type BuildTab = 'factory' | 'pete'
-export type ToolKind = Exclude<BuildingKind, 'prison'> | 'remove'
+export type ToolKind = Exclude<BuildingKind, 'prison'> | 'remove' | 'spiderWeb'
 export type Tool = ToolKind | null
 export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code: string; tab: BuildTab }
-export const BUILD_TABS: readonly { id: BuildTab; label: string }[] = [{ id: 'factory', label: 'Factory' }, { id: 'pete', label: 'Pumpkin Pete' }]
+export const BUILD_TABS: readonly { id: BuildTab; label: string }[] = [{ id: 'factory', label: 'Factory' }, { id: 'pete', label: 'Pete' }]
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec at full power · on ore', key: '1', icon: '⚙', code: 'Digit1', tab: 'factory' },
   { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜', code: 'Digit2', tab: 'factory' },
@@ -14,6 +14,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'assembler', label: 'Assembler', hint: 'Gears, cables & circuits · 60 kW', key: '7', icon: '⚒', code: 'Digit7', tab: 'factory' },
   { tool: 'inserter', label: 'Inserter', hint: 'Behind → ahead · 1 item / sec · 10 kW', key: '8', icon: '⌁', code: 'Digit8', tab: 'factory' },
   { tool: 'radar', label: 'Radar trap', hint: '3-tile detection · requires full 5 kW', key: '9', icon: '◉', code: 'Digit9', tab: 'pete' },
+  { tool: 'spiderWeb', label: 'Spider Web', hint: 'Click Pete to scare · ground webs last 10 sec', key: 'B', icon: '🕸', code: 'KeyB', tab: 'pete' },
   { tool: 'sprinkler', label: 'Anti-Goblin Sprinkler', hint: '3-tile range · 5 kW · sends Pete slipping', key: 'G', icon: '☔', code: 'KeyG', tab: 'pete' },
   { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂', code: 'Digit0', tab: 'factory' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'factory' },

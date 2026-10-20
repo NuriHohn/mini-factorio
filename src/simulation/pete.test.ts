@@ -13,6 +13,8 @@ function movePete(world: World, x: number, y: number) {
 }
 function targetWorld(kind: 'miner' | 'furnace' | 'assembler' = 'furnace') {
   const world = poweredWorld(() => .5)
+  // Keep the generator outside sabotage range when testing a specific machine.
+  removeBuilding(world, 21, 18); placeBuilding(world, 23, 18, 'generator', 'east')
   placeBuilding(world, 22, 20, kind, 'east')
   // An enclosed Pete can still throw, and recovers movement when the enclosure opens.
   placeBuilding(world, 20, 20, 'storage', 'east')
@@ -27,7 +29,7 @@ function hit(world: World) {
   advanceWorld(world, PUMPKIN_FLIGHT_MS)
   expect(world.pete.pumpkin).toBe(null)
 }
-describe('Pumpkin Pete deterministic movement and fright', () => {
+describe('Pete deterministic movement and fright', () => {
   it('spawns exactly one named NPC, with deterministic independent seeded decisions', () => {
     const world = createWorld(() => .5)
     expect(world.pete).toEqual(createPete())
@@ -48,12 +50,12 @@ describe('Pumpkin Pete deterministic movement and fright', () => {
     }
     expect(a).toEqual(b)
   })
-  it('keeps wandering at one tile per second and triples the former 1.5-tile fleeing speed', () => {
+  it('walks 30% faster and preserves the 4.5× fleeing multiplier', () => {
     const walking = createWorld(() => .5), fleeing = structuredClone(walking)
     clickPete(fleeing, fleeing.pete)
-    advanceWorld(walking, 1000); advanceWorld(fleeing, 1000)
-    expect(Math.hypot(walking.pete.x - 17, walking.pete.y - 23)).toBeCloseTo(1)
-    expect(Math.hypot(fleeing.pete.x - 17, fleeing.pete.y - 23)).toBeCloseTo(4.5)
+    advanceWorld(walking, 500); advanceWorld(fleeing, 500)
+    expect(Math.hypot(walking.pete.x - 17, walking.pete.y - 23)).toBeCloseTo(.65)
+    expect(Math.hypot(fleeing.pete.x - 17, fleeing.pete.y - 23)).toBeCloseTo(2.925)
   })
   it('preserves position when frightened halfway through a walking segment', () => {
     const world = createWorld(() => .5)
@@ -62,7 +64,7 @@ describe('Pumpkin Pete deterministic movement and fright', () => {
     clickPete(world, world.pete)
     expect(world.pete.x).toBe(x); expect(world.pete.y).toBe(y)
     advanceWorld(world, 50)
-    expect(Math.hypot(world.pete.x - x, world.pete.y - y)).toBeCloseTo(.225)
+    expect(Math.hypot(world.pete.x - x, world.pete.y - y)).toBeCloseTo(.2925)
   })
   it('chooses a reachable corner, reroutes on topology changes, and cries for exactly ten seconds', () => {
     const world = createWorld(() => .5)
@@ -158,12 +160,16 @@ describe('Pumpkin sabotage and production invariants', () => {
     world.buildings[822]!.sabotageUntilMs = world.timeMs + 10000
     advanceWorld(world, 500); expect(world.pete.pumpkin).toBe(null)
   })
-  it('spaces attacks by thirty seconds from launch, without attacking while fleeing/crying', () => {
-    const { world } = targetWorld()
+  it('spaces eligible attacks by two seconds without extending existing disables', () => {
+    const { world, machine } = targetWorld()
     hit(world)
-    advanceWorld(world, 29550); expect(world.pete.pumpkin).toBe(null)
+    const firstEnd = machine.sabotageUntilMs
+    removeBuilding(world, 20, 20); placeBuilding(world, 20, 20, 'furnace', 'east')
+    advanceWorld(world, 1550); expect(world.pete.pumpkin).toBe(null)
     advanceWorld(world, 50); expect(world.pete.pumpkin).not.toBe(null)
     advanceWorld(world, 400)
+    expect(machine.sabotageUntilMs).toBe(firstEnd)
+    expect(sabotageRemaining(world, world.buildings[820]!)).toBe(10000)
     clickPete(world, world.pete); advanceWorld(world, 50)
     world.pete.cooldownMs = 0
     advanceWorld(world, 5000); expect(world.pete.pumpkin).toBe(null)
@@ -177,6 +183,7 @@ describe('Pumpkin sabotage and production invariants', () => {
     advanceWorld(world, kind === 'furnace' ? 500 : 2500)
     expect(crafting.job).not.toBe(null)
     world.pete.cooldownMs = 0; hit(world)
+    movePete(world, 0, 39) // Isolate recovery from a second independently eligible attack.
     const paused = structuredClone(crafting), produced = structuredClone(world.produced)
     advanceWorld(world, 9950)
     expect(crafting).toEqual(paused); expect(world.produced).toEqual(produced)
@@ -191,6 +198,7 @@ describe('Pumpkin sabotage and production invariants', () => {
   it('preserves miner progress and a buffered item while transport continues', () => {
     const { world, machine } = targetWorld('miner')
     hit(world)
+    movePete(world, 0, 39)
     const miner = machine as Miner, elapsed = miner.elapsed
     advanceWorld(world, 9950); expect(miner.elapsed).toBe(elapsed)
     advanceWorld(world, 50); expect(miner.elapsed).toBe(elapsed + 50)

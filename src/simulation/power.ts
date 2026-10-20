@@ -120,7 +120,7 @@ export function allocatePower(world: World, frame?: InserterFrame): PowerState {
   const power = world.power
   power.consumers = {}
   for (const network of power.networks) {
-    network.capacityKw = network.generatorIndices.length * GENERATOR_KW
+    network.capacityKw = network.generatorIndices.filter(i => sabotageRemaining(world, world.buildings[i]!) === 0).length * GENERATOR_KW
     network.requestedKw = 0
     network.suppliedKw = 0
   }
