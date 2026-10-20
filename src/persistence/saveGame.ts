@@ -8,7 +8,7 @@ import { SPRAY_MS, SLIP_MS, COMPLAIN_MS, WATER_FLEE_MS, WATER_COMPLAINTS } from 
 import { allocatePower } from '../simulation/power'
 import { RESOURCES } from '../simulation/items'
 import { edgeTile, neighboringTiles } from '../simulation/navigation'
-import { ARREST_MS, POLICE_TILE_MS } from '../simulation/police'
+import { ARREST_MS, LEGACY_ARREST_MS, arrestDuration, POLICE_TILE_MS } from '../simulation/police'
 import type { PoliceCar } from '../simulation/police'
 import { PETE_FLEE_MS, PETE_WALK_MS } from '../simulation/pete'
 import type { Pete } from '../simulation/pete'
@@ -93,15 +93,18 @@ function restorePolice(value: unknown, world: World, version: number): World['po
   const p = v.object(value, 'game.police', ['car', 'flash', 'retryAtMs'])
   let car: PoliceCar | null = null
   if (p.car !== null) {
-    const c = v.object(p.car, 'police.car', ['x', 'y', 'tile', 'next', 'travelMs', 'path', 'pathRevision', 'target', 'phase', 'arrestElapsedMs', 'arrestFrom', 'prison'], version >= 6 ? ['arrestStartedAtMs'] : [])
+    const c = v.object(p.car, 'police.car', ['x', 'y', 'tile', 'next', 'travelMs', 'path', 'pathRevision', 'target', 'phase', 'arrestElapsedMs', 'arrestFrom', 'prison'], version >= 6 ? ['arrestStartedAtMs', 'arrestDurationMs'] : [])
+    if (c.arrestDurationMs !== undefined && c.arrestDurationMs !== ARREST_MS) v.invalid('car.arrestDurationMs', 'unsupported arrest sequence duration')
     car = {
       ...v.position({ x: c.x, y: c.y }, 'police.car'), tile: v.tile(c.tile, 'car.tile'), next: c.next === null ? null : v.tile(c.next, 'car.next'), travelMs: v.number(c.travelMs, 'car.travelMs', 0, POLICE_TILE_MS),
       path: path(c.path, 'car.path'), pathRevision: revision(c.pathRevision, 'car.pathRevision', world), target: v.tile(c.target, 'car.target'), phase: v.choice(c.phase, 'car.phase', ['RESPONDING', 'ARRESTING', 'TRANSPORTING'] as const),
       ...(c.arrestStartedAtMs === undefined ? {} : { arrestStartedAtMs: v.count(c.arrestStartedAtMs, 'car.arrestStartedAtMs', world.timeMs) }),
-      arrestElapsedMs: v.number(c.arrestElapsedMs, 'car.arrestElapsedMs', 0, ARREST_MS), arrestFrom: v.position(c.arrestFrom, 'car.arrestFrom'), prison: prisonReference(c.prison, world, 'car.prison'),
+      ...(c.arrestDurationMs === undefined ? {} : { arrestDurationMs: ARREST_MS }),
+      arrestElapsedMs: v.number(c.arrestElapsedMs, 'car.arrestElapsedMs', 0, c.arrestDurationMs === undefined ? LEGACY_ARREST_MS : ARREST_MS), arrestFrom: v.position(c.arrestFrom, 'car.arrestFrom'), prison: prisonReference(c.prison, world, 'car.prison'),
     }
   }
-  if (car?.arrestStartedAtMs !== undefined && (car.arrestStartedAtMs % 50 !== 0 || car.phase === 'RESPONDING' || (car.phase === 'ARRESTING' && world.timeMs - car.arrestStartedAtMs !== car.arrestElapsedMs) || (car.phase === 'TRANSPORTING' && world.timeMs - car.arrestStartedAtMs < ARREST_MS))) v.invalid('car.arrestStartedAtMs', 'inconsistent arrest animation clock')
+  if (car?.arrestStartedAtMs !== undefined && (car.arrestStartedAtMs % 50 !== 0 || car.phase === 'RESPONDING' || (car.phase === 'ARRESTING' && world.timeMs - car.arrestStartedAtMs !== car.arrestElapsedMs) || (car.phase === 'TRANSPORTING' && world.timeMs - car.arrestStartedAtMs < arrestDuration(car)))) v.invalid('car.arrestStartedAtMs', 'inconsistent arrest animation clock')
+  if (car?.arrestDurationMs !== undefined && (car.arrestStartedAtMs === undefined || car.phase === 'RESPONDING' || car.arrestElapsedMs % 50 !== 0 || (car.phase === 'ARRESTING' && car.arrestElapsedMs === ARREST_MS) || (car.phase === 'TRANSPORTING' && car.arrestElapsedMs !== ARREST_MS))) v.invalid('car.arrestDurationMs', 'inconsistent arrest sequence')
   return { car, flash: effect(p.flash, 'police.flash', world, 350), retryAtMs: v.count(p.retryAtMs, 'police.retryAtMs', world.timeMs + 1000), radarRevision: -1, radars: [] }
 }
 function restoreWebs(value: unknown, timeMs: number): World['webs'] {

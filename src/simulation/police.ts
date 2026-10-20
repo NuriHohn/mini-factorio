@@ -8,7 +8,8 @@ import type { Building, Position, Prison, World } from './world'
 export const RADAR_RANGE = 3
 export const RADAR_KW = 5
 export const POLICE_TILE_MS = 1000 / 6
-export const ARREST_MS = 750
+export const ARREST_MS = 3400
+export const LEGACY_ARREST_MS = 750
 export const IMPRISONMENT_MS = 60000
 export const REARREST_GRACE_MS = 10000
 export interface PoliceCar extends Position {
@@ -19,10 +20,18 @@ export interface PoliceCar extends Position {
   pathRevision: number
   target: number
   phase: 'RESPONDING' | 'ARRESTING' | 'TRANSPORTING'
+  arrestDurationMs?: typeof ARREST_MS
   arrestStartedAtMs?: number
   arrestElapsedMs: number
   arrestFrom: Position
   prison: Prison
+}
+// Missing duration explicitly identifies a pre-12.2 pickup; keep its remaining time.
+export function arrestDuration(car: PoliceCar): number { return car.arrestDurationMs ?? LEGACY_ARREST_MS }
+export function arrestBoardingProgress(car: PoliceCar): number {
+  if (car.arrestDurationMs === undefined) return car.arrestElapsedMs / LEGACY_ARREST_MS
+  const t = Math.max(0, Math.min(1, (car.arrestElapsedMs - 2800) / 600))
+  return t * t * (3 - 2 * t)
 }
 export interface PoliceState {
   car: PoliceCar | null
@@ -110,7 +119,7 @@ export function removePoliceBuilding(world: World, building: Building): void {
 function beginArrest(world: World, car: PoliceCar): void {
   const pete = world.pete
   releaseWebTrap(world)
-  car.phase = 'ARRESTING'; car.arrestStartedAtMs = world.timeMs; car.arrestElapsedMs = 0; car.arrestFrom = { x: pete.x, y: pete.y }
+  car.phase = 'ARRESTING'; car.arrestDurationMs = ARREST_MS; car.arrestStartedAtMs = world.timeMs; car.arrestElapsedMs = 0; car.arrestFrom = { x: pete.x, y: pete.y }
   Object.assign(pete, { mode: 'ARRESTED', prison: car.prison, next: null, travelMs: 0, pumpkin: null, webMs: 0 })
 }
 export function advancePolice(world: World, delta: number): void {
@@ -132,11 +141,11 @@ export function advancePolice(world: World, delta: number): void {
     return
   }
   if (car.phase === 'ARRESTING') {
-    car.arrestElapsedMs = Math.min(ARREST_MS, car.arrestElapsedMs + delta)
-    const t = car.arrestElapsedMs / ARREST_MS
+    car.arrestElapsedMs = Math.min(arrestDuration(car), car.arrestElapsedMs + delta)
+    const t = arrestBoardingProgress(car)
     pete.x = car.arrestFrom.x + (car.x - car.arrestFrom.x) * t
     pete.y = car.arrestFrom.y + (car.y - car.arrestFrom.y) * t
-    if (car.arrestElapsedMs === ARREST_MS) { recordArrest(world); car.phase = 'TRANSPORTING'; pete.mode = 'TRANSPORTED'; car.pathRevision = -1 }
+    if (car.arrestElapsedMs === arrestDuration(car)) { recordArrest(world); car.phase = 'TRANSPORTING'; pete.mode = 'TRANSPORTED'; car.pathRevision = -1 }
     return
   }
   let remaining = delta

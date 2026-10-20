@@ -101,7 +101,7 @@ export class FactoryScene extends Phaser.Scene {
         const position = combatPosition(pointer, this.cameras.main, TILE)
         const impact = attackWalker(this.world, selected, position)
         if (impact) {
-          this.revengeVisuals.impact(impact, this.world, this.cameras.main)
+          this.revengeVisuals.impact(impact, this.world)
           useGameStore.setState({ message: impact.hit ? `Hit! -${impact.damage} HP` : 'Miss! Click the walker hitbox.' })
         }
         return
@@ -346,14 +346,14 @@ export class FactoryScene extends Phaser.Scene {
         const status = furnaceStatus(building)
         const speed = power.consumers[building.y * SIZE + building.x]?.speedFraction ?? 0
         const active = status === 'processing' && speed > 0
-        const glow = active ? .7 + .3 * Math.sin(building.job ? building.job.elapsedMs / 110 : 0) : .15
+        const glow = active ? .78 + .1 * Math.sin(building.job ? building.job.elapsedMs / 350 : 0) : .15
         this.machines.fillStyle(0x191e20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.fillStyle(0x626d70).fillRect(x + 5, y + 3, 22, 24)
         this.machines.fillStyle(0x3e302b).fillRect(x + 7, y + 5, 18, 20)
         this.machines.lineStyle(1, 0x91705b).lineBetween(x + 7, y + 12, x + 25, y + 12)
         this.machines.fillStyle(0x151a1c).fillRoundedRect(x + 9, y + 10, 14, 13, 2)
         this.machines.fillStyle(active ? 0xff9d3c : 0x59636b, glow).fillRect(x + 10, y + 12, 12, 9)
-        if (active) this.machines.fillStyle(0xffdc7c, glow).fillTriangle(x + 11, y + 21, x + 17, y + 13 - 2 * Math.sin(building.job ? building.job.elapsedMs / 80 : 0), x + 21, y + 21)
+        if (active) this.machines.fillStyle(0xffdc7c, glow).fillTriangle(x + 11, y + 21, x + 17, y + 13 - 2 * Math.sin(building.job ? building.job.elapsedMs / 260 : 0), x + 21, y + 21)
         this.machines.fillStyle(status === 'output-full' ? 0xf08172 : active ? 0xffc470 : 0x98a2a3).fillCircle(x + 26, y + 5, 2)
         const progress = building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0
         this.machines.fillStyle(0x111714).fillRect(x + 5, y + 28, 22, 3)
@@ -489,11 +489,11 @@ export class FactoryScene extends Phaser.Scene {
     const arrest = arrestVisual(this.world)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
     this.peteLabel.setVisible(!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')
-    const labelPosition = arrest?.active ? this.world.police.car! : pete.mode === 'ARRESTED' ? arrest?.pete ?? pete : pete
-    this.peteLabel.setPosition((labelPosition.x + .5) * TILE, (labelPosition.y + .5) * TILE - (arrest?.active ? 59 : complaining ? 29 : 15))
+    const labelPosition = arrest?.caption ? this.world.police.car! : pete.mode === 'ARRESTED' ? arrest?.pete ?? pete : pete
+    this.peteLabel.setPosition((labelPosition.x + .5) * TILE, (labelPosition.y + .5) * TILE - (arrest?.active ? 59 : arrest?.caption ? 32 : complaining ? 29 : 15))
     const label = arrest?.caption ?? (this.world.revenge.stage === 'stunned' ? 'Pete · seeing stars!' : complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete')
     if (this.peteLabel.text !== label) {
-      this.peteLabel.setText(label).setStyle({ fontSize: arrest?.active ? '13px' : '9px', color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
+      this.peteLabel.setText(label).setStyle({ fontSize: arrest?.caption ? '13px' : '9px', color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
     }
     useGameStore.getState().publish(this.world)
     const state = useGameStore.getState()

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { arrestVisual } from '../game/arrestVisuals'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { clickPete } from './pete'
-import { IMPRISONMENT_MS, RADAR_KW, REARREST_GRACE_MS, radarDetects, radarPowered, releasePete } from './police'
+import { ARREST_MS, IMPRISONMENT_MS, RADAR_KW, REARREST_GRACE_MS, radarDetects, radarPowered, releasePete } from './police'
 import { allocatePower, workingDemand } from './power'
 import { inspectBuilding } from './inspection'
 import { advanceWorld } from './step'
@@ -256,6 +256,8 @@ describe('prison release, escape and lifecycle safety', () => {
     world.revenge.threshold = 9
     releaseRadar(world, prison)
     for (let completed = 1; completed <= 4; completed++) {
+      // Isolate arrest eligibility from a later, legitimate power outage caused by sabotage.
+      world.pete.cooldownMs = 30000
       expect(world.revenge.arrests).toBe(completed)
       advanceWorld(world, 500)
       expect(world.police.car).toBe(null)
@@ -266,8 +268,9 @@ describe('prison release, escape and lifecycle safety', () => {
       expect(car?.phase).toBe('RESPONDING')
       until(world, 'ARRESTED')
       expect(world.police.car).toBe(car)
-      expect(arrestVisual(world)).toMatchObject({ stage: Math.min(3, completed + 1), caption: 'CLICK!' })
-      advanceWorld(world, 700)
+      expect(arrestVisual(world)).toMatchObject({ stage: Math.min(3, completed + 1), phase: 'arrival' })
+      advanceWorld(world, ARREST_MS - 50)
+      expect(world.police.car).toBe(car)
       expect(world.revenge.arrests).toBe(completed)
       advanceWorld(world, 50)
       expect(world.pete.mode).toBe('TRANSPORTED')
@@ -286,7 +289,7 @@ describe('prison release, escape and lifecycle safety', () => {
     const snapshot = (w: World) => encodeSave(w, view, '2026-10-21T00:00:00.000Z')
     const loaded = decodeSave(snapshot(world)).world
     if (point === 'before') for (const w of [world, loaded]) releasePete(w, index, at)
-    for (const delta of [50, 100, 650, 1000, 3000]) {
+    for (const delta of [50, 100, 650, 1000, 6000]) {
       advanceWorld(world, delta); advanceWorld(loaded, delta)
       expect(JSON.parse(snapshot(loaded))).toEqual(JSON.parse(snapshot(world)))
     }

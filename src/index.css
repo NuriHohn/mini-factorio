@@ -110,3 +110,15 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .revenge-hud strong, .revenge-hud span { display: block; }
 .revenge-hud progress { width: 100%; height: 14px; accent-color: #ef9257; margin: 6px 0; }
 .revenge-hud p { margin: 6px 0 0; color: #bce2ff; }
+
+/* Short, quiet UI transitions; gameplay and stateful canvas scenes use simulation time. */
+.building, .save-action, .research-toggle, .technology-card, .build-tab {
+  transition: background-color 180ms ease-out, border-color 180ms ease-out;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .research-panel[open], .revenge-hud { animation: panel-arrive 180ms ease-out; }
+}
+@keyframes panel-arrive { from { opacity: .5; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .building, .save-action, .research-toggle, .technology-card, .build-tab { transition: none; }
+}
