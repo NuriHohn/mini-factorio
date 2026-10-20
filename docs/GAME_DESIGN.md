@@ -1,6 +1,6 @@
 # Implemented game design
 
-The game is a session-only, browser factory sandbox. The following rules are implemented; [Roadmap](ROADMAP.md) contains proposals, not available mechanics. Source ownership is documented in [Architecture](ARCHITECTURE.md).
+The game is an offline browser factory sandbox with local saves. The following rules are implemented; [Roadmap](ROADMAP.md) contains proposals, not available mechanics. Source ownership is documented in [Architecture](ARCHITECTURE.md).
 
 ## World, items and controls
 
@@ -131,4 +131,16 @@ Construction reserves the car's current/next tile and every prison exit. X can r
 
 Build miner → belt → furnace → belt → storage for either metal. For circuits, route iron plates to one assembler input and copper plates through a cable assembler to another input; send finished circuits by belt to storage. Separate ingredient belts avoid a blocked incompatible/excess item hiding needed ingredients behind it. One miner nominally supplies two full-power furnaces; actual throughput depends on power, delays and congestion.
 
-Progress is in memory; reloading creates a new session. There is no save/load, automatic chest output, research, blueprint or Factory Architect yet. Chests require an inserter for extraction. Mixed-input head-of-line blocking and incomplete ingredient sets still require suitable deliveries/routing; Auto cannot invent missing materials. Rotation after placement requires destructive remove-and-replace. No fuel, depletion, electricity storage or player economy is implemented. Future proposals are listed separately in [Roadmap](ROADMAP.md).
+Reloading creates a new session until a save is explicitly loaded. There is no automatic chest output, research, blueprint or Factory Architect yet. Chests require an inserter for extraction. Mixed-input head-of-line blocking and incomplete ingredient sets still require suitable deliveries/routing; Auto cannot invent missing materials. Rotation after placement requires destructive remove-and-replace. No fuel, depletion, electricity storage or player economy is implemented. Future proposals are listed separately in [Roadmap](ROADMAP.md).
+
+## Offline save and load
+
+**Save Game** replaces the manual browser slot. **Load Game** restores it after confirmation. **Load Autosave** restores the independent automatic slot. Autosave runs every 120,000 ms of visible, active simulation time, with no wall-clock/offline catch-up. A successful load starts a fresh autosave interval; it does not immediately overwrite either slot. Timestamps show the last successful save in each slot.
+
+**Export JSON** downloads the current factory with a timestamped filename. **Import JSON** reads a local file, fully validates it, then asks before replacing the factory. Import/export leave browser slots unchanged. Saves include terrain, every building and item, crafting reservations/progress, splitter preferences, inserter-held items, electricity topology, Pete/police/prison state, simulation clock/remainder, camera, output direction and electricity overlay. Loads cancel tools and inspection and return the menu to Factory. Simulation advances only from the saved clock; no production is awarded for time away.
+
+Malformed/incompatible saves, unsupported versions, invalid references, oversized files (over 2 MiB), unavailable storage and quota failures show errors without replacing the running factory. A failed write preserves the previous browser save. Clearing site data removes browser saves: export JSON for a portable backup. Startup checks slot metadata but never automatically loads a factory.
+
+## Build categories
+
+**Factory** is the default tab for production, transport, storage, power and removal. **Pumpkin Pete** contains the player-placeable radar trap. Police cars and prisons remain automatic entities. Switching tabs cancels the active placement/removal tool. Existing hotkeys automatically select the tool's tab, and Escape cancels the tool without switching categories. Only the active tool has a light-green selected border; keyboard/mouse tool interaction remains available without a focus outline.

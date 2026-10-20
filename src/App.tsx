@@ -3,32 +3,20 @@ import { InventoryView } from './game/InventoryView'
 import { PowerInspector } from './game/PowerInspector'
 import { GameCanvas } from './game/GameCanvas'
 import { useGameStore } from './state/gameStore'
-import type { Tool } from './state/gameStore'
+import { BuildToolbar } from './game/BuildToolbar'
+import { SaveControls } from './game/SaveControls'
 import { InserterInspector } from './game/InserterInspector'
 import { SplitterInspector } from './game/SplitterInspector'
 import { CraftingInspector } from './game/CraftingInspector'
 import { ITEM_DEFINITIONS, ITEMS, inventoryTotal } from './simulation/items'
-const tools: { tool: Tool; label: string; hint: string; key: string; icon: string }[] = [
-  { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec at full power · on ore', key: '1', icon: '⚙' },
-  { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜' },
-  { tool: 'storage', label: 'Storage chest', hint: 'Stores every item type', key: '3', icon: '▣' },
-  { tool: 'furnace', label: 'Furnace', hint: '1 ore → 1 plate · 2 sec at full power', key: '4', icon: '♨' },
-  { tool: 'generator', label: 'Power generator', hint: '100 kW · place near a pole', key: '5', icon: '⚡' },
-  { tool: 'powerPole', label: 'Power pole', hint: '3-tile coverage · 6-tile wires', key: '6', icon: '┬' },
-  { tool: 'assembler', label: 'Assembler', hint: 'Gears, cables & circuits · 60 kW', key: '7', icon: '⚒' },
-  { tool: 'inserter', label: 'Inserter', hint: 'Behind → ahead · 1 item / sec · 10 kW', key: '8', icon: '⌁' },
-  { tool: 'radar', label: 'Radar trap', hint: '3-tile detection · requires full 5 kW', key: '9', icon: '◉' },
-  { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂' },
-  { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×' },
-]
 export default function App() {
-  const { stats, electricity, powerOverlay, togglePowerOverlay, tool, direction, message, requestRecipe, requestRelease, inspected, inspection, select, rotate } = useGameStore()
+  const { stats, electricity, powerOverlay, togglePowerOverlay, message, requestRecipe, requestRelease, inspected, inspection } = useGameStore()
   const sidebar = useRef<HTMLElement>(null)
   useEffect(() => { if (inspected !== null && sidebar.current) sidebar.current.scrollTop = 0 }, [inspected])
   return <div className="app-shell">
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
-      <span className="version"><i /> SPLITTERS / SPRINT 08</span>
+      <span className="version"><i /> SAVE & LOAD / SPRINT 09</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
@@ -62,6 +50,7 @@ export default function App() {
             <p className="inspection-note">Highlighted machines are in this pole’s radius. Amber highlights belong to another network.</p>
           </> : null}
         </section>}
+        <SaveControls />
         <section><p className="eyebrow">STORAGE & PRODUCTION</p>
           <div className="resource"><span className="ore-icon">◆</span><div><strong>{inventoryTotal(stats.stored).toLocaleString()}</strong><p>Items in storage</p></div></div>
           <table className="resource-table" aria-label="Resource statistics"><thead><tr><th>Item</th><th>Stored</th><th>Lifetime</th></tr></thead><tbody>{ITEMS.map(item => <tr key={item}><th><span className="item-swatch" style={{ backgroundColor: `#${ITEM_DEFINITIONS[item].visual.color.toString(16).padStart(6, '0')}` }} />{ITEM_DEFINITIONS[item].label}</th><td>{stats.stored[item].toLocaleString()}</td><td>{(ITEM_DEFINITIONS[item].category === 'ore' ? stats.mined[item] : stats.produced[item]).toLocaleString()}</td></tr>)}</tbody></table>
@@ -84,13 +73,10 @@ export default function App() {
           <div className="stats"><span>Power networks</span><b>{electricity.networks}</b></div>
           <button className={`building mt-3 ${powerOverlay ? 'overlay-enabled' : ''}`} aria-pressed={powerOverlay} onClick={togglePowerOverlay}><span><strong>Electricity overlay</strong><small>Coverage, wires and machine power</small></span><span className="key">P</span></button>
         </section>
-        <section><p className="eyebrow mb-3">BUILDINGS · FREE TO BUILD</p>
-          <div className="flex flex-col gap-2">{tools.map(option => <button key={option.key} className="building" data-tool={option.tool ?? undefined} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}><span className="machine-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{option.hint}</small></span><span className="key">{option.key}</span></button>)}</div>
-          <button className="building mt-3" onClick={rotate} disabled={tool !== 'miner' && tool !== 'belt' && tool !== 'furnace' && tool !== 'assembler' && tool !== 'inserter' && tool !== 'splitter'}><span><strong>Output: {direction}</strong><small>Remove and replace to redirect buildings</small></span><span className="key">R</span></button>
-        </section>
+        <BuildToolbar />
         <section className="mission"><p className="eyebrow">POWER YOUR FACTORY</p><h2>Generate. Connect. Produce.</h2><p>Place a generator (5) and a pole (6). Machines need a pole within 3 tiles; poles connect within 6 tiles. Shortages slow all working machines proportionally. Belts always run. Furnaces detect ore automatically. Assemblers detect recipes from buffered ingredients, prioritizing circuits. Supply ingredients by belt, or lock a manual recipe in an empty inspector.</p></section>
         <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9 / 0</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
-        <p className="session-note">Session only · Refresh to start a new world</p>
+        <p className="session-note">Offline saves · Load to restore your factory</p>
       </aside>
       <section className="world-panel"><div className="world-heading"><span><i /> GRASSLAND / SECTOR 01</span><span>40 × 40 TILES</span></div><GameCanvas /><div className="world-footer"><span role="status">{message}</span><span className="legend">{powerOverlay ? 'Green full · Amber reduced · Red no power · Blue idle' : <>◆ Iron · <span className="copper-legend">◆ Copper</span></>}</span></div></section>
     </main>
