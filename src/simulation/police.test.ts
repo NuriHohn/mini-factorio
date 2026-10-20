@@ -1,5 +1,7 @@
 import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
+import { arrestVisual } from '../game/arrestVisuals'
+import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { clickPete } from './pete'
 import { IMPRISONMENT_MS, RADAR_KW, REARREST_GRACE_MS, radarDetects, radarPowered, releasePete } from './police'
 import { allocatePower, workingDemand } from './power'
@@ -223,21 +225,72 @@ describe('prison release, escape and lifecycle safety', () => {
     expect(world.pete.jailbreak).toMatchObject({ position: { x: prison.x, y: prison.y }, untilMs: world.timeMs + 1200 })
     advanceWorld(world, 1200); expect(world.pete.jailbreak).toBe(null)
   })
-  it('enforces grace against all traps and allows a later arrest after expiry', () => {
-    const { world, prison, index, at } = prisoner()
-    expect(releasePete(world, index, at)).toBe(true)
-    Object.assign(world.pete, { mode: 'CRYING', cryingMs: 100000 })
+  function releaseRadar(world: World, prison: Prison) {
     const x = prison.exit % SIZE, y = Math.floor(prison.exit / SIZE)
-    const candidates = [[x + 1, y], [x, y + 1], [x + 1, y + 1]]
-    for (const [a, b] of candidates) if (!world.buildings[b * SIZE + a]) {
-      placeBuilding(world, a, b, 'radar', 'east'); break
+    for (const [a, b] of [[x + 1, y], [x, y + 1], [x + 1, y + 1]]) if (!world.buildings[b * SIZE + a]) {
+      expect(placeBuilding(world, a, b, 'radar', 'east')).toBe(true); break
     }
-    // Edge prison fixtures use a single explicit generator/pole near release.
     placeBuilding(world, x + 2, y + 1, 'powerPole', 'east')
     placeBuilding(world, x + 2, y + 2, 'generator', 'east')
-    advanceWorld(world, REARREST_GRACE_MS - 50)
-    expect(world.police.car).toBe(null)
-    advanceWorld(world, 50); expect(world.police.car).not.toBe(null)
+    allocatePower(world)
+  }
+  it.each(['manual', 'sentence'] as const)('detects Pete already inside a radar on %s release without waiting for grace or stale retry', method => {
+    const { world, prison, index, at } = prisoner()
+    releaseRadar(world, prison)
+    if (method === 'sentence') advanceWorld(world, IMPRISONMENT_MS - 50)
+    world.police.retryAtMs = world.timeMs + 1000
+    if (method === 'manual') expect(releasePete(world, index, at)).toBe(true)
+    advanceWorld(world, 50)
+    expect(world.police.car?.phase).toBe('RESPONDING')
+    expect(world.pete.prison).toBe(null)
+    expect(world.pete.imprisonedAtMs).toBe(null)
+    expect(world.pete.graceUntilMs).toBeGreaterThan(world.timeMs) // Sprinkler grace remains independent.
+    expect(world.revenge.arrests).toBe(1)
+    const car = world.police.car
+    advanceWorld(world, 50)
+    expect(world.police.car).toBe(car)
+    expect(world.revenge.arrests).toBe(1)
+  })
+  it('counts repeated release/arrest cycles once and preserves escalating pickup effects', () => {
+    const { world, prison, index } = prisoner()
+    world.revenge.threshold = 9
+    releaseRadar(world, prison)
+    for (let completed = 1; completed <= 4; completed++) {
+      expect(world.revenge.arrests).toBe(completed)
+      advanceWorld(world, 500)
+      expect(world.police.car).toBe(null)
+      expect(world.revenge.arrests).toBe(completed)
+      expect(releasePete(world, index, world.pete.imprisonedAtMs!)).toBe(true)
+      advanceWorld(world, 50)
+      const car = world.police.car
+      expect(car?.phase).toBe('RESPONDING')
+      until(world, 'ARRESTED')
+      expect(world.police.car).toBe(car)
+      expect(arrestVisual(world)).toMatchObject({ stage: Math.min(3, completed + 1), caption: 'CLICK!' })
+      advanceWorld(world, 700)
+      expect(world.revenge.arrests).toBe(completed)
+      advanceWorld(world, 50)
+      expect(world.pete.mode).toBe('TRANSPORTED')
+      expect(world.revenge.arrests).toBe(completed + 1)
+      until(world, 'IMPRISONED')
+      expect(world.police.car).toBe(null)
+      expect(world.revenge.arrests).toBe(completed + 1)
+    }
+  })
+  it.each(['before', 'after'] as const)('continues deterministically when saved %s prison release, including existing grace deadlines', point => {
+    const { world, prison, index, at } = prisoner()
+    releaseRadar(world, prison)
+    world.pete.cryingMs = 0
+    if (point === 'after') releasePete(world, index, at)
+    const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
+    const snapshot = (w: World) => encodeSave(w, view, '2026-10-21T00:00:00.000Z')
+    const loaded = decodeSave(snapshot(world)).world
+    if (point === 'before') for (const w of [world, loaded]) releasePete(w, index, at)
+    for (const delta of [50, 100, 650, 1000, 3000]) {
+      advanceWorld(world, delta); advanceWorld(loaded, delta)
+      expect(JSON.parse(snapshot(loaded))).toEqual(JSON.parse(snapshot(world)))
+    }
+    expect(world.revenge.arrests).toBe(2)
   })
   it('rejects stale release timestamps and reserves the exit against construction', () => {
     const { world, prison, index, at } = prisoner()

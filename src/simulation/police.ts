@@ -61,7 +61,7 @@ function prisonFor(world: World, reachable: Map<number, number>, start = world.p
 }
 function dispatch(world: World): void {
   const pete = world.pete
-  if ((peteUnavailable(world) && !bossAlive(world)) || pete.water || world.police.car || world.timeMs < world.police.retryAtMs || world.timeMs < pete.graceUntilMs || pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' || pete.mode === 'IMPRISONED') return
+  if ((peteUnavailable(world) && !bossAlive(world)) || pete.water || world.police.car || world.timeMs < world.police.retryAtMs || pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' || pete.mode === 'IMPRISONED') return
   if (world.police.radarRevision !== world.topologyRevision) {
     world.police.radars = world.buildings.flatMap((b, i) => b?.kind === 'radar' ? [i] : [])
     world.police.radarRevision = world.topologyRevision
@@ -94,6 +94,7 @@ function releaseFromCustody(world: World, escaped: boolean): void {
   if (escaped && prison) pete.jailbreak = { position: { x: prison.x, y: prison.y }, untilMs: world.timeMs + 1200 }
   Object.assign(pete, { mode: 'WANDERING', tile, x: tile % SIZE, y: Math.floor(tile / SIZE), next: null, travelMs: 0, prison: null, imprisonedAtMs: null, escape: null, cryingMs: 0, path: [], pathRevision: -1, graceUntilMs: world.timeMs + REARREST_GRACE_MS })
   world.police.car = null
+  world.police.retryAtMs = 0
 }
 export function releasePete(world: World, index: number, expectedAtMs: number): boolean {
   const pete = world.pete
@@ -119,6 +120,8 @@ export function advancePolice(world: World, delta: number): void {
   if (pete.mode === 'IMPRISONED') {
     if (!pete.prison || !validPrison(world, pete.prison)) releaseFromCustody(world, false)
     else if (world.timeMs - pete.imprisonedAtMs! >= IMPRISONMENT_MS) releaseFromCustody(world, true)
+    // A release inside an active radar is eligible on this same boundary.
+    dispatch(world)
     return
   }
   const car = world.police.car

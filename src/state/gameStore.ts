@@ -96,7 +96,7 @@ export const useGameStore = create<State>((set, get) => ({
     const request = get().releaseRequest
     if (!request) return
     const released = releasePete(world, request.index, request.imprisonedAtMs)
-    set({ releaseRequest: null, message: released ? 'Pete released · 10 seconds of radar grace.' : 'Pete is no longer held by this prison.' })
+    set({ releaseRequest: null, message: released ? 'Pete released · eligible for arrest immediately.' : 'Pete is no longer held by this prison.' })
   },
   recipeRequest: null,
   requestRecipe: recipeMode => set(state => state.inspected !== null && (state.inspection?.kind === 'furnace' || state.inspection?.kind === 'assembler') ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
