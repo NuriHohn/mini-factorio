@@ -19,6 +19,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
 | Sprint 7.5: Pete | Deterministic immortal goblin, timed pumpkin sabotage, mush/slime feedback and click-to-scare corner crying |
 | Sprint 7.6: police and prison | Powered radar traps, single obstacle-aware police dispatch, visible arrest/transport, prison inspector/manual release, timed jailbreak and re-arrest grace |
+| Sprint 11: research and technology | Productive-time integer RP, permanent prerequisite purchases, authoritative placement/dashboard gates, Technology dialog, and exact version-5 saves with all-technology legacy upgrades |
 | Sprint 10: production analytics | Actual rolling item rates and minute history, configured utilization, prioritized clickable bottlenecks, explicit assembler recipes, unambiguous furnace probes and version-4 analytics persistence |
 | Pete 2.0 | Player-facing rename, faster walking, two-second sabotage cooldown, inserter/generator sabotage, explicit Spider Web tool, timed ground traps and version-3 saves with version-1/2 upgrades |
 | Sprint 9.5: Anti-Goblin Sprinkler | Powered Pete tool G, deterministic spray/slip/complaint/water escape, police/grace priority, cosmetic puddles, version-2 snapshots and version-1 loading |
@@ -33,7 +34,6 @@ Completed means implemented in the repository. Future entries are proposals, not
 | --- | --- |
 | Improved logistics | Build on basic inserters with separately approved filtering, priorities, stack/reach variants or throughput improvements |
 | Advanced routing | Future filtering, configurable output priorities and more complex junctions beyond the implemented compact splitter |
-| Research and technology progression | Gradually unlock recipes, machines and assistance; introduce progression as a separate design change |
 | Blueprints | Capture layouts, preview placement and validate collisions/resources before player confirmation |
 | Production optimization | Build on the implemented observational dashboard with separately approved optimization and deterministic planner inputs |
 | Fully offline Generative Factory Architect | Build progressively on progression, blueprint preview, analytics and machine-readable planning data |

@@ -1,3 +1,5 @@
+import { buildingTechnologyError, createResearch } from './research'
+import type { ResearchState } from './research'
 import { createAnalytics } from './analytics'
 import type { AnalyticsState } from './analytics'
 import { createWebs } from './webs'
@@ -75,7 +77,7 @@ export interface Splitter extends BuildingPosition {
   placedAtMs: number
 }
 export type Building = Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -104,13 +106,15 @@ export function createWorld(random = Math.random): World {
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  return { analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  return { research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
 }
 export function depositAt(world: World, x: number, y: number): Resource | null {
   return inside(x, y) ? world.tiles[y * SIZE + x] : null
 }
 
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner'): string | null {
+  const technologyError = buildingTechnologyError(world.research, kind)
+  if (technologyError) return technologyError
   if (!inside(x, y)) return 'Choose a tile inside the world.'
   if (policeOccupiesTile(world, x, y)) return 'Keep the police route and prison exit clear.'
   if (kind === 'prison' && (!edgeTile(y * SIZE + x) || !neighboringTiles(y * SIZE + x).some(tile => !world.buildings[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE))))) return 'Prisons need an edge tile and an empty exit.'

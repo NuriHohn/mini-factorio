@@ -1,6 +1,7 @@
+import { createUnlockedWorld } from '../simulation/testFixtures'
 import { createAnalytics } from '../simulation/analytics'
 import { describe, expect, it } from 'vitest'
-import { createWorld, placeBuilding, removeBuilding } from '../simulation/world'
+import { placeBuilding, removeBuilding } from '../simulation/world'
 import type { World } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 import { shootWeb } from '../simulation/webs'
@@ -10,7 +11,7 @@ const view = { scrollX: 0, scrollY: 0, zoom: 1.3, direction: 'east' as const, po
 const date = '2026-10-20T12:00:00.000Z'
 const snapshot = (w: World): SaveDocument => JSON.parse(encodeSave(w, view, date))
 function setup() {
-  const w = createWorld(() => .5)
+  const w = createUnlockedWorld(() => .5)
   for (const [x, y] of [[16, 23], [17, 22], [17, 24]]) placeBuilding(w, x, y, 'storage', 'east')
   shootWeb(w, { x: 18, y: 23 })
   return w
@@ -35,9 +36,9 @@ describe('Pete 2.0 versioned persistence and continuation', () => {
     expect(snapshot(loaded)).toEqual(snapshot(w))
   })
   it.each([1, 2])('upgrades version %i with movement interpolation and old remaining cooldown intact', version => {
-    const w = createWorld(() => .5); advanceWorld(w, 350); w.pete.cooldownMs = 12345
+    const w = createUnlockedWorld(() => .5); advanceWorld(w, 350); w.pete.cooldownMs = 12345
     const before = snapshot(w), legacy = structuredClone(before)
-    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics')
+    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research')
     for (const key of ['trappedBy', 'ignoredWebs', ...(version === 1 ? ['water'] : [])]) Reflect.deleteProperty(legacy.game.pete, key)
     legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy)).world
@@ -47,12 +48,12 @@ describe('Pete 2.0 versioned persistence and continuation', () => {
     expect(snapshot(loaded)).toEqual({ ...before, game: { ...before.game, analytics: createAnalytics(w.timeMs) } })
   })
   it('upgrades a version-2 active water escape without moving Pete or resetting its remaining duration', () => {
-    const w = createWorld(() => .5)
+    const w = createUnlockedWorld(() => .5)
     placeBuilding(w, 18, 23, 'sprinkler', 'east'); placeBuilding(w, 18, 22, 'powerPole', 'east'); placeBuilding(w, 18, 21, 'generator', 'east')
     advanceWorld(w, 4750)
     expect(w.pete.mode).toBe('WATER_FLEEING')
     const before = snapshot(w), legacy = structuredClone(before)
-    Object.assign(legacy, { version: 2 }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs')
+    Object.assign(legacy, { version: 2 }); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs')
     legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy)).world
     expect(snapshot(loaded)).toEqual({ ...before, game: { ...before.game, analytics: createAnalytics(w.timeMs) } })
@@ -60,7 +61,7 @@ describe('Pete 2.0 versioned persistence and continuation', () => {
     advanceWorld(w, 8000); advanceWorld(loaded, 8000); expect(snapshot(loaded)).toEqual(snapshot(w))
   })
   it('preserves disabled generators/inserters and carried items through reconstruction and recovery', () => {
-    const w = createWorld(() => .5)
+    const w = createUnlockedWorld(() => .5)
     placeBuilding(w, 1, 1, 'powerPole', 'east'); placeBuilding(w, 2, 1, 'generator', 'east'); placeBuilding(w, 1, 2, 'inserter', 'east')
     const arm = w.buildings[81]!, gen = w.buildings[42]!
     if (arm.kind === 'inserter') Object.assign(arm, { phase: 'carrying', item: 'ironPlate', elapsedMs: 250, sabotageUntilMs: 10000 })

@@ -1,7 +1,8 @@
+import { createResearch } from '../simulation/research'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from './gameStore'
 import { PLAYER_TOOLS, TOOL_HOTKEYS } from './toolMetadata'
-beforeEach(() => useGameStore.setState(useGameStore.getInitialState(), true))
+beforeEach(() => useGameStore.setState({ ...useGameStore.getInitialState(), research: createResearch(true) }, true))
 const key = (code: string) => useGameStore.getState().handleToolKey({ code, repeat: false })
 describe('categorized build menu', () => {
   it('defaults to Factory and categorizes every existing player tool exactly once', () => {

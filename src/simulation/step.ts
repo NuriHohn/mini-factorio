@@ -1,3 +1,4 @@
+import { awardResearch } from './research'
 import { observeMachines, pruneAnalytics, recordProduction } from './analytics'
 import { advanceWebs } from './webs'
 import { advanceSprinklers } from './sprinklers'
@@ -33,6 +34,7 @@ export function advanceWorld(world: World, delta: number): void {
       const resource = depositAt(world, miner.x, miner.y)
       if (!resource) continue
       const speed = power.consumers[miner.y * SIZE + miner.x]?.speedFraction ?? 0
+      awardResearch(world, 'miner', miner.elapsed, miner.elapsed + STEP_MS * speed)
       miner.elapsed += STEP_MS * speed
       if (miner.elapsed >= INTERVAL - 1e-8) {
         miner.elapsed = Math.max(0, miner.elapsed - INTERVAL)

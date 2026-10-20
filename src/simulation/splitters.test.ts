@@ -1,8 +1,9 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { canReceive, deliverItem, splitterBlocked } from './transport'
 import { splitterDirections, splitterPorts } from './splitters'
 import { advanceWorld } from './step'
-import { buildingAt, createWorld, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding } from './world'
+import { buildingAt, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding } from './world'
 import type { Belt, Item, Splitter, Storage, World } from './world'
 import { powerRequirement } from './power'
 import { poweredWorld } from './testFixtures'
@@ -10,7 +11,7 @@ import { inspectBuilding } from './inspection'
 import { beltInputs } from './beltConnections'
 
 function setup() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   for (const [x, y, kind, direction] of [[22, 20, 'splitter', 'east'], [21, 20, 'belt', 'east'], [23, 20, 'belt', 'east'], [24, 20, 'storage', 'east'], [22, 19, 'belt', 'north'], [22, 18, 'storage', 'north']] as const) placeBuilding(world, x, y, kind, direction)
   return { world, splitter: world.buildings[822] as Splitter, feeder: world.buildings[821] as Belt, front: world.buildings[823] as Belt, left: world.buildings[782] as Belt }
 }
@@ -30,7 +31,7 @@ function feed(world: World, feeder: Belt, items: Item[]) {
 }
 describe('compact one-tile geometry and ports', () => {
   it.each(DIRECTIONS)('places and orients exactly one tile facing %s', direction => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     expect(placeBuilding(world, 22, 20, 'splitter', direction)).toBe(true)
     const s = buildingAt(world, 22, 20) as Splitter
     expect(s.direction).toBe(direction)
@@ -44,7 +45,7 @@ describe('compact one-tile geometry and ports', () => {
     expect(powerRequirement(s)).toBe(0)
   })
   it('rejects occupied tiles, allows edge placement with blocked off-world ports, and removes safely', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     expect(placeBuilding(world, 0, 0, 'splitter', 'north')).toBe(true)
     expect(placeBuilding(world, 0, 0, 'belt', 'east')).toBe(false)
     const s = world.buildings[0] as Splitter
@@ -165,7 +166,7 @@ describe('chains, curves, inserters and deterministic inspection', () => {
     expect(splitter.delivered).toEqual([20, 0]); expect(next.delivered).toEqual([10, 10])
   })
   it('handles a closed transport cycle with bounded deterministic work and no duplication', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     for (const [x, y, direction] of [[22, 20, 'east'], [22, 19, 'north'], [21, 19, 'west'], [21, 20, 'south']] as const) placeBuilding(world, x, y, 'splitter', direction)
     deliverItem(world.buildings[822]!, 'iron', 'east')
     for (let i = 0; i < 500; i++) { advanceWorld(world, 50); expect(total(world)).toBe(1) }

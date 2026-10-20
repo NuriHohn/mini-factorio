@@ -1,5 +1,6 @@
+import { createUnlockedWorld } from '../simulation/testFixtures'
 import { describe, expect, it } from 'vitest'
-import { createWorld } from '../simulation/world'
+import {  } from '../simulation/world'
 import { AUTOSAVE_INTERVAL_MS, AUTOSAVE_KEY, MANUAL_SAVE_KEY, SaveSession, errorMessage } from './storage'
 import type { SaveStorage } from './storage'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
@@ -7,7 +8,7 @@ const date = '2026-10-20T12:00:00.000Z'
 function setup() {
   const data = new Map<string, string>()
   const storage: SaveStorage = { getItem: key => data.get(key) ?? null, setItem: (key, text) => { data.set(key, text) } }
-  return { data, storage, session: new SaveSession(storage, () => date), world: createWorld(() => .5) }
+  return { data, storage, session: new SaveSession(storage, () => date), world: createUnlockedWorld(() => .5) }
 }
 describe('offline manual and automatic slots', () => {
   it('keeps independent slots and restores metadata after a fresh session', () => {

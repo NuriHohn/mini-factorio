@@ -1,3 +1,4 @@
+import { hasTechnology } from '../simulation/research'
 import { WebVisuals } from './webVisuals'
 import { peteHit, sabotageRemaining } from '../simulation/pete'
 import { WaterVisuals, drawSprinkler } from './sprinklerVisuals'
@@ -51,7 +52,7 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, saveRequest: null, saveBusy: false })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
@@ -76,14 +77,15 @@ export class FactoryScene extends Phaser.Scene {
     const toolKeyDown = (event: KeyboardEvent) => {
       const target = event.target
       const editing = target instanceof HTMLElement && (target.matches('input, select, textarea') || target.isContentEditable)
+      if (useGameStore.getState().researchOpen && event.code === 'Escape') event.preventDefault()
       useGameStore.getState().handleToolKey({ code: event.code, repeat: event.repeat, editing })
     }
     window.addEventListener('keydown', toolKeyDown)
     const removeToolKeyListener = () => window.removeEventListener('keydown', toolKeyDown)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeToolKeyListener)
     this.events.once(Phaser.Scenes.Events.DESTROY, removeToolKeyListener)
-    keyboard.on('keydown-P', () => useGameStore.getState().togglePowerOverlay())
-    keyboard.on('keydown-R', () => useGameStore.getState().rotate())
+    keyboard.on('keydown-P', () => { if (!useGameStore.getState().researchOpen) useGameStore.getState().togglePowerOverlay() })
+    keyboard.on('keydown-R', () => { if (!useGameStore.getState().researchOpen) useGameStore.getState().rotate() })
     this.input.on('wheel', (_p: Phaser.Input.Pointer, _objects: unknown[], _dx: number, dy: number) => {
       this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom * (dy > 0 ? .9 : 1.1), .5, 2.5))
     })
@@ -134,7 +136,7 @@ export class FactoryScene extends Phaser.Scene {
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -260,16 +262,17 @@ export class FactoryScene extends Phaser.Scene {
   update(_time: number, delta: number) {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
-    moveCamera(camera, this.keys, delta)
+    if (!useGameStore.getState().researchOpen) moveCamera(camera, this.keys, delta)
     const focus = useGameStore.getState().focusRequest
     if (focus !== null) {
       const building = this.world.buildings[focus]
-      if (building) {
+      if (building && hasTechnology(this.world.research, 'analytics1')) {
         useGameStore.getState().inspect(this.world, building.x, building.y)
         camera.centerOn((building.x + .5) * TILE, (building.y + .5) * TILE)
       }
       useGameStore.setState({ focusRequest: null })
     }
+    useGameStore.getState().applyResearch(this.world)
     useGameStore.getState().applyRelease(this.world)
     const request = useGameStore.getState().recipeRequest
     if (request) {

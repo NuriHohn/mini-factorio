@@ -1,7 +1,8 @@
+import { createUnlockedWorld } from '../simulation/testFixtures'
 import { describe, expect, it, vi } from 'vitest'
 import type Phaser from 'phaser'
 import { WaterVisuals, drawSprinkler, drawWetPete } from './sprinklerVisuals'
-import { createWorld, placeBuilding, removeBuilding } from '../simulation/world'
+import { placeBuilding, removeBuilding } from '../simulation/world'
 import type { Sprinkler } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 function graphics() {
@@ -10,7 +11,7 @@ function graphics() {
   return { calls, g: calls as unknown as Phaser.GameObjects.Graphics, clear: () => { for (const fn of Object.values(calls)) fn.mockClear() } }
 }
 function setup() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   placeBuilding(world, 18, 23, 'sprinkler', 'east'); placeBuilding(world, 18, 22, 'powerPole', 'east'); placeBuilding(world, 18, 21, 'generator', 'east')
   advanceWorld(world, 350)
   return world
@@ -47,7 +48,7 @@ describe('bounded cosmetic sprinkler rendering', () => {
     expect(calls.fillEllipse.mock.calls.length).toBeGreaterThan(0)
     advanceWorld(w, 6000); clear(); visual.draw(g, w, 32)
     expect(calls.fillEllipse).not.toHaveBeenCalled()
-    clear(); visual.draw(g, createWorld(() => .5), 32)
+    clear(); visual.draw(g, createUnlockedWorld(() => .5), 32)
     expect(calls.fillEllipse).not.toHaveBeenCalled()
   })
 })

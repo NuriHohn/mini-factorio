@@ -1,8 +1,9 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { isSabotageable } from './buildingCapabilities'
 import { advanceWorld } from './step'
 import { poweredWorld } from './testFixtures'
-import { createWorld, placeBuilding, removeBuilding } from './world'
+import { placeBuilding, removeBuilding } from './world'
 import type { Assembler, BuildingKind, Furnace, Inserter, Miner, World } from './world'
 import { allocatePower, powerOverview } from './power'
 import { inspectBuilding } from './inspection'
@@ -50,7 +51,7 @@ describe('centralized expanded sabotage capabilities', () => {
     expect(w.pete.pumpkin?.index).toBe(822)
   })
   it('does not attack an idle disconnected generator', () => {
-    const w = createWorld(() => .5)
+    const w = createUnlockedWorld(() => .5)
     placeBuilding(w, 18, 23, 'generator', 'east'); w.pete.cooldownMs = 0
     advanceWorld(w, 50); expect(w.pete.pumpkin).toBeNull()
   })

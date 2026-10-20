@@ -1,3 +1,4 @@
+import { awardResearch } from './research'
 import { recordProduction } from './analytics'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import { hasRecipeInputs, MACHINE_DEFINITIONS, RECIPES } from './recipes'
@@ -26,7 +27,9 @@ export function advanceCrafting(world: World, delta: number): void {
     const job = machine.job
     if (job) {
       const recipe = RECIPES[job.recipeId]
-      job.elapsedMs = Math.min(recipe.durationMs, job.elapsedMs + delta * speed * MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
+      const elapsedMs = Math.min(recipe.durationMs, job.elapsedMs + delta * speed * MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
+      awardResearch(world, machine.kind, job.elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed, elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
+      job.elapsedMs = elapsedMs
       if (job.elapsedMs >= recipe.durationMs - 1e-8 && hasOutputSpace(machine)) {
         for (const item of ITEMS) {
           machine.output[item] += job.outputs[item]

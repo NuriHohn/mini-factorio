@@ -38,7 +38,7 @@ For persistence changes, verify strict validation and detached failure handling,
 
 Documentation-only changes need no new gameplay tests or browser run. In addition to the standard checks above, check Markdown links/anchors, verify source claims and command/file names, review `git diff --check`, and confirm only intended documentation files changed.
 
-On CPU-limited hosts, use `npm test -- --maxWorkers=1` (or `--maxWorkers=2`) for the same full coverage with less contention. The default parallel run has intermittently exceeded the existing 5-second timeout in the long circuit-conservation regression. Historical validation used two workers for Sprint 7.6 (381 tests) and one for Sprint 8; no tests or timeout thresholds were changed. Run browser checks separately from CPU-intensive unit tests.
+On CPU-limited hosts, use `npm test -- --maxWorkers=1` (or `--maxWorkers=2`) for the same full coverage with less contention. The default parallel run has intermittently exceeded the existing 5-second timeout in the long circuit-conservation regression. Historical validation used two workers for Sprint 7.6 (381 tests) and one for Sprint 8; no tests or timeout thresholds were changed in those historical runs. During Sprint 11 validation the circuit-conservation test exceeded 5 seconds even with one worker; the full 629-test suite passed with `npm test -- --maxWorkers=1 --testTimeout=15000`, a runner-only allowance without changing assertions or committed timeouts. Run browser checks separately from CPU-intensive unit tests.
 
 ## Branch, commit and pull request
 
@@ -94,6 +94,7 @@ The delivery summary should state what changed, validation actually performed, m
 | `game/sprinklerVisuals.test.ts` | Power-gated jets, splash/bubble rendering, bounded puddle expiry/world replacement and read-only rendering |
 
 | `simulation/analytics.test.ts`, `persistence/analyticsSave.test.ts` | Creation/consumption versus relocation, rate/history boundaries, utilization, diagnostic priority/reset/sorting, removal, persistence/migration/rejection and deterministic continuation |
+| `simulation/research.test.ts`, `state/researchAccess.test.tsx`, `persistence/researchSave.test.ts` | Productive-time integer RP, fractional power/blocking/sabotage, purchase atomicity/prerequisites, placement/tool/dashboard gates, defaults, strict migration and exact continuation |
 | `simulation/uniqueRecipes.test.ts` | Unique ore recipe probes and rejection of future ambiguous candidates |
 
 ## Browser verification
@@ -110,8 +111,9 @@ For input/rendering changes, verify affected flows in an available browser and i
 | [Pete](GAME_DESIGN.md#pete) | Walking/throwing, sabotage inspector/countdown/recovery, mush/slime cleanup, selected-tool direct/ground targeting, repeated web hits without timer resets, trapping/overlap immunity/fleeing/crying and target/building deletion |
 | [Police/prison](GAME_DESIGN.md#police-radar-traps-and-prison) | Range/power/flash, competing traps, pursuit/arrest/transport, angry prison inspector, manual release, timed jailbreak, grace/cooldown continuity, duplicate release commands, unreachable routes and removal during custody |
 | [Sprinklers](GAME_DESIGN.md#anti-goblin-sprinkler) | Category/shortcut, radius preview/inspector, jet/wet Pete/slip/complaint/flee/puddles at normal zoom, power pause/recovery, consumed deletion clicks, police priority and source deletion |
-| [Save & Load](GAME_DESIGN.md#offline-save-and-load) | Save, mutate, cancel/confirm load, export, valid/invalid import, refresh then explicit load, manual/autosave independence/timestamps, storage denial/quota, transactional rendering failure, version-1/2/3 import/version-4 export, mid-job/NPC/spray/flee restoration and no duplicate input handlers/loops after repeated loads |
+| [Save & Load](GAME_DESIGN.md#offline-save-and-load) | Save, mutate, cancel/confirm load, export, valid/invalid import, refresh then explicit load, manual/autosave independence/timestamps, storage denial/quota, transactional rendering failure, version-1/2/3/4 import/version-5 export, mid-job/NPC/spray/flee restoration and no duplicate input handlers/loops after repeated loads |
 | [Analytics](GAME_DESIGN.md#production-analytics) | Collapse/expand, rates and signed net values, up-to-three item selection/defaults, chart empty/partial windows, bottleneck camera focus/inspection, manual assembler selector, refresh/load continuation and narrow viewport/save-control coexistence |
+| [Research](GAME_DESIGN.md#research-and-technology) | Zero-RP defaults and locked tool/hotkey explanations, effective RP/min, prerequisite/affordability cards, single-charge purchases, immediate unlocks, modal close/Escape/focus, analytics gating/coexistence, narrow viewport, version-5 save/reload and legacy unlock migration |
 | Camera/lifecycle | WASD/normalized diagonals, wheel zoom, bounds, viewport resizing, responsive sidebar/save controls, canvas cleanup/remount and errors |
 
 ## Documentation maintenance and technical limits

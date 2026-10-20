@@ -1,14 +1,15 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { clickPete } from './pete'
 import { IMPRISONMENT_MS, RADAR_KW, REARREST_GRACE_MS, radarDetects, radarPowered, releasePete } from './police'
 import { allocatePower, workingDemand } from './power'
 import { inspectBuilding } from './inspection'
 import { advanceWorld } from './step'
-import { createWorld, placeBuilding, placementError, removeBuilding, SIZE } from './world'
+import { placeBuilding, placementError, removeBuilding, SIZE } from './world'
 import type { Prison, World } from './world'
 
 function setup(powered = true) {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   Object.assign(world.pete, { x: 8, y: 8, tile: 328, mode: 'CRYING', cryingMs: 100000, cooldownMs: 12345 })
   placeBuilding(world, 9, 8, 'radar', 'east')
   placeBuilding(world, 9, 7, 'powerPole', 'east')

@@ -1,9 +1,10 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { emptyInventory, ITEMS, ITEM_DEFINITIONS, inventoryTotal, RESOURCES } from './items'
 import type { Inventory } from './items'
 import { RECIPES } from './recipes'
 import type { RecipeId } from './recipes'
-import { buildingAt, createWorld, depositAt, placeBuilding, removeBuilding, SIZE } from './world'
+import { buildingAt, depositAt, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Belt, BuildingKind, Direction, Furnace, Miner, Storage, World } from './world'
 import { changeFurnaceRecipe, recipeChangeError } from './smelting'
 import { advanceWorld } from './step'
@@ -23,7 +24,7 @@ function m(world: World, x: number, y: number) { return buildingAt(world, x, y) 
 function b(world: World, x: number, y: number) { return buildingAt(world, x, y) as Belt }
 function storage(world: World, x: number, y: number) { return buildingAt(world, x, y) as Storage }
 function furnaceWorld(recipe: RecipeId) {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   add(world, 26, 19, 'powerPole')
   add(world, 26, 18, 'generator')
   add(world, 26, 20, 'furnace')
@@ -35,7 +36,7 @@ function seeded(seed: number) {
   return () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 2 ** 32 }
 }
 function combinedWorld(shortage = false) {
-  const world = createWorld(seeded(42))
+  const world = createUnlockedWorld(seeded(42))
   add(world, 21, 19, 'powerPole')
   add(world, 27, 19, 'powerPole')
   add(world, 21, 18, 'generator')
@@ -105,7 +106,7 @@ describe('central item and recipe definitions', () => {
 })
 describe('multi-resource terrain and mining', () => {
   it.each([0, 1, 42, 123456])('generates repeatable clusters of both resources for seed %s', seed => {
-    const a = createWorld(seeded(seed)), other = createWorld(seeded(seed))
+    const a = createUnlockedWorld(seeded(seed)), other = createUnlockedWorld(seeded(seed))
     expect(a).toEqual(other)
     expect(a.tiles).toHaveLength(SIZE ** 2)
     expect(a.tiles.every(tile => tile === null || RESOURCES.includes(tile))).toBe(true)
@@ -115,13 +116,13 @@ describe('multi-resource terrain and mining', () => {
     expect(depositAt(a, -1, 20)).toBe(null)
   })
   it.each([0, .5, .999])('keeps both starting clusters accessible even with a constant random source %s', value => {
-    const world = createWorld(() => value)
+    const world = createUnlockedWorld(() => value)
     expect(depositAt(world, 20, 20)).toBe('iron')
     expect(depositAt(world, 26, 20)).toBe('copper')
     for (const dx of [-1, 0, 1]) expect(depositAt(world, 26 + dx, 20)).toBe('copper')
   })
   it.each(chains)('extracts $resource automatically at the existing powered rate', ({ resource }) => {
-    const world = createWorld(() => .5), x = resource === 'iron' ? 20 : 26
+    const world = createUnlockedWorld(() => .5), x = resource === 'iron' ? 20 : 26
     add(world, x, 19, 'powerPole'); add(world, x, 18, 'generator'); add(world, x, 20, 'miner')
     advanceWorld(world, 999)
     expect(m(world, x, 20).item).toBe(null)
@@ -137,7 +138,7 @@ describe('multi-resource terrain and mining', () => {
 })
 describe('safe individual furnace recipe selection', () => {
   it('defaults to Auto, can switch both ways when empty, and reports requirements/products', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 26, 20, 'furnace')
     expect(f(world)).toMatchObject({ recipeMode: 'auto', recipeId: null })
     expect(changeFurnaceRecipe(world, 26, 20, 'copperSmelting')).toBe(null)
@@ -231,7 +232,7 @@ describe('both smelting recipes and typed transport', () => {
     expect(b(world, 26, 21).item).toBe('copper')
   })
   it.each(ITEMS)('keeps %s identity through a curved route into storage', item => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 10, 10, 'belt'); add(world, 11, 10, 'belt', 'south'); add(world, 11, 11, 'storage')
     b(world, 10, 10).item = item
     advanceWorld(world, 550)
@@ -241,7 +242,7 @@ describe('both smelting recipes and typed transport', () => {
     expect(inventoryTotal(storage(world, 11, 11).inventory)).toBe(1)
   })
   it('stores a mixed sequence independently for all registered item types', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 10, 10, 'belt'); add(world, 11, 10, 'belt', 'south'); add(world, 11, 11, 'storage')
     for (const item of [...ITEMS, ...ITEMS].reverse()) { b(world, 10, 10).item = item; advanceWorld(world, 1050) }
     for (const item of ITEMS) expect(storage(world, 11, 11).inventory[item]).toBe(2)
@@ -282,7 +283,7 @@ describe('simultaneous copper and iron production', () => {
     expect(stats.stored.copperPlate).not.toBe(chest.inventory.copperPlate) // Copied UI snapshot.
   })
   it('scales iron and copper mining and copper smelting by the same power fraction', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 21, 19, 'powerPole'); add(world, 21, 18, 'generator')
     world.tiles[20 * SIZE + 20] = 'iron'; world.tiles[20 * SIZE + 22] = 'copper'
     add(world, 20, 20, 'miner'); add(world, 22, 20, 'miner'); add(world, 21, 21, 'furnace')

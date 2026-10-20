@@ -1,7 +1,8 @@
+import { createUnlockedWorld } from '../simulation/testFixtures'
 import { createAnalytics } from '../simulation/analytics'
 import { describe, expect, it } from 'vitest'
 import { advanceWorld } from '../simulation/step'
-import { createWorld, placeBuilding, removeBuilding } from '../simulation/world'
+import { placeBuilding, removeBuilding } from '../simulation/world'
 import type { World } from '../simulation/world'
 import { decodeSave, encodeSave, SAVE_VERSION } from './saveGame'
 import type { SaveDocument } from './saveGame'
@@ -9,7 +10,7 @@ const view = { scrollX: 44, scrollY: 88, zoom: 1.5, direction: 'north' as const,
 const date = '2026-10-20T12:00:00.000Z'
 const document = (world: World): SaveDocument => JSON.parse(encodeSave(world, view, date))
 function setup() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   Object.assign(world.pete, { x: 8, y: 8, tile: 328 })
   placeBuilding(world, 9, 8, 'sprinkler', 'east')
   placeBuilding(world, 9, 7, 'powerPole', 'east'); placeBuilding(world, 9, 6, 'generator', 'east')
@@ -46,11 +47,11 @@ describe('sprinkler and water-reaction persistence', () => {
   })
   it('explicitly upgrades real version-1 fields without changing their authoritative values', () => {
     // Sprint 9's schema had exactly these same fields, except Pete.water and sprinklers.
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 20, 20, 'miner', 'east'); placeBuilding(world, 21, 20, 'belt', 'south')
     advanceWorld(world, 725.5)
     const current = document(world), legacy = structuredClone(current)
-    Object.assign(legacy, { version: 1 }); Reflect.deleteProperty(legacy.game.pete, 'water'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs'); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); legacy.game.pete.travelMs *= 1.3
+    Object.assign(legacy, { version: 1 }); Reflect.deleteProperty(legacy.game.pete, 'water'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs'); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy))
     expect(loaded.world.pete.water).toBeNull()
     expect(document(loaded.world)).toEqual({ ...current, game: { ...current.game, analytics: createAnalytics(world.timeMs) } })
@@ -58,11 +59,11 @@ describe('sprinkler and water-reaction persistence', () => {
   })
   it('rejects pretending new water fields or buildings are version 1 and preserves unknown-version rejection', () => {
     const current = document(setup())
-    for (const version of [0, 1, 5, '3']) {
+    for (const version of [0, 1, 6, '3']) {
       const copy = structuredClone(current); Object.assign(copy, { version })
       expect(() => decodeSave(JSON.stringify(copy))).toThrow()
     }
-    const fake = structuredClone(current); Object.assign(fake, { version: 1 }); Reflect.deleteProperty(fake.game.pete, 'water'); Reflect.deleteProperty(fake.game, 'webs'); Reflect.deleteProperty(fake.game, 'analytics')
+    const fake = structuredClone(current); Object.assign(fake, { version: 1 }); Reflect.deleteProperty(fake.game.pete, 'water'); Reflect.deleteProperty(fake.game, 'webs'); Reflect.deleteProperty(fake.game, 'analytics'); Reflect.deleteProperty(fake.game, 'research')
     expect(() => decodeSave(JSON.stringify(fake))).toThrow('sprinklers require save version 2')
   })
   it.each([

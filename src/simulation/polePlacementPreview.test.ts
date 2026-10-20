@@ -1,9 +1,10 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { allocatePower, polePlacementPreview, POLE_CONNECTION_RANGE } from './power'
-import { createWorld, placeBuilding, removeBuilding, SIZE } from './world'
+import { placeBuilding, removeBuilding, SIZE } from './world'
 
 function setup() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   expect(placeBuilding(world, 10, 10, 'powerPole', 'east')).toBe(true)
   allocatePower(world)
   return world

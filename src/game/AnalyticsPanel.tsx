@@ -1,3 +1,4 @@
+import { hasTechnology } from '../simulation/research'
 import { useState } from 'react'
 import { useGameStore } from '../state/gameStore'
 import { ITEMS, ITEM_DEFINITIONS } from '../simulation/items'
@@ -7,7 +8,7 @@ import { HISTORY_MS, RATE_WINDOW_MS } from '../simulation/analytics'
 
 const COLORS = ['#b9dc8b', '#f4ae72', '#83c9df']
 export function AnalyticsPanel() {
-  const { analytics, analyticsOpen, toggleAnalytics, focusBuilding } = useGameStore()
+  const { research, analytics, analyticsOpen, toggleAnalytics, focusBuilding } = useGameStore()
   // null follows the most recent productive types; an explicit choice stays stable.
   const [chosen, setChosen] = useState<Item[] | null>(null)
   const selected = chosen ?? analytics.recentItems
@@ -15,9 +16,10 @@ export function AnalyticsPanel() {
   const max = Math.max(1, ...analytics.history.flatMap(b => selected.map(item => b.produced[item])))
   const x = (time: number) => 38 + (time - start) / Math.max(RATE_WINDOW_MS, analytics.timeMs - start) * 270
   const y = (rate: number) => 134 - rate / max * 112
+  const unlocked = hasTechnology(research, 'analytics1')
   return <aside className={`analytics-panel ${analyticsOpen ? 'is-open' : ''}`} aria-label="Production analytics">
-    <button className="analytics-toggle" aria-expanded={analyticsOpen} aria-controls="analytics-content" onClick={toggleAnalytics}>{analyticsOpen ? '▸ Production analytics' : '◂ Analytics'}</button>
-    {analyticsOpen && <div id="analytics-content">
+    <button className="analytics-toggle" disabled={!unlocked} title={unlocked ? undefined : 'Requires Analytics I.'} aria-expanded={analyticsOpen && unlocked} aria-controls="analytics-content" onClick={toggleAnalytics}>{!unlocked ? 'Analytics · Requires Analytics I' : analyticsOpen ? '▸ Production analytics' : '◂ Analytics'}</button>
+    {analyticsOpen && unlocked && <div id="analytics-content">
       <p className="eyebrow">ROLLING 60 SIMULATION SECONDS</p>
       <div className="stats"><span>Total production</span><b>{analytics.totalPerMinute.toFixed(1)} items/min</b></div>
       <div className="stats"><span>Average utilization</span><b>{(analytics.utilization * 100).toFixed(1)}%</b></div>

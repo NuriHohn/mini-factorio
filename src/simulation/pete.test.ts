@@ -1,9 +1,10 @@
+import { createUnlockedWorld } from './testFixtures'
 import { changeCraftingRecipe } from './crafting'
 import { describe, expect, it } from 'vitest'
 import { clickPete, createPete, PUMPKIN_FLIGHT_MS, sabotageRemaining } from './pete'
 import { allocatePower, workingDemand } from './power'
 import { advanceWorld } from './step'
-import { createWorld, placeBuilding, removeBuilding, SIZE } from './world'
+import { placeBuilding, removeBuilding, SIZE } from './world'
 import type { CraftingMachine, Miner, World } from './world'
 import { poweredWorld } from './testFixtures'
 import { deliverItem } from './transport'
@@ -32,13 +33,13 @@ function hit(world: World) {
 }
 describe('Pete deterministic movement and fright', () => {
   it('spawns exactly one named NPC, with deterministic independent seeded decisions', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     expect(world.pete).toEqual(createPete())
     expect(world.buildings.every(b => b === null)).toBe(true)
     expect(world.pete.mode).toBe('WANDERING')
   })
   it('matches time partitions and avoids buildings and boundaries across many decisions', () => {
-    const a = createWorld(() => .5)
+    const a = createUnlockedWorld(() => .5)
     for (let y = 0; y < SIZE; y++) if (y !== 21) placeBuilding(a, 19, y, 'storage', 'east')
     const b = structuredClone(a)
     advanceWorld(a, 120000)
@@ -52,14 +53,14 @@ describe('Pete deterministic movement and fright', () => {
     expect(a).toEqual(b)
   })
   it('walks 30% faster and preserves the 4.5× fleeing multiplier', () => {
-    const walking = createWorld(() => .5), fleeing = structuredClone(walking)
+    const walking = createUnlockedWorld(() => .5), fleeing = structuredClone(walking)
     clickPete(fleeing, fleeing.pete)
     advanceWorld(walking, 500); advanceWorld(fleeing, 500)
     expect(Math.hypot(walking.pete.x - 17, walking.pete.y - 23)).toBeCloseTo(.65)
     expect(Math.hypot(fleeing.pete.x - 17, fleeing.pete.y - 23)).toBeCloseTo(2.925)
   })
   it('preserves position when frightened halfway through a walking segment', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     advanceWorld(world, 500)
     const { x, y } = world.pete
     clickPete(world, world.pete)
@@ -68,7 +69,7 @@ describe('Pete deterministic movement and fright', () => {
     expect(Math.hypot(world.pete.x - x, world.pete.y - y)).toBeCloseTo(.2925)
   })
   it('chooses a reachable corner, reroutes on topology changes, and cries for exactly ten seconds', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     // Make the NW corner unreachable, retaining other reachable corners.
     placeBuilding(world, 1, 0, 'storage', 'east'); placeBuilding(world, 0, 1, 'storage', 'east')
     clickPete(world, world.pete)
@@ -84,7 +85,7 @@ describe('Pete deterministic movement and fright', () => {
     advanceWorld(world, 50); expect(world.pete.mode).toBe('WANDERING')
   })
   it('uses a safe near-corner fallback when enclosed and resumes after obstacles are removed', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     for (const [x, y] of [[17, 22], [18, 23], [17, 24], [16, 23]]) placeBuilding(world, x, y, 'storage', 'east')
     clickPete(world, world.pete); advanceWorld(world, 50)
     expect(world.pete.mode).toBe('CRYING'); expect(world.pete.escape).toBe(world.pete.tile)
@@ -92,7 +93,7 @@ describe('Pete deterministic movement and fright', () => {
     expect(world.pete.mode).toBe('WANDERING'); expect(world.pete.y).toBeLessThan(23)
   })
   it.each(['FLEEING', 'CRYING'] as const)('replays every web in %s without changing behavior or timers', mode => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     clickPete(world, world.pete)
     if (mode === 'CRYING') {
       for (let i = 0; i < 1000 && world.pete.mode !== 'CRYING'; i++) advanceWorld(world, 50)
@@ -119,7 +120,7 @@ describe('Pete deterministic movement and fright', () => {
     expect(world.pete.pumpkin).toBe(null)
   })
   it('keeps faster fleeing deterministic across uneven time partitions and repeated clicks', () => {
-    const a = createWorld(() => .5), b = structuredClone(a)
+    const a = createUnlockedWorld(() => .5), b = structuredClone(a)
     clickPete(a, a.pete); clickPete(b, b.pete)
     for (let i = 0; i < 12; i++) {
       advanceWorld(a, 500)
@@ -129,7 +130,7 @@ describe('Pete deterministic movement and fright', () => {
     expect(a).toEqual(b)
   })
   it('reserves occupied movement tiles against construction and rejects clicks outside the goblin', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     expect(clickPete(world, { x: 0, y: 0 })).toBe(false)
     expect(placeBuilding(world, 17, 23, 'storage', 'east')).toBe(false)
     advanceWorld(world, 50)
@@ -153,7 +154,7 @@ describe('Pumpkin sabotage and production invariants', () => {
     advanceWorld(world, 50); expect(sabotageRemaining(world, machine)).toBe(0)
   })
   it('does not attack non-production, distant, or already-sabotaged buildings', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     movePete(world, 21, 20); world.pete.cooldownMs = 0
     for (const [x, y, kind] of [[20, 20, 'belt'], [21, 19, 'generator'], [21, 21, 'powerPole'], [22, 20, 'storage'], [25, 20, 'furnace']] as const) placeBuilding(world, x, y, kind, 'east')
     advanceWorld(world, 500); expect(world.pete.pumpkin).toBe(null)

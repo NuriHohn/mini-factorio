@@ -1,10 +1,12 @@
+import { createResearch } from '../simulation/research'
+import { createUnlockedWorld } from '../simulation/testFixtures'
 import { advanceWorld } from '../simulation/step'
 import { removeBuilding } from '../simulation/world'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createWorld, placeBuilding, SIZE } from '../simulation/world'
+import { placeBuilding, SIZE } from '../simulation/world'
 import { TOOL_HOTKEYS, useGameStore } from './gameStore'
 
-beforeEach(() => useGameStore.setState({ ...useGameStore.getInitialState(), tool: null }, true))
+beforeEach(() => useGameStore.setState({ ...useGameStore.getInitialState(), research: createResearch(true), tool: null }, true))
 const key = (code: string, repeat = false) => useGameStore.getState().handleToolKey({ code, repeat })
 
 describe('one authoritative tool mode', () => {
@@ -60,7 +62,7 @@ describe('one authoritative tool mode', () => {
 
 describe('normal selection and inspection', () => {
   it('opens copied inspections after cancellation without changing buildings', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 10, 10, 'furnace', 'east')
     const before = structuredClone(world)
     key('Digit2'); useGameStore.getState().inspect(world, 10, 10)
@@ -73,7 +75,7 @@ describe('normal selection and inspection', () => {
     expect(world).toEqual(before)
   })
   it('clears inspection and queued recipe commands when a new tool activates', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 10, 10, 'assembler', 'east')
     useGameStore.getState().inspect(world, 10, 10)
     useGameStore.getState().requestRecipe('ironGear')
@@ -82,7 +84,7 @@ describe('normal selection and inspection', () => {
     expect(useGameStore.getState()).toMatchObject({ tool: 'remove', inspected: null, inspection: null, recipeRequest: null })
   })
   it('clears inspection for an empty or out-of-bounds tile without aliasing another row', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 39, 0, 'storage', 'east')
     useGameStore.getState().inspect(world, 39, 0)
     expect(useGameStore.getState().inspection?.kind).toBe('storage')
@@ -95,13 +97,13 @@ describe('normal selection and inspection', () => {
 
 describe('explicit Spider Web tool', () => {
   it.each([null, ...Object.values(TOOL_HOTKEYS).filter(t => t !== 'spiderWeb')])('does not scare Pete while %s is selected', tool => {
-    const world = createWorld(() => .5), before = structuredClone(world)
+    const world = createUnlockedWorld(() => .5), before = structuredClone(world)
     useGameStore.setState({ tool })
     expect(useGameStore.getState().useWebTool(world, world.pete)).toBe(false)
     expect(world).toEqual(before)
   })
   it('consumes direct hits and ground shots without changing tools or buildings', () => {
-    const world = createWorld(() => .5), buildings = structuredClone(world.buildings)
+    const world = createUnlockedWorld(() => .5), buildings = structuredClone(world.buildings)
     key('KeyB')
     expect(useGameStore.getState()).toMatchObject({ tool: 'spiderWeb', buildTab: 'pete' })
     expect(useGameStore.getState().useWebTool(world, world.pete)).toBe(true)
@@ -119,7 +121,7 @@ describe('explicit Spider Web tool', () => {
 
 describe('prison inspection and validated release commands', () => {
   function prisoner() {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     Object.assign(world.pete, { x: 8, y: 8, tile: 328, mode: 'CRYING', cryingMs: 100000 })
     for (const [x, y, kind] of [[9, 8, 'radar'], [9, 7, 'powerPole'], [9, 6, 'generator']] as const) placeBuilding(world, x, y, kind, 'east')
     for (let i = 0; i < 1500 && world.pete.mode !== 'IMPRISONED'; i++) advanceWorld(world, 50)
@@ -168,7 +170,7 @@ describe('prison inspection and validated release commands', () => {
 
 describe('compact splitter toolbar and inspection', () => {
   it('rotates its placement direction, switches tools, cancels with ESC and inspects without building', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 22, 20, 'splitter', 'east')
     const before = structuredClone(world)
     key('Digit0'); expect(useGameStore.getState().tool).toBe('splitter')
@@ -195,7 +197,7 @@ describe('analytics UI commands and copied snapshots', () => {
     expect(useGameStore.getState().analyticsOpen).toBe(false)
   })
   it('clears placement/deletion before requesting camera focus and allows normal inspection', () => {
-    const world = createWorld(() => .5); placeBuilding(world, 20, 20, 'furnace', 'east')
+    const world = createUnlockedWorld(() => .5); placeBuilding(world, 20, 20, 'furnace', 'east')
     useGameStore.getState().select('remove')
     useGameStore.getState().focusBuilding(820)
     expect(useGameStore.getState()).toMatchObject({ tool: null, focusRequest: 820 })
@@ -209,7 +211,7 @@ describe('analytics UI commands and copied snapshots', () => {
     expect(useGameStore.getState()).toMatchObject({ tool: 'belt', focusRequest: null })
   })
   it('publishes detached analytics, including refreshed diagnostics after simulation progress', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 20, 20, 'miner', 'east')
     advanceWorld(world, 10000)
     useGameStore.getState().publish(world)
