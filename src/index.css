@@ -73,3 +73,17 @@ kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; paddin
 .save-action:focus-visible { outline: 2px solid #83c0d4; }
 .save-action:disabled { opacity: .5; cursor: wait; }
 .save-error { color: #f0a094; }
+
+.analytics-panel { width: 110px; border-right: 0; border-left: 1px solid #2b352d; padding: 12px; }
+.analytics-panel.is-open { width: 360px; }
+.analytics-toggle { width: 100%; padding: 10px 4px; border: 1px solid #3b463d; border-radius: 4px; background: #202923; text-align: left; font-size: 12px; margin-bottom: 16px; }
+.analytics-panel h2 { font-size: 14px; margin: 22px 0 6px; color: #c2d6b5; }
+.analytics-items { display: flex; flex-wrap: wrap; gap: 7px 12px; border: 0; padding: 0; margin: 12px 0; font-size: 11px; }
+.analytics-items legend { color: #96a398; margin-bottom: 8px; }
+.analytics-items label { display: flex; gap: 4px; align-items: center; }
+.analytics-items input { accent-color: #9bbd79; }
+.analytics-chart { width: 100%; margin-top: 12px; }
+.analytics-chart text { fill: #a9b9ae; font: 9px monospace; }
+.analytics-legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; }
+.bottlenecks { list-style: none; padding: 0; display: grid; gap: 6px; }
+@media (max-width: 1100px) { .analytics-panel.is-open { position: absolute; right: 0; top: 75px; bottom: 0; width: min(360px, 55vw); z-index: 10; } .analytics-panel:not(.is-open) { width: 48px; padding: 8px !important; } .analytics-panel:not(.is-open) .analytics-toggle { writing-mode: vertical-rl; width: 30px; } }

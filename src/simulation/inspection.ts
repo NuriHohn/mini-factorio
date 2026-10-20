@@ -7,7 +7,7 @@ import { sabotageRemaining } from './pete'
 import { GENERATOR_KW, POLE_COVERAGE_RADIUS, powerRequirement, withinRange } from './power'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import type { Inventory, Item, Resource } from './items'
-import { assemblerInputCapacity, assemblerWaitRemaining } from './assemblerRecipes'
+import { assemblerInputCapacity } from './assemblerRecipes'
 import { inserterPorts, inserterStatus, INSERTER_CYCLE_MS, INSERTER_SWING_MS } from './inserters'
 import type { InserterStatus } from './inserters'
 import { craftingStatus, recipeChangeError } from './crafting'
@@ -81,7 +81,7 @@ export function worldStats(world: World): WorldStats {
     if (building?.kind === 'inserter') stats.inserters++
     if (building?.kind === 'miner') { stats.miners++; stats.maxMiningPerSec += 1000 / INTERVAL }
     if (building?.kind === 'furnace' || building?.kind === 'assembler') {
-      const recipes = building.recipeId ? [RECIPES[building.recipeId]] : Object.values(RECIPES).filter(recipe => recipe.machine === building.kind)
+      const recipes = building.recipeId ? [RECIPES[building.recipeId]] : building.kind === 'furnace' ? Object.values(RECIPES).filter(recipe => recipe.machine === building.kind) : []
       const rate = Math.max(0, ...recipes.map(recipe => inventoryTotal(recipe.outputs) * 1000 * MACHINE_DEFINITIONS[building.kind].craftingSpeed / recipe.durationMs))
       if (building.kind === 'furnace') { stats.furnaces++; stats.maxSmeltingPerSec += rate }
       else { stats.assemblers++; stats.maxCraftingPerSec += rate }
@@ -123,14 +123,14 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   if (building.kind !== 'furnace' && building.kind !== 'assembler') return null
   const recipe = building.recipeId ? RECIPES[building.recipeId] : null
   return {
-    kind: building.kind, direction: building.direction, recipeMode: building.kind === 'furnace' ? building.recipeMode : building.recipeMode === 'auto' ? 'auto' : building.recipeId ?? 'auto', recipe: recipe?.label ?? (building.kind === 'furnace' ? 'Waiting for ore' : 'Waiting for ingredients'), recipeId: building.recipeId,
+    kind: building.kind, direction: building.direction, recipeMode: building.kind === 'furnace' ? building.recipeMode : building.recipeMode === 'auto' ? 'auto' : building.recipeId ?? 'auto', recipe: recipe?.label ?? (building.kind === 'furnace' ? 'Waiting for ore' : 'Select a recipe'), recipeId: building.recipeId,
     recipeLocked: building.recipeLocked,
     detectionStatus: building.recipeLocked ? (building.recipeMode === 'auto' ? 'automatic-locked' : 'manual-locked') : building.recipeId ? 'choosing' : 'undetected',
     requirements: { ...recipe?.inputs }, products: { ...recipe?.outputs }, durationMs: recipe?.durationMs ?? 0, recipeChangeError: recipeChangeError(building),
     input: { ...building.input }, output: { ...building.output }, reserved: { ...(building.job?.outputs ?? emptyInventory()) },
     progress: building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0,
     inputCapacities: building.kind === 'assembler' ? Object.fromEntries(ITEMS.filter(item => assemblerInputCapacity(building, item) > 0).map(item => [item, assemblerInputCapacity(building, item)])) : {},
-    recipeWaitRemainingMs: building.kind === 'assembler' ? assemblerWaitRemaining(building) : 0,
+    recipeWaitRemainingMs: 0,
     inputCapacity: building.kind === 'furnace' ? MACHINE_DEFINITIONS.furnace.input.capacity : null,
     outputCapacity: MACHINE_DEFINITIONS[building.kind].outputCapacity, craftingSpeed: MACHINE_DEFINITIONS[building.kind].craftingSpeed,
     electrical, status: craftingStatus(building), outputWaiting: outputWaiting(world, building),

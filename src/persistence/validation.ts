@@ -59,7 +59,8 @@ function validateCrafting(machine: CraftingMachine, path: string): void {
   const recipe = machine.recipeId ? RECIPES[machine.recipeId] : null
   if (recipe && recipe.machine !== machine.kind) invalid(path, 'recipe belongs to another machine')
   if (machine.job && (!machine.recipeLocked || machine.job.recipeId !== machine.recipeId)) invalid(path, 'job and locked recipe disagree')
-  if (machine.recipeMode !== 'auto' && (!machine.recipeLocked || !recipe || (machine.kind === 'furnace' && machine.recipeMode !== machine.recipeId))) invalid(path, 'invalid manual recipe lock')
+  const unconfigured = machine.kind === 'assembler' && !recipe && !machine.recipeLocked && !inventoryTotal(machine.input) && !inventoryTotal(machine.output)
+  if (machine.recipeMode !== 'auto' && !unconfigured && (!machine.recipeLocked || !recipe || (machine.kind === 'furnace' && machine.recipeMode !== machine.recipeId))) invalid(path, 'invalid manual recipe lock')
   if (machine.recipeLocked && !recipe) invalid(path, 'locked recipe is missing')
   if (machine.kind === 'furnace') {
     if (!machine.recipeLocked && (recipe || inventoryTotal(machine.input) || inventoryTotal(machine.output))) invalid(path, 'undetected furnace contains a recipe or items')

@@ -57,7 +57,7 @@ describe('versioned offline snapshots', () => {
     advanceWorld(world, 5000); advanceWorld(loaded, 5000)
     expect(snapshot(loaded)).toEqual(snapshot(world))
   })
-  it('preserves all transport packets, carried items, stock and assembler detection wait', () => {
+  it('preserves all transport packets, carried items, stock and a legacy assembler detection wait', () => {
     const world = createWorld(() => .5)
     for (const [x, kind] of [[1, 'belt'], [2, 'splitter'], [3, 'storage'], [4, 'inserter'], [5, 'assembler']] as const) placeBuilding(world, x, 1, kind, 'east')
     Object.assign(world.buildings[41] as Belt, { item: 'copperPlate', progress: .6 })
@@ -65,6 +65,7 @@ describe('versioned offline snapshots', () => {
     ;(world.buildings[43] as Storage).inventory.electronicCircuit = 21
     Object.assign(world.buildings[44] as Inserter, { phase: 'carrying', item: 'ironGear', elapsedMs: 350 })
     const assembler = world.buildings[45] as Assembler
+    assembler.recipeMode = 'auto'
     assembler.input.ironPlate = 2; assembler.input.copperPlate = 1; assembler.autoWaitElapsedMs = 950
     expect(snapshot(restored(world))).toEqual(snapshot(world))
   })
@@ -112,7 +113,7 @@ describe('versioned offline snapshots', () => {
     const world = createWorld(() => .5)
     placeBuilding(world, 4, 4, 'assembler', 'east')
     const machine = world.buildings[164] as Assembler
-    Object.assign(machine, { recipeId: 'ironGear', recipeLocked: true })
+    Object.assign(machine, { recipeMode: 'auto', recipeId: 'ironGear', recipeLocked: true })
     machine.input.ironPlate = 2; machine.input.copperPlate = 1; machine.input.copperCable = 3
     const loaded = restored(world)
     expect(loaded.buildings[164]).toEqual(machine)

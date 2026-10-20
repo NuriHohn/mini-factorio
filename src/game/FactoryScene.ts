@@ -51,7 +51,7 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, saveRequest: null, saveBusy: false })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
@@ -134,7 +134,7 @@ export class FactoryScene extends Phaser.Scene {
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -261,6 +261,15 @@ export class FactoryScene extends Phaser.Scene {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
     moveCamera(camera, this.keys, delta)
+    const focus = useGameStore.getState().focusRequest
+    if (focus !== null) {
+      const building = this.world.buildings[focus]
+      if (building) {
+        useGameStore.getState().inspect(this.world, building.x, building.y)
+        camera.centerOn((building.x + .5) * TILE, (building.y + .5) * TILE)
+      }
+      useGameStore.setState({ focusRequest: null })
+    }
     useGameStore.getState().applyRelease(this.world)
     const request = useGameStore.getState().recipeRequest
     if (request) {

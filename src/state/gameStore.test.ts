@@ -185,3 +185,39 @@ describe('compact splitter toolbar and inspection', () => {
     expect(world).toEqual(before)
   })
 })
+
+describe('analytics UI commands and copied snapshots', () => {
+  it('toggles the dashboard without cancelling an unrelated building tool', () => {
+    const store = useGameStore.getState()
+    store.select('belt'); store.toggleAnalytics()
+    expect(useGameStore.getState()).toMatchObject({ tool: 'belt', analyticsOpen: true })
+    store.toggleAnalytics()
+    expect(useGameStore.getState().analyticsOpen).toBe(false)
+  })
+  it('clears placement/deletion before requesting camera focus and allows normal inspection', () => {
+    const world = createWorld(() => .5); placeBuilding(world, 20, 20, 'furnace', 'east')
+    useGameStore.getState().select('remove')
+    useGameStore.getState().focusBuilding(820)
+    expect(useGameStore.getState()).toMatchObject({ tool: null, focusRequest: 820 })
+    useGameStore.getState().inspect(world, 20, 20)
+    expect(useGameStore.getState().inspection?.kind).toBe('furnace')
+    expect(world.buildings[820]?.kind).toBe('furnace')
+  })
+  it('cancels a pending analytics focus if the player selects another tool first', () => {
+    useGameStore.getState().focusBuilding(820)
+    useGameStore.getState().select('belt')
+    expect(useGameStore.getState()).toMatchObject({ tool: 'belt', focusRequest: null })
+  })
+  it('publishes detached analytics, including refreshed diagnostics after simulation progress', () => {
+    const world = createWorld(() => .5)
+    placeBuilding(world, 20, 20, 'miner', 'east')
+    advanceWorld(world, 10000)
+    useGameStore.getState().publish(world)
+    expect(useGameStore.getState().analytics.problems[0]).toMatchObject({ cause: 'No Power', index: 820 })
+    const snapshot = useGameStore.getState().analytics
+    world.analytics.machines[820].cause = null
+    expect(snapshot.problems[0].cause).toBe('No Power')
+    removeBuilding(world, 20, 20); useGameStore.getState().publish(world)
+    expect(useGameStore.getState().analytics.problems).toEqual([])
+  })
+})

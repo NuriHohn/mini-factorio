@@ -1,7 +1,7 @@
+import { recordProduction } from './analytics'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import { hasRecipeInputs, MACHINE_DEFINITIONS, RECIPES } from './recipes'
 import { buildingAt, SIZE } from './world'
-import { assemblerWaitRemaining, selectAssemblerRecipe } from './assemblerRecipes'
 import type { FurnaceRecipeMode } from './recipes'
 import type { CraftingMachine, World } from './world'
 export type CraftingStatus = 'processing' | 'waiting-input' | 'output-full' | 'waiting-recipe'
@@ -12,12 +12,11 @@ function hasOutputSpace(machine: CraftingMachine): boolean {
 }
 export function craftingStatus(machine: CraftingMachine): CraftingStatus {
   if (!hasOutputSpace(machine)) return 'output-full'
-  if (machine.kind === 'assembler' && assemblerWaitRemaining(machine) > 0) return 'waiting-recipe'
   return machine.job ? 'processing' : 'waiting-input'
 }
 export function canStartCrafting(machine: CraftingMachine): boolean {
   const recipe = machine.recipeId ? RECIPES[machine.recipeId] : null
-  return recipe !== null && recipe.machine === machine.kind && !machine.job && hasOutputSpace(machine) && hasRecipeInputs(machine.input, recipe) && (machine.kind !== 'assembler' || assemblerWaitRemaining(machine) === 0)
+  return recipe !== null && machine.recipeLocked && recipe.machine === machine.kind && !machine.job && hasOutputSpace(machine) && hasRecipeInputs(machine.input, recipe)
 }
 export function advanceCrafting(world: World, delta: number): void {
   for (const machine of world.buildings) {
@@ -33,11 +32,11 @@ export function advanceCrafting(world: World, delta: number): void {
           machine.output[item] += job.outputs[item]
           world.produced[item] += job.outputs[item]
         }
+        recordProduction(world, job.outputs)
         machine.job = null
       }
     }
     if (machine.job) continue
-    if (machine.kind === 'assembler') selectAssemblerRecipe(machine, 0)
     if (!machine.recipeId || !canStartCrafting(machine)) continue
     const recipe = RECIPES[machine.recipeId]
     const inputs = emptyInventory(), outputs = emptyInventory()
@@ -47,13 +46,14 @@ export function advanceCrafting(world: World, delta: number): void {
       machine.input[item] -= inputs[item]
     }
     // A new job starts at this boundary and receives no elapsed time yet.
+    recordProduction(world, {}, inputs)
     machine.job = { recipeId: recipe.id, elapsedMs: 0, inputs, outputs }
   }
 }
 
 export function recipeChangeError(machine: CraftingMachine): string | null {
   if (machine.job) return 'Finish the active batch before changing recipes, including any reserved materials.'
-  if (inventoryTotal(machine.input) || inventoryTotal(machine.output)) return 'Empty both input and output buffers before changing recipes.'
+  if ((inventoryTotal(machine.input) && (machine.kind !== 'assembler' || machine.recipeLocked)) || inventoryTotal(machine.output)) return 'Empty both input and output buffers before changing recipes.'
   return null
 }
 // Mode changes and manual selection cannot bypass compatibility or material locks.
@@ -63,10 +63,13 @@ export function changeCraftingRecipe(world: World, x: number, y: number, recipeI
   if (recipeId !== 'auto' && (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== machine.kind)) return 'This recipe is not compatible with this machine.'
   const error = recipeChangeError(machine)
   if (error) return error
-  if (recipeId === 'auto' && machine.recipeLocked) return 'Automatic detection is one-time only. Choose a manual recipe to change the locked recipe.'
-  machine.recipeLocked = recipeId !== 'auto'
-  machine.recipeMode = recipeId === 'auto' ? 'auto' : 'manual'
-  machine.recipeId = recipeId === 'auto' ? null : recipeId
+  if (recipeId === 'auto') return 'Assemblers require explicit manual recipe selection.'
+  const recipe = RECIPES[recipeId]
+  if (ITEMS.some(item => machine.input[item] > (recipe.inputs[item] ?? 0) * MACHINE_DEFINITIONS.assembler.input.batches)) return 'Buffered ingredients are incompatible with this recipe.'
+  delete world.analytics.machines[y * SIZE + x]
+  machine.recipeLocked = true
+  machine.recipeMode = 'manual'
+  machine.recipeId = recipeId
   machine.autoWaitElapsedMs = null
   return null
 }

@@ -1,3 +1,4 @@
+import { observeMachines, pruneAnalytics, recordProduction } from './analytics'
 import { advanceWebs } from './webs'
 import { advanceSprinklers } from './sprinklers'
 import { advancePolice } from './police'
@@ -6,7 +7,6 @@ import { depositAt, INTERVAL, SIZE } from './world'
 import type { World } from './world'
 import { advanceTransport, outputMachines } from './transport'
 import { allocatePower } from './power'
-import { prepareAssemblerRecipes } from './assemblerRecipes'
 import { advanceInserters, createInserterFrame } from './inserters'
 import { advanceCrafting } from './crafting'
 export const STEP_MS = 50
@@ -22,11 +22,11 @@ export function advanceWorld(world: World, delta: number): void {
     const inserterFrame = createInserterFrame(world)
     const vacated = advanceTransport(world, STEP_MS)
     outputMachines(world, vacated)
-    prepareAssemblerRecipes(world, STEP_MS)
     const power = allocatePower(world, inserterFrame)
     advancePolice(world, STEP_MS)
     advanceSprinklers(world, STEP_MS, !reactingToWater)
     advanceInserters(world, STEP_MS, inserterFrame)
+    observeMachines(world, STEP_MS)
     advanceCrafting(world, STEP_MS)
     for (const miner of world.buildings) {
       if (miner?.kind !== 'miner' || miner.item) continue
@@ -38,7 +38,9 @@ export function advanceWorld(world: World, delta: number): void {
         miner.elapsed = Math.max(0, miner.elapsed - INTERVAL)
         miner.item = resource
         world.mined[resource]++
+        recordProduction(world, { [resource]: 1 })
       }
     }
+    pruneAnalytics(world)
   }
 }

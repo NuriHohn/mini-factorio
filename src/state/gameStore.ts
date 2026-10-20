@@ -1,3 +1,5 @@
+import { analyticsSnapshot } from '../simulation/analytics'
+import type { AnalyticsSnapshot } from '../simulation/analytics'
 import type { SaveRequest, SaveStatus } from '../persistence/storage'
 import { TOOL_HOTKEYS, toolMetadata } from './toolMetadata'
 import type { BuildTab, Tool } from './toolMetadata'
@@ -16,6 +18,11 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  analytics: AnalyticsSnapshot
+  analyticsOpen: boolean
+  toggleAnalytics: () => void
+  focusRequest: number | null
+  focusBuilding: (index: number) => void
   saveStatus: SaveStatus
   saveBusy: boolean
   saveRequest: SaveRequest | null
@@ -45,6 +52,10 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  analytics: { timeMs: 0, produced: emptyInventory(), consumed: emptyInventory(), totalPerMinute: 0, utilization: 0, configuredMachines: 0, problems: [], history: [], recentItems: [] }, analyticsOpen: false,
+  toggleAnalytics: () => set(state => ({ analyticsOpen: !state.analyticsOpen })),
+  focusRequest: null,
+  focusBuilding: index => { get().select(null); set({ focusRequest: index }) },
   saveStatus: { manualAt: null, autoAt: null, message: '', error: false }, saveBusy: false, saveRequest: null,
   requestSave: request => set(state => state.saveBusy ? state : { saveRequest: request, saveBusy: true }),
   saveFeedback: (message, error = false) => set(state => ({ saveStatus: { ...state.saveStatus, message, error } })),
@@ -72,7 +83,7 @@ export const useGameStore = create<State>((set, get) => ({
   select: requested => set(state => {
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { tool, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
     if (event.code === 'Escape') { get().select(null); return }
@@ -92,12 +103,13 @@ export const useGameStore = create<State>((set, get) => ({
   }),
   rotate: () => set(state => ({ direction: rotate(state.direction) })),
   publish: world => set(state => {
+    const analytics = analyticsSnapshot(world)
     const stats = worldStats(world)
     const electricity = powerOverview(world)
     const inspection = inspectBuilding(world, state.inspected)
     const inspected = inspection ? state.inspected : null
     // Publish value snapshots only when summaries change, never live world objects.
-    if (JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { stats, electricity, inspection, inspected }
+    if (JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
+    return { stats, electricity, inspection, inspected, analytics }
   }),
 }))

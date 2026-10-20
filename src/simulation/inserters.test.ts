@@ -146,9 +146,9 @@ describe('machine buffers and recipe behavior', () => {
     expect(furnace(world, 21, 20)).toMatchObject({ recipeId: 'ironSmelting', input: { iron: 1 } })
     expect(totalMaterials(world).iron).toBe(1)
   })
-  it.each(['auto', 'electronicCircuit'] as const)('respects assembler %s per-item capacities without a full cable buffer blocking iron', mode => {
+  it.each(['electronicCircuit'] as const)('respects assembler %s per-item capacities without a full cable buffer blocking iron', mode => {
     const world = setup('assembler'), a = buildingAt(world, 21, 20) as Assembler
-    if (mode !== 'auto') expect(changeCraftingRecipe(world, 21, 20, mode)).toBe(null)
+    expect(changeCraftingRecipe(world, 21, 20, mode)).toBe(null)
     a.input.copperCable = 6
     chest(world, 19, 20).inventory.ironPlate = 1
     advanceWorld(world, 550)
