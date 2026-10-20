@@ -3,7 +3,7 @@ import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import type { Inventory, Resource } from './items'
 import { furnaceStatus, recipeChangeError } from './smelting'
 import type { FurnaceStatus } from './smelting'
-import type { RecipeId } from './recipes'
+import type { FurnaceRecipeMode, RecipeId } from './recipes'
 import { RECIPES } from './recipes'
 import { outputWaiting } from './transport'
 import { depositAt, INTERVAL } from './world'
@@ -25,7 +25,8 @@ export type Inspection = { kind: 'storage'; inventory: Inventory }
   kind: 'furnace'
   direction: Direction
   recipe: string
-  recipeId: RecipeId
+  recipeMode: FurnaceRecipeMode
+  recipeId: RecipeId | null
   requirements: Readonly<Partial<Inventory>>
   products: Readonly<Partial<Inventory>>
   durationMs: number
@@ -42,7 +43,7 @@ export function worldStats(world: World): WorldStats {
   const stats: WorldStats = { mined: { ...world.mined }, produced: { ...world.produced }, stored: emptyInventory(), maxMiningPerSec: 0, maxSmeltingPerSec: 0, miners: 0, furnaces: 0 }
   for (const building of world.buildings) {
     if (building?.kind === 'miner') { stats.miners++; stats.maxMiningPerSec += 1000 / INTERVAL }
-    if (building?.kind === 'furnace') { stats.furnaces++; const recipe = RECIPES[building.recipeId]; stats.maxSmeltingPerSec += inventoryTotal(recipe.outputs) * 1000 / recipe.durationMs }
+    if (building?.kind === 'furnace') { stats.furnaces++; const recipes = building.recipeId ? [RECIPES[building.recipeId]] : Object.values(RECIPES); stats.maxSmeltingPerSec += Math.max(...recipes.map(recipe => inventoryTotal(recipe.outputs) * 1000 / recipe.durationMs)) }
     if (building?.kind === 'storage') {
       for (const item of ITEMS) stats.stored[item] += building.inventory[item]
     }
@@ -58,9 +59,10 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   if (building.kind === 'generator') return { kind: 'generator', capacityKw: GENERATOR_KW, actualKw: electrical.network ? electrical.network.suppliedKw / electrical.network.generators : 0, electrical }
   if (building.kind === 'powerPole') return { kind: 'powerPole', coverageRadius: POLE_COVERAGE_RADIUS, coveredMachines: world.buildings.filter(b => b && powerRequirement(b) > 0 && withinRange(building, b, POLE_COVERAGE_RADIUS)).length, electrical }
   if (building.kind !== 'furnace') return null
+  const recipe = building.recipeId ? RECIPES[building.recipeId] : null
   return {
-    kind: 'furnace', direction: building.direction, recipe: RECIPES[building.recipeId].label, recipeId: building.recipeId,
-    requirements: { ...RECIPES[building.recipeId].inputs }, products: { ...RECIPES[building.recipeId].outputs }, durationMs: RECIPES[building.recipeId].durationMs, recipeChangeError: recipeChangeError(building),
+    kind: 'furnace', direction: building.direction, recipeMode: building.recipeMode, recipe: recipe?.label ?? 'Waiting for ore', recipeId: building.recipeId,
+    requirements: { ...recipe?.inputs }, products: { ...recipe?.outputs }, durationMs: recipe?.durationMs ?? 0, recipeChangeError: recipeChangeError(building),
     input: { ...building.input }, output: { ...building.output }, reserved: { ...(building.job?.outputs ?? emptyInventory()) },
     progress: building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0,
     electrical, status: furnaceStatus(building), outputWaiting: outputWaiting(world, building),

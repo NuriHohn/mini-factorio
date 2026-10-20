@@ -31,14 +31,16 @@ export default function App() {
           <p className="eyebrow">{inspection.kind === 'powerPole' ? 'POWER POLE' : inspection.kind.toUpperCase()} INSPECTION</p>
           {inspection.kind !== 'storage' && <PowerInspector details={inspection.electrical} />}
           {inspection.kind === 'storage' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' ? <>
-            <h2>{inspection.recipe}</h2>
-            <label className="recipe-label" htmlFor="furnace-recipe">Furnace recipe</label>
-            <select id="furnace-recipe" value={inspection.recipeId} disabled={inspection.recipeChangeError !== null} aria-describedby="recipe-help" onChange={event => {
+            <h2>Furnace</h2>
+            <div className="stats"><span>Detected recipe</span><b>{inspection.recipe}</b></div>
+            <label className="recipe-label" htmlFor="furnace-recipe">Recipe mode</label>
+            <select id="furnace-recipe" value={inspection.recipeMode} disabled={inspection.recipeChangeError !== null} aria-describedby="recipe-help" onChange={event => {
+              if (event.currentTarget.value === 'auto') { requestRecipe('auto'); return }
               const recipe = Object.values(RECIPES).find(recipe => recipe.id === event.currentTarget.value)
               if (recipe) requestRecipe(recipe.id)
-            }}>{Object.values(RECIPES).filter(recipe => recipe.machine === 'furnace').map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.label}</option>)}</select>
-            <p className="inspection-note" id="recipe-help">{inspection.recipeChangeError ?? 'Choose a recipe while this furnace is completely empty and idle.'}</p>
-            <p className="inspection-recipe"><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /> · {inspection.durationMs / 1000} seconds at full power · No fuel needed</p>
+            }}><option value="auto">Auto</option>{Object.values(RECIPES).filter(recipe => recipe.machine === 'furnace').map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.label}</option>)}</select>
+            <p className="inspection-note" id="recipe-help">{inspection.recipeChangeError ?? 'Auto detects incoming ore and stays locked until both buffers and the active batch are empty. Change mode only while empty and idle.'}</p>
+            {inspection.recipeId && <p className="inspection-recipe"><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /> · {inspection.durationMs / 1000} seconds at full power · No fuel needed</p>}
             <div className="stats"><span>Status</span><b>{inspection.status === 'processing' && inspection.electrical.speedFraction === 0 ? 'Paused · no power' : statuses[inspection.status]}</b></div>
             <div className="stats"><span>Output direction</span><b>{inspection.direction}</b></div>
             <section aria-label="Input inventory"><div className="stats"><span>Input buffer</span><b>{inventoryTotal(inspection.input)} / {FURNACE_INPUT_CAPACITY}</b></div><InventoryView inventory={inspection.input} expected={inspection.requirements} /></section>

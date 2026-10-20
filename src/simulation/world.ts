@@ -1,7 +1,7 @@
 import type { PowerState } from './power'
 import { emptyInventory, RESOURCES } from './items'
 import type { Inventory, Item, Resource } from './items'
-import type { RecipeId } from './recipes'
+import type { FurnaceRecipeMode, RecipeId } from './recipes'
 export type { Item } from './items'
 export const SIZE = 40
 export const INTERVAL = 1000
@@ -22,7 +22,8 @@ export interface ProcessingJob {
 export interface Furnace extends Position {
   kind: 'furnace'
   direction: Direction
-  recipeId: RecipeId
+  recipeMode: FurnaceRecipeMode
+  recipeId: RecipeId | null
   input: Inventory
   output: Inventory
   job: ProcessingJob | null
@@ -80,7 +81,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
     case 'storage': building = { kind, x, y, inventory: emptyInventory() }; break
     case 'miner': building = { kind, x, y, direction, elapsed: 0, item: null }; break
     case 'belt': building = { kind, x, y, direction, item: null, progress: 0, entry: opposite(direction) }; break
-    case 'furnace': building = { kind, x, y, direction, recipeId: 'ironSmelting', input: emptyInventory(), output: emptyInventory(), job: null }; break
+    case 'furnace': building = { kind, x, y, direction, recipeMode: 'auto', recipeId: null, input: emptyInventory(), output: emptyInventory(), job: null }; break
   }
   world.buildings[y * SIZE + x] = building
   world.topologyRevision++

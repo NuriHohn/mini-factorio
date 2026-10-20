@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { poweredWorld } from './testFixtures'
 import { advanceWorld, STEP_MS } from './step'
 import { advanceTransport, outputMachines } from './transport'
-import { furnaceStatus } from './smelting'
+import { changeFurnaceRecipe, furnaceStatus } from './smelting'
 import { ITEMS, inventoryTotal } from './items'
 import { FURNACE_INPUT_CAPACITY, FURNACE_OUTPUT_CAPACITY, RECIPES } from './recipes'
 import { buildingAt, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding, SIZE } from './world'
@@ -19,6 +19,7 @@ function chest(world: World, x: number, y: number) { return buildingAt(world, x,
 function setup() {
   const world = poweredWorld(() => .5)
   place(world, 20, 20, 'furnace')
+  expect(changeFurnaceRecipe(world, 20, 20, 'ironSmelting')).toBe(null)
   return world
 }
 function line() {
