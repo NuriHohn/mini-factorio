@@ -48,12 +48,12 @@ describe('Pumpkin Pete deterministic movement and fright', () => {
     }
     expect(a).toEqual(b)
   })
-  it('moves one tile per second, and fleeing is approximately 1.5 times faster', () => {
+  it('keeps wandering at one tile per second and triples the former 1.5-tile fleeing speed', () => {
     const walking = createWorld(() => .5), fleeing = structuredClone(walking)
     clickPete(fleeing, fleeing.pete)
-    advanceWorld(walking, 400); advanceWorld(fleeing, 400)
-    expect(Math.hypot(walking.pete.x - 17, walking.pete.y - 23)).toBeCloseTo(.4)
-    expect(Math.hypot(fleeing.pete.x - 17, fleeing.pete.y - 23)).toBeCloseTo(.6)
+    advanceWorld(walking, 1000); advanceWorld(fleeing, 1000)
+    expect(Math.hypot(walking.pete.x - 17, walking.pete.y - 23)).toBeCloseTo(1)
+    expect(Math.hypot(fleeing.pete.x - 17, fleeing.pete.y - 23)).toBeCloseTo(4.5)
   })
   it('preserves position when frightened halfway through a walking segment', () => {
     const world = createWorld(() => .5)
@@ -62,7 +62,7 @@ describe('Pumpkin Pete deterministic movement and fright', () => {
     clickPete(world, world.pete)
     expect(world.pete.x).toBe(x); expect(world.pete.y).toBe(y)
     advanceWorld(world, 50)
-    expect(Math.hypot(world.pete.x - x, world.pete.y - y)).toBeCloseTo(.075)
+    expect(Math.hypot(world.pete.x - x, world.pete.y - y)).toBeCloseTo(.225)
   })
   it('chooses a reachable corner, reroutes on topology changes, and cries for exactly ten seconds', () => {
     const world = createWorld(() => .5)
@@ -88,19 +88,42 @@ describe('Pumpkin Pete deterministic movement and fright', () => {
     removeBuilding(world, 17, 22); advanceWorld(world, 11000)
     expect(world.pete.mode).toBe('WANDERING'); expect(world.pete.y).toBeLessThan(23)
   })
-  it('ignores repeated scares without resetting cooldown or crying duration', () => {
+  it.each(['FLEEING', 'CRYING'] as const)('replays every web in %s without changing behavior or timers', mode => {
+    const world = createWorld(() => .5)
+    clickPete(world, world.pete)
+    if (mode === 'CRYING') {
+      for (let i = 0; i < 1000 && world.pete.mode !== 'CRYING'; i++) advanceWorld(world, 50)
+    }
+    expect(world.pete.mode).toBe(mode)
+    for (let i = 0; i < 3; i++) {
+      advanceWorld(world, 100)
+      const before = structuredClone(world.pete)
+      expect(before.webMs).toBeLessThan(700)
+      expect(clickPete(world, world.pete)).toBe(true)
+      expect(world.pete).toEqual({ ...before, webMs: 700 })
+    }
+  })
+  it('does not extend crying or sabotage cooldown through repeated web hits', () => {
     const { world } = targetWorld()
     world.pete.cooldownMs = 12345
-    expect(clickPete(world, world.pete)).toBe(true)
-    const state = structuredClone(world.pete)
-    expect(clickPete(world, world.pete)).toBe(true); expect(world.pete).toEqual(state)
-    advanceWorld(world, 50)
+    clickPete(world, world.pete); advanceWorld(world, 50)
     expect(world.pete.mode).toBe('CRYING')
-    const crying = structuredClone(world.pete)
-    expect(clickPete(world, world.pete)).toBe(true); expect(world.pete).toEqual(crying)
-    advanceWorld(world, 10000)
+    for (let i = 0; i < 99; i++) { advanceWorld(world, 100); clickPete(world, world.pete) }
+    expect(world.pete.cryingMs).toBe(100)
+    advanceWorld(world, 100)
+    expect(world.pete.mode).toBe('WANDERING')
     expect(world.pete.cooldownMs).toBe(2295)
     expect(world.pete.pumpkin).toBe(null)
+  })
+  it('keeps faster fleeing deterministic across uneven time partitions and repeated clicks', () => {
+    const a = createWorld(() => .5), b = structuredClone(a)
+    clickPete(a, a.pete); clickPete(b, b.pete)
+    for (let i = 0; i < 12; i++) {
+      advanceWorld(a, 500)
+      for (const delta of [17, 33, 150, 300]) advanceWorld(b, delta)
+      clickPete(a, a.pete); clickPete(b, b.pete)
+    }
+    expect(a).toEqual(b)
   })
   it('reserves occupied movement tiles against construction and rejects clicks outside the goblin', () => {
     const world = createWorld(() => .5)

@@ -100,7 +100,15 @@ describe('Pete click priority over every tool', () => {
     expect(world.pete.mode).toBe('FLEEING')
     expect(world.buildings).toEqual(buildings)
     expect(useGameStore.getState().tool).toBe(tool)
-    expect(useGameStore.getState().scarePete(world, world.pete)).toBe(true)
+    for (const mode of ['FLEEING', 'CRYING'] as const) {
+      Object.assign(world.pete, { mode, webMs: 200 })
+      const before = structuredClone(world.pete)
+      expect(useGameStore.getState().scarePete(world, world.pete)).toBe(true)
+      expect(world.pete).toEqual({ ...before, webMs: 700 })
+      expect(useGameStore.getState().tool).toBe(tool)
+      expect(useGameStore.getState().inspected).toBe(null)
+      expect(world.buildings).toEqual(buildings)
+    }
     expect(useGameStore.getState().scarePete(world, { x: 0, y: 0 })).toBe(false)
   })
 })

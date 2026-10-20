@@ -82,7 +82,7 @@ For input/rendering changes, check in an available browser and report whether ch
 4. Place poles near range boundaries and overlapping coverage. Check dashed preview links/colors, disconnected placement, coverage highlights and assigned networks without hover mutating topology.
 5. Create a shortage, interrupt generation, then restore it. Check proportional speed, frozen processing animations/progress, reservations and continued belt/export behavior.
 6. Place/rotate inserters with 8/R; check pickup/drop previews, chest selection, belt and machine ports, held items under blocked output/outages, and nominal outward/return timing. Preserve existing direct belt chains.
-7. Observe Pete walking/throwing; inspect a slimed machine, verify zero demand and countdown, then automatic recovery. Click Pete with placement/deletion selected, verify only webs/fright occur, and observe corner crying/recovery. Delete a flying pumpkin target and a slimed building; check cleanup.
+7. Observe Pete walking/throwing; inspect a slimed machine, verify zero demand and countdown, then automatic recovery. Click Pete with placement/deletion selected, verify only webs/fright occur, and observe fast fleeing and corner crying/recovery. Click repeatedly while fleeing/crying: webs replay but destination, crying duration and cooldown do not reset. Delete a flying pumpkin target and a slimed building; check cleanup.
 8. Check WASD, normalized diagonal movement, wheel zoom, camera bounds, viewport resizing and canvas cleanup/remount without errors or duplicate games.
 
 ## Documentation maintenance and technical limits
