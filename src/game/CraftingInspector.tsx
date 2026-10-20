@@ -26,7 +26,7 @@ export function CraftingInspector({ inspection, requestRecipe }: {
     <p className="inspection-note" id="recipe-help">{inspection.recipeLocked ? 'This recipe stays locked, even when empty. A manual change requires empty buffers and no active batch; automatic detection cannot be restarted.' : furnace ? 'The first accepted ore permanently locks its recipe.' : 'Complete circuits take priority during initial detection. Single-ingredient candidates wait 2 seconds, then lock permanently. Existing buffered items are retained.'}</p>
     {inspection.recipeChangeError && <p className="inspection-note">{inspection.recipeChangeError}</p>}
     {inspection.recipeId && <p className="inspection-recipe"><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /> · {inspection.durationMs / 1000} seconds at full power</p>}
-    <div className="stats"><span>Status</span><b>{inspection.status === 'processing' && inspection.electrical.speedFraction === 0 ? 'Paused · no power' : statuses[inspection.status]}</b></div>
+    <div className="stats"><span>Status</span><b>{inspection.electrical.state === 'sabotaged' ? 'Paused · sabotaged' : inspection.status === 'processing' && inspection.electrical.speedFraction === 0 ? 'Paused · no power' : statuses[inspection.status]}</b></div>
     {!furnace && inspection.recipeMode === 'auto' && <div className="stats"><span>Recipe wait remaining</span><b>{(inspection.recipeWaitRemainingMs / 1000).toFixed(2)} s</b></div>}
     <div className="stats"><span>Crafting speed</span><b>{inspection.craftingSpeed.toFixed(1)}</b></div>
     <div className="stats"><span>Output direction</span><b>{inspection.direction}</b></div>

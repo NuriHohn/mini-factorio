@@ -1,8 +1,9 @@
 import type { ElectricalDetails } from '../simulation/inspection'
-const labels = { disconnected: 'Outside coverage', 'no-generation': 'No generation', idle: 'Connected · idle', reduced: 'Reduced speed', powered: 'Fully powered' }
+const labels = { sabotaged: 'Sabotaged by Pumpkin Pete', disconnected: 'Outside coverage', 'no-generation': 'No generation', idle: 'Connected · idle', reduced: 'Reduced speed', powered: 'Fully powered' }
 export function PowerInspector({ details }: { details: ElectricalDetails }) {
   const network = details.network
   return <div className={`power-details power-${details.state}`}>
+    {details.sabotageRemainingMs > 0 && <div className="stats sabotage-countdown"><span>Disabled for</span><b>{(details.sabotageRemainingMs / 1000).toFixed(2)} s</b></div>}
     <div className="stats"><span>Assigned network</span><b>{details.networkId === null ? 'None' : `#${details.networkId}`}</b></div>
     <div className="stats"><span>Power status</span><b>{labels[details.state]}</b></div>
     {details.requirementKw > 0 && <>

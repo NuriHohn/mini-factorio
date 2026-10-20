@@ -17,6 +17,8 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 | [`crafting.ts`](../src/simulation/crafting.ts) | Shared jobs, power-scaled processing, output reservations, status and assembler mode/manual validation |
 | [`smelting.ts`](../src/simulation/smelting.ts) | Furnace incoming recipe probes and `changeFurnaceRecipe`; legacy processing exports delegate to shared crafting |
 | [`assemblerRecipes.ts`](../src/simulation/assemblerRecipes.ts) | One-time Auto candidate selection/locking, initial wait clock and per-item capacities |
+| [`pete.ts`](../src/simulation/pete.ts) | Seeded NPC movement/pathfinding, scare hit testing, projectile impact and authoritative sabotage timers |
+| [`peteVisuals.ts`](../src/game/peteVisuals.ts) | Procedural goblin, pumpkin/web/tear animation and transient sabotage splatter |
 | [`power.ts`](../src/simulation/power.ts) | Cached networks, assignment, working demand, allocation and read-only pole preview |
 | [`inspection.ts`](../src/simulation/inspection.ts) | Copied building/electrical snapshots and derived world statistics |
 | [`beltConnections.ts`](../src/simulation/beltConnections.ts) | Topology-derived visual inputs and stable primary lane |
@@ -46,6 +48,8 @@ TypeScript spans all layers. Simulation modules have no React, Phaser, Zustand o
 6. `advanceInserters`: atomically pick up/deliver in inserter tile order using allocated power and the step-start budget.
 7. `advanceCrafting`: progress/complete existing jobs, finalize undecided assembler detection, and start eligible jobs without changing locked recipes.
 8. Mining: advance unblocked miners by allocated power fraction; buffer completed ore and update `mined`.
+
+Each fixed step first advances `World.timeMs` by 50 ms and runs `advancePete`. Projectile impacts set a building-owned absolute `sabotageUntilMs`; power allocation sees that state in the same boundary. `sabotageRemaining` is the shared read-only timer query for allocation, inspection and visuals. Suppressing working demand reuses existing zero-speed production pause behavior without modifying jobs or duplicating crafting logic. Normal transport/export remains unchanged.
 
 New crafting jobs begin with zero elapsed time; finished products export on a later step. An assembler completing a job keeps its locked recipe and may start the next batch at that boundary. Readiness newly supplied by an inserter receives processing power on a subsequent allocation; new jobs still start at zero. Phaser also calls `allocatePower` after stepping for current visual/inspection data; that call does not advance simulation time.
 
@@ -80,3 +84,13 @@ Phaser draws terrain, machines, wires, coverage, items and placement previews pr
 Preserve nonnegative integer quantities, complete atomic batches, output inventory plus reservations within capacity, and stable transfer/selection priorities. Count active job inputs and held inserter items in material conservation, never promised outputs. A gear represents two iron units; a cable half a copper unit; a circuit one iron plus 1.5 copper units. Deliberate building removal is the discard exception and preserves lifetime counters. Chest totals are stored inventory, not total world inventory.
 
 Extend the existing item/recipe/machine metadata and shared core before adding special cases. Keep future machine ports/capacity policies in simulation data, invalidate topology through supported operations, and extend snapshot/UI presentation without exposing live state. Do not introduce a second crafting engine or renderer-dependent planning rules. Preserve the two distinct Auto policies and their regression suites.
+
+## NPC state and rendering lifetime
+
+`World.pete` holds one `WANDERING`/`FLEEING`/`CRYING` state, tile-to-tile interpolation, a seeded 32-bit LCG, escape path, cooldown, crying/web clocks and at most one in-flight pumpkin. The NPC module uses stable cardinal neighbor order; breadth-first search only runs for a new escape route or topology change. A reachable destination minimizes distance to any corner, then tile index. Wandering tests empty adjacent tiles; construction reserves Pete's current/next tile, and cached pole previews include these reservations in their key.
+
+Projectile snapshots retain the target building identity as well as its tile index: deletion/replacement cannot redirect a hit. The target reference is serializable with `structuredClone`, and no unbounded event history is retained. Elapsed sabotage timestamps on removed buildings have no world effect. Existing fixed-step remainders make behavior independent of frame partitions.
+
+Phaser checks Pete's world-space hit region before tool/inspection dispatch. A consumed click cannot place/delete a building, including repeated clicks during fleeing/crying. Zustand only dispatches this command and copied inspection data; NPC positions/inventories remain authoritative in the scene's world. Camera conversion is shared with building clicks.
+
+A single reused graphics layer redraws Pete, the bounded projectile/web effect and currently sabotaged buildings. Splatter reads building position and authoritative remaining time on every frame; no particle objects or independent expiry timers are allocated. It disappears on expiry or deletion, with a building-identity check guarding stale references. Bubbles, tears and walking bobs derive from simulation time, so rendering cannot extend a disable duration. One reused text object labels Pete.

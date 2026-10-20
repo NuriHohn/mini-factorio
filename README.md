@@ -32,3 +32,5 @@ All buildings are free. For exact recipes, buffers, power rules, previews and Au
 - [Roadmap](docs/ROADMAP.md): completed milestones and future proposals.
 - [Development](docs/DEVELOPMENT.md): setup, checks and contribution workflow.
 - [AGENTS.md](AGENTS.md): mandatory contributor instructions.
+
+Pumpkin Pete wanders the factory and occasionally disables a nearby production machine for 10 seconds with pumpkin mush and goblin slime. Click him to scare him into a corner; your selected building tool stays active. See [gameplay rules](docs/GAME_DESIGN.md#pumpkin-pete).

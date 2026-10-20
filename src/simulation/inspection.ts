@@ -1,3 +1,4 @@
+import { sabotageRemaining } from './pete'
 import { GENERATOR_KW, POLE_COVERAGE_RADIUS, powerRequirement, withinRange } from './power'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import type { Inventory, Item, Resource } from './items'
@@ -118,7 +119,8 @@ export interface ElectricalDetails {
   requestedKw: number
   suppliedKw: number
   speedFraction: number
-  state: 'disconnected' | 'no-generation' | 'idle' | 'reduced' | 'powered'
+  sabotageRemainingMs: number
+  state: 'sabotaged' | 'disconnected' | 'no-generation' | 'idle' | 'reduced' | 'powered'
   explanation: string
   network: { capacityKw: number; requestedKw: number; suppliedKw: number; poles: number; generators: number } | null
 }
@@ -130,14 +132,16 @@ export function electricalDetails(world: World, index: number): ElectricalDetail
   const requirementKw = building ? powerRequirement(building) : 0
   let state: ElectricalDetails['state']
   let explanation: string
-  if (!network) { state = 'disconnected'; explanation = building?.kind === 'generator' ? 'Generator disconnected. Place a pole within 3 tiles; generators do not power machines directly.' : 'Outside pole coverage. Place a pole within 3 tiles and connect a generator.' }
+  const remaining = building ? sabotageRemaining(world, building) : 0
+  if (remaining > 0) { state = 'sabotaged'; explanation = 'Sabotaged by Pumpkin Pete. Production is paused without consuming power; buffers and progress are preserved.' }
+  else if (!network) { state = 'disconnected'; explanation = building?.kind === 'generator' ? 'Generator disconnected. Place a pole within 3 tiles; generators do not power machines directly.' : 'Outside pole coverage. Place a pole within 3 tiles and connect a generator.' }
   else if (network.capacityKw === 0) { state = 'no-generation'; explanation = 'Assigned network has no generator. Connect a generator within 3 tiles of a pole.' }
   else if (building?.kind === 'generator' && network.suppliedKw > 0) { state = 'powered'; explanation = 'Supplying the assigned network. Generators share its load equally.' }
   else if (!consumer || consumer.requestedKw === 0) { state = 'idle'; explanation = requirementKw ? building?.kind === 'inserter' ? 'Connected and available. No power requested while waiting for compatible input or blocked at the drop point.' : 'Connected and available. No power requested while waiting for input or output space.' : 'Connected; unused capacity is available to this network.' }
   else if (consumer.speedFraction < 1) { state = 'reduced'; explanation = 'Network demand exceeds generation. All working machines share power proportionally; add a generator.' }
   else { state = 'powered'; explanation = 'Full requested power supplied.' }
   return {
-    networkId, requirementKw, requestedKw: consumer?.requestedKw ?? 0, suppliedKw: consumer?.suppliedKw ?? 0,
+    sabotageRemainingMs: remaining, networkId, requirementKw, requestedKw: consumer?.requestedKw ?? 0, suppliedKw: consumer?.suppliedKw ?? 0,
     speedFraction: consumer?.speedFraction ?? 0, state, explanation,
     network: network ? { capacityKw: network.capacityKw, requestedKw: network.requestedKw, suppliedKw: network.suppliedKw, poles: network.poleIndices.length, generators: network.generatorIndices.length } : null,
   }

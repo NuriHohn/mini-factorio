@@ -1,3 +1,5 @@
+import { createPete, peteOccupiesTile } from './pete'
+import type { Pete } from './pete'
 import type { PowerState } from './power'
 import { emptyInventory, RESOURCES } from './items'
 import type { Inventory, Item, Resource } from './items'
@@ -9,9 +11,10 @@ export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
 export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole'
 export interface Position { x: number; y: number }
-export interface Miner extends Position { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
-export interface Belt extends Position { kind: 'belt'; direction: Direction; item: Item | null; progress: number; entry: Direction }
-export interface Storage extends Position { kind: 'storage'; inventory: Inventory }
+export interface BuildingPosition extends Position { sabotageUntilMs?: number }
+export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
+export interface Belt extends BuildingPosition { kind: 'belt'; direction: Direction; item: Item | null; progress: number; entry: Direction }
+export interface Storage extends BuildingPosition { kind: 'storage'; inventory: Inventory }
 export interface ProcessingJob {
   recipeId: RecipeId
   elapsedMs: number
@@ -19,7 +22,7 @@ export interface ProcessingJob {
   // Explicitly reserved output slots; consumed inputs remain accountable in the job.
   outputs: Inventory
 }
-export interface Furnace extends Position {
+export interface Furnace extends BuildingPosition {
   kind: 'furnace'
   direction: Direction
   recipeMode: FurnaceRecipeMode
@@ -29,7 +32,7 @@ export interface Furnace extends Position {
   output: Inventory
   job: ProcessingJob | null
 }
-export interface Assembler extends Position {
+export interface Assembler extends BuildingPosition {
   kind: 'assembler'
   direction: Direction
   recipeMode: 'auto' | 'manual'
@@ -41,17 +44,17 @@ export interface Assembler extends Position {
   job: ProcessingJob | null
 }
 export type CraftingMachine = Furnace | Assembler
-export interface Inserter extends Position {
+export interface Inserter extends BuildingPosition {
   kind: 'inserter'
   direction: Direction
   phase: 'idle' | 'carrying' | 'returning'
   item: Item | null
   elapsedMs: number
 }
-export interface Generator extends Position { kind: 'generator' }
-export interface PowerPole extends Position { kind: 'powerPole' }
+export interface Generator extends BuildingPosition { kind: 'generator' }
+export interface PowerPole extends BuildingPosition { kind: 'powerPole' }
 export type Building = Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { timeMs: number; pete: Pete; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -80,7 +83,7 @@ export function createWorld(random = Math.random): World {
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  return { tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  return { timeMs: 0, pete: createPete(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
 }
 export function depositAt(world: World, x: number, y: number): Resource | null {
   return inside(x, y) ? world.tiles[y * SIZE + x] : null
@@ -88,6 +91,7 @@ export function depositAt(world: World, x: number, y: number): Resource | null {
 
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner'): string | null {
   if (!inside(x, y)) return 'Choose a tile inside the world.'
+  if (peteOccupiesTile(world, x, y)) return 'Pumpkin Pete is walking through this tile.'
   if (buildingAt(world, x, y)) return 'This tile already has a building.'
   if (kind === 'miner' && !depositAt(world, x, y)) return 'Place mining machines on ore deposits.'
   return null
