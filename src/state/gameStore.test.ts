@@ -163,3 +163,23 @@ describe('prison inspection and validated release commands', () => {
     expect(useGameStore.getState().inspection?.kind).toBe('radar')
   })
 })
+
+describe('compact splitter toolbar and inspection', () => {
+  it('rotates its placement direction, switches tools, cancels with ESC and inspects without building', () => {
+    const world = createWorld(() => .5)
+    placeBuilding(world, 22, 20, 'splitter', 'east')
+    const before = structuredClone(world)
+    key('Digit0'); expect(useGameStore.getState().tool).toBe('splitter')
+    useGameStore.getState().rotate(); expect(useGameStore.getState().direction).toBe('south')
+    useGameStore.getState().select('splitter'); expect(useGameStore.getState().tool).toBe(null)
+    useGameStore.getState().inspect(world, 22, 20)
+    expect(useGameStore.getState().inspection).toMatchObject({ kind: 'splitter', direction: 'east', nextOutput: 0 })
+    useGameStore.getState().select('splitter'); key('KeyX')
+    expect(useGameStore.getState().tool).toBe('remove')
+    key('Digit0'); key('Escape'); key('Escape')
+    expect(useGameStore.getState().tool).toBe(null)
+    useGameStore.getState().inspect(world, 22, 20)
+    expect(useGameStore.getState().inspection?.kind).toBe('splitter')
+    expect(world).toEqual(before)
+  })
+})

@@ -5,6 +5,7 @@ import { GameCanvas } from './game/GameCanvas'
 import { useGameStore } from './state/gameStore'
 import type { Tool } from './state/gameStore'
 import { InserterInspector } from './game/InserterInspector'
+import { SplitterInspector } from './game/SplitterInspector'
 import { CraftingInspector } from './game/CraftingInspector'
 import { ITEM_DEFINITIONS, ITEMS, inventoryTotal } from './simulation/items'
 const tools: { tool: Tool; label: string; hint: string; key: string; icon: string }[] = [
@@ -17,6 +18,7 @@ const tools: { tool: Tool; label: string; hint: string; key: string; icon: strin
   { tool: 'assembler', label: 'Assembler', hint: 'Gears, cables & circuits · 60 kW', key: '7', icon: '⚒' },
   { tool: 'inserter', label: 'Inserter', hint: 'Behind → ahead · 1 item / sec · 10 kW', key: '8', icon: '⌁' },
   { tool: 'radar', label: 'Radar trap', hint: '3-tile detection · requires full 5 kW', key: '9', icon: '◉' },
+  { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×' },
 ]
 export default function App() {
@@ -26,14 +28,14 @@ export default function App() {
   return <div className="app-shell">
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
-      <span className="version"><i /> POLICE & PRISON / SPRINT 7.6</span>
+      <span className="version"><i /> SPLITTERS / SPRINT 08</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
         {inspection && <section className="inspection" aria-label="Building inspection">
           <p className="eyebrow">{inspection.kind === 'powerPole' ? 'POWER POLE' : inspection.kind.toUpperCase()} INSPECTION</p>
-          {inspection.kind !== 'storage' && inspection.kind !== 'prison' && <PowerInspector details={inspection.electrical} />}
-          {inspection.kind === 'prison' ? <>
+          {inspection.kind !== 'storage' && inspection.kind !== 'prison' && inspection.kind !== 'splitter' && <PowerInspector details={inspection.electrical} />}
+          {inspection.kind === 'splitter' ? <SplitterInspector inspection={inspection} /> : inspection.kind === 'prison' ? <>
             <h2>Pete’s prison</h2>
             <div className="stats"><span>Occupant</span><b>{inspection.occupied ? 'Angry Pumpkin Pete' : 'Empty'}</b></div>
             <div className="stats"><span>Imprisonment elapsed</span><b>{(inspection.elapsedMs / 1000).toFixed(2)} s</b></div>
@@ -84,10 +86,10 @@ export default function App() {
         </section>
         <section><p className="eyebrow mb-3">BUILDINGS · FREE TO BUILD</p>
           <div className="flex flex-col gap-2">{tools.map(option => <button key={option.key} className="building" data-tool={option.tool ?? undefined} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}><span className="machine-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{option.hint}</small></span><span className="key">{option.key}</span></button>)}</div>
-          <button className="building mt-3" onClick={rotate} disabled={tool !== 'miner' && tool !== 'belt' && tool !== 'furnace' && tool !== 'assembler' && tool !== 'inserter'}><span><strong>Output: {direction}</strong><small>Remove and replace to redirect buildings</small></span><span className="key">R</span></button>
+          <button className="building mt-3" onClick={rotate} disabled={tool !== 'miner' && tool !== 'belt' && tool !== 'furnace' && tool !== 'assembler' && tool !== 'inserter' && tool !== 'splitter'}><span><strong>Output: {direction}</strong><small>Remove and replace to redirect buildings</small></span><span className="key">R</span></button>
         </section>
         <section className="mission"><p className="eyebrow">POWER YOUR FACTORY</p><h2>Generate. Connect. Produce.</h2><p>Place a generator (5) and a pole (6). Machines need a pole within 3 tiles; poles connect within 6 tiles. Shortages slow all working machines proportionally. Belts always run. Furnaces detect ore automatically. Assemblers detect recipes from buffered ingredients, prioritizing circuits. Supply ingredients by belt, or lock a manual recipe in an empty inspector.</p></section>
-        <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
+        <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9 / 0</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
         <p className="session-note">Session only · Refresh to start a new world</p>
       </aside>
       <section className="world-panel"><div className="world-heading"><span><i /> GRASSLAND / SECTOR 01</span><span>40 × 40 TILES</span></div><GameCanvas /><div className="world-footer"><span role="status">{message}</span><span className="legend">{powerOverlay ? 'Green full · Amber reduced · Red no power · Blue idle' : <>◆ Iron · <span className="copper-legend">◆ Copper</span></>}</span></div></section>

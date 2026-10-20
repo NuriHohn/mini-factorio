@@ -1,3 +1,4 @@
+import { splitterDirections } from './splitters'
 import { buildingAt, DIRECTIONS, offsets, opposite, SIZE } from './world'
 import type { Belt, Direction, World } from './world'
 
@@ -8,6 +9,7 @@ export function beltInputs(world: World, belt: Belt): Direction[] {
     if (side === belt.direction) return false
     const offset = offsets[side]
     const source = buildingAt(world, belt.x + offset.x, belt.y + offset.y)
+    if (source?.kind === 'splitter') return splitterDirections(source.direction).includes(opposite(side))
     return (source?.kind === 'belt' || source?.kind === 'miner' || source?.kind === 'furnace' || source?.kind === 'assembler' || source?.kind === 'inserter') && source.direction === opposite(side)
   })
   const rear = opposite(belt.direction)
