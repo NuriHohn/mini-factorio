@@ -13,7 +13,7 @@ Open the URL printed by Vite. In Windows PowerShell, use `npm.cmd` if script exe
 
 ## First factory
 
-Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, choose Electronic circuit in an assembler’s inspector, then feed iron plates and copper cables to separate inputs. Assemblers require a manual recipe. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Use **Save Game** to keep a local browser save, **Load Game** to restore it after refresh, or **Export JSON** for a portable offline backup. A separate autosave runs every two minutes of active gameplay. Expand **Analytics** on the right for actual item rates, production history, utilization and clickable bottlenecks; see [Production analytics](docs/GAME_DESIGN.md#production-analytics).
+Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, choose Electronic circuit in an assembler’s inspector, then feed iron plates and copper cables to separate inputs. Assemblers require a manual recipe. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Use **Save Game** to keep a local browser save, **Load Game** to restore it after refresh, or **Export JSON** for a portable offline backup. A separate autosave runs every two minutes of active gameplay. Research **Analytics I**, then expand **Analytics** on the right for actual item rates, production history, utilization and clickable bottlenecks; see [Production analytics](docs/GAME_DESIGN.md#production-analytics).
 
 | Control | Action |
 | --- | --- |
@@ -24,7 +24,7 @@ Place a generator and a nearby power pole, then build **miner → belt → furna
 | B | Toggle Spider Web in the Pete tab |
 | Escape, then click | Cancel placement and inspect a building |
 
-All buildings are free. For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
+Placement is free once its technology is unlocked. New games begin with Basic Industry; productive miners, furnaces and assemblers earn RP. Use **Research** to unlock inserters, assemblers, splitters and the analytics dashboard. See [Research and technology](docs/GAME_DESIGN.md#research-and-technology). For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
 
 ## Project context
 
@@ -46,4 +46,4 @@ The build menu starts on **Factory**. **Pete** contains radar traps and Anti-Gob
 
 Save & Load controls are below the inspector in the scrollable sidebar. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import JSON validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export JSON before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
 
-Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; new version-3 saves preserve reactions, webs and cooldowns, while version-1/2 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
+Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-5 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–4 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).

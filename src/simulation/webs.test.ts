@@ -1,12 +1,13 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { advanceWorld } from './step'
-import { createWorld, placeBuilding, SIZE } from './world'
+import { placeBuilding, SIZE } from './world'
 import { shootWeb, MAX_GROUND_WEBS, WEB_FLIGHT_MS, WEB_LIFETIME_MS } from './webs'
 import { clickPete } from './pete'
 import { releasePete } from './police'
 import type { World } from './world'
 function corridor() {
-  const w = createWorld(() => .5)
+  const w = createUnlockedWorld(() => .5)
   for (const [x, y] of [[16, 23], [17, 22], [17, 24]]) placeBuilding(w, x, y, 'storage', 'east')
   return w
 }
@@ -99,7 +100,7 @@ describe('trap, police and sprinkler transition safety', () => {
     const w = trapped()
     placeBuilding(w, 18, 22, 'sprinkler', 'east'); placeBuilding(w, 19, 22, 'powerPole', 'east'); placeBuilding(w, 19, 21, 'generator', 'east')
     advanceWorld(w, 50); expect(w.pete.mode).toBe('TRAPPED'); expect(w.pete.water).toBeNull()
-    const water = createWorld(() => .5)
+    const water = createUnlockedWorld(() => .5)
     placeBuilding(water, 18, 23, 'sprinkler', 'east'); placeBuilding(water, 18, 22, 'powerPole', 'east'); placeBuilding(water, 18, 21, 'generator', 'east')
     advanceWorld(water, 50); expect(water.pete.mode).toBe('SPRAYED')
     for (const delta of [0, 1000, 1000, 2000]) {

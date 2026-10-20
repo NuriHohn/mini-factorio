@@ -87,3 +87,20 @@ kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; paddin
 .analytics-legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; }
 .bottlenecks { list-style: none; padding: 0; display: grid; gap: 6px; }
 @media (max-width: 1100px) { .analytics-panel.is-open { position: absolute; right: 0; top: 75px; bottom: 0; width: min(360px, 55vw); z-index: 10; } .analytics-panel:not(.is-open) { width: 48px; padding: 8px !important; } .analytics-panel:not(.is-open) .analytics-toggle { writing-mode: vertical-rl; width: 30px; } }
+
+.research-toggle { border: 1px solid #627d51; border-radius: 5px; padding: 8px 14px; background: #283326; color: #d5e8bf; font-size: 12px; }
+.research-toggle small { display: block; color: #a7b79d; margin-top: 3px; }
+.research-panel { margin: auto; width: min(720px, 90vw); max-height: 85dvh; overflow-y: auto; padding: 24px; border: 1px solid #627d51; border-radius: 8px; background: #171e1a; color: #e0e6df; font-size: 13px; }
+.research-panel::backdrop { background: #080d0bc9; }
+.research-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.research-heading h2 { margin: 0; font-size: 20px; }
+.technology-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.technology-card { display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 14px; border: 1px solid #3b463d; border-radius: 5px; background: #202923; }
+.technology-card[aria-pressed="true"] { border-color: #a7cb86; background: #283326; }
+.technology-card span { color: #c3d9a6; font-size: 12px; }
+.technology-card small { color: #a4b0a3; line-height: 1.5; }
+.technology-detail { margin-top: 18px; padding: 14px; border: 1px solid #3b463d; border-radius: 5px; }
+.technology-detail h3 { margin-top: 0; }
+.research-feedback { min-height: 20px; color: #c3d9a6; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+@media (max-width: 700px) { .technology-cards { grid-template-columns: 1fr; } .research-panel { padding: 16px; } }

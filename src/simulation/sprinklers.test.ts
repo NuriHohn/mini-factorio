@@ -1,6 +1,7 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { advanceSprinklers, sprinklerDetects, sprinklerPowered, SPRINKLER_KW, SPRINKLER_COOLDOWN_MS } from './sprinklers'
-import { createWorld, placeBuilding, removeBuilding, SIZE } from './world'
+import { placeBuilding, removeBuilding, SIZE } from './world'
 import type { Miner, Sprinkler, World } from './world'
 import { advanceWorld } from './step'
 import { clickPete, sabotageRemaining } from './pete'
@@ -10,7 +11,7 @@ import { canReceive } from './transport'
 import { inventoryTotal } from './items'
 import { releasePete } from './police'
 function setup(power = true) {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   Object.assign(world.pete, { x: 8, y: 8, tile: 328 })
   expect(placeBuilding(world, 9, 8, 'sprinkler', 'east')).toBe(true)
   placeBuilding(world, 9, 7, 'powerPole', 'east')
@@ -61,7 +62,7 @@ describe('sprinkler building, range and electricity', () => {
     expect(w.pete.mode).toBe('SPRAYED')
   })
   it('rejects item input and conserves the working production chain during a complete reaction', () => {
-    const w = createWorld(() => .5)
+    const w = createUnlockedWorld(() => .5)
     Object.assign(w.pete, { x: 20, y: 23, tile: 940 })
     for (const [x, y, kind, direction] of [[21, 19, 'powerPole', 'east'], [21, 18, 'generator', 'east'], [20, 20, 'miner', 'east'], [21, 20, 'belt', 'east'], [22, 20, 'furnace', 'south'], [22, 21, 'belt', 'south'], [22, 22, 'storage', 'east'], [21, 22, 'sprinkler', 'east']] as const) expect(placeBuilding(w, x, y, kind, direction)).toBe(true)
     expect(canReceive(w.buildings[901]!, 'iron', 'east')).toBe(false)

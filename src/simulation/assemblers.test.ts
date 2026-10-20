@@ -1,3 +1,4 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { beltInputs } from './beltConnections'
 import { canStartCrafting, changeCraftingRecipe, craftingStatus } from './crafting'
@@ -11,7 +12,7 @@ import { changeFurnaceRecipe } from './smelting'
 import { advanceWorld, STEP_MS } from './step'
 import { poweredWorld } from './testFixtures'
 import { advanceTransport, outputMachines } from './transport'
-import { buildingAt, createWorld, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding, SIZE } from './world'
+import { buildingAt, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Assembler, Belt, BuildingKind, Direction, Storage, World } from './world'
 
 const recipes = [
@@ -72,7 +73,7 @@ function materials(world: World) {
 
 // Real belt-only routing from both miners through Auto furnaces and two assemblers.
 function circuitFactory() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   world.tiles[10 * SIZE + 2] = 'iron'
   world.tiles[16 * SIZE + 2] = 'copper'
   for (const y of [8, 14]) for (const x of [2, 8, 14]) add(world, x, y, 'powerPole')

@@ -1,5 +1,6 @@
+import { createUnlockedWorld } from '../simulation/testFixtures'
 import { describe, expect, it } from 'vitest'
-import { createWorld, placeBuilding, removeBuilding, SIZE } from '../simulation/world'
+import { placeBuilding, removeBuilding, SIZE } from '../simulation/world'
 import type { Assembler, Belt, Furnace, Inserter, Splitter, Storage, World } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 import { poweredWorld } from '../simulation/testFixtures'
@@ -12,14 +13,14 @@ export const view = { scrollX: 123, scrollY: 456, zoom: 1.25, direction: 'west' 
 export const date = '2026-10-20T12:00:00.000Z'
 const snapshot = (world: World): SaveDocument => JSON.parse(encodeSave(world, view, date))
 const restored = (world: World) => decodeSave(JSON.stringify(snapshot(world))).world
-const document = () => snapshot(createWorld(() => .5))
+const document = () => snapshot(createUnlockedWorld(() => .5))
 function line() {
   const world = poweredWorld(() => .5)
   for (const [x, y, kind, direction] of [[20, 20, 'miner', 'east'], [21, 20, 'belt', 'east'], [22, 20, 'furnace', 'south'], [22, 21, 'splitter', 'south'], [22, 22, 'belt', 'east'], [23, 22, 'storage', 'east']] as const) expect(placeBuilding(world, x, y, kind, direction)).toBe(true)
   return world
 }
 function policeWorld() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   Object.assign(world.pete, { x: 8, y: 8, tile: 328, mode: 'CRYING', cryingMs: 10000, cooldownMs: 12345 })
   placeBuilding(world, 9, 8, 'radar', 'east'); placeBuilding(world, 9, 7, 'powerPole', 'east'); placeBuilding(world, 9, 6, 'generator', 'east')
   return world
@@ -58,7 +59,7 @@ describe('versioned offline snapshots', () => {
     expect(snapshot(loaded)).toEqual(snapshot(world))
   })
   it('preserves all transport packets, carried items, stock and a legacy assembler detection wait', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     for (const [x, kind] of [[1, 'belt'], [2, 'splitter'], [3, 'storage'], [4, 'inserter'], [5, 'assembler']] as const) placeBuilding(world, x, 1, kind, 'east')
     Object.assign(world.buildings[41] as Belt, { item: 'copperPlate', progress: .6 })
     Object.assign(world.buildings[42] as Splitter, { input: { item: 'iron', progress: .4 }, outputs: [{ item: 'ironPlate', progress: .8 }, { item: 'copperCable', progress: 1 }], delivered: [12, 13], nextOutput: 1 })
@@ -70,7 +71,7 @@ describe('versioned offline snapshots', () => {
     expect(snapshot(restored(world))).toEqual(snapshot(world))
   })
   it('preserves fleeing movement, web timer and RNG without restarting them', () => {
-    const world = createWorld(() => .5); advanceWorld(world, 350)
+    const world = createUnlockedWorld(() => .5); advanceWorld(world, 350)
     clickPete(world, world.pete); advanceWorld(world, 150)
     expect(world.pete.mode).toBe('FLEEING')
     const loaded = restored(world)
@@ -78,7 +79,7 @@ describe('versioned offline snapshots', () => {
     expect(snapshot(loaded)).toEqual(snapshot(world))
   })
   it('rebuilds projectile identity, preserves sabotage duration and safely omits already deleted targets', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 18, 23, 'furnace', 'east')
     world.pete.pumpkin = { from: { x: 17, y: 23 }, target: world.buildings[938]!, index: 938, elapsedMs: 150 }
     const loaded = restored(world)
@@ -110,7 +111,7 @@ describe('versioned offline snapshots', () => {
     }
   })
   it('preserves locked Auto assemblers with previously buffered unrelated ingredients', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 4, 4, 'assembler', 'east')
     const machine = world.buildings[164] as Assembler
     Object.assign(machine, { recipeMode: 'auto', recipeId: 'ironGear', recipeLocked: true })

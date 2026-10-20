@@ -1,3 +1,5 @@
+import { buildingTechnologyError, createResearch, hasTechnology, purchaseTechnology, researchRate, TECHNOLOGIES } from '../simulation/research'
+import type { ResearchState, TechnologyId } from '../simulation/research'
 import { analyticsSnapshot } from '../simulation/analytics'
 import type { AnalyticsSnapshot } from '../simulation/analytics'
 import type { SaveRequest, SaveStatus } from '../persistence/storage'
@@ -18,6 +20,14 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  research: ResearchState
+  researchRate: number
+  researchOpen: boolean
+  researchRequest: TechnologyId | null
+  researchFeedback: string
+  toggleResearch: () => void
+  requestResearch: (id: TechnologyId) => void
+  applyResearch: (world: World) => void
   analytics: AnalyticsSnapshot
   analyticsOpen: boolean
   toggleAnalytics: () => void
@@ -52,10 +62,20 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  research: createResearch(), researchRate: 0, researchOpen: false, researchRequest: null, researchFeedback: '',
+  toggleResearch: () => set(state => ({ researchOpen: !state.researchOpen, analyticsOpen: false, researchFeedback: '' })),
+  requestResearch: id => set(state => state.researchRequest === null ? { researchRequest: id } : state),
+  applyResearch: world => {
+    const id = get().researchRequest
+    if (id === null) return
+    const error = purchaseTechnology(world, id)
+    set({ researchRequest: null, researchFeedback: error ?? `${TECHNOLOGIES[id].name} researched.` })
+    get().publish(world)
+  },
   analytics: { timeMs: 0, produced: emptyInventory(), consumed: emptyInventory(), totalPerMinute: 0, utilization: 0, configuredMachines: 0, problems: [], history: [], recentItems: [] }, analyticsOpen: false,
-  toggleAnalytics: () => set(state => ({ analyticsOpen: !state.analyticsOpen })),
+  toggleAnalytics: () => set(state => hasTechnology(state.research, 'analytics1') ? { analyticsOpen: !state.analyticsOpen, researchOpen: false } : state),
   focusRequest: null,
-  focusBuilding: index => { get().select(null); set({ focusRequest: index }) },
+  focusBuilding: index => { if (!hasTechnology(get().research, 'analytics1')) return; get().select(null); set({ focusRequest: index }) },
   saveStatus: { manualAt: null, autoAt: null, message: '', error: false }, saveBusy: false, saveRequest: null,
   requestSave: request => set(state => state.saveBusy ? state : { saveRequest: request, saveBusy: true }),
   saveFeedback: (message, error = false) => set(state => ({ saveStatus: { ...state.saveStatus, message, error } })),
@@ -81,11 +101,14 @@ export const useGameStore = create<State>((set, get) => ({
   tool: 'miner', direction: 'east', inspected: null, inspection: null,
   message: 'Power first: place a generator (5) and pole (6) within 3 tiles of your machines. P shows electricity.',
   select: requested => set(state => {
+    const technologyError = requested && buildingTechnologyError(state.research, requested)
+    if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
     return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
+    if (get().researchOpen) { if (event.code === 'Escape') get().toggleResearch(); return }
     if (event.code === 'Escape') { get().select(null); return }
     if (event.repeat || event.editing) return
     if (Object.hasOwn(TOOL_HOTKEYS, event.code)) get().select(TOOL_HOTKEYS[event.code])
@@ -103,13 +126,15 @@ export const useGameStore = create<State>((set, get) => ({
   }),
   rotate: () => set(state => ({ direction: rotate(state.direction) })),
   publish: world => set(state => {
+    const research = { ...world.research, unlocked: [...world.research.unlocked] }
+    const rate = researchRate(world)
     const analytics = analyticsSnapshot(world)
     const stats = worldStats(world)
     const electricity = powerOverview(world)
     const inspection = inspectBuilding(world, state.inspected)
     const inspected = inspection ? state.inspected : null
     // Publish value snapshots only when summaries change, never live world objects.
-    if (JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { stats, electricity, inspection, inspected, analytics }
+    if (JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
+    return { stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
   }),
 }))

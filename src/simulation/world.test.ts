@@ -1,5 +1,6 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
-import { buildingAt, createWorld, DIRECTIONS, placeBuilding, placementError, removalError, removeBuilding, rotate, SIZE } from './world'
+import { buildingAt, DIRECTIONS, placeBuilding, placementError, removalError, removeBuilding, rotate, SIZE } from './world'
 import type { Belt, BuildingKind, Direction, Miner, Storage, World } from './world'
 import { inventoryTotal } from './items'
 import { poweredWorld } from './testFixtures'
@@ -23,7 +24,7 @@ function accounted(world: World) {
 }
 describe('building tools', () => {
   it('generates terrain with a guaranteed central deposit and empty occupancy', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     expect(world.tiles).toHaveLength(SIZE ** 2)
     expect(world.tiles[20 * SIZE + 20]).toBe('iron')
     expect(world.tiles).toContain(null)

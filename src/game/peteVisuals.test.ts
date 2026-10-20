@@ -1,11 +1,12 @@
+import { createUnlockedWorld } from '../simulation/testFixtures'
 import { describe, expect, it, vi } from 'vitest'
 import type Phaser from 'phaser'
 import { drawSabotage } from './peteVisuals'
-import { createWorld, placeBuilding, removeBuilding } from '../simulation/world'
+import { placeBuilding, removeBuilding } from '../simulation/world'
 
 describe('pumpkin mush and slime rendering lifecycle', () => {
   it('renders for the full disable duration, follows position, and leaves no effects after expiry/deletion', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     placeBuilding(world, 22, 20, 'furnace', 'east')
     const building = world.buildings[822]!
     building.sabotageUntilMs = 10000

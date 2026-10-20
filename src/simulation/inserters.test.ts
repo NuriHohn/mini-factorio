@@ -1,3 +1,4 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { changeCraftingRecipe } from './crafting'
 import { inspectBuilding, worldStats } from './inspection'
@@ -8,7 +9,7 @@ import { allocatePower, workingDemand } from './power'
 import { changeFurnaceRecipe } from './smelting'
 import { advanceWorld, STEP_MS } from './step'
 import { poweredWorld } from './testFixtures'
-import { buildingAt, createWorld, DIRECTIONS, offsets, placeBuilding, removeBuilding, SIZE } from './world'
+import { buildingAt, DIRECTIONS, offsets, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Assembler, Belt, BuildingKind, Direction, Furnace, Inserter, Storage, World } from './world'
 
 function add(world: World, x: number, y: number, kind: BuildingKind, direction: Direction = 'east') { expect(placeBuilding(world, x, y, kind, direction)).toBe(true) }
@@ -94,7 +95,7 @@ describe('inserter cycles and ports', () => {
     expect(workingDemand(arm(blocked), blocked)).toBe(0)
   })
   it('allows edge placement but safely waits when a port is outside the world', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     add(world, 0, 0, 'inserter', 'west')
     advanceWorld(world, 5000)
     expect(arm(world, 0, 0)).toMatchObject({ phase: 'idle', item: null })
@@ -360,7 +361,7 @@ describe('power, backpressure, inspection and removal', () => {
 })
 
 function gearFactory() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   for (const x of [10, 13, 16, 22]) { add(world, x, 18, 'powerPole'); add(world, x, 17, 'generator') }
   world.tiles[20 * SIZE + 10] = 'iron'
   add(world, 10, 20, 'miner'); add(world, 11, 20, 'belt')

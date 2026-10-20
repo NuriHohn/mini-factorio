@@ -1,6 +1,7 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { beltInputs } from './beltConnections'
-import { buildingAt, createWorld, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding, rotate } from './world'
+import { buildingAt, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding, rotate } from './world'
 import type { Belt, Direction, World } from './world'
 import { advanceWorld } from './step'
 
@@ -16,7 +17,7 @@ function source(world: World, side: Direction, kind: 'belt' | 'miner' | 'inserte
 describe('belt topology', () => {
   it.each(DIRECTIONS)('finds every legal miner, belt and inserter input for output %s', output => {
     for (const kind of ['miner', 'belt', 'inserter'] as const) {
-      const world = createWorld()
+      const world = createUnlockedWorld()
       const belt = target(world, output)
       for (const side of DIRECTIONS) source(world, side, kind)
       const inputs = beltInputs(world, belt)
@@ -26,7 +27,7 @@ describe('belt topology', () => {
     }
   })
   it('keeps rear-first and tile-order side priority independent of item activity', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     const belt = target(world)
     source(world, 'south')
     source(world, 'north')
@@ -39,7 +40,7 @@ describe('belt topology', () => {
     expect(beltInputs(world, belt)).toEqual(['west', 'north', 'south'])
   })
   it('recomputes after placement, removal and replacement rotation', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     const belt = target(world, 'south')
     expect(beltInputs(world, belt)).toEqual([])
     source(world, 'west')
@@ -55,7 +56,7 @@ describe('belt topology', () => {
     expect(beltInputs(world, belt)).toEqual([])
   })
   it('ignores storage and outward-facing neighbours, including map edges', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     placeBuilding(world, 0, 0, 'belt', 'east')
     const belt = buildingAt(world, 0, 0) as Belt
     placeBuilding(world, 0, 1, 'storage', 'north')
@@ -63,7 +64,7 @@ describe('belt topology', () => {
     expect(beltInputs(world, belt)).toEqual([])
   })
   it('does not change transport arbitration when the visual primary input differs', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     const belt = target(world)
     source(world, 'west')
     source(world, 'north')

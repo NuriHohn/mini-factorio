@@ -4,7 +4,7 @@ The game is an offline browser factory sandbox with local saves. The following r
 
 ## World, items and controls
 
-The world is 40×40 tiles with one building per tile, unlimited deposits and free buildings. Random clusters have injectable generation; distinct starter patches are guaranteed around iron `(20, 20)` and copper `(26, 20)`. Miners require ore; other buildings can occupy any empty in-bounds tile.
+The world is 40×40 tiles with one building per tile, unlimited deposits and free placement of researched buildings. Random clusters have injectable generation; distinct starter patches are guaranteed around iron `(20, 20)` and copper `(26, 20)`. Miners require ore; other buildings can occupy any empty in-bounds tile.
 
 | Item ID | Label | Category |
 | --- | --- | --- |
@@ -76,9 +76,27 @@ An explicit recipe change on a configured furnace or assembler requires complete
 
 Legacy saves retain all jobs and stock, including unrelated speculative ingredients from former assembler Auto detection. Already locked recipes continue unchanged. Undecided legacy assemblers stop detecting and need a manual choice; their retained input may be used only by a recipe compatible with every buffered ingredient and capacity. Mixed legacy stock can still prevent safe selection; no input-buffer retrieval feature is implemented. Removal remains the explicit discard operation.
 
+## Research and technology
+
+New games start with **0 RP** and only **Basic Industry** researched. RP are an abstract currency, not an inventory item: no laboratories, science packs or additional recipes are needed. Productive miners earn **2 RP/min**, furnaces **5 RP/min**, and assemblers **12 RP/min** of actual processing time at full speed. Fractional power scales RP proportionally. Idle machines, missing ingredients, blocked outputs, unpowered or sabotaged machines earn nothing. Starting a crafting job grants no RP until it advances; finishing a batch credits only its remaining processing time. Miner fractional progress retains its existing carry behavior. Paused simulation never generates RP or catches up wall-clock time. Building removal preserves all earned RP.
+
+| Stable technology ID | Technology | Cost | Prerequisite | Unlock |
+| --- | --- | --- | --- | --- |
+| `basicIndustry` | Basic Industry | 0 RP (default) | None | Miner, furnace, belts, chests, generators and power poles |
+| `logistics1` | Logistics I | 30 RP | Basic Industry | Inserters |
+| `automation1` | Automation I | 40 RP | Basic Industry | Assemblers and all existing assembler recipes |
+| `logistics2` | Logistics II | 60 RP | Logistics I | Compact splitters |
+| `analytics1` | Analytics I | 80 RP | Automation I | Production Analytics dashboard |
+
+Purchases are manual, permanent and atomic: validate the prerequisite and full balance, deduct once, then unlock. Repeated purchases do not charge again. Placement is checked by the simulation; toolbar disabling cannot bypass research. Locked tools remain visible with the required technology, and locked hotkeys leave the current tool unchanged with explanatory feedback. After unlocking, all existing tool toggles, rotation and category behavior remain. Existing buildings keep running and remain inspectable/configurable. Pete tools, their hotkeys and automatic police/prison behavior remain available as before; Sprint 11 adds no technology for them.
+
+The compact **Research** button shows available RP (two decimal places, truncated so an unaffordable technology never appears funded) and the current effective RP/min, excluding idle or blocked machines. It opens a separate, closable Technology dialog with prerequisite relationships, costs, unlock descriptions, researched/locked/available/affordable cards and selected-technology details. Purchases show a brief confirmation. Close or Escape restores focus to Research. Game tool/camera shortcuts are suspended inside the dialog; research and simulation continue. Opening Research collapses Analytics, keeping the two interfaces separate. Analytics remains visible but disabled with “Requires Analytics I” until unlocked; its underlying simulation and history collection always continue.
+
+Research balance and technology IDs are persisted with nanosecond-resolution integer accounting; saving/loading preserves fractional RP exactly. Legacy version-1–4 saves initialize RP to 0 and unlock **all five** Sprint 11 technologies; retained buildings, production, inventories, analytics (where present), NPCs and saves keep their existing behavior. Version-5 malformed research state is rejected rather than silently reset.
+
 ## Production analytics
 
-The collapsible right-side panel shows actual production and consumption in **items/min over (now − 60 seconds, now] of simulation time**. At startup it uses the same fixed 60-second denominator without extrapolation. Mining counts creation at ore completion; crafting counts ingredient consumption when a job commits, and all product quantities when it completes. Reserved outputs, belts, inserters, chests and other relocations never count. Discarding a building does not subtract historical production or consumption.
+After researching Analytics I, the collapsible right-side panel shows actual production and consumption in **items/min over (now − 60 seconds, now] of simulation time**. At startup it uses the same fixed 60-second denominator without extrapolation. Mining counts creation at ore completion; crafting counts ingredient consumption when a job commits, and all product quantities when it completes. Reserved outputs, belts, inserters, chests and other relocations never count. Discarding a building does not subtract historical production or consumption.
 
 History uses aligned, half-open **60-second buckets** intersecting the last **10 simulation minutes** (at most 11 buckets including boundary minutes); missing buckets are zero. The current minute is partial, with no extrapolation; the oldest intersecting minute supplies boundary context. Up to three item lines can be selected. Initially the chart follows the three most recently productive types, breaking simultaneous ties by item registry order; explicit choices stay selected until “Follow recent production” is clicked.
 
@@ -164,7 +182,7 @@ Reloading creates a new session until a save is explicitly loaded. There is no a
 
 **Export JSON** downloads the current factory with a timestamped filename. **Import JSON** reads a local file, fully validates it, then asks before replacing the factory. Import/export leave browser slots unchanged. Saves include terrain, every building and item, crafting reservations/progress, splitter preferences, inserter-held items, electricity topology, Pete/police/prison state, simulation clock/remainder, camera, output direction and electricity overlay. Loads cancel tools and inspection and return the menu to Factory. Simulation advances only from the saved clock; no production is awarded for time away.
 
-Malformed/incompatible saves, unsupported versions, invalid references, oversized files (over 2 MiB), unavailable storage and quota failures show errors without replacing the running factory. A failed write preserves the previous browser save. Clearing site data removes browser saves: export JSON for a portable backup. Startup checks slot metadata but never automatically loads a factory. New saves use version 4; valid version-1/2/3 saves load through explicit validated upgrades. Unsupported versions remain rejected. The schema and migration contract are in [Architecture](ARCHITECTURE.md#versioned-offline-persistence).
+Malformed/incompatible saves, unsupported versions, invalid references, oversized files (over 2 MiB), unavailable storage and quota failures show errors without replacing the running factory. A failed write preserves the previous browser save. Clearing site data removes browser saves: export JSON for a portable backup. Startup checks slot metadata but never automatically loads a factory. New saves use version 5; valid version-1/2/3/4 saves load through explicit validated upgrades. All pre-Sprint-11 saves receive every Sprint 11 technology and 0 RP, preserving existing factories and dashboard access. Normal version-5 loading restores the exact research balance and unlocks. Unsupported versions remain rejected. The schema and migration contract are in [Architecture](ARCHITECTURE.md#versioned-offline-persistence).
 
 ## Build categories
 

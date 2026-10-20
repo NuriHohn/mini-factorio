@@ -1,7 +1,8 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { allocatePower, GENERATOR_KW, POLE_CONNECTION_RANGE, POLE_COVERAGE_RADIUS, powerOverview, withinRange, workingDemand } from './power'
 import { advanceWorld } from './step'
-import { buildingAt, createWorld, placeBuilding, removeBuilding, SIZE } from './world'
+import { buildingAt, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Belt, BuildingKind, Direction, Furnace, Miner, World } from './world'
 import { electricalDetails, inspectBuilding } from './inspection'
 import { changeFurnaceRecipe } from './smelting'
@@ -21,7 +22,7 @@ function generatorAndPole(world: World, x = 10, y = 10) {
   add(world, x, y - 1, 'generator')
 }
 function shortageWorld() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   generatorAndPole(world, 20, 19)
   add(world, 19, 20, 'miner')
   add(world, 21, 20, 'miner')
@@ -30,7 +31,7 @@ function shortageWorld() {
   return world
 }
 function poweredChain() {
-  const world = createWorld(() => .5)
+  const world = createUnlockedWorld(() => .5)
   generatorAndPole(world, 21, 19)
   add(world, 20, 20, 'miner')
   add(world, 21, 20, 'belt')
@@ -54,7 +55,7 @@ describe('power topology and coverage', () => {
     expect(POLE_COVERAGE_RADIUS).toBe(3)
     expect(withinRange({ x: 0, y: 0 }, { x: 3, y: 0 }, 3)).toBe(true)
     expect(withinRange({ x: 0, y: 0 }, { x: 3, y: 1 }, 3)).toBe(false)
-    const world = createWorld()
+    const world = createUnlockedWorld()
     generatorAndPole(world)
     add(world, 16, 10, 'powerPole')
     add(world, 22, 11, 'powerPole')
@@ -67,7 +68,7 @@ describe('power topology and coverage', () => {
     expect(power.consumers[11 * SIZE + 13].networkId).toBe(null)
   })
   it('merges and splits when a bridge pole is placed and removed', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     generatorAndPole(world)
     add(world, 22, 10, 'powerPole')
     add(world, 22, 11, 'miner')
@@ -81,7 +82,7 @@ describe('power topology and coverage', () => {
     expect(allocatePower(world).consumers[11 * SIZE + 22].suppliedKw).toBe(0)
   })
   it('does not double-count generators or machines covered by multiple poles', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 10, 10, 'powerPole')
     add(world, 14, 10, 'powerPole')
     add(world, 12, 10, 'generator')
@@ -94,7 +95,7 @@ describe('power topology and coverage', () => {
     expect(powerOverview(world).requestedKw).toBe(30)
   })
   it('assigns coverage independently of placement order and invalidates topology on machine removal', () => {
-    const a = createWorld(() => .5), b = createWorld(() => .5)
+    const a = createUnlockedWorld(() => .5), b = createUnlockedWorld(() => .5)
     const buildings: [number, number, BuildingKind][] = [[10, 10, 'powerPole'], [14, 10, 'powerPole'], [12, 10, 'generator'], [12, 11, 'miner']]
     for (const [x, y, kind] of buildings) add(a, x, y, kind)
     for (const [x, y, kind] of [...buildings].reverse()) add(b, x, y, kind)
@@ -108,7 +109,7 @@ describe('power topology and coverage', () => {
     expect(a.power?.networks[0].consumerIndices).toEqual([])
   })
   it('disconnects a generator when its last covering pole is removed', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     generatorAndPole(world)
     add(world, 10, 11, 'miner')
     allocatePower(world)
@@ -119,7 +120,7 @@ describe('power topology and coverage', () => {
     expect(electricalDetails(world, 11 * SIZE + 10).state).toBe('disconnected')
   })
   it('never treats spare capacity on an independent network as satisfying another network', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     generatorAndPole(world)
     add(world, 30, 30, 'powerPole')
     add(world, 30, 31, 'miner')
@@ -177,7 +178,7 @@ describe('working demand and proportional allocation', () => {
 })
 describe('power-scaled production', () => {
   it('starts unpowered, retains partial mining progress during outage, and resumes without catch-up', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 10, 11, 'miner')
     advanceWorld(world, 10000)
     expect(miner(world, 10, 11).elapsed).toBe(0)
@@ -203,7 +204,7 @@ describe('power-scaled production', () => {
     expect(furnace(world, 20, 21).job?.elapsedMs).toBeCloseTo(500 * 100 / 110)
   })
   it('retains furnace inputs, committed ingredients, reserved output and progress during outages', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     generatorAndPole(world)
     add(world, 10, 11, 'furnace')
     const f = furnace(world, 10, 11)
@@ -227,7 +228,7 @@ describe('power-scaled production', () => {
     expect(f.job).toBe(null)
   })
   it('does not commit new furnace inputs without power, and leaves buffered transport operational', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 10, 11, 'furnace')
     const f = furnace(world, 10, 11)
     f.input.iron = 2
@@ -297,7 +298,7 @@ describe('power inspection and removal', () => {
     expect(world.produced.ironPlate).toBe(plates)
   })
   it('keeps straight and curved belt movement independent of generation', () => {
-    const world = createWorld()
+    const world = createUnlockedWorld()
     add(world, 1, 1, 'belt')
     add(world, 2, 1, 'belt', 'south')
     add(world, 2, 2, 'storage')

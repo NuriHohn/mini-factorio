@@ -1,10 +1,11 @@
+import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { analyticsSnapshot, pruneAnalytics, recordProduction } from './analytics'
 import { changeCraftingRecipe } from './crafting'
 import { changeFurnaceRecipe } from './smelting'
 import { advanceWorld } from './step'
 import { poweredWorld } from './testFixtures'
-import { buildingAt, createWorld, placeBuilding, removeBuilding, SIZE } from './world'
+import { buildingAt, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Assembler, Furnace, Miner, World } from './world'
 
 function quiet(world: World) { world.pete.mode = 'CRYING'; world.pete.cryingMs = 10000; world.pete.cooldownMs = 30000 }
@@ -53,7 +54,7 @@ describe('production accounting and rolling history', () => {
     expect(snapshot.consumed.iron).toBe(snapshot.produced.ironPlate + Number((buildingAt(world, 22, 20) as Furnace).job !== null))
   })
   it('bounds dense rolling samples and minute buckets through long production runs', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     for (let n = 0; n < 15000; n++) {
       world.timeMs += 50
       recordProduction(world, { iron: 1 }, { copper: 1 })
@@ -74,7 +75,7 @@ describe('production accounting and rolling history', () => {
     expect(analyticsSnapshot(world).produced.copperCable).toBe(2)
   })
   it('uses (now - 60s, now] exactly and retains sparse 60-second buckets across 10 minutes', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     advanceWorld(world, 50); recordProduction(world, { iron: 2 }, { copper: 1 })
     advanceWorld(world, 59950)
     expect(analyticsSnapshot(world).produced.iron).toBe(2)
@@ -90,7 +91,7 @@ describe('production accounting and rolling history', () => {
     expect(world.analytics.samples).toEqual([])
   })
   it('chooses recent productive types deterministically and merges simultaneous creation/consumption', () => {
-    const world = createWorld(() => .5)
+    const world = createUnlockedWorld(() => .5)
     advanceWorld(world, 50); recordProduction(world, { copper: 1, iron: 1 })
     advanceWorld(world, 50); recordProduction(world, { ironPlate: 1 }); recordProduction(world, { copperPlate: 2 }, { iron: 1 })
     expect(world.analytics.samples).toHaveLength(2)
