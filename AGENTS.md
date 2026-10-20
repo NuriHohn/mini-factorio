@@ -1,35 +1,30 @@
 # Mini-Factorio contributor instructions
 
-Build small, playable increments. Preserve existing gameplay and keep changes within the requested sprint.
+Build small, playable increments within the requested scope. These standing instructions apply to future sprint prompts without being repeated in each feature specification.
 
-## Read before changing
+## Mandatory agent workflow
 
-Read [README.md](README.md), then the documents relevant to the task:
+1. **Read before implementing any feature.** Read [README.md](README.md), the relevant project documentation below, and the affected source/tests before proposing or implementing changes. Architecture, current gameplay and development guidance must be consulted for feature work; check the roadmap to distinguish implemented prerequisites from proposals. Source code is the authority for current behavior: report or correct discrepancies within scope.
+2. **Prepare an isolated branch.** Inspect Git status and preserve user changes. Start new work from freshly fetched `origin/main` on a dedicated feature or documentation branch, using the requested name when supplied. Follow an explicit request to continue an existing branch. Never implement directly on `main`. Verify prerequisite features on the fetched base; report missing prerequisites instead of assuming they exist.
+3. **Preserve existing features.** Unless explicitly changed by the specification, preserve the implemented behavior and invariants in [Game design](docs/GAME_DESIGN.md) and [Architecture](docs/ARCHITECTURE.md), including production, transport, power, tools/inspection, NPCs and Save & Load compatibility. Reuse existing systems and registries. Do not scaffold roadmap features, add dependencies without a task need, or introduce unrelated refactoring, upgrades or formatting sweeps.
+4. **Verify the change.** Add meaningful regressions for changed behavior and complete the applicable [Development checks](docs/DEVELOPMENT.md#commands-and-checks), including browser verification when available for input/rendering changes. Fix introduced failures. Report checks actually run, unrun checks, warnings and limitations accurately; documentation-only validation is defined there.
+5. **Update the owning documentation.** Keep the documents below synchronized with the implementation. Maintain one authoritative explanation per rule and link to it elsewhere. Preserve existing information, distinguish proposals from completed work, and do not mark unimplemented features as available.
+6. **Deliver for review.** Review the diff, stage only intended changes, commit with a descriptive message and push the completed branch. Follow the [delivery commands](docs/DEVELOPMENT.md#branch-commit-and-pull-request), verify the remote hash and provide the GitHub compare URL plus a concise summary and validation results. **Never automatically merge into `main`.** On fetch/push failure, report the exact error; do not force push, reset commits or change credentials as a workaround. Git push access does not establish pull-request API permission.
 
-- [Architecture](docs/ARCHITECTURE.md): module ownership, simulation ordering, state and invariants.
-- [Game design](docs/GAME_DESIGN.md): implemented rules, recipes, capacities and Auto/Manual behavior.
-- [Development](docs/DEVELOPMENT.md): setup, validation, regression coverage and review workflow.
-- [Roadmap](docs/ROADMAP.md): completed work and proposed future milestones.
+## Documentation ownership
 
-Actual source code is the source of truth for implemented behavior. Verify documentation against it; report or correct discrepancies within the task's scope. Planned features are not implemented features.
+| Document | Authoritative content |
+| --- | --- |
+| [Architecture](docs/ARCHITECTURE.md) | Module ownership, deterministic simulation, authoritative state, React/Zustand/Phaser boundaries, transport/resource invariants and persistence compatibility |
+| [Game design](docs/GAME_DESIGN.md) | Implemented mechanics, values, controls, recipes, machine/NPC policies and player-visible invariants |
+| [Development](docs/DEVELOPMENT.md) | Setup, code validation commands, test strategy/coverage, browser checks and operational delivery steps |
+| [Roadmap](docs/ROADMAP.md) | Completed milestones and separately proposed future work |
+| [Feature specification template](docs/FEATURE_SPEC_TEMPLATE.md) | Feature-specific requirements and acceptance criteria; use for shorter future sprint prompts |
 
-## Mandatory engineering rules
+AGENTS owns mandatory agent policy; the linked documents own its technical details. README remains the project entry point.
 
-- Preserve deterministic fixed-step simulation, stable transfer priorities, item conservation and power-scaled progress. Test equivalent time partitions when changing timing.
-- Keep gameplay logic in pure TypeScript under `src/simulation`, rendering/input in Phaser, and interface presentation in React. Zustand carries commands and copied summaries; the scene's world remains authoritative. Never expose mutable inventories to React.
-- Reuse item/recipe/machine registries, shared crafting, transport, power and inspection systems. Preserve existing IDs. Keep furnace and assembler one-time Auto selection policies separate from shared processing. Preserve permanent recipe locks and route all placement/deletion activation through the single store tool toggle; Escape must remain idempotent cancellation.
-- Validate placement, capacity and recipe/mode changes in the simulation. Reserve input capacity before simultaneous transfers; account for held inserter items, committed ingredients and reserved products without double counting. Preserve inserter step-start source budgets and destination occupancy so new arrivals never transfer twice in one step.
-- Use supported placement/removal operations to invalidate power topology. Do not bypass electricity to make tests pass. Preserve job progress and reservations during outages.
-- Add meaningful regression tests for changed behavior. Keep simulation tests independent of Phaser, React and the DOM. For input/rendering changes, also check browser behavior when available, including camera movement, diagonals, zoom and resizing.
-- Run `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`. Fix introduced failures; distinguish checks actually run from checks not run. Documentation-only changes need no new gameplay tests.
-- Keep relevant documentation synchronized with gameplay, architecture and workflow changes. Prefer links over repeated rule descriptions.
+## Implementation style
 
-## Style and scope
+Use the versions/scripts in `package.json` and npm's lockfile. Follow existing TypeScript/TSX style: two spaces, single quotes, no statement-ending semicolons, ES modules and type-only imports where appropriate. Use PascalCase components/classes, camelCase functions/variables and uppercase shared constants. Avoid `any` and unnecessary assertions; respect unused-symbol, fallthrough and React Hooks checks.
 
-Use the versions/scripts in `package.json` and npm's lockfile. Do not add dependencies without a task need. Follow existing TypeScript/TSX style: two spaces, single quotes, no statement-ending semicolons, ES modules and type-only imports where appropriate. Use PascalCase components/classes, camelCase functions/variables and uppercase shared constants. Avoid `any` and unnecessary assertions; respect unused-symbol, fallthrough and React Hooks checks.
-
-Prefer small direct functions and existing structures. Do not introduce an ECS, event bus, generic framework or extra state layer without a concrete need. Avoid unrelated refactoring, dependency upgrades and formatting sweeps. Do not scaffold future roadmap features unless requested. Continue procedural graphics; preserve React Strict Mode cleanup, observers and scene lifecycle handling.
-
-## Git workflow
-
-Use a dedicated feature branch for each sprint, normally created from freshly fetched `origin/main`; follow an explicit request to continue an existing branch. Preserve user changes. Commit and push completed changes, using `git push -u origin HEAD`, and provide the compare URL and validation results. Verify the remote commit. Never automatically merge into `main`. If fetching or pushing fails, report the exact error; do not force push, reset commits or alter credentials as a workaround.
+Prefer small direct functions and existing structures. Do not introduce an ECS, event bus, generic framework or extra state layer without a concrete need. Continue procedural graphics and preserve React Strict Mode cleanup, observers and scene lifecycle handling as described in Architecture.

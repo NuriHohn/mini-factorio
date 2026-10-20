@@ -23,7 +23,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Sprint 9: offline saves and build categories | Strict version-1 JSON, manual/autosave browser slots, confirmed load/import, portable export, deterministic continuation, Factory/Pumpkin Pete toolbar tabs |
 | Sprint 8: compact 1×1 splitters | Rotatable rear-input/front-and-left routing, independent outgoing buffers, round robin, congestion fallback, curves and shared inserter/transport integration |
 
-“Persistent project context” means versioned repository documentation, not persistent game saves or automatic agent memory. Future tasks must read the relevant files.
+“Persistent project context” means versioned repository documentation, not persistent game saves or automatic agent memory. The standing reading/workflow policy is in [AGENTS.md](../AGENTS.md); use the [feature template](FEATURE_SPEC_TEMPLATE.md) for a future proposal.
 
 ## Proposed next milestones
 
@@ -36,7 +36,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Production analytics and optimization | Distinguish nominal/actual rates, bottlenecks, power constraints and material flow; supply deterministic planner inputs |
 | Fully offline Generative Factory Architect | Build progressively on progression, blueprint preview, analytics and machine-readable planning data |
 
-Choose and approve each sprint's scope separately. Further recipes, fuel, solar and accumulators are also candidates; they are not implicitly authorized by this roadmap. Avoid scaffolding these systems during unrelated work.
+Choose and approve each sprint's scope separately. Further recipes, fuel, solar and accumulators are also candidates; they are not implicitly authorized by this roadmap. Scope control follows [AGENTS.md](../AGENTS.md#mandatory-agent-workflow).
 
 ## Long-term Factory Architect vision — planned only
 
