@@ -1,59 +1,13 @@
 import type { Item } from './items'
-import { emptyInventory, ITEMS, inventoryTotal } from './items'
-import { FURNACE_OUTPUT_CAPACITY, RECIPES } from './recipes'
-import { buildingAt, SIZE } from './world'
+import { RECIPES } from './recipes'
 import type { FurnaceRecipeMode, RecipeId } from './recipes'
+import { buildingAt } from './world'
 import type { Furnace, World } from './world'
-export type FurnaceStatus = 'processing' | 'waiting-input' | 'output-full'
+import { recipeChangeError } from './crafting'
+// Preserve furnace API names while sharing all processing and reservation logic.
+export { advanceCrafting as advanceSmelting, canStartCrafting as canStartSmelting, craftingStatus as furnaceStatus, recipeChangeError } from './crafting'
+export type { CraftingStatus as FurnaceStatus } from './crafting'
 
-function hasOutputSpace(furnace: Furnace): boolean {
-  const outputs = furnace.job?.outputs ?? (furnace.recipeId ? RECIPES[furnace.recipeId].outputs : {})
-  return inventoryTotal(furnace.output) + ITEMS.reduce((sum, item) => sum + (outputs[item] ?? 0), 0) <= FURNACE_OUTPUT_CAPACITY
-}
-export function furnaceStatus(furnace: Furnace): FurnaceStatus {
-  if (!hasOutputSpace(furnace)) return 'output-full'
-  return furnace.job ? 'processing' : 'waiting-input'
-}
-export function canStartSmelting(furnace: Furnace): boolean {
-  const recipe = furnace.recipeId ? RECIPES[furnace.recipeId] : null
-  return recipe !== null && !furnace.job && hasOutputSpace(furnace) && ITEMS.every(item => furnace.input[item] >= (recipe.inputs[item] ?? 0))
-}
-export function advanceSmelting(world: World, delta: number): void {
-  for (const furnace of world.buildings) {
-    if (furnace?.kind !== 'furnace') continue
-    const speed = world.power?.consumers[furnace.y * SIZE + furnace.x]?.speedFraction ?? 0
-    if (speed <= 0) continue
-    const job = furnace.job
-    if (job) {
-      const recipe = RECIPES[job.recipeId]
-      job.elapsedMs = Math.min(recipe.durationMs, job.elapsedMs + delta * speed)
-      if (job.elapsedMs >= recipe.durationMs - 1e-8 && hasOutputSpace(furnace)) {
-        for (const item of ITEMS) {
-          furnace.output[item] += job.outputs[item]
-          world.produced[item] += job.outputs[item]
-        }
-        furnace.job = null
-      }
-    }
-    if (furnace.job) continue
-    if (!furnace.recipeId || !canStartSmelting(furnace)) continue
-    const recipe = RECIPES[furnace.recipeId]
-    const inputs = emptyInventory(), outputs = emptyInventory()
-    for (const item of ITEMS) {
-      inputs[item] = recipe.inputs[item] ?? 0
-      outputs[item] = recipe.outputs[item] ?? 0
-      furnace.input[item] -= inputs[item]
-    }
-    // A new job starts at this boundary and receives no elapsed time yet.
-    furnace.job = { recipeId: recipe.id, elapsedMs: 0, inputs, outputs }
-  }
-}
-
-export function recipeChangeError(furnace: Furnace): string | null {
-  if (furnace.job) return 'Finish the active batch before changing recipes, including any reserved materials.'
-  if (inventoryTotal(furnace.input) || inventoryTotal(furnace.output)) return 'Empty both input and output buffers before changing recipes.'
-  return null
-}
 // A probe is read-only: transport reserves the returned recipe before committing arrivals.
 export function incomingRecipe(furnace: Furnace, item: Item): RecipeId | null {
   if (furnace.recipeMode === 'auto' && recipeChangeError(furnace) === null) {

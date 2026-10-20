@@ -1,8 +1,8 @@
 import { buildingAt, offsets, opposite } from './world'
 import type { Belt, Building, Direction, Furnace, World } from './world'
-import { ITEMS, inventoryTotal } from './items'
-import type { Item } from './items'
-import { FURNACE_INPUT_CAPACITY, RECIPES } from './recipes'
+import { emptyInventory, ITEMS, inventoryTotal } from './items'
+import type { Inventory, Item } from './items'
+import { MACHINE_DEFINITIONS, RECIPES } from './recipes'
 import type { RecipeId } from './recipes'
 import { incomingRecipe } from './smelting'
 export const BELT_TRAVEL_MS = 500
@@ -11,20 +11,24 @@ function receiver(world: World, source: Building, direction: Direction): Buildin
   const offset = offsets[direction]
   return buildingAt(world, source.x + offset.x, source.y + offset.y)
 }
-function canReceive(target: Building, item: Item, travel: Direction, reserved = 0, recipeId: RecipeId | null = target.kind === 'furnace' ? target.recipeId : null): boolean {
+function canReceive(target: Building, item: Item, travel: Direction, reserved: Readonly<Partial<Inventory>> = {}, recipeId: RecipeId | null = target.kind === 'furnace' || target.kind === 'assembler' ? target.recipeId : null): boolean {
   switch (target.kind) {
     case 'storage': return true
-    case 'belt': return !target.item && reserved === 0 && target.direction !== opposite(travel)
+    case 'belt': return !target.item && inventoryTotal(reserved) === 0 && target.direction !== opposite(travel)
+    case 'assembler':
     case 'furnace': return target.direction !== opposite(travel)
       && recipeId !== null && (RECIPES[recipeId].inputs[item] ?? 0) > 0
-      && inventoryTotal(target.input) + reserved < FURNACE_INPUT_CAPACITY
+      && (target.kind === 'furnace'
+        ? inventoryTotal(target.input) + inventoryTotal(reserved) < MACHINE_DEFINITIONS.furnace.input.capacity
+        : target.input[item] + (reserved[item] ?? 0) < (RECIPES[recipeId].inputs[item] ?? 0) * MACHINE_DEFINITIONS.assembler.input.batches)
     default: return false
   }
 }
 function accept(target: Building, item: Item, direction: Direction): void {
   switch (target.kind) {
     case 'storage': target.inventory[item]++; break
-    case 'furnace': target.input[item]++; break
+    case 'furnace':
+    case 'assembler': target.input[item]++; break
     case 'belt':
       target.item = item
       target.progress = 0
@@ -34,7 +38,7 @@ function accept(target: Building, item: Item, direction: Direction): void {
 }
 export function advanceTransport(world: World, delta: number): Set<Building> {
   const transfers: { source: Belt; target: Building; item: Item }[] = []
-  const reserved = new Map<Building, number>()
+  const reserved = new Map<Building, Inventory>()
   const recipes = new Map<Furnace, RecipeId>()
   // Reserve against unchanged occupancy/input buffers before committing any moves.
   for (const source of world.buildings) {
@@ -44,12 +48,14 @@ export function advanceTransport(world: World, delta: number): Set<Building> {
     source.progress = 1
     const target = receiver(world, source, source.direction)
     if (!target) continue
-    const recipeId = target.kind === 'furnace' ? recipes.get(target) ?? incomingRecipe(target, source.item) : null
-    if (!canReceive(target, source.item, source.direction, reserved.get(target) ?? 0, recipeId)) continue
+    const recipeId = target.kind === 'furnace' ? recipes.get(target) ?? incomingRecipe(target, source.item) : target.kind === 'assembler' ? target.recipeId : null
+    if (!canReceive(target, source.item, source.direction, reserved.get(target) ?? {}, recipeId)) continue
     // Tile order chooses the first compatible arrival; later arrivals share its recipe lock.
     if (target.kind === 'furnace' && recipeId) recipes.set(target, recipeId)
     transfers.push({ source, target, item: source.item })
-    reserved.set(target, (reserved.get(target) ?? 0) + 1)
+    const inventory = reserved.get(target) ?? emptyInventory()
+    inventory[source.item]++
+    reserved.set(target, inventory)
   }
   for (const [furnace, recipeId] of recipes) furnace.recipeId = recipeId
   for (const { source, target, item } of transfers) {
@@ -61,7 +67,7 @@ export function advanceTransport(world: World, delta: number): Set<Building> {
 }
 export function outputMachines(world: World, vacated: ReadonlySet<Building>): void {
   for (const source of world.buildings) {
-    if (source?.kind !== 'miner' && source?.kind !== 'furnace') continue
+    if (source?.kind !== 'miner' && source?.kind !== 'furnace' && source?.kind !== 'assembler') continue
     const item = source.kind === 'miner' ? source.item : ITEMS.find(item => source.output[item] > 0)
     if (!item) continue
     const target = receiver(world, source, source.direction)
@@ -73,7 +79,7 @@ export function outputMachines(world: World, vacated: ReadonlySet<Building>): vo
   }
 }
 export function outputWaiting(world: World, source: Building): boolean {
-  if (source.kind !== 'furnace' || inventoryTotal(source.output) === 0) return false
+  if ((source.kind !== 'furnace' && source.kind !== 'assembler') || inventoryTotal(source.output) === 0) return false
   const item = ITEMS.find(item => source.output[item] > 0)
   if (!item) return false
   const target = receiver(world, source, source.direction)

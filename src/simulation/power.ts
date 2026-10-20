@@ -1,10 +1,12 @@
 import { placementError, SIZE } from './world'
 import type { Building, Position, World } from './world'
-import { canStartSmelting, furnaceStatus } from './smelting'
+import { canStartCrafting, craftingStatus } from './crafting'
+import { MACHINE_DEFINITIONS } from './recipes'
 
 export const GENERATOR_KW = 100
 export const MINER_KW = 30
-export const FURNACE_KW = 50
+export const FURNACE_KW = MACHINE_DEFINITIONS.furnace.powerKw
+export const ASSEMBLER_KW = MACHINE_DEFINITIONS.assembler.powerKw
 export const POLE_CONNECTION_RANGE = 6
 export const POLE_COVERAGE_RADIUS = 3
 export interface ConsumerPower {
@@ -58,12 +60,12 @@ export function polePlacementPreview(world: World, position: Position): PolePlac
   return { state: connections.length ? 'connected' : 'disconnected', error: null, connections }
 }
 export function powerRequirement(building: Building): number {
-  return building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' ? FURNACE_KW : 0
+  return building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
 }
 export function workingDemand(building: Building): number {
   if (building.kind === 'miner') return building.item ? 0 : MINER_KW
-  if (building.kind !== 'furnace') return 0
-  return (building.job && furnaceStatus(building) !== 'output-full') || (!building.job && canStartSmelting(building)) ? FURNACE_KW : 0
+  if (building.kind !== 'furnace' && building.kind !== 'assembler') return 0
+  return (building.job && craftingStatus(building) !== 'output-full') || (!building.job && canStartCrafting(building)) ? powerRequirement(building) : 0
 }
 function discover(world: World): PowerState {
   const poles = world.buildings.flatMap((b, i) => b?.kind === 'powerPole' ? [i] : [])
