@@ -25,8 +25,8 @@ describe('building tools', () => {
   it('generates terrain with a guaranteed central deposit and empty occupancy', () => {
     const world = createWorld(() => .5)
     expect(world.tiles).toHaveLength(SIZE ** 2)
-    expect(world.tiles[20 * SIZE + 20]).toBe(true)
-    expect(world.tiles).toContain(false)
+    expect(world.tiles[20 * SIZE + 20]).toBe('iron')
+    expect(world.tiles).toContain(null)
     expect(world.buildings.every(b => b === null)).toBe(true)
   })
   it('validates coordinates, terrain and shared occupancy for every building', () => {
@@ -54,7 +54,7 @@ describe('building tools', () => {
   it('discards ore on removal of every building kind without resetting lifetime production', () => {
     const world = supplyLine()
     advanceWorld(world, 5000)
-    const lifetime = world.ore
+    const lifetime = world.mined.iron
     expect(lifetime).toBeGreaterThan(0)
     miner(world).item = 'iron'
     belt(world, 21, 20).item = 'iron'
@@ -63,11 +63,11 @@ describe('building tools', () => {
       expect(removalError(world, x, y)).toBe(null)
       expect(removeBuilding(world, x, y)).toBe(true)
       expect(buildingAt(world, x, y)).toBe(null)
-      expect(world.ore).toBe(lifetime)
+      expect(world.mined.iron).toBe(lifetime)
     }
     expect(accounted(world)).toBe(0)
     advanceWorld(world, 5000)
-    expect(world.ore).toBe(lifetime)
+    expect(world.mined.iron).toBe(lifetime)
     expect(removeBuilding(world, 20, 20)).toBe(false)
     expect(removeBuilding(world, -1, 0)).toBe(false)
     place(world, 22, 21, 'storage')
@@ -79,27 +79,27 @@ describe('mining and transport', () => {
     const world = poweredWorld(() => .5)
     place(world, 20, 20, 'miner')
     advanceWorld(world, 999)
-    expect(world.ore).toBe(0)
+    expect(world.mined.iron).toBe(0)
     advanceWorld(world, 1)
     expect(miner(world).item).toBe('iron')
     advanceWorld(world, 10000)
-    expect(world.ore).toBe(1)
+    expect(world.mined.iron).toBe(1)
     expect(miner(world).elapsed).toBe(0)
     place(world, 21, 20, 'belt')
     advanceWorld(world, 50)
     expect(belt(world, 21, 20).item).toBe('iron')
     expect(belt(world, 21, 20).progress).toBe(0)
-    expect(world.ore).toBe(1)
+    expect(world.mined.iron).toBe(1)
     expect(miner(world).elapsed).toBe(50)
   })
   it('delivers ore through corners into storage and conserves all mined items', () => {
     const world = supplyLine()
     advanceWorld(world, 2100)
     expect(chest(world, 22, 21).inventory.iron).toBe(1)
-    expect(world.ore).toBe(2)
+    expect(world.mined.iron).toBe(2)
     for (let i = 0; i < 100; i++) {
       advanceWorld(world, 133)
-      expect(accounted(world)).toBe(world.ore)
+      expect(accounted(world)).toBe(world.mined.iron)
     }
     expect(chest(world, 22, 21).inventory.iron).toBeGreaterThan(10)
   })
@@ -121,7 +121,7 @@ describe('mining and transport', () => {
     place(world, 21, 20, 'storage')
     advanceWorld(world, 2000)
     expect(chest(world, 21, 20).inventory.iron).toBe(0)
-    expect(world.ore).toBe(1)
+    expect(world.mined.iron).toBe(1)
   })
   it('uses tile order for merges and never moves a new arrival twice', () => {
     const world = poweredWorld()
@@ -199,7 +199,7 @@ describe('mining and transport', () => {
     const c = supplyLine(), d = supplyLine()
     for (let i = 0; i < 60; i++) advanceWorld(c, 1000 / 60)
     advanceWorld(d, 1000)
-    expect(c.ore).toBe(d.ore)
+    expect(c.mined.iron).toBe(d.mined.iron)
     expect(c.buildings).toEqual(d.buildings)
   })
 })

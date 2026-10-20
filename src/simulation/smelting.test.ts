@@ -54,7 +54,7 @@ describe('furnace processing', () => {
     const world = setup(), f = furnace(world)
     advanceWorld(world, 5000)
     expect(furnaceStatus(f)).toBe('waiting-input')
-    expect(world.plates).toBe(0)
+    expect(world.produced.ironPlate).toBe(0)
     f.input.iron = 1
     advanceWorld(world, STEP_MS)
     expect(f.job?.elapsedMs).toBe(0)
@@ -63,14 +63,14 @@ describe('furnace processing', () => {
     expect(f.input.iron).toBe(0)
     advanceWorld(world, 1999)
     expect(f.output.ironPlate).toBe(0)
-    expect(world.plates).toBe(0)
+    expect(world.produced.ironPlate).toBe(0)
     advanceWorld(world, 1)
     expect(f.output.ironPlate).toBe(1)
-    expect(world.plates).toBe(1)
+    expect(world.produced.ironPlate).toBe(1)
     expect(f.job).toBe(null)
     expect(furnaceStatus(f)).toBe('waiting-input')
     advanceWorld(world, 4000)
-    expect(world.plates).toBe(1)
+    expect(world.produced.ironPlate).toBe(1)
   })
   it('reserves the final output slot and does not start when the buffer is full', () => {
     const world = setup(), f = furnace(world)
@@ -86,7 +86,7 @@ describe('furnace processing', () => {
     expect(f.input.iron).toBe(1)
     expect(furnaceStatus(f)).toBe('output-full')
     advanceWorld(world, 10000)
-    expect(world.plates).toBe(1)
+    expect(world.produced.ironPlate).toBe(1)
     expect(f.input.iron).toBe(1)
     // Draining one output starts a fresh batch, never a catch-up burst.
     place(world, 21, 20, 'belt')
@@ -99,14 +99,14 @@ describe('furnace processing', () => {
     const world = setup(), f = furnace(world)
     f.input.iron = 2
     f.output.ironPlate = 1
-    world.ore = 12
-    world.plates = 4
+    world.mined.iron = 12
+    world.produced.ironPlate = 4
     advanceWorld(world, 1000)
     expect(f.job).not.toBe(null)
     expect(removeBuilding(world, 20, 20)).toBe(true)
     advanceWorld(world, 10000)
-    expect(world.ore).toBe(12)
-    expect(world.plates).toBe(4)
+    expect(world.mined.iron).toBe(12)
+    expect(world.produced.ironPlate).toBe(4)
     expect(physicalItems(world)).toBe(0)
     place(world, 20, 20, 'furnace')
     expect(furnace(world).job).toBe(null)
@@ -120,11 +120,11 @@ describe('furnace processing', () => {
     f.output.ironPlate = 2
     advanceWorld(world, 1000)
     expect(f.job?.elapsedMs).toBe(1950)
-    expect(world.plates).toBe(0)
+    expect(world.produced.ironPlate).toBe(0)
     f.output.ironPlate--
     advanceWorld(world, STEP_MS)
     expect(f.output.ironPlate).toBe(2)
-    expect(world.plates).toBe(1)
+    expect(world.produced.ironPlate).toBe(1)
     expect(f.job).toBe(null)
   })
 })
@@ -173,7 +173,7 @@ describe('furnace transport', () => {
     advanceWorld(world, 5000)
     expect(belt(world, 19, 20).item).toBe('ironPlate')
     expect(inventoryTotal(furnace(world).input)).toBe(0)
-    expect(world.plates).toBe(0)
+    expect(world.produced.ironPlate).toBe(0)
   })
   it('never outputs directly into storage or reuses a just-vacated belt', () => {
     const world = setup(), f = furnace(world)
@@ -199,7 +199,7 @@ describe('furnace transport', () => {
     const world = setup(), f = furnace(world)
     f.direction = 'south'
     f.output.ironPlate = 1
-    world.tiles[21 * SIZE + 19] = true
+    world.tiles[21 * SIZE + 19] = 'iron'
     place(world, 19, 21, 'miner')
     const m = buildingAt(world, 19, 21)
     if (m?.kind !== 'miner') throw Error('Missing miner')
@@ -221,7 +221,7 @@ describe('furnace transport', () => {
       advanceWorld(world, 1050)
       expect(chest(world, 1, 1).inventory[item]).toBe(1)
     }
-    expect(inventoryTotal(chest(world, 1, 1).inventory)).toBe(2)
+    expect(inventoryTotal(chest(world, 1, 1).inventory)).toBe(ITEMS.length)
   })
 })
 describe('complete production chain', () => {
@@ -229,12 +229,12 @@ describe('complete production chain', () => {
     const world = line()
     for (let i = 0; i < 1200; i++) {
       advanceWorld(world, STEP_MS)
-      expect(physicalItems(world)).toBe(world.ore)
+      expect(physicalItems(world)).toBe(world.mined.iron)
       expectCapacity(world)
     }
     expect(chest(world, 24, 21).inventory.ironPlate).toBeGreaterThan(20)
     expect(chest(world, 24, 21).inventory.iron).toBe(0)
-    expect(world.plates).toBeGreaterThanOrEqual(chest(world, 24, 21).inventory.ironPlate)
+    expect(world.produced.ironPlate).toBeGreaterThanOrEqual(chest(world, 24, 21).inventory.ironPlate)
   })
   it('recovers from blocked output with no time-dependent loss or catch-up production', () => {
     const world = line()
@@ -244,14 +244,14 @@ describe('complete production chain', () => {
     expect(f.output.ironPlate).toBe(2)
     expect(f.input.iron).toBe(2)
     expect(f.job).toBe(null)
-    expect(world.plates).toBe(2)
-    expect(physicalItems(world)).toBe(world.ore)
+    expect(world.produced.ironPlate).toBe(2)
+    expect(physicalItems(world)).toBe(world.mined.iron)
     place(world, 23, 20, 'belt', 'south')
     advanceWorld(world, STEP_MS)
     expect(f.job?.elapsedMs).toBe(0)
     advanceWorld(world, 10000)
     expect(chest(world, 24, 21).inventory.ironPlate).toBeGreaterThan(2)
-    expect(physicalItems(world)).toBe(world.ore)
+    expect(physicalItems(world)).toBe(world.mined.iron)
     expectCapacity(world)
   })
   it('produces identical world state for large and partitioned advances', () => {
@@ -260,14 +260,14 @@ describe('complete production chain', () => {
     for (let i = 0; i < 234; i++) advanceWorld(b, 100)
     advanceWorld(b, 57)
     expect(b).toEqual(a)
-    expect(physicalItems(a)).toBe(a.ore)
+    expect(physicalItems(a)).toBe(a.mined.iron)
     expect(RECIPES.ironSmelting.durationMs).toBe(2000)
     const c = line(), d = line()
     for (let i = 0; i < 1800; i++) advanceWorld(c, 1000 / 60)
     advanceWorld(d, 30000)
     expect(c.buildings).toEqual(d.buildings)
-    expect(c.ore).toBe(d.ore)
-    expect(c.plates).toBe(d.plates)
+    expect(c.mined.iron).toBe(d.mined.iron)
+    expect(c.produced.ironPlate).toBe(d.produced.ironPlate)
   })
 })
 describe('inspection and global statistics', () => {
@@ -290,16 +290,16 @@ describe('inspection and global statistics', () => {
     const world = line()
     advanceWorld(world, 12000)
     const before = worldStats(world)
-    expect(before.storedPlates).toBeGreaterThan(0)
+    expect(before.stored.ironPlate).toBeGreaterThan(0)
     expect(before.furnaces).toBe(1)
     expect(before.miners).toBe(1)
     const inspection = inspectBuilding(world, 21 * SIZE + 24)
-    expect(inspection).toMatchObject({ kind: 'storage', inventory: { iron: 0, ironPlate: before.storedPlates } })
+    expect(inspection).toMatchObject({ kind: 'storage', inventory: { iron: 0, ironPlate: before.stored.ironPlate } })
     removeBuilding(world, 24, 21)
     removeBuilding(world, 22, 20)
     removeBuilding(world, 20, 20)
     const after = worldStats(world)
-    expect(after).toMatchObject({ storedOre: 0, storedPlates: 0, miners: 0, furnaces: 0, oreMined: before.oreMined, platesSmelted: before.platesSmelted })
+    expect(after).toMatchObject({ stored: { iron: 0, ironPlate: 0, copper: 0, copperPlate: 0 }, miners: 0, furnaces: 0, mined: before.mined, produced: before.produced })
     expect(inspectBuilding(world, 21 * SIZE + 24)).toBe(null)
   })
 })

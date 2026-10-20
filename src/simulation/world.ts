@@ -1,6 +1,6 @@
 import type { PowerState } from './power'
-import { emptyInventory } from './items'
-import type { Inventory, Item } from './items'
+import { emptyInventory, RESOURCES } from './items'
+import type { Inventory, Item, Resource } from './items'
 import type { RecipeId } from './recipes'
 export type { Item } from './items'
 export const SIZE = 40
@@ -30,7 +30,7 @@ export interface Furnace extends Position {
 export interface Generator extends Position { kind: 'generator' }
 export interface PowerPole extends Position { kind: 'powerPole' }
 export type Building = Miner | Belt | Storage | Furnace | Generator | PowerPole
-export interface World { tiles: boolean[]; buildings: (Building | null)[]; ore: number; plates: number; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -45,21 +45,30 @@ export function buildingAt(world: World, x: number, y: number): Building | null 
   return inside(x, y) ? world.buildings[y * SIZE + x] : null
 }
 export function createWorld(random = Math.random): World {
-  const tiles = Array.from({ length: SIZE * SIZE }, () => false)
-  for (let n = 0; n < 45; n++) {
+  const tiles: (Resource | null)[] = Array.from({ length: SIZE * SIZE }, () => null)
+  for (const resource of RESOURCES) for (let n = 0; n < 35; n++) {
     const cx = Math.floor(random() * SIZE), cy = Math.floor(random() * SIZE)
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
       const x = cx + dx, y = cy + dy
-      if (inside(x, y) && dx * dx + dy * dy <= 5 && random() < .7) tiles[y * SIZE + x] = true
+      if (inside(x, y) && dx * dx + dy * dy <= 5 && random() < .7 && tiles[y * SIZE + x] === null) tiles[y * SIZE + x] = resource
     }
   }
-  tiles[20 * SIZE + 20] = true
-  return { tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), ore: 0, plates: 0, remainder: 0, topologyRevision: 0, power: null }
+  // Starter clusters ensure both resources are reachable, even for degenerate RNGs.
+  for (const [cx, cy, resource] of [[20, 20, 'iron'], [26, 20, 'copper']] as const) {
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
+    }
+  }
+  return { tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
 }
+export function depositAt(world: World, x: number, y: number): Resource | null {
+  return inside(x, y) ? world.tiles[y * SIZE + x] : null
+}
+
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner'): string | null {
   if (!inside(x, y)) return 'Choose a tile inside the world.'
   if (buildingAt(world, x, y)) return 'This tile already has a building.'
-  if (kind === 'miner' && !world.tiles[y * SIZE + x]) return 'Place mining machines on iron deposits.'
+  if (kind === 'miner' && !depositAt(world, x, y)) return 'Place mining machines on ore deposits.'
   return null
 }
 export function placeBuilding(world: World, x: number, y: number, kind: BuildingKind, direction: Direction): boolean {

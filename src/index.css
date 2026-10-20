@@ -52,3 +52,13 @@ kbd { font: 9px monospace; border: 1px solid #39463b; border-radius: 3px; paddin
 .power-details { margin-top: 16px; border-top: 1px solid #65533b; }
 .power-disconnected .inspection-note,.power-no-generation .inspection-note { color: #f0a094; }
 .power-reduced .inspection-note { color: #efbe77; }
+.resource-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 12px; }
+.resource-table th,.resource-table td { padding: 9px 2px; border-bottom: 1px solid #283129; text-align: right; font-variant-numeric: tabular-nums; }
+.resource-table th:first-child { text-align: left; font-weight: 400; color: #a9b9ae; }
+.resource-table thead { color: #889b8d; font-size: 10px; }
+.resource-table td { color: #d1dfc8; font-family: monospace; }
+.item-swatch { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border: 1px solid #ffffff33; }
+.recipe-label { display: block; font-size: 11px; margin: 14px 0 6px; color: #b9c5b4; }
+.inspection select { width: 100%; padding: 8px; border: 1px solid #8d7858; border-radius: 4px; color: #efd8b4; background: #1c241f; font: inherit; font-size: 12px; }
+.inspection select:disabled { opacity: .7; cursor: not-allowed; }
+.copper-legend { color: #eda773; }
