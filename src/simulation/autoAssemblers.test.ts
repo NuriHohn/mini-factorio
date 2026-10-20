@@ -42,7 +42,10 @@ function materials(world: World) {
     if (b.kind === 'assembler' || b.kind === 'furnace') {
       add(b.input); add(b.output); if (b.job) add(b.job.inputs)
       expect(inventoryTotal(b.output) + inventoryTotal(b.job?.outputs ?? {})).toBeLessThanOrEqual(b.kind === 'assembler' ? 4 : 2)
-      if (b.kind === 'assembler') for (const item of ITEMS) expect(b.input[item]).toBeLessThanOrEqual(assemblerInputCapacity(b, item))
+      if (b.kind === 'assembler') {
+        const initialAutoCapacities: Partial<Inventory> = { ironPlate: 4, copperPlate: 2, copperCable: 6 }
+        for (const item of ITEMS) expect(b.input[item]).toBeLessThanOrEqual(b.recipeMode === 'auto' ? initialAutoCapacities[item] ?? 0 : assemblerInputCapacity(b, item))
+      }
     } else if (b.kind === 'storage') add(b.inventory)
     else if ((b.kind === 'miner' || b.kind === 'belt') && b.item) add({ [b.item]: 1 })
   }
@@ -112,16 +115,19 @@ describe('assembler Auto detection and waiting', () => {
     expect(a.job).toMatchObject({ recipeId: 'ironGear', elapsedMs: 0 })
     expect(a.input.copperPlate).toBe(2)
   })
-  it('does not interrupt an active gear job when a complete circuit arrives', () => {
+  it('rejects later circuit ingredients without interrupting the locked gear job', () => {
     const world = setup(), a = machine(world)
     feed(world, 'ironPlate', 2); advanceWorld(world, 2550)
     const job = structuredClone(a.job)
-    feed(world, 'ironPlate'); feed(world, 'copperCable', 3)
+    feed(world, 'ironPlate'); feed(world, 'copperCable')
+    expect(belt(world).item).toBe('copperCable')
     expect(a.job).toEqual(job); expect(a.recipeId).toBe('ironGear')
     advanceWorld(world, 1500)
     expect(world.produced.ironGear).toBe(1)
-    expect(a.job).toMatchObject({ recipeId: 'electronicCircuit', elapsedMs: 0 })
-    expect(a.output.ironGear).toBe(1) // Auto may switch with old products still buffered.
+    expect(a.job).toBe(null)
+    expect(a.recipeId).toBe('ironGear')
+    expect(a.recipeLocked).toBe(true)
+    expect(a.output.ironGear).toBe(1)
   })
   it('bounds each ingredient independently and reserves simultaneous deliveries per item', () => {
     const world = setup(), a = machine(world)
@@ -185,7 +191,7 @@ describe('Auto progress, power, backpressure and conservation', () => {
     expect(a.job?.elapsedMs).toBeLessThanOrEqual(100)
     expect(inventoryTotal(a.output) + inventoryTotal(a.job?.outputs ?? {})).toBe(4)
   })
-  it('drains complete mixed buffers and rotates equal-priority recipes without stranding inputs', () => {
+  it('processes only the locked circuit and preserves unrelated pre-detection stock', () => {
     const world = setup(), a = machine(world)
     drain(world)
     feed(world, 'ironPlate', 4); feed(world, 'copperPlate', 2); feed(world, 'copperCable', 6)
@@ -194,12 +200,15 @@ describe('Auto progress, power, backpressure and conservation', () => {
       advanceWorld(world, STEP_MS)
       expect(materials(world)).toEqual(before)
     }
-    expect(inventoryTotal(a.input)).toBe(0)
+    expect(a.input).toMatchObject({ ironPlate: 2, copperPlate: 2, copperCable: 0 })
+    expect(a.recipeId).toBe('electronicCircuit')
+    expect(assemblerInputCapacity(a, 'copperPlate')).toBe(0)
+    expect(changeCraftingRecipe(world, 20, 20, 'copperCable')).toContain('Empty both')
     const stored = (buildingAt(world, 22, 20) as Storage).inventory
-    expect(stored).toMatchObject({ electronicCircuit: 2, ironGear: 1, copperCable: 4 })
+    expect(stored).toMatchObject({ electronicCircuit: 2, ironGear: 0, copperCable: 0 })
     expect(a.job).toBe(null)
   })
-  it('alternates lower-priority recipes when both supplies stay available', () => {
+  it('never rotates to another recipe after the first single-ingredient detection', () => {
     const world = setup(), a = machine(world)
     drain(world)
     feed(world, 'ironPlate', 4); feed(world, 'copperPlate', 2)
@@ -207,9 +216,10 @@ describe('Auto progress, power, backpressure and conservation', () => {
     expect(world.produced.ironGear).toBe(1)
     feed(world, 'ironPlate', 2) // Gear remains craftable throughout.
     advanceWorld(world, 2000)
-    expect(a.job?.recipeId).toBe('copperCable')
+    expect(a.job?.recipeId).toBe('ironGear')
     advanceWorld(world, 2000)
-    expect(world.produced.copperCable).toBe(2)
+    expect(world.produced.copperCable).toBe(0)
+    expect(a.input.copperPlate).toBe(2)
   })
   it('retains Manual locking, immediate starts, and empty-idle restrictions for switching modes', () => {
     const world = setup(), a = machine(world)
@@ -223,10 +233,11 @@ describe('Auto progress, power, backpressure and conservation', () => {
     advanceWorld(world, 2000)
     expect(changeCraftingRecipe(world, 20, 20, 'auto')).toContain('Empty both')
     drain(world); advanceWorld(world, STEP_MS)
-    expect(changeCraftingRecipe(world, 20, 20, 'auto')).toBe(null)
-    expect(a).toMatchObject({ recipeMode: 'auto', recipeId: null, autoWaitElapsedMs: null })
+    expect(changeCraftingRecipe(world, 20, 20, 'auto')).toContain('one-time')
+    expect(changeCraftingRecipe(world, 20, 20, 'copperCable')).toBe(null)
+    expect(a).toMatchObject({ recipeMode: 'manual', recipeId: 'copperCable', recipeLocked: true })
   })
-  it('is deterministic across large and partitioned advances, including waiting and switches', () => {
+  it('is deterministic across large and partitioned advances, including detection, locking and retained mixed buffers', () => {
     function run(split: boolean) {
       const world = setup(); drain(world)
       feed(world, 'ironPlate', 4); feed(world, 'copperPlate', 2); feed(world, 'copperCable', 6)

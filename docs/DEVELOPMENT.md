@@ -60,9 +60,10 @@ Verify that the remote hash matches the commit. Create/review a pull request tar
 | --- | --- |
 | `simulation/world.test.ts` | Placement, removal, mining, transport, congestion and timing |
 | `simulation/smelting.test.ts`, `simulation/copper.test.ts` | Exact batches/reservations, both metals, switching, typed inventory and production |
-| `simulation/autoRecipes.test.ts` | Furnace detection/locks, simultaneous mixed ore, outages and conservation |
+| `simulation/autoRecipes.test.ts` | One-time furnace detection/locks, simultaneous mixed ore, outages and conservation |
 | `simulation/assemblers.test.ts` | Quantities, multi-input/per-item capacity, power, removal and complete circuit chain |
-| `simulation/autoAssemblers.test.ts` | Waiting boundaries, priority/tie rotation, mixed input order, backpressure, Manual locks and determinism |
+| `simulation/autoAssemblers.test.ts` | Initial waiting boundaries, candidate priority, permanent locking, mixed input order, backpressure, Manual locks and determinism |
+| `state/gameStore.test.ts`, `simulation/recipeLock.test.ts` | Shared toolbar/keyboard toggles, ESC, inspection gating, permanent recipe locks and safe manual overrides |
 | `simulation/inserters.test.ts`, `game/inserterArm.test.ts` | Source/destination contention, snapshot budgets, ports, cycles, power, held-item conservation, full production and arm continuity |
 | `simulation/power.test.ts`, `simulation/polePlacementPreview.test.ts` | Network splitting/merging, coverage, proportional allocation, deterministic assignment and preview boundaries |
 | `simulation/beltConnections.test.ts`, `game/beltPath.test.ts` | Stable visual topology and straight/curve continuity |
@@ -74,9 +75,9 @@ Use explicit power infrastructure in production fixtures; [`testFixtures.ts`](..
 
 For input/rendering changes, check in an available browser and report whether checks were manual or automated. Do not claim browser checks from unit-test results alone.
 
-1. Place and rotate each directional building; inspect with no tool selected; remove occupied machines/chests and verify lifetime totals remain.
+1. Toggle each tool by its hotkey and toolbar button; switch directly between placement/deletion, verify only one active highlight, and cancel with ESC. Repeat ESC in normal mode and inspect without placing. Place and rotate each directional building; inspect with no tool selected; remove occupied machines/chests and verify lifetime totals remain.
 2. Run iron/copper miner → Auto furnace → storage chains around straight and curved belts; check typed moving items and blocked-input retention.
-3. Route iron plates and cables through separate circuit-assembler inputs. Check Auto waiting/countdown, circuit priority, safe Manual switching, two-output cable batches and stored versus lifetime counts.
+3. Route iron plates and cables through separate circuit-assembler inputs. Check one-time Auto waiting/countdown, initial circuit priority, permanent locks after draining, safe Manual switching, two-output cable batches and stored versus lifetime counts.
 4. Place poles near range boundaries and overlapping coverage. Check dashed preview links/colors, disconnected placement, coverage highlights and assigned networks without hover mutating topology.
 5. Create a shortage, interrupt generation, then restore it. Check proportional speed, frozen processing animations/progress, reservations and continued belt/export behavior.
 6. Place/rotate inserters with 8/R; check pickup/drop previews, chest selection, belt and machine ports, held items under blocked output/outages, and nominal outward/return timing. Preserve existing direct belt chains.

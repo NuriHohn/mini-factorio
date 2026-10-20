@@ -46,6 +46,8 @@ export type Inspection = InserterInspection | { kind: 'storage'; inventory: Inve
   direction: Direction
   recipe: string
   recipeMode: FurnaceRecipeMode
+  recipeLocked: boolean
+  detectionStatus: 'undetected' | 'choosing' | 'automatic-locked' | 'manual-locked'
   recipeId: RecipeId | null
   requirements: Readonly<Partial<Inventory>>
   products: Readonly<Partial<Inventory>>
@@ -97,6 +99,8 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   const recipe = building.recipeId ? RECIPES[building.recipeId] : null
   return {
     kind: building.kind, direction: building.direction, recipeMode: building.kind === 'furnace' ? building.recipeMode : building.recipeMode === 'auto' ? 'auto' : building.recipeId ?? 'auto', recipe: recipe?.label ?? (building.kind === 'furnace' ? 'Waiting for ore' : 'Waiting for ingredients'), recipeId: building.recipeId,
+    recipeLocked: building.recipeLocked,
+    detectionStatus: building.recipeLocked ? (building.recipeMode === 'auto' ? 'automatic-locked' : 'manual-locked') : building.recipeId ? 'choosing' : 'undetected',
     requirements: { ...recipe?.inputs }, products: { ...recipe?.outputs }, durationMs: recipe?.durationMs ?? 0, recipeChangeError: recipeChangeError(building),
     input: { ...building.input }, output: { ...building.output }, reserved: { ...(building.job?.outputs ?? emptyInventory()) },
     progress: building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0,

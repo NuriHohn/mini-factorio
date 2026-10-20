@@ -13,9 +13,10 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Copper and multi-resource production | Copper mining/smelting, generic inventories, item metadata and per-item statistics |
 | Automatic furnace recipes | Default Auto detection, iron/copper Manual locks and safe changes |
 | Assemblers and multi-stage production | Shared crafting core, gears, two-output cable batches, multi-input circuits, 60 kW assemblers |
-| Automatic assembler recipes | Default Auto, circuit priority, fixed waiting policy, independent ingredient capacities and deterministic ties |
+| Automatic assembler recipes | Default Auto, circuit priority, initial waiting policy, independent ingredient capacities and permanent recipe locking |
 | Sprint 6.5: persistent project context | Concise contributor rules and linked architecture, game design, roadmap and development documentation; no gameplay change |
 | Sprint 7: basic inserters | Powered one-item arms, chest extraction, direct machine bridges, held-item safety, previews and inspection |
+| Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
 
 “Persistent project context” means versioned repository documentation, not persistent game saves or automatic agent memory. Future tasks must read the relevant files.
 

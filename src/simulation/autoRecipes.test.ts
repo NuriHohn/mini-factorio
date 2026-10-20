@@ -71,7 +71,7 @@ describe('automatic furnace recipes', () => {
     expect(world.produced[plate]).toBe(1)
     expect(contents(world, ore)).toBe(1)
   })
-  it.each(chains)('detects a different ore after the $ore batch and its outputs fully drain', ({ ore, plate }) => {
+  it.each(chains)('keeps the $ore lock after draining until an explicit safe manual recipe change', ({ ore, plate }) => {
     const world = setup(), f = furnace(world)
     drain(world)
     feed(world, ore)
@@ -80,7 +80,11 @@ describe('automatic furnace recipes', () => {
     expect(inventoryTotal(f.input) + inventoryTotal(f.output)).toBe(0)
     const next = ore === 'iron' ? chains[1] : chains[0]
     feed(world, next.ore)
-    expect(f.recipeId).toBe(next.recipe)
+    expect(f.recipeId).toBe(ore === 'iron' ? 'ironSmelting' : 'copperSmelting')
+    expect(f.recipeLocked).toBe(true)
+    advanceWorld(world, 2700)
+    expect(belt(world).item).toBe(next.ore)
+    expect(changeFurnaceRecipe(world, 20, 20, next.recipe)).toBe(null)
     advanceWorld(world, 2700)
     const chest = buildingAt(world, 22, 20) as Storage
     expect(chest.inventory[plate]).toBe(1)
@@ -151,7 +155,7 @@ describe('automatic furnace recipes', () => {
     expect(contents(world, 'iron')).toBe(1)
     expect(contents(world, 'copper')).toBe(2)
   })
-  it('eventually accepts the waiting other ore only after all selected ore and plates clear', () => {
+  it('keeps the waiting other ore on its belt even after all selected ore and plates clear', () => {
     const world = setup(), f = furnace(world)
     drain(world)
     expect(placeBuilding(world, 20, 19, 'belt', 'south')).toBe(true)
@@ -171,10 +175,11 @@ describe('automatic furnace recipes', () => {
       expect(contents(world, 'iron')).toBe(1)
       expect(contents(world, 'copper')).toBe(1)
     }
-    expect(switched).toBe(true)
-    expect(f.recipeId).toBe('ironSmelting')
+    expect(switched).toBe(false)
+    expect(f.recipeId).toBe('copperSmelting')
+    expect(belt(world).item).toBe('iron')
     const chest = buildingAt(world, 22, 20) as Storage
-    expect(chest.inventory).toMatchObject({ ironPlate: 1, copperPlate: 1 })
+    expect(chest.inventory).toMatchObject({ ironPlate: 0, copperPlate: 1 })
   })
   it('skips incompatible arrivals before selecting the first compatible ore', () => {
     const world = setup()
@@ -230,11 +235,12 @@ describe('automatic furnace recipes', () => {
     expect(f.job?.outputs.copperPlate).toBe(1)
     expect(f.recipeId).toBe('copperSmelting')
   })
-  it('conserves each metal through alternating mixed input and is deterministic across time partitions', () => {
+  it('conserves each metal through explicit manual changes and is deterministic across time partitions', () => {
     function run(partitioned: boolean) {
       const world = setup()
       drain(world)
       for (const ore of ['copper', 'iron', 'copper', 'iron'] as const) {
+        if (furnace(world).recipeLocked) expect(changeFurnaceRecipe(world, 20, 20, ore === 'iron' ? 'ironSmelting' : 'copperSmelting')).toBe(null)
         feed(world, ore)
         if (partitioned) for (let i = 0; i < 270; i++) advanceWorld(world, 10)
         else advanceWorld(world, 2700)
