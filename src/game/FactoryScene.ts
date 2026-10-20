@@ -1,3 +1,4 @@
+import { arrestVisual } from './arrestVisuals'
 import { attackWalker, combatPosition, combatTool, peteUnavailable } from '../simulation/revenge'
 import { RevengeVisuals } from './RevengeVisuals'
 import { hasTechnology } from '../simulation/research'
@@ -485,12 +486,14 @@ export class FactoryScene extends Phaser.Scene {
     this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this)
     if (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned') drawPete(this.peteEffects, this.world, TILE)
     drawPoliceEffects(this.peteEffects, this.world, TILE)
+    const arrest = arrestVisual(this.world)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
     this.peteLabel.setVisible(!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')
-    this.peteLabel.setPosition((pete.x + .5) * TILE, (pete.y + .5) * TILE - (complaining ? 29 : 15))
-    const label = this.world.revenge.stage === 'stunned' ? 'Pete · seeing stars!' : complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete'
+    const labelPosition = arrest?.active ? this.world.police.car! : pete.mode === 'ARRESTED' ? arrest?.pete ?? pete : pete
+    this.peteLabel.setPosition((labelPosition.x + .5) * TILE, (labelPosition.y + .5) * TILE - (arrest?.active ? 59 : complaining ? 29 : 15))
+    const label = arrest?.caption ?? (this.world.revenge.stage === 'stunned' ? 'Pete · seeing stars!' : complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete')
     if (this.peteLabel.text !== label) {
-      this.peteLabel.setText(label).setStyle({ color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
+      this.peteLabel.setText(label).setStyle({ fontSize: arrest?.active ? '13px' : '9px', color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
     }
     useGameStore.getState().publish(this.world)
     const state = useGameStore.getState()

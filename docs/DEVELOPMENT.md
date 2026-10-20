@@ -94,6 +94,7 @@ The delivery summary should state what changed, validation actually performed, m
 | `game/sprinklerVisuals.test.ts` | Power-gated jets, splash/bubble rendering, bounded puddle expiry/world replacement and read-only rendering |
 
 | `simulation/analytics.test.ts`, `persistence/analyticsSave.test.ts` | Creation/consumption versus relocation, rate/history boundaries, utilization, diagnostic priority/reset/sorting, removal, persistence/migration/rejection and deterministic continuation |
+| `game/arrestVisuals.test.ts` | Cycle stages 1/2/3/4+, boss-reset and higher-threshold behavior, read-only restraints/passenger rendering, unchanged pickup/transport/prison, optional version-6 clock validation and exact mid-effect continuation |
 | `simulation/revenge.test.ts`, `persistence/revengeSave.test.ts`, `state/revengeTools.test.ts`, `game/RevengeVisuals.test.ts` | Completed-arrest thresholds, movement/targeting, EMP/stomp, hit/miss/camera transforms, shared cooldown/research/support, exact recovery, strict migration/continuation and read-only rendering cleanup |
 | `simulation/research.test.ts`, `state/researchAccess.test.tsx`, `persistence/researchSave.test.ts` | Productive-time integer RP, fractional power/blocking/sabotage, purchase atomicity/prerequisites, placement/tool/dashboard gates, defaults, strict migration and exact continuation |
 | `simulation/uniqueRecipes.test.ts` | Unique ore recipe probes and rejection of future ambiguous candidates |

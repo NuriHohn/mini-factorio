@@ -1,3 +1,4 @@
+import { arrestVisual } from './arrestVisuals'
 import type Phaser from 'phaser'
 import { radarPowered } from '../simulation/police'
 import { SIZE } from '../simulation/world'
@@ -53,7 +54,8 @@ export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, 
   }
   const car = world.police.car
   if (!car) return
-  const x = (car.x + .5) * tile, y = (car.y + .5) * tile
+  const arrest = arrestVisual(world)
+  const x = (car.x + .5) * tile + (arrest?.wobble ?? 0), y = (car.y + .5) * tile
   const horizontal = car.next === null || car.next % SIZE !== car.tile % SIZE
   g.fillStyle(0x14202b, .4).fillEllipse(x, y + 9, 29, 13)
   g.fillStyle(0x10171e).fillRoundedRect(x - 14, y - 9, 28, 19, 4)
@@ -62,6 +64,23 @@ export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, 
   g.fillStyle(0x28313c).fillRect(x - 10, y - 11, 5, 3).fillRect(x + 5, y - 11, 5, 3).fillRect(x - 10, y + 8, 5, 3).fillRect(x + 5, y + 8, 5, 3)
   g.fillStyle(world.timeMs % 300 < 150 ? 0xff6c6c : 0x4b7ea3).fillRect(x - 5, y - 9, 5, 4)
   g.fillStyle(world.timeMs % 300 >= 150 ? 0x72caff : 0x7b4f58).fillRect(x, y - 9, 5, 4)
-  if (car.phase === 'TRANSPORTING') { g.fillStyle(0x91dd60).fillCircle(x + 4, y, 4); g.fillStyle(0x17251b).fillCircle(x + 3, y - 1, 1).fillCircle(x + 5, y - 1, 1) }
-  if (car.phase === 'ARRESTING') { g.lineStyle(2, 0xe9cf77).strokeCircle(x - 7, y + 10, 4).strokeCircle(x + 1, y + 10, 4); g.lineBetween(x - 3, y + 10, x - 2, y + 10) }
+  if (car.phase === 'TRANSPORTING') { g.fillStyle(0x173c48).fillRoundedRect(x - 3, y - 7, 15, 14, 3); g.fillStyle(0x91dd60).fillCircle(x + 4, y, 5.5); g.fillStyle(0x17251b).fillCircle(x + 3, y - 1, 1).fillCircle(x + 5, y - 1, 1) }
+  if (arrest?.active) {
+    // Oversized cuffs stay readable without adding tiny character detail.
+    g.fillStyle(0x14202b, .9).fillRoundedRect(x - 31, y - 54, 62, 34, 5)
+    g.lineStyle(5, 0x314351).strokeCircle(x - 13, y - 37, 10).strokeCircle(x + 13, y - 37, 10)
+    g.lineStyle(3, 0xe3edf5).strokeCircle(x - 13, y - 37, 9).strokeCircle(x + 13, y - 37, 9)
+    g.lineStyle(3, 0xc0d4e3).lineBetween(x - 4, y - 37, x + 4, y - 37)
+    g.lineStyle(1, 0xffffff).lineBetween(x - 19, y - 43, x - 14, y - 46).lineBetween(x + 7, y - 43, x + 12, y - 46)
+    if (arrest.rope) {
+      const px = car.phase === 'ARRESTING' ? (arrest.pete.x + .5) * tile : x + 4
+      const py = car.phase === 'ARRESTING' ? (arrest.pete.y + .5) * tile : y
+      for (let i = -1; i <= 1; i++) {
+        g.lineStyle(5, 0x694323).strokeEllipse(px, py + 5 + i * 6, 34, 12)
+        g.lineStyle(3, 0xf5ca7c).strokeEllipse(px, py + 5 + i * 6, 34, 12)
+      }
+      g.lineStyle(3, 0xf5ca7c).strokeCircle(px + 17, py + 5, 4).strokeCircle(px + 23, py + 5, 4)
+      g.lineBetween(px + 20, py + 8, px + 23, py + 18).lineBetween(px + 20, py + 8, px + 15, py + 16)
+    }
+  }
 }
