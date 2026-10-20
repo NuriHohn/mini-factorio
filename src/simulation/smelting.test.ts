@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { poweredWorld } from './testFixtures'
 import { advanceWorld, STEP_MS } from './step'
 import { advanceTransport, outputMachines } from './transport'
-import { advanceSmelting, furnaceStatus } from './smelting'
+import { furnaceStatus } from './smelting'
 import { ITEMS, inventoryTotal } from './items'
 import { FURNACE_INPUT_CAPACITY, FURNACE_OUTPUT_CAPACITY, RECIPES } from './recipes'
-import { buildingAt, createWorld, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding, SIZE } from './world'
+import { buildingAt, DIRECTIONS, offsets, opposite, placeBuilding, removeBuilding, SIZE } from './world'
 import type { Belt, BuildingKind, Direction, Furnace, Storage, World } from './world'
 import { beltInputs } from './beltConnections'
 import { inspectBuilding, worldStats } from './inspection'
@@ -16,12 +17,12 @@ function furnace(world: World, x = 20, y = 20) { return buildingAt(world, x, y) 
 function belt(world: World, x: number, y: number) { return buildingAt(world, x, y) as Belt }
 function chest(world: World, x: number, y: number) { return buildingAt(world, x, y) as Storage }
 function setup() {
-  const world = createWorld(() => .5)
+  const world = poweredWorld(() => .5)
   place(world, 20, 20, 'furnace')
   return world
 }
 function line() {
-  const world = createWorld(() => .5)
+  const world = poweredWorld(() => .5)
   place(world, 20, 20, 'miner')
   place(world, 21, 20, 'belt')
   place(world, 22, 20, 'furnace')
@@ -36,7 +37,7 @@ function physicalItems(world: World) {
     if (!b) continue
     if (b.kind === 'storage') total += inventoryTotal(b.inventory)
     else if (b.kind === 'furnace') total += inventoryTotal(b.input) + inventoryTotal(b.output) + (b.job ? inventoryTotal(b.job.inputs) : 0)
-    else total += Number(b.item !== null)
+    else if (b.kind === 'miner' || b.kind === 'belt') total += Number(b.item !== null)
   }
   return total
 }
@@ -115,13 +116,13 @@ describe('furnace processing', () => {
   it('retains a completed job rather than losing it if an invalid external edit fills its reservation', () => {
     const world = setup(), f = furnace(world)
     f.input.iron = 1
-    advanceSmelting(world, STEP_MS)
+    advanceWorld(world, 2000)
     f.output.ironPlate = 2
-    advanceSmelting(world, 2000)
-    expect(f.job?.elapsedMs).toBe(2000)
+    advanceWorld(world, 1000)
+    expect(f.job?.elapsedMs).toBe(1950)
     expect(world.plates).toBe(0)
     f.output.ironPlate--
-    advanceSmelting(world, STEP_MS)
+    advanceWorld(world, STEP_MS)
     expect(f.output.ironPlate).toBe(2)
     expect(world.plates).toBe(1)
     expect(f.job).toBe(null)
