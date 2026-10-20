@@ -12,7 +12,7 @@ function receiver(world: World, source: Building, direction: Direction): Buildin
   const offset = offsets[direction]
   return buildingAt(world, source.x + offset.x, source.y + offset.y)
 }
-function canReceive(target: Building, item: Item, travel: Direction, reserved: Readonly<Partial<Inventory>> = {}, recipeId: RecipeId | null = target.kind === 'furnace' || target.kind === 'assembler' ? target.recipeId : null): boolean {
+export function canReceive(target: Building, item: Item, travel: Direction, reserved: Readonly<Partial<Inventory>> = {}, recipeId: RecipeId | null = target.kind === 'furnace' ? incomingRecipe(target, item) : target.kind === 'assembler' ? target.recipeId : null): boolean {
   switch (target.kind) {
     case 'storage': return true
     case 'belt': return !target.item && inventoryTotal(reserved) === 0 && target.direction !== opposite(travel)
@@ -27,7 +27,12 @@ function canReceive(target: Building, item: Item, travel: Direction, reserved: R
 function accept(target: Building, item: Item, direction: Direction): void {
   switch (target.kind) {
     case 'storage': target.inventory[item]++; break
-    case 'furnace':
+    case 'furnace': {
+      const recipeId = incomingRecipe(target, item)
+      if (recipeId) target.recipeId = recipeId
+      target.input[item]++
+      break
+    }
     case 'assembler': target.input[item]++; break
     case 'belt':
       target.item = item
@@ -35,6 +40,12 @@ function accept(target: Building, item: Item, direction: Direction): void {
       target.entry = opposite(direction)
       break
   }
+}
+// Shared atomic delivery for inserters, using the same ports, capacities and recipe locks.
+export function deliverItem(target: Building, item: Item, direction: Direction): boolean {
+  if (!canReceive(target, item, direction)) return false
+  accept(target, item, direction)
+  return true
 }
 export function advanceTransport(world: World, delta: number): Set<Building> {
   const transfers: { source: Belt; target: Building; item: Item }[] = []

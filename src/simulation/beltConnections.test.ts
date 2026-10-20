@@ -8,14 +8,14 @@ function target(world: World, direction: Direction = 'east'): Belt {
   placeBuilding(world, 20, 20, 'belt', direction)
   return buildingAt(world, 20, 20) as Belt
 }
-function source(world: World, side: Direction, kind: 'belt' | 'miner' = 'belt') {
+function source(world: World, side: Direction, kind: 'belt' | 'miner' | 'inserter' = 'belt') {
   const d = offsets[side]
   world.tiles[(20 + d.y) * 40 + 20 + d.x] = 'iron'
   expect(placeBuilding(world, 20 + d.x, 20 + d.y, kind, opposite(side))).toBe(true)
 }
 describe('belt topology', () => {
-  it.each(DIRECTIONS)('finds every legal miner and belt input for output %s', output => {
-    for (const kind of ['miner', 'belt'] as const) {
+  it.each(DIRECTIONS)('finds every legal miner, belt and inserter input for output %s', output => {
+    for (const kind of ['miner', 'belt', 'inserter'] as const) {
       const world = createWorld()
       const belt = target(world, output)
       for (const side of DIRECTIONS) source(world, side, kind)

@@ -34,6 +34,6 @@ export function CraftingInspector({ inspection, requestRecipe }: {
     <div className="stats"><span>Processing progress</span><b>{Math.round(inspection.progress * 100)}%</b></div>
     <progress aria-label={furnace ? 'Smelting progress' : 'Crafting progress'} value={inspection.progress} max={1} />
     {inspection.status === 'processing' && <p className="inspection-note">Recipe ingredients committed to this batch.</p>}
-    {inspection.outputWaiting && <p className="inspection-warning" role="status">Output waiting for conveyor</p>}
+    {inspection.outputWaiting && <p className="inspection-warning" role="status">Output waiting for transport</p>}
   </>
 }

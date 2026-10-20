@@ -7,7 +7,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'generator' | 'powerPole'
+export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole'
 export interface Position { x: number; y: number }
 export interface Miner extends Position { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
 export interface Belt extends Position { kind: 'belt'; direction: Direction; item: Item | null; progress: number; entry: Direction }
@@ -40,9 +40,16 @@ export interface Assembler extends Position {
   job: ProcessingJob | null
 }
 export type CraftingMachine = Furnace | Assembler
+export interface Inserter extends Position {
+  kind: 'inserter'
+  direction: Direction
+  phase: 'idle' | 'carrying' | 'returning'
+  item: Item | null
+  elapsedMs: number
+}
 export interface Generator extends Position { kind: 'generator' }
 export interface PowerPole extends Position { kind: 'powerPole' }
-export type Building = Miner | Belt | Storage | Furnace | Assembler | Generator | PowerPole
+export type Building = Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
 export interface World { tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
@@ -88,6 +95,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   if (placementError(world, x, y, kind)) return false
   let building: Building
   switch (kind) {
+    case 'inserter': building = { kind, x, y, direction, phase: 'idle', item: null, elapsedMs: 0 }; break
     case 'generator': building = { kind, x, y }; break
     case 'powerPole': building = { kind, x, y }; break
     case 'storage': building = { kind, x, y, inventory: emptyInventory() }; break

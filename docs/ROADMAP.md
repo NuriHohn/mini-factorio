@@ -15,6 +15,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Assemblers and multi-stage production | Shared crafting core, gears, two-output cable batches, multi-input circuits, 60 kW assemblers |
 | Automatic assembler recipes | Default Auto, circuit priority, fixed waiting policy, independent ingredient capacities and deterministic ties |
 | Sprint 6.5: persistent project context | Concise contributor rules and linked architecture, game design, roadmap and development documentation; no gameplay change |
+| Sprint 7: basic inserters | Powered one-item arms, chest extraction, direct machine bridges, held-item safety, previews and inspection |
 
 “Persistent project context” means versioned repository documentation, not persistent game saves or automatic agent memory. Future tasks must read the relevant files.
 
@@ -22,7 +23,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Proposal | Intended scope / prerequisite |
 | --- | --- |
-| Inserters and improved logistics | Explicit extraction/insertion, including chest access; define transfer timing and power before implementation |
+| Improved logistics | Build on basic inserters with separately approved filtering, priorities, stack/reach variants or throughput improvements |
 | Splitters and routing | Controlled branching, merging and resource routing while preserving conservation and deterministic arbitration |
 | Save/load | Versioned world serialization, safe restoration of jobs, waits and topology; decide migration behavior |
 | Research and technology progression | Gradually unlock recipes, machines and assistance; introduce progression as a separate design change |
