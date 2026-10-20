@@ -69,7 +69,7 @@ Power topology is cached against `topologyRevision`; successful placement/remova
 
 ## Commands, rendering and lifecycle
 
-Toolbar clicks and non-repeating placement/deletion hotkeys use the same atomic `select` toggle action; Escape explicitly requests null and is idempotent in normal mode. `tool` is the only placement/removal authority: React derives `aria-pressed` and styling from it, while Phaser reads it for previews and click behavior. Inspection is admitted only when it is null. Overlay and keyboard focus have separate visual styles and do not represent active tools.
+Toolbar clicks and non-repeating placement/deletion hotkeys use the same atomic `select` toggle action; Escape explicitly requests null and is idempotent in normal mode. `tool` is the only placement/removal authority: React derives `aria-pressed` and styling from it, while Phaser reads it for previews and click behavior. Inspection is admitted only when it is null. Toolbar focus outlines are suppressed without disabling native keyboard activation; the overlay retains a separate visual style. A scene-managed DOM key listener delivers Escape even with form focus and is removed on scene shutdown; other tool keys ignore form editing.
 
 React sends a recipe intent through Zustand; `FactoryScene.update` revalidates it against the live building before stepping. `inspectBuilding`, `electricalDetails` and `worldStats` derive copied summaries. Store publication compares values and avoids unchanged updates; item positions stay outside Zustand.
 

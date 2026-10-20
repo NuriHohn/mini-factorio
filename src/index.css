@@ -19,7 +19,7 @@ aside { width: 292px; flex-shrink: 0; border-right: 1px solid #2b352d; backgroun
 .stats b { color: #c2d6b5; font-family: monospace; font-weight: 400; }
 .building { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 14px 10px; border: 1px solid #3b463d; border-radius: 5px; background: #202923; }
 .building[data-tool][aria-pressed="true"] { border-color: #9bbd79; background: #283326; box-shadow: inset 3px 0 #9bbd79; }
-.building:focus-visible { outline: 2px dashed #83c0d4; outline-offset: 3px; }
+.building:focus, .building:focus-visible { outline: none; }
 .building.overlay-enabled { border-color: #83c0d4; background: #22313b; }
 .machine-icon { font-size: 29px; color: #d8b369; }
 .building strong { font-size: 12px; font-weight: 600; display: block; }
