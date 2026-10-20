@@ -1,3 +1,4 @@
+import { removeSprinkler } from './sprinklers'
 import { createPolice, policeOccupiesTile, removePoliceBuilding } from './police'
 import type { PoliceState } from './police'
 import { edgeTile, neighboringTiles } from './navigation'
@@ -12,7 +13,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter'
+export type BuildingKind = 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -56,6 +57,7 @@ export interface Inserter extends BuildingPosition {
 }
 export interface Generator extends BuildingPosition { kind: 'generator' }
 export interface PowerPole extends BuildingPosition { kind: 'powerPole' }
+export interface Sprinkler extends BuildingPosition { kind: 'sprinkler'; cooldownUntilMs: number; sprays: number }
 export interface Radar extends BuildingPosition { kind: 'radar' }
 export interface Prison extends BuildingPosition { kind: 'prison'; exit: number }
 export interface SplitterPacket { item: Item; progress: number }
@@ -68,7 +70,7 @@ export interface Splitter extends BuildingPosition {
   delivered: [number, number]
   placedAtMs: number
 }
-export type Building = Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export type Building = Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
 export interface World { timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
@@ -118,6 +120,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   let building: Building
   switch (kind) {
     case 'splitter': building = { kind, x, y, direction, input: null, outputs: [null, null], nextOutput: 0, delivered: [0, 0], placedAtMs: world.timeMs }; break
+    case 'sprinkler': building = { kind, x, y, cooldownUntilMs: 0, sprays: 0 }; break
     case 'radar': building = { kind, x, y }; break
     case 'prison': building = { kind, x, y, exit: neighboringTiles(y * SIZE + x).find(tile => !world.buildings[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)))! }; break
     case 'inserter': building = { kind, x, y, direction, phase: 'idle', item: null, elapsedMs: 0 }; break
@@ -141,6 +144,7 @@ export function removalError(world: World, x: number, y: number): string | null 
 export function removeBuilding(world: World, x: number, y: number): boolean {
   if (removalError(world, x, y)) return false
   removePoliceBuilding(world, world.buildings[y * SIZE + x]!)
+  removeSprinkler(world, world.buildings[y * SIZE + x]!)
   world.buildings[y * SIZE + x] = null
   world.topologyRevision++
   return true

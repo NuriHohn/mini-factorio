@@ -81,7 +81,7 @@ export const useGameStore = create<State>((set, get) => ({
   },
   scarePete: (world, position) => {
     if (!clickPete(world, position)) return false
-    set({ message: world.pete.mode === 'ARRESTED' || world.pete.mode === 'TRANSPORTED' ? 'Pete is in police custody.' : 'Pumpkin Pete is frightened! He will cry in a safe corner, then return.' })
+    set({ message: world.pete.water ? 'Pete is soaked! Let his water reaction finish.' : world.pete.mode === 'ARRESTED' || world.pete.mode === 'TRANSPORTED' ? 'Pete is in police custody.' : 'Pumpkin Pete is frightened! He will cry in a safe corner, then return.' })
     return true
   },
   inspect: (world, x, y) => set(state => {

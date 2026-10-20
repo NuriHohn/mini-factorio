@@ -1,3 +1,4 @@
+import { SPRINKLER_KW } from './sprinklers'
 import { RADAR_KW } from './police'
 import { sabotageRemaining } from './pete'
 import { placementError, SIZE } from './world'
@@ -64,10 +65,11 @@ export function polePlacementPreview(world: World, position: Position): PolePlac
   return { state: connections.length ? 'connected' : 'disconnected', error: null, connections }
 }
 export function powerRequirement(building: Building): number {
-  return building.kind === 'radar' ? RADAR_KW : building.kind === 'inserter' ? INSERTER_KW : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
+  return building.kind === 'sprinkler' ? SPRINKLER_KW : building.kind === 'radar' ? RADAR_KW : building.kind === 'inserter' ? INSERTER_KW : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
 }
 export function workingDemand(building: Building, world?: World, frame?: InserterFrame): number {
   if (world && sabotageRemaining(world, building) > 0) return 0
+  if (building.kind === 'sprinkler') return SPRINKLER_KW
   if (building.kind === 'radar') return RADAR_KW
   if (building.kind === 'inserter') return world ? inserterDemand(world, building, frame) : 0
   if (building.kind === 'miner') return building.item ? 0 : MINER_KW

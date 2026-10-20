@@ -16,7 +16,7 @@ export default function App() {
   return <div className="app-shell">
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
-      <span className="version"><i /> SAVE & LOAD / SPRINT 09</span>
+      <span className="version"><i /> ANTI-GOBLIN / SPRINT 09.5</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
@@ -30,6 +30,14 @@ export default function App() {
             <div className="stats"><span>Automatic escape in</span><b>{(inspection.remainingMs / 1000).toFixed(2)} s</b></div>
             <button className="building" disabled={!inspection.occupied} onClick={requestRelease}>Release Pumpkin Pete</button>
             <p className="inspection-note">Release is immediate. Pete escapes after 60 simulation seconds; release grants 10 seconds of radar grace. Exit: {inspection.exit.x}, {inspection.exit.y}.</p>
+          </> : inspection.kind === 'sprinkler' ? <>
+            <h2>Anti-Goblin Sprinkler</h2>
+            <div className="stats"><span>State</span><b>{inspection.status}</b></div>
+            <div className="stats"><span>Detection radius</span><b>{inspection.radius} tiles</b></div>
+            <div className="stats"><span>Power required</span><b>5 kW</b></div>
+            <div className="stats"><span>Cooldown remaining</span><b>{(inspection.cooldownMs / 1000).toFixed(2)} s</b></div>
+            <div className="stats"><span>Successful sprays</span><b>{inspection.sprays}</b></div>
+            <p className="inspection-note">Requires full power. Spray pauses during shortages. Police and release grace take priority. No water supply needed.</p>
           </> : inspection.kind === 'radar' ? <>
             <h2>Radar trap</h2>
             <div className="stats"><span>Detection radius</span><b>{inspection.radius} tiles</b></div>
@@ -75,7 +83,7 @@ export default function App() {
         </section>
         <BuildToolbar />
         <section className="mission"><p className="eyebrow">POWER YOUR FACTORY</p><h2>Generate. Connect. Produce.</h2><p>Place a generator (5) and a pole (6). Machines need a pole within 3 tiles; poles connect within 6 tiles. Shortages slow all working machines proportionally. Belts always run. Furnaces detect ore automatically. Assemblers detect recipes from buffered ingredients, prioritizing circuits. Supply ingredients by belt, or lock a manual recipe in an empty inspector.</p></section>
-        <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9 / 0</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
+        <div className="controls"><p className="eyebrow mb-3">FIELD MANUAL</p><p><kbd>W A S D</kbd><span>Move camera</span></p><p><kbd>SCROLL</kbd><span>Zoom in / out</span></p><p><kbd>1–9 / 0 / G</kbd><span>Choose building</span></p><p><kbd>R / X</kbd><span>Rotate / remove</span></p><p><kbd>P</kbd><span>Electricity overlay</span></p><p><kbd>ESC</kbd><span>Cancel / inspect</span></p></div>
         <p className="session-note">Offline saves · Load to restore your factory</p>
       </aside>
       <section className="world-panel"><div className="world-heading"><span><i /> GRASSLAND / SECTOR 01</span><span>40 × 40 TILES</span></div><GameCanvas /><div className="world-footer"><span role="status">{message}</span><span className="legend">{powerOverlay ? 'Green full · Amber reduced · Red no power · Blue idle' : <>◆ Iron · <span className="copper-legend">◆ Copper</span></>}</span></div></section>

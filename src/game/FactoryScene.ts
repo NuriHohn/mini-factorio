@@ -1,3 +1,5 @@
+import { WaterVisuals, drawSprinkler } from './sprinklerVisuals'
+import { SPRINKLER_RANGE, WATER_COMPLAINTS } from '../simulation/sprinklers'
 import { SaveSession, errorMessage } from '../persistence/storage'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import type { LoadedGame, ViewState } from '../persistence/saveGame'
@@ -43,6 +45,7 @@ export class FactoryScene extends Phaser.Scene {
   private poleCandidate: PolePlacementPreview | null = null
   private peteEffects!: Phaser.GameObjects.Graphics
   private peteLabel!: Phaser.GameObjects.Text
+  private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
     useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, saveRequest: null, saveBusy: false })
@@ -95,7 +98,7 @@ export class FactoryScene extends Phaser.Scene {
       if (error) { useGameStore.setState({ message: error }); return }
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
     })
   }
   private drawTerrain(terrain: Phaser.GameObjects.Graphics, world: World) {
@@ -292,7 +295,9 @@ export class FactoryScene extends Phaser.Scene {
     for (const building of this.world.buildings) {
       if (!building) continue
       const x = building.x * TILE, y = building.y * TILE
-      if (building.kind === 'radar' || building.kind === 'prison') {
+      if (building.kind === 'sprinkler') {
+        drawSprinkler(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'radar' || building.kind === 'prison') {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
       } else if (building.kind === 'storage') {
         this.machines.fillStyle(0x392d20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
@@ -445,14 +450,20 @@ export class FactoryScene extends Phaser.Scene {
         if (overlay) this.items.lineStyle(2, color).strokeRect(x + 1, y + 1, TILE - 2, TILE - 2)
       }
     }
+    this.waterVisuals.draw(this.peteEffects, this.world, TILE)
     drawPete(this.peteEffects, this.world, TILE)
     drawPoliceEffects(this.peteEffects, this.world, TILE)
-    this.peteLabel.setPosition((this.world.pete.x + .5) * TILE, (this.world.pete.y + .5) * TILE - 15)
-    this.peteLabel.setText(this.world.pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : this.world.pete.mode === 'ARRESTED' || this.world.pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : this.world.pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pumpkin Pete')
+    const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
+    this.peteLabel.setPosition((pete.x + .5) * TILE, (pete.y + .5) * TILE - (complaining ? 29 : 15))
+    const label = complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pumpkin Pete'
+    if (this.peteLabel.text !== label) {
+      this.peteLabel.setText(label).setStyle({ color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
+    }
     useGameStore.getState().publish(this.world)
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
     this.preview.clear()
+    if (inspected?.kind === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, SPRINKLER_RANGE * TILE)
     if (inspected?.kind === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, RADAR_RANGE * TILE)
     if (inspected?.kind === 'powerPole') this.showCoverage(inspected, power.assignments[state.inspected!] ?? null)
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
@@ -461,6 +472,7 @@ export class FactoryScene extends Phaser.Scene {
     if (state.tool && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
+      if (state.tool === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, SPRINKLER_RANGE * TILE)
       if (state.tool === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, RADAR_RANGE * TILE)
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
       if (state.tool === 'splitter') {

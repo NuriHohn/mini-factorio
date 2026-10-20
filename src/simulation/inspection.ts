@@ -1,3 +1,4 @@
+import { sprinklerState, SPRINKLER_RANGE, SPRAY_MS } from './sprinklers'
 import { splitterPorts, splitterDirections } from './splitters'
 import { splitterBlocked } from './transport'
 import type { SplitterPacket } from './world'
@@ -45,6 +46,7 @@ export interface InserterInspection {
 }
 export type Inspection = InserterInspection | { kind: 'splitter'; direction: Direction; inputDirection: Direction; outputDirections: [Direction, Direction]; ports: ReturnType<typeof splitterPorts>; input: SplitterPacket | null; outputs: [SplitterPacket | null, SplitterPacket | null]; nextOutput: 0 | 1; blocked: [boolean, boolean]; delivered: [number, number]; itemsPerSec: number }
   | { kind: 'prison'; occupied: boolean; elapsedMs: number; remainingMs: number; imprisonedAtMs: number | null; exit: Position }
+  | { kind: 'sprinkler'; radius: number; status: ReturnType<typeof sprinklerState>; cooldownMs: number; sprayProgress: number; sprays: number; electrical: ElectricalDetails }
   | { kind: 'radar'; radius: number; active: boolean; operation: string; prison: Position | null; electrical: ElectricalDetails } | { kind: 'storage'; inventory: Inventory }
   | { kind: 'miner'; resource: Resource | null; progress: number; buffered: boolean; electrical: ElectricalDetails }
   | { kind: 'generator'; capacityKw: number; actualKw: number; electrical: ElectricalDetails }
@@ -106,6 +108,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
     return { kind: 'prison', occupied, elapsedMs, remainingMs: occupied ? Math.max(0, IMPRISONMENT_MS - elapsedMs) : 0, imprisonedAtMs: occupied ? world.pete.imprisonedAtMs : null, exit: { x: building.exit % SIZE, y: Math.floor(building.exit / SIZE) } }
   }
   const electrical = electricalDetails(world, index)
+  if (building.kind === 'sprinkler') return { kind: 'sprinkler', radius: SPRINKLER_RANGE, status: sprinklerState(world, building), cooldownMs: Math.max(0, building.cooldownUntilMs - world.timeMs), sprayProgress: world.pete.mode === 'SPRAYED' && world.pete.water?.source === index ? 1 - world.pete.water.remainingMs / SPRAY_MS : 0, sprays: building.sprays, electrical }
   if (building.kind === 'radar') {
     const prison = world.buildings.find(b => b?.kind === 'prison')
     return { kind: 'radar', radius: RADAR_RANGE, active: radarPowered(world, index), operation: world.police.car?.phase ?? (world.pete.mode === 'IMPRISONED' ? 'Pete in prison' : world.pete.graceUntilMs > world.timeMs ? 'Release grace period' : world.police.retryAtMs > world.timeMs ? 'Waiting for a reachable edge route' : 'Monitoring'), prison: prison ? { x: prison.x, y: prison.y } : null, electrical }

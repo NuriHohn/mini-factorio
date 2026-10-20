@@ -14,6 +14,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'assembler', label: 'Assembler', hint: 'Gears, cables & circuits · 60 kW', key: '7', icon: '⚒', code: 'Digit7', tab: 'factory' },
   { tool: 'inserter', label: 'Inserter', hint: 'Behind → ahead · 1 item / sec · 10 kW', key: '8', icon: '⌁', code: 'Digit8', tab: 'factory' },
   { tool: 'radar', label: 'Radar trap', hint: '3-tile detection · requires full 5 kW', key: '9', icon: '◉', code: 'Digit9', tab: 'pete' },
+  { tool: 'sprinkler', label: 'Anti-Goblin Sprinkler', hint: '3-tile range · 5 kW · sends Pete slipping', key: 'G', icon: '☔', code: 'KeyG', tab: 'pete' },
   { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂', code: 'Digit0', tab: 'factory' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'factory' },
 ]

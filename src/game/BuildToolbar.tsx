@@ -10,7 +10,7 @@ export function BuildToolbar() {
       setBuildTab(next.id)
       document.getElementById(`tab-${next.id}`)?.focus()
     }}>{tab.label}</button>)}</div>
-    <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="flex flex-col gap-2">{PLAYER_TOOLS.filter(option => option.tab === buildTab).map(option => <button key={option.tool} className="building" data-tool={option.tool} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}><span className="machine-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{option.hint}</small></span><span className="key">{option.key}</span></button>)}</div>
+    <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="flex flex-col gap-2">{PLAYER_TOOLS.filter(option => option.tab === buildTab).map(option => <button key={option.tool} className="building" title={option.hint} data-tool={option.tool} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}><span className="machine-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{option.hint}</small></span><span className="key">{option.key}</span></button>)}</div>
     <button className="building mt-3" onClick={rotate} disabled={!['miner', 'belt', 'furnace', 'assembler', 'inserter', 'splitter'].includes(tool ?? '')}><span><strong>Output: {direction}</strong><small>Remove and replace to redirect buildings</small></span><span className="key">R</span></button>
   </section>
 }

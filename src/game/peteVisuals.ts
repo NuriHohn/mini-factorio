@@ -1,3 +1,4 @@
+import { drawWetPete } from './sprinklerVisuals'
 import type Phaser from 'phaser'
 import { PUMPKIN_FLIGHT_MS, sabotageRemaining } from '../simulation/pete'
 import { SIZE } from '../simulation/world'
@@ -22,6 +23,7 @@ export function drawSabotage(g: Phaser.GameObjects.Graphics, world: World, build
 }
 export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: number): void {
   if (world.pete.mode === 'TRANSPORTED') return
+  if (world.pete.water) { drawWetPete(g, world, tile); return }
   const pete = world.pete, crying = pete.mode === 'CRYING'
   const x = (pete.x + .5) * tile, y = (pete.y + .5) * tile
   const bob = crying ? Math.sin(world.timeMs / 110) : pete.next !== null ? Math.sin(world.timeMs / (pete.mode === 'FLEEING' ? 55 : 95)) * 1.5 : 0
