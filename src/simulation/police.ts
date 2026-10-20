@@ -19,6 +19,7 @@ export interface PoliceCar extends Position {
   pathRevision: number
   target: number
   phase: 'RESPONDING' | 'ARRESTING' | 'TRANSPORTING'
+  arrestStartedAtMs?: number
   arrestElapsedMs: number
   arrestFrom: Position
   prison: Prison
@@ -108,7 +109,7 @@ export function removePoliceBuilding(world: World, building: Building): void {
 function beginArrest(world: World, car: PoliceCar): void {
   const pete = world.pete
   releaseWebTrap(world)
-  car.phase = 'ARRESTING'; car.arrestElapsedMs = 0; car.arrestFrom = { x: pete.x, y: pete.y }
+  car.phase = 'ARRESTING'; car.arrestStartedAtMs = world.timeMs; car.arrestElapsedMs = 0; car.arrestFrom = { x: pete.x, y: pete.y }
   Object.assign(pete, { mode: 'ARRESTED', prison: car.prison, next: null, travelMs: 0, pumpkin: null, webMs: 0 })
 }
 export function advancePolice(world: World, delta: number): void {

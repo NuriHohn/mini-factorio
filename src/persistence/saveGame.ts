@@ -89,17 +89,19 @@ function restorePete(value: unknown, world: World, version: number): Pete {
     escape: p.escape === null ? null : v.tile(p.escape, 'pete.escape'), path: path(p.path, 'pete.path'), pathRevision: revision(p.pathRevision, 'pete.pathRevision', world), webMs: v.number(p.webMs, 'pete.webMs', 0, 700), pumpkin,
   }
 }
-function restorePolice(value: unknown, world: World): World['police'] {
+function restorePolice(value: unknown, world: World, version: number): World['police'] {
   const p = v.object(value, 'game.police', ['car', 'flash', 'retryAtMs'])
   let car: PoliceCar | null = null
   if (p.car !== null) {
-    const c = v.object(p.car, 'police.car', ['x', 'y', 'tile', 'next', 'travelMs', 'path', 'pathRevision', 'target', 'phase', 'arrestElapsedMs', 'arrestFrom', 'prison'])
+    const c = v.object(p.car, 'police.car', ['x', 'y', 'tile', 'next', 'travelMs', 'path', 'pathRevision', 'target', 'phase', 'arrestElapsedMs', 'arrestFrom', 'prison'], version >= 6 ? ['arrestStartedAtMs'] : [])
     car = {
       ...v.position({ x: c.x, y: c.y }, 'police.car'), tile: v.tile(c.tile, 'car.tile'), next: c.next === null ? null : v.tile(c.next, 'car.next'), travelMs: v.number(c.travelMs, 'car.travelMs', 0, POLICE_TILE_MS),
       path: path(c.path, 'car.path'), pathRevision: revision(c.pathRevision, 'car.pathRevision', world), target: v.tile(c.target, 'car.target'), phase: v.choice(c.phase, 'car.phase', ['RESPONDING', 'ARRESTING', 'TRANSPORTING'] as const),
+      ...(c.arrestStartedAtMs === undefined ? {} : { arrestStartedAtMs: v.count(c.arrestStartedAtMs, 'car.arrestStartedAtMs', world.timeMs) }),
       arrestElapsedMs: v.number(c.arrestElapsedMs, 'car.arrestElapsedMs', 0, ARREST_MS), arrestFrom: v.position(c.arrestFrom, 'car.arrestFrom'), prison: prisonReference(c.prison, world, 'car.prison'),
     }
   }
+  if (car?.arrestStartedAtMs !== undefined && (car.arrestStartedAtMs % 50 !== 0 || car.phase === 'RESPONDING' || (car.phase === 'ARRESTING' && world.timeMs - car.arrestStartedAtMs !== car.arrestElapsedMs) || (car.phase === 'TRANSPORTING' && world.timeMs - car.arrestStartedAtMs < ARREST_MS))) v.invalid('car.arrestStartedAtMs', 'inconsistent arrest animation clock')
   return { car, flash: effect(p.flash, 'police.flash', world, 350), retryAtMs: v.count(p.retryAtMs, 'police.retryAtMs', world.timeMs + 1000), radarRevision: -1, radars: [] }
 }
 function restoreWebs(value: unknown, timeMs: number): World['webs'] {
@@ -195,7 +197,7 @@ export function decodeSave(text: string): LoadedGame {
   // Reconstruct into a detached candidate. No live world or storage is touched.
   const world = { revenge: createRevenge(), research: root.version >= 5 ? restoreResearch(data.research, root.version) : createResearch(true), analytics: createAnalytics(timeMs), webs: root.version >= 3 ? restoreWebs(data.webs, timeMs) : createWebs(), timeMs, remainder: v.number(data.remainder, 'game.remainder', 0, 49.999999999), topologyRevision: v.count(data.topologyRevision, 'game.topologyRevision'), tiles, buildings, mined: v.inventory(data.mined, 'game.mined'), produced: v.inventory(data.produced, 'game.produced'), power: null } as World
   world.pete = restorePete(data.pete, world, root.version)
-  world.police = restorePolice(data.police, world)
+  world.police = restorePolice(data.police, world, root.version)
   if (root.version < 4) {
     for (const b of world.buildings) if (b?.kind === 'assembler') {
       // Preserve committed jobs and all buffered legacy stock. Provisional candidates are not selections.

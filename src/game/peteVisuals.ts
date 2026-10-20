@@ -1,3 +1,4 @@
+import { arrestVisual } from './arrestVisuals'
 import { drawWeb } from './webVisuals'
 import { drawWetPete } from './sprinklerVisuals'
 import type Phaser from 'phaser'
@@ -26,7 +27,8 @@ export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: num
   if (world.pete.mode === 'TRANSPORTED') return
   if (world.pete.water) { drawWetPete(g, world, tile); return }
   const pete = world.pete, crying = pete.mode === 'CRYING'
-  const x = (pete.x + .5) * tile, y = (pete.y + .5) * tile
+  const position = pete.mode === 'ARRESTED' ? arrestVisual(world)?.pete ?? pete : pete
+  const x = (position.x + .5) * tile, y = (position.y + .5) * tile
   const bob = crying ? Math.sin(world.timeMs / 110) : pete.next !== null ? Math.sin(world.timeMs / (pete.mode === 'FLEEING' ? 55 : 95)) * 1.5 : 0
   g.fillStyle(0x101811, .4).fillEllipse(x, y + 10, 21, 8)
   g.fillStyle(0x523a28).fillEllipse(x, y + 6 + bob, 14, 14)
