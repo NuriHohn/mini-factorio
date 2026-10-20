@@ -6,7 +6,8 @@ import { beltPathPoint } from './beltPath'
 import { furnaceStatus } from '../simulation/smelting'
 import { RECIPES } from '../simulation/recipes'
 import { inventoryTotal } from '../simulation/items'
-import { allocatePower, POLE_COVERAGE_RADIUS, powerRequirement, tilePosition, withinRange } from '../simulation/power'
+import { allocatePower, polePlacementPreview, POLE_COVERAGE_RADIUS, powerRequirement, tilePosition, withinRange } from '../simulation/power'
+import type { PolePlacementPreview } from '../simulation/power'
 import { electricalDetails } from '../simulation/inspection'
 import { inspectBuilding } from '../simulation/inspection'
 import { advanceWorld } from '../simulation/step'
@@ -21,6 +22,9 @@ export class FactoryScene extends Phaser.Scene {
   private coverage!: Phaser.GameObjects.Graphics
   private machines!: Phaser.GameObjects.Graphics
   private items!: Phaser.GameObjects.Graphics
+  private poleLinks!: Phaser.GameObjects.Graphics
+  private polePreviewKey = ''
+  private poleCandidate: PolePlacementPreview | null = null
   private preview!: Phaser.GameObjects.Graphics
   create() {
     useGameStore.setState({ inspected: null, inspection: null })
@@ -42,6 +46,9 @@ export class FactoryScene extends Phaser.Scene {
     this.coverage = this.add.graphics()
     this.machines = this.add.graphics()
     this.items = this.add.graphics()
+    this.poleLinks = this.add.graphics()
+    this.polePreviewKey = ''
+    this.poleCandidate = null
     this.preview = this.add.graphics()
     this.cameras.main.setZoom(1.3)
     updateCameraBounds(this.cameras.main, SIZE * TILE)
@@ -107,6 +114,30 @@ export class FactoryScene extends Phaser.Scene {
       graphics.fillStyle(color, .25).fillRect(machine.x * TILE, machine.y * TILE, TILE, TILE)
       graphics.lineStyle(3, color).strokeRect(machine.x * TILE + 1, machine.y * TILE + 1, TILE - 2, TILE - 2)
     }
+  }
+  private previewPole(x: number, y: number): PolePlacementPreview {
+    const key = `${x},${y},${this.world.topologyRevision}`
+    // World-space graphics follow camera transforms without being rebuilt.
+    if (!this.poleCandidate || this.polePreviewKey !== key) {
+      this.polePreviewKey = key
+      this.poleCandidate = polePlacementPreview(this.world, { x, y })
+      this.poleLinks.clear()
+      const color = this.poleCandidate.state === 'invalid' ? 0x929b9f : this.poleCandidate.state === 'connected' ? 0x8df0b3 : 0xf0ac60
+      const fromX = (x + .5) * TILE, fromY = (y + .5) * TILE
+      this.poleLinks.lineStyle(2, color, .9)
+      for (const index of this.poleCandidate.connections) {
+        const to = tilePosition(index)
+        const dx = (to.x - x) * TILE, dy = (to.y - y) * TILE
+        const length = Math.hypot(dx, dy)
+        for (let distance = 0; distance < length; distance += 12) {
+          const end = Math.min(distance + 7, length)
+          this.poleLinks.lineBetween(fromX + dx * distance / length, fromY + dy * distance / length, fromX + dx * end / length, fromY + dy * end / length)
+        }
+      }
+      this.poleLinks.lineBetween(fromX, fromY + 9, fromX, fromY - 9)
+      this.poleLinks.lineBetween(fromX - 9, fromY - 6, fromX + 9, fromY - 6)
+    }
+    return this.poleCandidate
   }
   update(_time: number, delta: number) {
     const camera = this.cameras.main
@@ -225,13 +256,15 @@ export class FactoryScene extends Phaser.Scene {
     this.preview.clear()
     if (inspected?.kind === 'powerPole') this.showCoverage(inspected, power.assignments[state.inspected!] ?? null)
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
+    this.poleLinks.setVisible(state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer
     if (state.tool && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
-      const error = state.tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, state.tool)
-      const color = error ? 0xf08172 : 0x8df0b3
+      const pole = state.tool === 'powerPole' ? this.previewPole(x, y) : null
+      const error = pole ? pole.error : state.tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, state.tool)
+      const color = pole ? pole.state === 'invalid' ? 0x929b9f : pole.state === 'connected' ? 0x8df0b3 : 0xf0ac60 : error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
       if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace') this.arrow(x * TILE, y * TILE, state.direction, color)
