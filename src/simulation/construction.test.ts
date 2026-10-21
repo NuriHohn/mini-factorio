@@ -61,7 +61,7 @@ describe('deterministic atomic belt construction', () => {
     expect(w.buildings[13 * SIZE + 13]).toMatchObject({ inventory: { iron: 1 } })
   })
 })
-describe('minimum direct-corridor pole connections', () => {
+describe('minimum electrical pole connections', () => {
   it.each([[0, 0, 39, 0, 8], [0, 0, 12, 12, 4], [10, 10, 10, 10, 1]])('spaces %i,%i → %i,%i into %i connected poles', (x, y, ex, ey, count) => {
     const w = createBareWorld(() => .5), before = structuredClone(w)
     const plan = planConstruction(w, point(x, y), point(ex, ey), 'powerPole', 'east')
@@ -88,11 +88,11 @@ describe('minimum direct-corridor pole connections', () => {
     expect(commitConstruction(w, point(0, 0), point(12, 0), 'powerPole', 'east')).toEqual({ error: null, placed: 0 })
     expect(w).toEqual(before)
   })
-  it('fails a blocked direct corridor atomically instead of silently placing disconnected poles', () => {
+  it('fails a completely enclosed endpoint atomically instead of placing disconnected poles', () => {
     const w = createBareWorld(() => .5)
-    for (let x = 1; x < 12; x++) placeBuilding(w, x, 0, 'storage', 'east')
+    for (let y = 0; y <= 6; y++) for (let x = 0; x <= 6; x++) if ((x || y) && x * x + y * y <= 36) placeBuilding(w, x, y, 'storage', 'east')
     const before = structuredClone(w)
-    expect(planConstruction(w, point(0, 0), point(12, 0), 'powerPole', 'east').error).toContain('No clear')
+    expect(planConstruction(w, point(0, 0), point(12, 0), 'powerPole', 'east').error).toContain('No valid power route')
     expect(commitConstruction(w, point(0, 0), point(12, 0), 'powerPole', 'east').placed).toBe(0)
     expect(w).toEqual(before)
   })

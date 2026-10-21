@@ -218,7 +218,7 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.setState({ dragActive: false })
       if (result) {
         if (!result.error && result.placed > 0) useGameStore.getState().recordToolUse(tool)
-        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · Free.` : 'This pole is already here. Nothing changed.' })
+        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · Free.` : 'Connection already exists. Nothing changed.' })
       }
     })
     this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); this.cancelConstruction() })
@@ -239,15 +239,23 @@ export class FactoryScene extends Phaser.Scene {
     const plan = this.constructionDrag.preview()
     if (!plan) return
     for (const cell of plan.cells) {
-      const color = cell.error ? 0xe7a08d : plan.detour ? 0x9acdcc : 0xb2d08a
+      const color = cell.error ? 0xe7a08d : cell.reuse ? 0xa4c9df : plan.detour ? 0x9acdcc : 0xb2d08a
       this.preview.fillStyle(color, .18).fillRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       this.preview.lineStyle(2, color).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       if (cell.error) this.preview.lineBetween(cell.x * TILE + 6, cell.y * TILE + 6, cell.x * TILE + 26, cell.y * TILE + 26).lineBetween(cell.x * TILE + 26, cell.y * TILE + 6, cell.x * TILE + 6, cell.y * TILE + 26)
       else if (plan.kind === 'belt') this.arrow(cell.x * TILE, cell.y * TILE, cell.direction, color)
       else this.preview.lineBetween((cell.x + .5) * TILE, cell.y * TILE + 6, (cell.x + .5) * TILE, cell.y * TILE + 27).strokeCircle((cell.x + .5) * TILE, cell.y * TILE + 10, 5)
     }
-    if (plan.kind === 'powerPole') for (let i = 1; i < plan.cells.length; i++) this.preview.lineStyle(2, plan.error ? 0xe7a08d : 0xb2d08a, .65).lineBetween((plan.cells[i - 1].x + .5) * TILE, (plan.cells[i - 1].y + .5) * TILE, (plan.cells[i].x + .5) * TILE, (plan.cells[i].y + .5) * TILE)
-    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${plan.cells.filter(c => !c.reuse).length} ${plan.kind === 'belt' ? 'tiles' : 'poles'}\nTotal cost: Free\n${plan.error ?? 'Release to build. Escape or right-click to cancel.'}`)
+    if (plan.kind === 'powerPole') {
+      for (const cell of plan.cells) if (cell.reuse) this.preview.lineStyle(2, 0xa4c9df).strokeCircle((cell.x + .5) * TILE, (cell.y + .5) * TILE, 12)
+      if (!plan.error) for (let i = 1; i < plan.cells.length; i++) this.preview.lineStyle(2, 0xb2d08a, .65).lineBetween((plan.cells[i - 1].x + .5) * TILE, (plan.cells[i - 1].y + .5) * TILE, (plan.cells[i].x + .5) * TILE, (plan.cells[i].y + .5) * TILE)
+      if (plan.snapFrom) {
+        const last = plan.cells[plan.cells.length - 1], from = plan.snapFrom
+        this.preview.lineStyle(1, 0xa4c9df, .6).strokeCircle((from.x + .5) * TILE, (from.y + .5) * TILE, 7).lineBetween((from.x + .5) * TILE, (from.y + .5) * TILE, (last.x + .5) * TILE, (last.y + .5) * TILE)
+      }
+    }
+    const count = plan.cells.filter(c => !c.reuse).length, reused = plan.cells.length - count
+    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? 'tiles' : `new · ${reused} existing`}\nTotal cost: Free\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)
