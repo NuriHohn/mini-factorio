@@ -10,8 +10,9 @@ import { advanceSprinklers } from './sprinklers'
 import { emptyInventory } from './items'
 import { createResearch, purchaseTechnology, RP_UNITS } from './research'
 
+// Original combat fixtures retain their dry map; terrain navigation has separate coverage.
 export function encounter() {
-  const world = createWorld(() => .5)
+  const world = createWorld(() => .5, { water: false })
   for (let i = 0; i < 3; i++) recordArrest(world)
   advanceWorld(world, 5000)
   return world

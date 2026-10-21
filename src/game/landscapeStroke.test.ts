@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LandscapeStroke, landscapeTile } from './landscapeStroke'
 import { createWorld, SIZE } from '../simulation/world'
-const world = () => createWorld(() => .5, { nature: false })
+const world = () => createWorld(() => .5, { nature: false, water: false })
 describe('landscape gestures and camera conversion', () => {
   it.each([.5, .65, 1, 1.3, 2.5])('paints the same world cell at zoom %s using the shared camera transform', zoom => {
     const camera = { scrollX: 67, scrollY: 45, width: 900, height: 600, zoom }

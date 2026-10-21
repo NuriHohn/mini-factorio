@@ -10,7 +10,7 @@ const descriptions: Record<Inspection['kind'], string> = {
 }
 export function inspectionSummary(i: Inspection) {
   const metadata = PLAYER_TOOLS.find(t => t.tool === i.kind)
-  const name = metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
+  const name = i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
   let state = 'Ready.'
   if ('electrical' in i && i.electrical.state === 'sabotaged') state = 'Temporarily disabled.'
   else if (i.kind === 'assembler' && !i.recipeId) state = 'Choose a recipe first.'

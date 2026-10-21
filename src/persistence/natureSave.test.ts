@@ -10,7 +10,7 @@ const view = { scrollX: 0, scrollY: 0, zoom: 1.3, direction: 'east' as const, po
 const snapshot = (w: World): SaveDocument => JSON.parse(encodeSave(w, view, '2026-10-21T00:00:00.000Z'))
 const restore = (w: World) => decodeSave(JSON.stringify(snapshot(w))).world
 function setup() {
-  const w = createWorld(() => .5, { nature: false })
+  const w = createWorld(() => .5, { nature: false, water: false })
   plantTree(w, 5, 5, 'oak'); plantTree(w, 8, 5, 'pine'); plantTree(w, 8, 8, 'birch')
   paintLandscape(w, { x: 5, y: 5 }, { x: 15, y: 15 }, 'flowers', 3)
   paintLandscape(w, { x: 8, y: 8 }, { x: 8, y: 8 }, 'grass', 5)
@@ -21,7 +21,7 @@ function setup() {
 describe('version 7 nature persistence and legacy compatibility', () => {
   it('round trips a generated landscape without regenerating forests or consuming RNG', () => {
     const world = createWorld(() => .5), loaded = restore(world)
-    expect(SAVE_VERSION).toBe(8)
+    expect(SAVE_VERSION).toBe(9)
     expect(snapshot(loaded)).toEqual(snapshot(world))
     expect(loaded.nature.seed).toBe(world.nature.seed)
     expect(loaded.nature.nextAttemptAtMs).toBe(world.nature.nextAttemptAtMs)
@@ -45,12 +45,12 @@ describe('version 7 nature persistence and legacy compatibility', () => {
     expect(again.nature.wood).toBe(loaded.nature.wood)
   })
   it.each([1, 2, 3, 4, 5, 6])('loads version %i with empty nature, keeping existing gameplay state', version => {
-    const w = createWorld(() => .5, { nature: false })
+    const w = createWorld(() => .5, { nature: false, water: false })
     placeBuilding(w, 20, 20, 'storage', 'east')
     w.research = createResearch(true)
     w.revenge.arrests = version >= 6 ? 2 : 0
     const old = snapshot(w)
-    Object.assign(old, { version }); Reflect.deleteProperty(old.game, 'peace'); Reflect.deleteProperty(old.game, 'nature')
+    Object.assign(old, { version }); Reflect.deleteProperty(old.game, 'water'); Reflect.deleteProperty(old.game, 'peace'); Reflect.deleteProperty(old.game, 'nature')
     if (version < 6) Reflect.deleteProperty(old.game, 'revenge')
     if (version < 5) Reflect.deleteProperty(old.game, 'research')
     if (version < 4) Reflect.deleteProperty(old.game, 'analytics')
@@ -100,7 +100,7 @@ describe('version 7 nature persistence and legacy compatibility', () => {
   })
   it('rejects tree occupancy hidden inside a legacy version and invalid natural-cap saves', () => {
     const w = setup(), bad = snapshot(w)
-    Object.assign(bad, { version: 6 }); Reflect.deleteProperty(bad.game, 'peace'); Reflect.deleteProperty(bad.game, 'nature')
+    Object.assign(bad, { version: 6 }); Reflect.deleteProperty(bad.game, 'water'); Reflect.deleteProperty(bad.game, 'peace'); Reflect.deleteProperty(bad.game, 'nature')
     expect(() => decodeSave(JSON.stringify(bad))).toThrow('trees require save version 7')
     for (let i = 0; i < SIZE * SIZE && w.buildings.filter(b => b?.kind === 'tree').length < 324; i++) if (plantTree(w, i % SIZE, Math.floor(i / SIZE), 'oak')) (w.buildings[i] as Tree).origin = 'natural'
     expect(() => snapshot(w)).toThrow('natural tree cap exceeded')

@@ -17,7 +17,7 @@ export class ConstructionDrag {
     const g = this.gesture
     if (!g) return null
     const w = g.world, p = w.pete, car = w.police.car, boss = w.revenge.boss
-    const key = `${g.start.x},${g.start.y},${g.end.x},${g.end.y},${g.kind},${g.facing},${w.topologyRevision},${p.tile},${p.next},${p.mode},${car?.tile},${car?.next},${boss?.tile},${boss?.next},${w.research.unlocked.join(',')}`
+    const key = `${g.start.x},${g.start.y},${g.end.x},${g.end.y},${g.kind},${g.facing},${w.topologyRevision},${w.nature.wood},${p.tile},${p.next},${p.mode},${car?.tile},${car?.next},${boss?.tile},${boss?.next},${w.research.unlocked.join(',')}`
     if (this.cache?.key !== key) this.cache = { key, plan: planConstruction(w, g.start, g.end, g.kind, g.facing) }
     return this.cache.plan
   }

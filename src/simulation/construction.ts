@@ -1,12 +1,13 @@
+import { BRIDGE_WOOD } from './waterTerrain'
 import { planBelts, reverseBelt } from './beltConstruction'
 import { findPowerRoute } from './powerRouting'
 import { TREEHOUSE_WOOD } from './peace'
-import { inside, placeBuilding, placementError, SIZE } from './world'
+import { inside, opposite, placeBuilding, placementError, SIZE } from './world'
 import type { BuildingKind, Direction, Position, World } from './world'
 
 export type DragBuilding = 'belt' | 'powerPole'
-export interface ConstructionCell extends Position { direction: Direction; reuse: boolean; reverse?: boolean; error: string | null }
-export interface ConstructionPlan { kind: DragBuilding; cells: ConstructionCell[]; error: string | null; detour?: boolean; snapFrom?: Position; beltSnap?: Position }
+export interface ConstructionCell extends Position { direction: Direction; reuse: boolean; reverse?: boolean; bridge?: boolean; error: string | null }
+export interface ConstructionPlan { kind: DragBuilding; cells: ConstructionCell[]; error: string | null; detour?: boolean; snapFrom?: Position; beltSnap?: Position; wood?: number; unaffordable?: boolean }
 export interface PlacementInfo { state: 'valid' | 'invalid' | 'unaffordable'; error: string | null; wood: number; available: number }
 export function placementInfo(world: World, point: Position, kind: BuildingKind): PlacementInfo {
   const wood = kind === 'treehouse' ? TREEHOUSE_WOOD : 0
@@ -29,24 +30,29 @@ export function planConstruction(world: World, start: Position, end: Position, k
   if (!route.points) return { kind, cells: endpoints, error: route.exhausted ? 'Power route search limit reached. Try a shorter drag.' : 'No valid power route found. Try a shorter drag or another destination.' }
   return { kind, cells: route.points.map(pointCell), error: null, snapFrom: route.snapped ? { ...end } : undefined }
 }
-export function commitConstruction(world: World, start: Position, end: Position, kind: DragBuilding, facing: Direction): { error: string | null; placed: number; reversed?: number } {
+export function commitConstruction(world: World, start: Position, end: Position, kind: DragBuilding, facing: Direction): { error: string | null; placed: number; reversed?: number; wood?: number } {
   const plan = planConstruction(world, start, end, kind, facing)
   if (plan.error) return { error: plan.error, placed: 0 }
   const created: number[] = [], revision = world.topologyRevision
   for (const cell of plan.cells) {
     if (cell.reuse) continue
-    if (!placeBuilding(world, cell.x, cell.y, kind, cell.direction)) {
+    const bridgeError = cell.bridge ? placementError(world, cell.x, cell.y, 'belt', cell.direction, true) : null
+    const accepted = cell.bridge ? !bridgeError : placeBuilding(world, cell.x, cell.y, kind, cell.direction)
+    if (!accepted) {
       for (const index of created) world.buildings[index] = null
       world.topologyRevision = revision
       return { error: 'The path changed. Nothing was built. Try again.', placed: 0 }
     }
+    if (cell.bridge) { world.buildings[cell.y * SIZE + cell.x] = { kind: 'belt', bridge: true, x: cell.x, y: cell.y, direction: cell.direction, entry: opposite(cell.direction), item: null, progress: 0 }; world.topologyRevision++ }
     created.push(cell.y * SIZE + cell.x)
   }
+  const wood = created.filter(i => world.buildings[i]?.kind === 'belt' && world.water[i]).length * BRIDGE_WOOD
+  world.nature.wood -= wood
   const reversed = plan.cells.filter(c => c.reverse)
   for (const cell of reversed) {
     const belt = world.buildings[cell.y * SIZE + cell.x]
     if (belt?.kind === 'belt') reverseBelt(belt)
   }
   if (reversed.length) world.topologyRevision++
-  return { error: null, placed: created.length, ...(reversed.length ? { reversed: reversed.length } : {}) }
+  return { error: null, placed: created.length, ...(reversed.length ? { reversed: reversed.length } : {}), ...(wood ? { wood } : {}) }
 }

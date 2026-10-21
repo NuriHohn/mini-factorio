@@ -55,7 +55,7 @@ export function policeOccupiesTile(world: World, x: number, y: number): boolean 
 }
 function validPrison(world: World, prison: Prison): boolean { return world.buildings[prison.y * SIZE + prison.x] === prison }
 function prisonFor(world: World, reachable: Map<number, number>, start = world.pete.tile): Prison | null {
-  for (const building of world.buildings) if (building?.kind === 'prison' && reachable.has(building.exit) && !world.buildings[building.exit]) return building
+  for (const building of world.buildings) if (building?.kind === 'prison' && reachable.has(building.exit) && !world.water[building.exit] && !world.buildings[building.exit]) return building
   // The prison appears only when a dispatch is possible. Reserve an edge bay for arrival/release.
   for (const tile of [...reachable.keys()].sort((a, b) => a - b)) {
     if (!edgeTile(tile) || tile === world.pete.tile || tile === world.pete.next) continue
@@ -63,7 +63,7 @@ function prisonFor(world: World, reachable: Map<number, number>, start = world.p
     if (placeBuilding(world, x, y, 'prison', 'east')) {
       const prison = world.buildings[tile] as Prison
       const routes = reachableTiles(world, start)
-      if (routes.has(prison.exit) && [...routes.keys()].some(i => edgeTile(i) && i !== world.pete.tile && i !== world.pete.next && !world.buildings[i])) return prison
+      if (routes.has(prison.exit) && [...routes.keys()].some(i => edgeTile(i) && i !== world.pete.tile && i !== world.pete.next && !world.water[i] && !world.buildings[i])) return prison
       removeBuilding(world, x, y)
     }
   }
@@ -84,7 +84,7 @@ function dispatch(world: World): void {
   const prison = prisonFor(world, reachable, pursued.tile)
   if (!prison) { world.police.retryAtMs = world.timeMs + 1000; return }
   const routes = reachableTiles(world, pursued.tile)
-  const edge = [...routes.keys()].sort((a, b) => a - b).find(tile => edgeTile(tile) && tile !== pursued.tile && tile !== pursued.next && !world.buildings[tile])
+  const edge = [...routes.keys()].sort((a, b) => a - b).find(tile => edgeTile(tile) && tile !== pursued.tile && tile !== pursued.next && !world.water[tile] && !world.buildings[tile])
   if (edge === undefined || !routes.has(prison.exit)) { world.police.retryAtMs = world.timeMs + 1000; return }
   const position = { x: edge % SIZE, y: Math.floor(edge / SIZE) }
   world.police.car = { ...position, tile: edge, next: null, travelMs: 0, path: [], pathRevision: -1, target: pursued.tile, phase: 'RESPONDING', arrestElapsedMs: 0, arrestFrom: { x: pete.x, y: pete.y }, prison }
@@ -94,11 +94,11 @@ function dispatch(world: World): void {
 function releaseFromCustody(world: World, escaped: boolean): void {
   const pete = world.pete, prison = pete.prison, car = world.police.car
   let tile = pete.mode === 'IMPRISONED' && prison ? prison.exit : car?.tile ?? pete.tile
-  if (world.buildings[tile]) {
+  if (world.water[tile] || world.buildings[tile]) {
     // Defensive fallback for stale state; supported construction keeps the exit reserved.
     const origin = tile
     const distance = (i: number) => Math.abs(i % SIZE - origin % SIZE) + Math.abs(Math.floor(i / SIZE) - Math.floor(origin / SIZE))
-    const free = world.buildings.map((b, i) => b ? -1 : i).filter(i => i >= 0).sort((a, b) => distance(a) - distance(b) || a - b)[0]
+    const free = world.buildings.map((b, i) => b || world.water[i] ? -1 : i).filter(i => i >= 0).sort((a, b) => distance(a) - distance(b) || a - b)[0]
     if (free === undefined) return
     tile = free
   }
@@ -182,7 +182,7 @@ export function advancePolice(world: World, delta: number): void {
       car.next = car.path.shift() ?? null
       if (car.next === null) return
     }
-    if (world.buildings[car.next]) { car.next = null; car.pathRevision = -1; continue }
+    if (world.water[car.next] || world.buildings[car.next]) { car.next = null; car.pathRevision = -1; continue }
     const spent = Math.min(POLICE_TILE_MS - car.travelMs, remaining)
     car.travelMs += spent; remaining -= spent
     const t = car.travelMs / POLICE_TILE_MS

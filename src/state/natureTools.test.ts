@@ -6,7 +6,7 @@ import { createWorld } from '../simulation/world'
 import { chopTree, MATURE_TREE_MS, plantTree } from '../simulation/nature'
 beforeEach(() => {
   useGameStore.setState({ tool: null, buildTab: 'factory', brushSize: 3, researchOpen: false })
-  useGameStore.getState().publish(createWorld(() => .5, { nature: false }))
+  useGameStore.getState().publish(createWorld(() => .5, { nature: false, water: false }))
 })
 describe('Nature toolbar and copied inventory', () => {
   it('registers Nature controls and the treehouse without replacing any existing shortcut', () => {
@@ -32,14 +32,14 @@ describe('Nature toolbar and copied inventory', () => {
     expect(useGameStore.getState()).toMatchObject({ tool: 'miner', buildTab: 'factory' })
   })
   it('publishes exactly collected global wood while factory item statistics stay separate', () => {
-    const w = createWorld(() => .5, { nature: false })
+    const w = createWorld(() => .5, { nature: false, water: false })
     plantTree(w, 5, 5, 'oak'); w.timeMs = MATURE_TREE_MS; chopTree(w, 5, 5)
     useGameStore.getState().publish(w)
     expect(useGameStore.getState().wood).toBe(3)
     expect(useGameStore.getState().stats.stored).not.toHaveProperty('wood')
     chopTree(w, 5, 5); useGameStore.getState().publish(w)
     expect(useGameStore.getState().wood).toBe(3)
-    useGameStore.getState().publish(createWorld(() => .5, { nature: false }))
+    useGameStore.getState().publish(createWorld(() => .5, { nature: false, water: false }))
     expect(useGameStore.getState().wood).toBe(0)
   })
 })
