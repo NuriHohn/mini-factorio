@@ -24,7 +24,7 @@ Place a generator and a nearby power pole, then build **miner → belt → furna
 | B | Toggle Spider Web in the Special group |
 | Escape / right-click | Cancel a pending drag first; then close panels / put away tools |
 
-Land factory placement is free once its technology is unlocked; water bridge segments cost 3 Wood each; Pete’s Treehouse costs 20 Wood. New games begin with Basic Industry; productive miners, furnaces and assemblers earn RP. Use **Research** to unlock inserters, assemblers, splitters and the analytics dashboard. See [Research and technology](docs/GAME_DESIGN.md#research-and-technology). For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
+Land factory placement is free once its technology is unlocked, except Waterwheel Generators cost 10 Wood; water bridge segments cost 3 Wood each; Pete’s Treehouse costs 20 Wood. New games begin with Basic Industry; productive miners, furnaces and assemblers earn RP. Use **Research** to unlock inserters, assemblers, splitters and the analytics dashboard. See [Research and technology](docs/GAME_DESIGN.md#research-and-technology). For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
 
 ## Project context
 
@@ -46,7 +46,7 @@ The bottom build toolbar starts on **Factory**, alongside **Logistics**, **Power
 
 Open **Menu (☰)** for Save & Load and a confirmed New game. **Help (?)** separates How to Play from Controls. **Overview** contains detailed stock and power values; the header shows construction Wood. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import file validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export a JSON file before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
 
-Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-9 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–8 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
+Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-10 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–9 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
 
 ## Pete’s Revenge
 
@@ -66,3 +66,5 @@ New worlds include ponds, winding streams and rivers. Drag the normal belt tool 
 Use **Menu → Options → Graphics** to switch between Standard (60 FPS maximum) and Energy Saving (30 FPS maximum). Both preserve the same 50 ms simulation. Optional performance diagnostics are available there; see [Graphics options](docs/GAME_DESIGN.md#graphics-options).
 
 In **Nature**, use **Create Water** and **Restore Land** with the shared 1×1, 3×3 and 5×5 brushes. Drag to shape connected channels and rounded ponds; red protected cells, existing bridges and their dry banks stay unchanged. Terrain edits persist in version-9 saves. See [Water landscapes](docs/GAME_DESIGN.md#water-landscapes-and-conveyor-bridges).
+
+Build a **Waterwheel Generator** from **Power** for **10 Wood** on land facing adjacent water. It supplies **50 kW** through ordinary poles, pauses if that water is removed, and resumes when restored. R or mouse-drag rotation selects the water-facing side. Version 10 preserves wheel phase and still loads versions 1–9. See [Waterwheel rules](docs/GAME_DESIGN.md#waterwheel-generator).

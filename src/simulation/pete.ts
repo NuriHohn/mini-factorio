@@ -2,7 +2,7 @@ import { peaceful } from './peace'
 import { peteUnavailable } from './revenge'
 import { isSabotageable } from './buildingCapabilities'
 import { releaseWebTrap, tryWebTrap } from './webs'
-import { allocatePower } from './power'
+import { allocatePower, generationKw, ratedGeneration } from './power'
 import { advanceWaterReaction } from './sprinklers'
 import type { WaterReaction } from './sprinklers'
 import { neighboringTiles, reachableTiles, tilePath } from './navigation'
@@ -143,11 +143,11 @@ export function advancePete(world: World, delta: number): void {
   const power = allocatePower(world)
   const operational = (index: number) => {
     const b = world.buildings[index]!
-    if (b.kind !== 'generator') return (power.consumers[index]?.suppliedKw ?? 0) > 0
+    if (ratedGeneration(b) === 0) return (power.consumers[index]?.suppliedKw ?? 0) > 0
     const network = power.networks.find(n => n.id === power.assignments[index])
-    return (network?.suppliedKw ?? 0) > 0
+    return generationKw(world, b) > 0 && (network?.suppliedKw ?? 0) > 0
   }
-  const eligible = candidates.filter(i => world.buildings[i]!.kind !== 'generator' || operational(i))
+  const eligible = candidates.filter(i => ratedGeneration(world.buildings[i]!) === 0 || operational(i))
   const index = eligible.find(operational) ?? eligible[0] ?? -1
   if (index >= 0) {
     pete.pumpkin = { target: world.buildings[index]!, index, from: { x: pete.x, y: pete.y }, elapsedMs: 0 }

@@ -2,6 +2,7 @@ import type { Inspection } from '../simulation/inspection'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { PLAYER_TOOLS } from '../state/toolMetadata'
 const descriptions: Record<Inspection['kind'], string> = {
+  waterwheel: 'Makes electricity from adjacent water. Connect it to a pole.',
   miner: 'Takes ore from the ground.', belt: 'Carries items in the arrow’s direction.', storage: 'Keeps items until they are needed.',
   furnace: 'Turns ore into metal plates.', assembler: 'Makes parts from ingredients.', inserter: 'Moves one item between neighbors.',
   splitter: 'Shares items between two paths.', generator: 'Makes electricity. Connect it to a pole.', powerPole: 'Connects power and supplies nearby machines.',
@@ -13,8 +14,9 @@ export function inspectionSummary(i: Inspection) {
   const name = i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
   let state = 'Ready.'
   if ('electrical' in i && i.electrical.state === 'sabotaged') state = 'Temporarily disabled.'
+  else if (i.kind === 'waterwheel' && !i.waterAvailable) state = 'Needs water on the facing side.'
   else if (i.kind === 'assembler' && !i.recipeId) state = 'Choose a recipe first.'
-  else if ('electrical' in i && ['disconnected', 'no-generation'].includes(i.electrical.state) && i.kind !== 'generator' && i.kind !== 'powerPole') state = 'Needs electricity.'
+  else if ('electrical' in i && ['disconnected', 'no-generation'].includes(i.electrical.state) && i.kind !== 'generator' && i.kind !== 'waterwheel' && i.kind !== 'powerPole') state = 'Needs electricity.'
   else if (i.kind === 'miner') state = i.buffered ? 'Output is full.' : i.resource ? 'Working normally.' : 'Needs an ore patch.'
   else if (i.kind === 'furnace' || i.kind === 'assembler') {
     if (i.status === 'output-full') state = 'Output is full.'
@@ -31,7 +33,7 @@ export function inspectionSummary(i: Inspection) {
   else if (i.kind === 'treehouse') state = 'Pete is peaceful.'
   else if (i.kind === 'tree') state = `${i.stage} · ${i.wood} Wood when chopped.`
   else if (i.kind === 'prison') state = i.occupied ? 'Pete is here.' : 'Empty.'
-  else if (i.kind === 'generator' || i.kind === 'powerPole') state = i.electrical.networkId === null ? 'Needs a power connection.' : 'Connected.'
+  else if (i.kind === 'generator' || i.kind === 'waterwheel' || i.kind === 'powerPole') state = i.electrical.networkId === null ? 'Needs a power connection.' : 'Connected.'
   const power = 'electrical' in i ? i.electrical.state === 'sabotaged' ? 'Temporarily disabled' : i.electrical.state === 'disconnected' ? 'No connection' : i.electrical.state === 'no-generation' ? 'No electricity' : i.electrical.state === 'reduced' ? 'Reduced power' : 'Connected' : null
   return { power, name, icon: metadata?.icon ?? (i.kind === 'tree' ? '♣' : '▥'), description: descriptions[i.kind], state }
 }

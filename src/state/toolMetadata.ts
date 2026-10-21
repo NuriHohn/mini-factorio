@@ -10,6 +10,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜', code: 'Digit2', tab: 'logistics' },
   { tool: 'storage', label: 'Storage chest', hint: 'Stores every item type', key: '3', icon: '▣', code: 'Digit3', tab: 'logistics' },
   { tool: 'furnace', label: 'Furnace', hint: '1 ore → 1 plate · 2 sec at full power', key: '4', icon: '♨', code: 'Digit4', tab: 'factory' },
+  { tool: 'waterwheel', label: 'Waterwheel Generator', hint: '50 kW · 10 Wood · face adjacent water', key: 'Click', icon: '☸', tab: 'power' },
   { tool: 'generator', label: 'Power generator', hint: '100 kW · place near a pole', key: '5', icon: '⚡', code: 'Digit5', tab: 'power' },
   { tool: 'powerPole', label: 'Power pole', hint: '3-tile coverage · 6-tile wires', key: '6', icon: '┬', code: 'Digit6', tab: 'power' },
   { tool: 'assembler', label: 'Assembler', hint: 'Gears, cables & circuits · 60 kW', key: '7', icon: '⚒', code: 'Digit7', tab: 'factory' },

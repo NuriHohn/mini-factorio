@@ -61,10 +61,10 @@ export function BuildingInspection() {
         <div className="stats"><span>Extracting</span><b>{inspection.resource ? ITEM_DEFINITIONS[inspection.resource].label : 'No deposit'}</b></div>
         <div className="stats"><span>Mining progress</span><b>{Math.round(inspection.progress * 100)}%</b></div>
         <div className="stats"><span>Output buffer</span><b>{inspection.buffered ? '1 ore · blocked' : 'Empty'}</b></div>
-      </> : inspection.kind === 'generator' ? <>
+      </> : inspection.kind === 'generator' || inspection.kind === 'waterwheel' ? <>
         <div className="stats"><span>Generation capacity</span><b>{inspection.capacityKw} kW</b></div>
         <div className="stats"><span>Actual generation</span><b>{inspection.actualKw.toFixed(1)} kW</b></div>
-        <p className="inspection-note">No fuel needed. Requires a pole within 3 tiles.</p>
+        <p className="inspection-note">No fuel needed. Requires a pole within 3 tiles.{inspection.kind === 'waterwheel' && ` Facing ${inspection.direction} · ${inspection.waterAvailable ? 'water available' : 'restore adjacent water'}.`}</p>
       </> : inspection.kind === 'powerPole' ? <>
         <div className="stats"><span>Coverage radius</span><b>{inspection.coverageRadius} tiles</b></div>
         <div className="stats"><span>Machines in radius</span><b>{inspection.coveredMachines}</b></div>

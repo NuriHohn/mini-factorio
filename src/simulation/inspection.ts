@@ -1,3 +1,4 @@
+import { waterwheelWater } from './waterwheel'
 import { treeAge, treeStage, treeWood } from './nature'
 import type { TreeSpecies, TreeStage } from './nature'
 import { sprinklerState, SPRINKLER_RANGE, SPRAY_MS } from './sprinklers'
@@ -6,7 +7,7 @@ import { splitterBlocked } from './transport'
 import type { SplitterPacket } from './world'
 import { IMPRISONMENT_MS, RADAR_RANGE, radarPowered } from './police'
 import { sabotageRemaining } from './pete'
-import { GENERATOR_KW, POLE_COVERAGE_RADIUS, powerRequirement, withinRange } from './power'
+import { generationKw, ratedGeneration, POLE_COVERAGE_RADIUS, powerRequirement, withinRange } from './power'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import type { Inventory, Item, Resource } from './items'
 import { assemblerInputCapacity } from './assemblerRecipes'
@@ -51,7 +52,7 @@ export type Inspection = { kind: 'belt'; bridge?: boolean; direction: Direction;
   | { kind: 'sprinkler'; radius: number; status: ReturnType<typeof sprinklerState>; cooldownMs: number; sprayProgress: number; sprays: number; electrical: ElectricalDetails }
   | { kind: 'radar'; radius: number; active: boolean; operation: string; prison: Position | null; electrical: ElectricalDetails } | { kind: 'storage'; inventory: Inventory }
   | { kind: 'miner'; resource: Resource | null; progress: number; buffered: boolean; electrical: ElectricalDetails }
-  | { kind: 'generator'; capacityKw: number; actualKw: number; electrical: ElectricalDetails }
+  | { kind: 'generator' | 'waterwheel'; direction?: Direction; waterAvailable?: boolean; capacityKw: number; actualKw: number; electrical: ElectricalDetails }
   | { kind: 'powerPole'; coverageRadius: number; coveredMachines: number; electrical: ElectricalDetails } | {
   kind: 'furnace' | 'assembler'
   direction: Direction
@@ -123,7 +124,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
     return { kind: 'inserter', direction: building.direction, item: building.item, phase: building.phase, status: inserterStatus(world, building), progress: building.phase === 'idle' ? 0 : (building.elapsedMs + (building.phase === 'returning' ? INSERTER_SWING_MS : 0)) / INSERTER_CYCLE_MS, cycleMs: INSERTER_CYCLE_MS, pickup, drop, source: buildingAt(world, pickup.x, pickup.y)?.kind ?? null, target: buildingAt(world, drop.x, drop.y)?.kind ?? null, electrical }
   }
   if (building.kind === 'miner') return { kind: 'miner', resource: depositAt(world, building.x, building.y), progress: building.elapsed / INTERVAL, buffered: building.item !== null, electrical }
-  if (building.kind === 'generator') return { kind: 'generator', capacityKw: GENERATOR_KW, actualKw: electrical.sabotageRemainingMs === 0 && electrical.network?.activeGenerators ? electrical.network.suppliedKw / electrical.network.activeGenerators : 0, electrical }
+  if (building.kind === 'generator' || building.kind === 'waterwheel') return { kind: building.kind, ...(building.kind === 'waterwheel' ? { direction: building.direction, waterAvailable: waterwheelWater(world, building, building.direction) } : {}), capacityKw: ratedGeneration(building), actualKw: electrical.network?.capacityKw ? electrical.network.suppliedKw * generationKw(world, building) / electrical.network.capacityKw : 0, electrical }
   if (building.kind === 'powerPole') return { kind: 'powerPole', coverageRadius: POLE_COVERAGE_RADIUS, coveredMachines: world.buildings.filter(b => b && powerRequirement(b) > 0 && withinRange(building, b, POLE_COVERAGE_RADIUS)).length, electrical }
   if (building.kind !== 'furnace' && building.kind !== 'assembler') return null
   const recipe = building.recipeId ? RECIPES[building.recipeId] : null
@@ -163,15 +164,16 @@ export function electricalDetails(world: World, index: number): ElectricalDetail
   let explanation: string
   const remaining = building ? sabotageRemaining(world, building) : 0
   if (remaining > 0) { state = 'sabotaged'; explanation = 'Sabotaged by Pete. Operation is paused without consuming power; buffers and progress are preserved.' }
-  else if (!network) { state = 'disconnected'; explanation = building?.kind === 'generator' ? 'Generator disconnected. Place a pole within 3 tiles; generators do not power machines directly.' : 'Outside pole coverage. Place a pole within 3 tiles and connect a generator.' }
+  else if (!network) { state = 'disconnected'; explanation = building && ratedGeneration(building) > 0 ? 'Generator disconnected. Place a pole within 3 tiles; generators do not power machines directly.' : 'Outside pole coverage. Place a pole within 3 tiles and connect a generator.' }
+  else if (building?.kind === 'waterwheel' && !waterwheelWater(world, building, building.direction)) { state = 'idle'; explanation = 'No water on the facing side. Restore adjacent water to resume generation.' }
   else if (network.capacityKw === 0) { state = 'no-generation'; explanation = 'Assigned network has no generator. Connect a generator within 3 tiles of a pole.' }
-  else if (building?.kind === 'generator' && network.suppliedKw > 0) { state = 'powered'; explanation = 'Supplying the assigned network. Generators share its load equally.' }
+  else if (building && generationKw(world, building) > 0 && network.suppliedKw > 0) { state = 'powered'; explanation = 'Supplying the assigned network. Generators share its load in proportion to available capacity.' }
   else if (!consumer || consumer.requestedKw === 0) { state = 'idle'; explanation = requirementKw ? building?.kind === 'inserter' ? 'Connected and available. No power requested while waiting for compatible input or blocked at the drop point.' : 'Connected and available. No power requested while waiting for input or output space.' : 'Connected; unused capacity is available to this network.' }
   else if (consumer.speedFraction < 1) { state = 'reduced'; explanation = 'Network demand exceeds generation. All working machines share power proportionally; add a generator.' }
   else { state = 'powered'; explanation = 'Full requested power supplied.' }
   return {
     sabotageRemainingMs: remaining, networkId, requirementKw, requestedKw: consumer?.requestedKw ?? 0, suppliedKw: consumer?.suppliedKw ?? 0,
     speedFraction: consumer?.speedFraction ?? 0, state, explanation,
-    network: network ? { capacityKw: network.capacityKw, requestedKw: network.requestedKw, suppliedKw: network.suppliedKw, poles: network.poleIndices.length, generators: network.generatorIndices.length, activeGenerators: network.generatorIndices.filter(i => sabotageRemaining(world, world.buildings[i]!) === 0).length } : null,
+    network: network ? { capacityKw: network.capacityKw, requestedKw: network.requestedKw, suppliedKw: network.suppliedKw, poles: network.poleIndices.length, generators: network.generatorIndices.length, activeGenerators: network.generatorIndices.filter(i => generationKw(world, world.buildings[i]!) > 0).length } : null,
   }
 }
