@@ -3,6 +3,7 @@ import { waterEditError, waterProtection } from '../simulation/waterLandscaping'
 import { cameraViewport, visibleTileBounds, intersects } from './viewport'
 import { useGraphicsSettings } from '../state/graphicsSettings'
 import { LandscapeWater } from './landscapeWater'
+import { PlacementRotation, rotationBuilding } from './placementRotation'
 import { ConstructionDrag } from './constructionDrag'
 import { placementInfo, planConstruction } from '../simulation/construction'
 import type { ConstructionPlan } from '../simulation/construction'
@@ -34,7 +35,7 @@ import { RADAR_RANGE } from '../simulation/police'
 import { drawSecurityBuilding, drawPoliceEffects } from './policeVisuals'
 import { drawPete, drawSabotage } from './peteVisuals'
 import Phaser from 'phaser'
-import { buildingAt, createWorld, inside, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, SIZE } from '../simulation/world'
+import { buildingAt, createWorld, inside, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, rotate, SIZE } from '../simulation/world'
 import { beltInputs } from '../simulation/beltConnections'
 import { BELT_TRAVEL_MS } from '../simulation/transport'
 import { inserterPorts } from '../simulation/inserters'
@@ -58,6 +59,7 @@ export class FactoryScene extends Phaser.Scene {
   private landscapeWater = new LandscapeWater()
   private waterSurface!: Phaser.GameObjects.Graphics
   private constructionDrag = new ConstructionDrag()
+  private placementRotation = new PlacementRotation()
   private constructionLabel!: Phaser.GameObjects.Text
   private handledContextMenu = false
   private landscapeUsed = false
@@ -111,7 +113,11 @@ export class FactoryScene extends Phaser.Scene {
     this.keys = this.input.keyboard!.addKeys('W,A,S,D', true) as typeof this.keys
     const keyboard = this.input.keyboard!
     const stopStrokeOnToolChange = useGameStore.subscribe((state, previous) => {
-      if (state.tool !== previous.tool || state.direction !== previous.direction || state.dragCancelToken !== previous.dragCancelToken || worldInputBlocked(state)) this.cancelConstruction()
+      if (state.tool !== previous.tool || state.dragCancelToken !== previous.dragCancelToken || worldInputBlocked(state)) this.cancelConstruction()
+      else if (state.direction !== previous.direction) {
+        if (this.placementRotation.active) this.placementRotation.setDirection(state.direction)
+        else this.cancelConstruction()
+      }
       if (state.tool !== previous.tool || state.brushSize !== previous.brushSize || worldInputBlocked(state)) this.landscapeStroke.end()
     })
     const destroyTerrain = () => this.terrain.destroy()
@@ -150,7 +156,15 @@ export class FactoryScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeToolKeyListener)
     this.events.once(Phaser.Scenes.Events.DESTROY, removeToolKeyListener)
     keyboard.on('keydown-P', () => { if (!worldInputBlocked(useGameStore.getState())) useGameStore.getState().togglePowerOverlay() })
-    keyboard.on('keydown-R', () => { if (!worldInputBlocked(useGameStore.getState())) useGameStore.getState().rotate() })
+    keyboard.on('keydown-R', () => {
+      if (worldInputBlocked(useGameStore.getState())) return
+      const pending = this.placementRotation.preview()
+      if (pending) {
+        const direction = rotate(pending.direction)
+        this.placementRotation.setDirection(direction)
+        useGameStore.setState({ direction })
+      } else useGameStore.getState().rotate()
+    })
     this.input.on('wheel', (_p: Phaser.Input.Pointer, _objects: unknown[], _dx: number, dy: number) => {
       if (worldInputBlocked(useGameStore.getState())) return
       this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom * (dy > 0 ? .9 : 1.1), .5, 2.5))
@@ -159,7 +173,7 @@ export class FactoryScene extends Phaser.Scene {
       if (pointer.event.target !== this.game.canvas || worldInputBlocked(useGameStore.getState())) return
       if (pointer.rightButtonDown()) {
         this.landscapeStroke.end()
-        if (this.constructionDrag.active) this.cancelConstruction()
+        if (this.constructionDrag.active || this.placementRotation.active) this.cancelConstruction()
         else if (useGameStore.getState().tool !== null) useGameStore.getState().select(null)
         else return
         this.handledContextMenu = true
@@ -171,6 +185,11 @@ export class FactoryScene extends Phaser.Scene {
         const point = landscapeTile(pointer, this.cameras.main, TILE)
         const error = this.constructionDrag.begin(this.world, point, selected, useGameStore.getState().direction)
         useGameStore.setState(error ? { message: error } : { dragActive: true })
+        return
+      }
+      if (rotationBuilding(selected)) {
+        this.placementRotation.begin(this.world, landscapeTile(pointer, this.cameras.main, TILE), this.rotationScreen(pointer), selected, useGameStore.getState().direction)
+        useGameStore.setState({ dragActive: true })
         return
       }
       if (natureTool(selected)) {
@@ -225,12 +244,23 @@ export class FactoryScene extends Phaser.Scene {
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (this.constructionDrag.active) this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
+      this.placementRotation.move(this.rotationScreen(pointer))
       this.paintDrag(pointer)
     })
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.landscapeStroke.end()
       if ('button' in pointer.event && pointer.event.button !== 0) return
       if (pointer.event.target !== this.game.canvas || !this.input.isOver || worldInputBlocked(useGameStore.getState())) { this.cancelConstruction(); return }
+      if (this.placementRotation.active) {
+        this.placementRotation.move(this.rotationScreen(pointer))
+        const result = this.placementRotation.finish(this.world)
+        useGameStore.setState({ dragActive: false })
+        if (result) {
+          if (!result.error) useGameStore.getState().recordToolUse(result.kind)
+          useGameStore.setState({ message: result.error ?? `${toolMetadata(result.kind).label} placed.` })
+        }
+        return
+      }
       this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
       const tool = useGameStore.getState().tool
       const result = this.constructionDrag.finish(this.world)
@@ -243,7 +273,11 @@ export class FactoryScene extends Phaser.Scene {
     this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); this.cancelConstruction() })
     this.input.on('gameout', () => { this.landscapeStroke.end(); this.cancelConstruction() })
   }
+  private rotationScreen(pointer: Phaser.Input.Pointer) {
+    return pointer.event instanceof MouseEvent ? { x: pointer.event.clientX, y: pointer.event.clientY } : { x: pointer.x, y: pointer.y }
+  }
   private cancelConstruction() {
+    this.placementRotation.cancel()
     this.constructionDrag.cancel()
     if (useGameStore.getState().dragActive) useGameStore.setState({ dragActive: false })
   }
@@ -702,8 +736,10 @@ export class FactoryScene extends Phaser.Scene {
     const pointer = this.input.activePointer
     if (!worldInputBlocked(state) && state.tool && !combatTool(state.tool) && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
-      const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
-      if (state.tool === 'belt') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, 'belt', state.direction)); return }
+      const rotation = this.placementRotation.preview()
+      const x = rotation?.x ?? Math.floor(p.x / TILE), y = rotation?.y ?? Math.floor(p.y / TILE)
+      const direction = rotation?.direction ?? state.direction
+      if (state.tool === 'belt') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, 'belt', direction)); return }
       if (natureTool(state.tool)) {
         const waterMode = brushMode(state.tool)
         if (waterMode === 'water' || waterMode === 'land') {
@@ -751,24 +787,24 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
       if (removalTarget?.kind === 'belt' && removalTarget.bridge) this.placementTooltip(pointer, 'Remove entire bridge crossing. Items are lost; no Wood refund.')
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
       if (state.tool === 'splitter') {
-        const ports = splitterPorts({ x, y, direction: state.direction })
+        const ports = splitterPorts({ x, y, direction })
         for (const [port, color] of [[ports.input, 0xffbd6c], [ports.outputs[0], 0x8df0b3], [ports.outputs[1], 0x85d1e8]] as const) {
           if (!inside(port.x, port.y)) continue
           this.preview.lineStyle(1, color, .8).strokeRect(port.x * TILE + 5, port.y * TILE + 5, TILE - 10, TILE - 10)
           this.preview.lineBetween((x + .5) * TILE, (y + .5) * TILE, (port.x + .5) * TILE, (port.y + .5) * TILE)
         }
-        const left = splitterDirections(state.direction)[1]
+        const left = splitterDirections(direction)[1]
         this.arrow(x * TILE + offsets[left].x * 8, y * TILE + offsets[left].y * 8, left, 0x85d1e8, .7)
       }
       if (state.tool === 'inserter') {
-        const ports = inserterPorts({ x, y, direction: state.direction })
+        const ports = inserterPorts({ x, y, direction })
         for (const [port, portColor] of [[ports.pickup, 0xffbd6c], [ports.drop, 0x8df0b3]] as const) {
           if (!inside(port.x, port.y)) continue
           this.preview.lineStyle(2, portColor, .9).strokeRect(port.x * TILE + 3, port.y * TILE + 3, TILE - 6, TILE - 6)
           this.preview.lineStyle(1, portColor, .8).lineBetween((x + .5) * TILE, (y + .5) * TILE, (port.x + .5) * TILE, (port.y + .5) * TILE)
         }
       }
-      const info = state.tool !== 'remove' && state.tool !== 'spiderWeb' ? placementInfo(this.world, { x, y }, state.tool) : null
+      const info = state.tool !== 'remove' && state.tool !== 'spiderWeb' ? rotation?.info ?? placementInfo(this.world, { x, y }, state.tool) : null
       const existingPole = state.tool === 'powerPole' && buildingAt(this.world, x, y)?.kind === 'powerPole'
       if (info) this.placementTooltip(pointer, `${existingPole || info.state === 'valid' ? '✓' : info.state === 'unaffordable' ? '◇' : '×'} ${toolMetadata(state.tool).label}\n${info.wood ? `Cost: ${info.wood} Wood · You have ${info.available}` : 'Cost: Free'}${existingPole ? '\nExisting pole · Drag to extend.' : info.error ? `\n${info.error}` : ''}`)
       if (state.tool === 'powerPole') this.previewPole(x, y)
@@ -779,7 +815,7 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
       if (info?.state === 'unaffordable') this.preview.lineStyle(2, color).lineBetween(x * TILE + 16, y * TILE + 5, x * TILE + 27, y * TILE + 16).lineBetween(x * TILE + 27, y * TILE + 16, x * TILE + 16, y * TILE + 27).lineBetween(x * TILE + 16, y * TILE + 27, x * TILE + 5, y * TILE + 16).lineBetween(x * TILE + 5, y * TILE + 16, x * TILE + 16, y * TILE + 5)
       else if (error) this.preview.lineStyle(2, color).lineBetween(x * TILE + 5, y * TILE + 5, x * TILE + 27, y * TILE + 27).lineBetween(x * TILE + 27, y * TILE + 5, x * TILE + 5, y * TILE + 27)
       if (state.tool === 'treehouse' && inside(x, y) && !error) drawTreehouse(this.preview, this.world, { kind: 'treehouse', x, y, placedAtMs: this.world.timeMs }, TILE, true)
-      if (state.tool === 'miner' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, state.direction, color)
+      if (state.tool === 'miner' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, direction, color)
     }
   }
 }
