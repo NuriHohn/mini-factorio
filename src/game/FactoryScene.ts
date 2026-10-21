@@ -1,3 +1,6 @@
+import { ConstructionDrag } from './constructionDrag'
+import { placementInfo } from '../simulation/construction'
+import { toolMetadata } from '../state/toolMetadata'
 import { peteCaption } from './peteCaption'
 import { worldInputBlocked } from '../state/uiMetadata'
 import { collectGift, peaceful } from '../simulation/peace'
@@ -46,6 +49,10 @@ import { moveCamera, updateCameraBounds } from './cameraMovement'
 const TILE = 32
 export class FactoryScene extends Phaser.Scene {
   private natureVisuals = new NatureVisuals()
+  private constructionDrag = new ConstructionDrag()
+  private constructionLabel!: Phaser.GameObjects.Text
+  private handledContextMenu = false
+  private landscapeUsed = false
   private landscapeStroke = new LandscapeStroke()
   private landscape!: Phaser.GameObjects.Graphics
   private revengeVisuals = new RevengeVisuals()
@@ -67,7 +74,7 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
@@ -84,24 +91,44 @@ export class FactoryScene extends Phaser.Scene {
     this.peteEffects = this.add.graphics().setDepth(5)
     this.peteLabel = this.add.text(0, 0, 'Pete', { fontFamily: 'monospace', fontSize: '9px', color: '#f8cf86', backgroundColor: '#17221cbb', padding: { x: 3, y: 2 } }).setOrigin(.5, 1).setDepth(6)
     this.preview = this.add.graphics()
+    this.constructionLabel = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '12px', color: '#edf1dd', backgroundColor: '#19241cf2', padding: { x: 9, y: 7 } }).setDepth(20).setVisible(false)
     this.cameras.main.setZoom(1.3)
     updateCameraBounds(this.cameras.main, SIZE * TILE)
     this.cameras.main.centerOn(SIZE * TILE / 2, SIZE * TILE / 2)
     this.keys = this.input.keyboard!.addKeys('W,A,S,D', true) as typeof this.keys
     const keyboard = this.input.keyboard!
     const stopStrokeOnToolChange = useGameStore.subscribe((state, previous) => {
+      if (state.tool !== previous.tool || state.direction !== previous.direction || state.dragCancelToken !== previous.dragCancelToken || worldInputBlocked(state)) this.cancelConstruction()
       if (state.tool !== previous.tool || state.brushSize !== previous.brushSize || worldInputBlocked(state)) this.landscapeStroke.end()
     })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopStrokeOnToolChange)
     this.events.once(Phaser.Scenes.Events.DESTROY, stopStrokeOnToolChange)
     // DOM delivery keeps Escape available even when a form control has focus.
     const toolKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Escape' && event.repeat) return
       const target = event.target
       const editing = target instanceof HTMLElement && (target.matches('input, select, textarea') || target.isContentEditable)
       if (worldInputBlocked(useGameStore.getState()) && event.code === 'Escape') event.preventDefault()
       useGameStore.getState().handleToolKey({ code: event.code, repeat: event.repeat, editing })
     }
     window.addEventListener('keydown', toolKeyDown)
+    const loseFocus = () => { this.cancelConstruction(); this.landscapeStroke.end() }
+    const visibility = () => { if (document.hidden) loseFocus() }
+    const contextMenu = (event: MouseEvent) => {
+      if (this.handledContextMenu || useGameStore.getState().tool !== null) event.preventDefault()
+      this.handledContextMenu = false
+    }
+    window.addEventListener('blur', loseFocus)
+    document.addEventListener('visibilitychange', visibility)
+    this.game.canvas.addEventListener('contextmenu', contextMenu)
+    const cleanupGestures = () => {
+      loseFocus()
+      window.removeEventListener('blur', loseFocus)
+      document.removeEventListener('visibilitychange', visibility)
+      this.game.canvas.removeEventListener('contextmenu', contextMenu)
+    }
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanupGestures)
+    this.events.once(Phaser.Scenes.Events.DESTROY, cleanupGestures)
     const removeToolKeyListener = () => window.removeEventListener('keydown', toolKeyDown)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.revengeVisuals.destroy())
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeToolKeyListener)
@@ -113,22 +140,38 @@ export class FactoryScene extends Phaser.Scene {
       this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom * (dy > 0 ? .9 : 1.1), .5, 2.5))
     })
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.event.target !== this.game.canvas || worldInputBlocked(useGameStore.getState())) return
+      if (pointer.rightButtonDown()) {
+        this.landscapeStroke.end()
+        if (this.constructionDrag.active) this.cancelConstruction()
+        else if (useGameStore.getState().tool !== null) useGameStore.getState().select(null)
+        else return
+        this.handledContextMenu = true
+        return
+      }
       if (!pointer.leftButtonDown()) return
       const selected = useGameStore.getState().tool
-      if (worldInputBlocked(useGameStore.getState())) return
+      if (selected === 'belt' || selected === 'powerPole') {
+        const point = landscapeTile(pointer, this.cameras.main, TILE)
+        const error = this.constructionDrag.begin(this.world, point, selected, useGameStore.getState().direction)
+        useGameStore.setState(error ? { message: error } : { dragActive: true })
+        return
+      }
       if (natureTool(selected)) {
         const point = landscapeTile(pointer, this.cameras.main, TILE), mode = brushMode(selected)
         if (mode !== undefined) {
-          this.landscapeStroke.begin(this.world, point, mode, useGameStore.getState().brushSize)
+          this.landscapeUsed = false
+          if (this.landscapeStroke.begin(this.world, point, mode, useGameStore.getState().brushSize) > 0) { useGameStore.getState().recordToolUse(selected); this.landscapeUsed = true }
           return
         }
         const species = plantingSpecies(selected)
         if (species) {
           const error = placementError(this.world, point.x, point.y, 'tree')
           if (error) { useGameStore.setState({ message: error }); return }
-          if (plantTree(this.world, point.x, point.y, species)) useGameStore.setState({ message: `${species[0].toUpperCase() + species.slice(1)} sapling planted · grows with simulation time.` })
+          if (plantTree(this.world, point.x, point.y, species)) { useGameStore.getState().recordToolUse(selected); useGameStore.setState({ message: `${species[0].toUpperCase() + species.slice(1)} sapling planted · grows with simulation time.` }) }
         } else {
           const result = chopTree(this.world, point.x, point.y)
+          if (result) useGameStore.getState().recordToolUse(selected)
           if (result) this.natureVisuals.fell(this.world, result.tree)
           useGameStore.setState({ message: result ? `Tree chopped · +${result.wood} Wood (global stock). Ore and decoration preserved.` : 'Choose a tree to chop with the Axe.' })
         }
@@ -138,6 +181,7 @@ export class FactoryScene extends Phaser.Scene {
         const position = combatPosition(pointer, this.cameras.main, TILE)
         const impact = attackWalker(this.world, selected, position)
         if (impact) {
+          if (impact.hit) useGameStore.getState().recordToolUse(selected)
           this.revengeVisuals.impact(impact, this.world)
           useGameStore.setState({ message: impact.hit ? `Hit! -${impact.damage} HP` : 'Miss! Click the walker hitbox.' })
         }
@@ -158,19 +202,58 @@ export class FactoryScene extends Phaser.Scene {
       if (error) { useGameStore.setState({ message: error }); return }
       const wasHome = buildingAt(this.world, x, y)?.kind === 'treehouse'
       const wasBoss = this.world.revenge.boss !== null
+      useGameStore.getState().recordToolUse(tool)
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
       useGameStore.setState({ message: tool === 'treehouse' ? wasBoss ? 'A home for Pete! The walker sighs, powers down, and Pete moves in. ♥' : 'Welcome home, Pete! Peace begins · -20 Wood. ♥' : wasHome ? 'Pete looks confused… back to mischief. Revenge preserved; no Wood refund.' : tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.paintDrag(pointer))
-    this.input.on('pointerup', () => this.landscapeStroke.end())
-    this.input.on('pointerupoutside', () => this.landscapeStroke.end())
-    this.input.on('gameout', () => this.landscapeStroke.end())
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      this.landscapeStroke.end()
+      if ('button' in pointer.event && pointer.event.button !== 0) return
+      if (pointer.event.target !== this.game.canvas || !this.input.isOver || worldInputBlocked(useGameStore.getState())) { this.cancelConstruction(); return }
+      this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
+      const tool = useGameStore.getState().tool
+      const result = this.constructionDrag.finish(this.world)
+      useGameStore.setState({ dragActive: false })
+      if (result) {
+        if (!result.error && result.placed > 0) useGameStore.getState().recordToolUse(tool)
+        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · Free.` : 'This pole is already here. Nothing changed.' })
+      }
+    })
+    this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); this.cancelConstruction() })
+    this.input.on('gameout', () => { this.landscapeStroke.end(); this.cancelConstruction() })
+  }
+  private cancelConstruction() {
+    this.constructionDrag.cancel()
+    if (useGameStore.getState().dragActive) useGameStore.setState({ dragActive: false })
+  }
+  private placementTooltip(pointer: Phaser.Input.Pointer, text: string) {
+    const camera = this.cameras.main
+    this.constructionLabel.setText(text).setScale(1 / camera.zoom).setVisible(true)
+    const point = camera.getWorldPoint(Math.max(8, Math.min(pointer.x + 18, camera.width - this.constructionLabel.width - 8)), Math.max(8, Math.min(pointer.y + 20, camera.height - this.constructionLabel.height - 8)))
+    this.constructionLabel.setPosition(point.x, point.y)
+  }
+  private drawConstruction(pointer: Phaser.Input.Pointer) {
+    this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
+    const plan = this.constructionDrag.preview()
+    if (!plan) return
+    for (const cell of plan.cells) {
+      const color = cell.error ? 0xe7a08d : 0xb2d08a
+      this.preview.fillStyle(color, .18).fillRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
+      this.preview.lineStyle(2, color).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
+      if (cell.error) this.preview.lineBetween(cell.x * TILE + 6, cell.y * TILE + 6, cell.x * TILE + 26, cell.y * TILE + 26).lineBetween(cell.x * TILE + 26, cell.y * TILE + 6, cell.x * TILE + 6, cell.y * TILE + 26)
+      else if (plan.kind === 'belt') this.arrow(cell.x * TILE, cell.y * TILE, cell.direction, color)
+      else this.preview.lineBetween((cell.x + .5) * TILE, cell.y * TILE + 6, (cell.x + .5) * TILE, cell.y * TILE + 27).strokeCircle((cell.x + .5) * TILE, cell.y * TILE + 10, 5)
+    }
+    if (plan.kind === 'powerPole') for (let i = 1; i < plan.cells.length; i++) this.preview.lineStyle(2, plan.error ? 0xe7a08d : 0xb2d08a, .65).lineBetween((plan.cells[i - 1].x + .5) * TILE, (plan.cells[i - 1].y + .5) * TILE, (plan.cells[i].x + .5) * TILE, (plan.cells[i].y + .5) * TILE)
+    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? 'Belts' : 'Power connection'} · ${plan.cells.filter(c => !c.reuse).length} ${plan.kind === 'belt' ? 'tiles' : 'poles'}\nTotal cost: Free\n${plan.error ?? 'Release to build. Escape or right-click to cancel.'}`)
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)
     if (!pointer.leftButtonDown() || !this.input.isOver || worldInputBlocked(state) || mode === undefined) { this.landscapeStroke.end(); return }
-    this.landscapeStroke.move(this.world, landscapeTile(pointer, this.cameras.main, TILE), mode, state.brushSize)
+    const changed = this.landscapeStroke.move(this.world, landscapeTile(pointer, this.cameras.main, TILE), mode, state.brushSize)
+    if (changed > 0 && !this.landscapeUsed) { useGameStore.getState().recordToolUse(state.tool); this.landscapeUsed = true }
   }
 
   private drawTerrain(terrain: Phaser.GameObjects.Graphics, world: World) {
@@ -197,13 +280,14 @@ export class FactoryScene extends Phaser.Scene {
     const terrain = this.add.graphics().setDepth(-1).setVisible(false)
     try { this.drawTerrain(terrain, candidate.world) } catch (error) { terrain.destroy(); throw error }
     this.landscapeStroke.end()
+    this.cancelConstruction()
     const oldWorld = this.world, oldTerrain = this.terrain, oldView = this.viewState(), oldState = useGameStore.getState()
     try {
       this.cameras.main.setZoom(candidate.view.zoom).setScroll(candidate.view.scrollX, candidate.view.scrollY)
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -309,7 +393,7 @@ export class FactoryScene extends Phaser.Scene {
     }
   }
   private previewPole(x: number, y: number): PolePlacementPreview {
-    const key = `${x},${y},${this.world.topologyRevision},${this.world.pete.tile},${this.world.pete.next},${this.world.police.car?.tile},${this.world.police.car?.next}`
+    const key = `${x},${y},${this.world.topologyRevision},${this.world.pete.tile},${this.world.pete.next},${this.world.police.car?.tile},${this.world.police.car?.next},${this.world.revenge.boss?.tile},${this.world.revenge.boss?.next}`
     // World-space graphics follow camera transforms without being rebuilt.
     if (!this.poleCandidate || this.polePreviewKey !== key) {
       this.polePreviewKey = key
@@ -566,6 +650,8 @@ export class FactoryScene extends Phaser.Scene {
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
     this.preview.clear()
+    this.constructionLabel.setVisible(false)
+    if (this.constructionDrag.active) { this.drawConstruction(this.input.activePointer); return }
     if (inspected?.kind === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, SPRINKLER_RANGE * TILE)
     if (inspected?.kind === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, RADAR_RANGE * TILE)
     if (inspected?.kind === 'powerPole') this.showCoverage(inspected, power.assignments[state.inspected!] ?? null)
@@ -576,6 +662,9 @@ export class FactoryScene extends Phaser.Scene {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       if (natureTool(state.tool)) {
+        const previewSpecies = plantingSpecies(state.tool)
+        const error = previewSpecies ? placementInfo(this.world, { x, y }, 'tree').error : state.tool === 'axe' && buildingAt(this.world, x, y)?.kind !== 'tree' ? 'Choose a tree to chop.' : null
+        this.placementTooltip(pointer, `${error ? '×' : '✓'} ${toolMetadata(state.tool).label} · Free${error ? `\n${error}` : ''}`)
         const mode = brushMode(state.tool), species = plantingSpecies(state.tool)
         if (mode !== undefined) {
           const color = mode === 'flowers' ? 0xe5c3a1 : mode === 'grass' ? 0xa6c27d : 0xc6bca7
@@ -588,7 +677,7 @@ export class FactoryScene extends Phaser.Scene {
           const color = error ? 0xe5a08d : 0xb2d08a
           this.preview.fillStyle(color, .2).fillRect(x * TILE, y * TILE, TILE, TILE)
           this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
-          if (species && inside(x, y)) drawTree(this.preview, this.world, { kind: 'tree', x, y, species, origin: 'manual', bornAtMs: this.world.timeMs, nextReproductionAtMs: this.world.timeMs + MATURE_TREE_MS + REPRODUCTION_MS }, TILE)
+          if (species && inside(x, y) && !error) drawTree(this.preview, this.world, { kind: 'tree', x, y, species, origin: 'manual', bornAtMs: this.world.timeMs, nextReproductionAtMs: this.world.timeMs + MATURE_TREE_MS + REPRODUCTION_MS }, TILE)
         }
         return
       }
@@ -614,12 +703,17 @@ export class FactoryScene extends Phaser.Scene {
           this.preview.lineStyle(1, portColor, .8).lineBetween((x + .5) * TILE, (y + .5) * TILE, (port.x + .5) * TILE, (port.y + .5) * TILE)
         }
       }
-      const pole = state.tool === 'powerPole' ? this.previewPole(x, y) : null
-      const error = pole ? pole.error : state.tool === 'spiderWeb' ? inside(x, y) ? null : 'Choose a tile inside the world.' : state.tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, state.tool)
-      const color = pole ? pole.state === 'invalid' ? 0x929b9f : pole.state === 'connected' ? 0x8df0b3 : 0xf0ac60 : error ? 0xf08172 : 0x8df0b3
+      const info = state.tool !== 'remove' && state.tool !== 'spiderWeb' ? placementInfo(this.world, { x, y }, state.tool) : null
+      const existingPole = state.tool === 'powerPole' && buildingAt(this.world, x, y)?.kind === 'powerPole'
+      if (info) this.placementTooltip(pointer, `${existingPole || info.state === 'valid' ? '✓' : info.state === 'unaffordable' ? '◇' : '×'} ${toolMetadata(state.tool).label}\n${info.wood ? `Cost: ${info.wood} Wood · You have ${info.available}` : 'Cost: Free'}${existingPole ? '\nExisting pole · Drag to extend.' : info.error ? `\n${info.error}` : ''}`)
+      if (state.tool === 'powerPole') this.previewPole(x, y)
+      const error = existingPole ? null : state.tool === 'spiderWeb' ? inside(x, y) ? null : 'Choose a tile inside the world.' : state.tool === 'remove' ? removalError(this.world, x, y) : info?.error
+      const color = info?.state === 'unaffordable' ? 0xe5c578 : error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
-      if (state.tool === 'treehouse' && inside(x, y)) drawTreehouse(this.preview, this.world, { kind: 'treehouse', x, y, placedAtMs: this.world.timeMs }, TILE, true)
+      if (info?.state === 'unaffordable') this.preview.lineStyle(2, color).lineBetween(x * TILE + 16, y * TILE + 5, x * TILE + 27, y * TILE + 16).lineBetween(x * TILE + 27, y * TILE + 16, x * TILE + 16, y * TILE + 27).lineBetween(x * TILE + 16, y * TILE + 27, x * TILE + 5, y * TILE + 16).lineBetween(x * TILE + 5, y * TILE + 16, x * TILE + 16, y * TILE + 5)
+      else if (error) this.preview.lineStyle(2, color).lineBetween(x * TILE + 5, y * TILE + 5, x * TILE + 27, y * TILE + 27).lineBetween(x * TILE + 27, y * TILE + 5, x * TILE + 5, y * TILE + 27)
+      if (state.tool === 'treehouse' && inside(x, y) && !error) drawTreehouse(this.preview, this.world, { kind: 'treehouse', x, y, placedAtMs: this.world.timeMs }, TILE, true)
       if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, state.direction, color)
     }
   }

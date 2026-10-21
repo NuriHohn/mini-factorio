@@ -31,7 +31,9 @@ export const CONTROL_ROWS = [
   ...PLAYER_TOOLS.filter(t => t.code).map(t => ({ keys: t.key, action: `Toggle ${t.label}` })),
   { keys: 'R', action: 'Rotate the selected building' },
   { keys: 'P', action: 'Show or hide power coverage' },
-  { keys: 'Escape', action: 'Cancel your tool; click a building to inspect it' },
+  { keys: 'Escape', action: 'Cancel a drag first, then close a panel or menu, then put away your tool' },
+  { keys: 'Right click', action: 'Cancel a drag, or put away your tool; never removes a building' },
+  { keys: 'Drag belt / pole', action: 'Preview a belt route or spaced pole connection; release to build all at once' },
   { keys: 'Left click', action: 'Use your selected tool, or inspect when no tool is selected' },
   { keys: 'Click active tool', action: 'Cancel that tool; choosing a different group also cancels it' },
   { keys: 'Click and drag', action: 'Paint flowers or grass, or erase decoration, with a landscape brush' },
@@ -44,5 +46,5 @@ export function notificationText(message: string): string | null {
 }
 
 export function importantNotification(message: string): boolean {
-  return /^(Requires |Insufficient |Choose |Only |Keep |A tree |This tile |Place mining|Cannot |No |.*costs [0-9]+ Wood|.*unavailable|.*failed)/i.test(message)
+  return /^(Nothing built|Requires |Insufficient |Choose |Only |Keep |A tree |This tile |Place mining|Cannot |No |.*costs [0-9]+ Wood|.*unavailable|.*failed)/i.test(message)
 }
