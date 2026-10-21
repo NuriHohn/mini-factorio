@@ -3,7 +3,7 @@ import { WATERWHEEL_WOOD } from './waterwheel'
 import { BRIDGE_WOOD } from './waterTerrain'
 import { planBelts, redirectBelt } from './beltConstruction'
 import { findPowerRoute } from './powerRouting'
-import { TREEHOUSE_WOOD } from './peace'
+import { refreshFishing, TREEHOUSE_WOOD } from './peace'
 import { inside, opposite, placeBuilding, placementError, SIZE } from './world'
 import type { BuildingKind, Direction, Position, World } from './world'
 
@@ -56,5 +56,6 @@ export function commitConstruction(world: World, start: Position, end: Position,
     if (belt?.kind === 'belt') redirectBelt(belt, cell.direction)
   }
   if (reversed.length) world.topologyRevision++
+  refreshFishing(world) // A newly committed water bridge may interrupt a boat route.
   return { error: null, placed: created.length, ...(reversed.length ? { reversed: reversed.length } : {}), ...(wood ? { wood } : {}) }
 }

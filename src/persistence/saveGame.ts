@@ -23,7 +23,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 11
+export const SAVE_VERSION = 12
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -189,7 +189,7 @@ export function decodeSave(text: string): LoadedGame {
   try { parsed = JSON.parse(text) } catch { throw new Error('Invalid save JSON. Choose a Mini-Factorio JSON save file.') }
   const root = v.object(parsed, 'save', ['format', 'version', 'savedAt', 'map', 'game', 'view'])
   if (root.format !== SAVE_FORMAT) throw new Error('This is not a Mini-Factorio save file.')
-  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 and ${SAVE_VERSION}.`)
+  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== 11 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 and ${SAVE_VERSION}.`)
   const version = root.version
   const savedAt = timestamp(root.savedAt), map = v.object(root.map, 'map', ['width', 'height'])
   if (map.width !== SIZE || map.height !== SIZE) throw new Error(`Unsupported map dimensions; this version requires ${SIZE}×${SIZE}.`)

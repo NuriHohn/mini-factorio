@@ -1,3 +1,4 @@
+import { drawRowboat } from './rowboatVisuals'
 import { dockAtSpot } from '../simulation/fishingDock'
 import { drawFishing } from './fishingDockVisuals'
 import { visiblePoint } from './viewport'
@@ -66,7 +67,8 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       }
     } else {
       const dock = s.activity === 'fishing' ? dockAtSpot(world, s.destination) : null
-      if (dock) drawFishing(g, world, dock, tile, view)
+      if (s.activity === 'boating') drawRowboat(g, world, tile, view)
+      else if (dock) drawFishing(g, world, dock, tile, view)
       else drawPete(g, world, tile, view)
       if (s.activity === 'waving' && visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) {
         const x = (p.x + .5) * tile, y = (p.y + .5) * tile
