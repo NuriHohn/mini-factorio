@@ -79,11 +79,13 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 11 && kind === 'fishingDock') invalid(path, 'fishing docks require save version 11')
   if (version < 10 && kind === 'waterwheel') invalid(path, 'waterwheels require save version 10')
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    fishingDock: ['direction'],
     waterwheel: ['direction', 'rotationMs'],
     treehouse: ['placedAtMs'],
     tree: ['species', 'origin', 'bornAtMs', 'nextReproductionAtMs'],
@@ -100,6 +102,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'fishingDock': return { ...base, kind, direction: facing() }
     case 'waterwheel': {
       const rotationMs = count(r.rotationMs, `${path}.rotationMs`, Math.min(timeMs, WATERWHEEL_PERIOD_MS - 1))
       if (rotationMs % 50) invalid(path, 'expected fixed-step wheel rotation')

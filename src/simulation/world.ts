@@ -1,6 +1,8 @@
+import { dockAtSpot, FISHING_DOCK_WOOD } from './fishingDock'
+import { facesWater } from './waterTerrain'
 import { WATERWHEEL_WOOD, waterwheelWater } from './waterwheel'
 import { bridgeCrossing, generateWater, isWater } from './waterTerrain'
-import { beginPeace, createPeace, endPeace, TREEHOUSE_WOOD } from './peace'
+import { beginPeace, createPeace, endPeace, refreshFishing, TREEHOUSE_WOOD } from './peace'
 import type { PeaceState } from './peace'
 import { createNature, generateNature, MATURE_TREE_MS, REPRODUCTION_MS } from './nature'
 import type { NatureState, TreeSpecies } from './nature'
@@ -27,7 +29,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
+export type BuildingKind = 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -69,6 +71,7 @@ export interface Inserter extends BuildingPosition {
   item: Item | null
   elapsedMs: number
 }
+export interface FishingDock extends BuildingPosition { kind: 'fishingDock'; direction: Direction }
 export interface Waterwheel extends BuildingPosition { kind: 'waterwheel'; direction: Direction; rotationMs: number }
 export interface Generator extends BuildingPosition { kind: 'generator' }
 export interface PowerPole extends BuildingPosition { kind: 'powerPole' }
@@ -87,7 +90,7 @@ export interface Splitter extends BuildingPosition {
 }
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
-export type Building = Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export type Building = FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
 export interface World { peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
@@ -145,6 +148,10 @@ export function placementError(world: World, x: number, y: number, kind: Buildin
   if (kind === 'belt' && direction && existing?.kind === 'belt') return !!offsets[direction].x === !!offsets[existing.direction].x ? null : 'Existing belt blocks this route. Perpendicular crossings are not allowed.'
   if (existing?.kind === 'tree') return 'A tree occupies this tile. Use the Axe to clear it.'
   if (buildingAt(world, x, y)) return 'This tile already has a building.'
+  if (kind === 'fishingDock') {
+    if (!facesWater(world, { x, y }, direction ?? 'east')) return 'Face the fishing side toward directly adjacent water.'
+    if (world.nature.wood < FISHING_DOCK_WOOD) return `Fishing Dock costs ${FISHING_DOCK_WOOD} Wood · ${world.nature.wood} available.`
+  }
   if (kind === 'waterwheel') {
     if (!waterwheelWater(world, { x, y }, direction ?? 'east')) return 'Face the waterwheel toward directly adjacent water.'
     if (world.nature.wood < WATERWHEEL_WOOD) return `Waterwheel costs ${WATERWHEEL_WOOD} Wood · ${world.nature.wood} available.`
@@ -153,9 +160,11 @@ export function placementError(world: World, x: number, y: number, kind: Buildin
   return null
 }
 export function placeBuilding(world: World, x: number, y: number, kind: BuildingKind, direction: Direction): boolean {
-  if (placementError(world, x, y, kind, kind === 'waterwheel' ? direction : undefined)) return false
+  if (placementError(world, x, y, kind, kind === 'waterwheel' || kind === 'fishingDock' ? direction : undefined)) return false
+  const previousDock = dockAtSpot(world, world.peace.destination)
   let building: Building
   switch (kind) {
+    case 'fishingDock': building = { kind, x, y, direction }; break
     case 'waterwheel': building = { kind, x, y, direction, rotationMs: 0 }; break
     case 'treehouse': building = { kind, x, y, placedAtMs: world.timeMs }; break
     case 'tree': building = { kind, x, y, species: 'oak', origin: 'manual', bornAtMs: world.timeMs, nextReproductionAtMs: world.timeMs + MATURE_TREE_MS + REPRODUCTION_MS }; break
@@ -174,8 +183,10 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   }
   world.buildings[y * SIZE + x] = building
   world.topologyRevision++
+  if (building.kind === 'fishingDock') world.nature.wood -= FISHING_DOCK_WOOD
   if (building.kind === 'waterwheel') world.nature.wood -= WATERWHEEL_WOOD
   if (building.kind === 'treehouse') { world.nature.wood -= TREEHOUSE_WOOD; beginPeace(world, y * SIZE + x) }
+  refreshFishing(world, previousDock)
   if (building.kind === 'tree') world.nature.nextAttemptAtMs = Math.min(world.nature.nextAttemptAtMs ?? Infinity, building.nextReproductionAtMs)
   return true
 }
@@ -187,6 +198,7 @@ export function removalError(world: World, x: number, y: number): string | null 
 }
 export function removeBuilding(world: World, x: number, y: number): boolean {
   if (removalError(world, x, y)) return false
+  const previousDock = dockAtSpot(world, world.peace.destination)
   const removed = world.buildings[y * SIZE + x]
   if (removed?.kind === 'belt' && removed.bridge) {
     for (const i of bridgeCrossing(world, x, y, removed.direction) ?? [y * SIZE + x]) if (world.buildings[i]?.kind === 'belt') world.buildings[i] = null
@@ -198,6 +210,7 @@ export function removeBuilding(world: World, x: number, y: number): boolean {
   delete world.analytics.machines[y * SIZE + x]
   if (world.buildings[y * SIZE + x]?.kind === 'treehouse') endPeace(world)
   world.buildings[y * SIZE + x] = null
+  refreshFishing(world, previousDock)
   world.topologyRevision++
   return true
 }

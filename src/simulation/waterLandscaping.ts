@@ -1,3 +1,5 @@
+import { dockAtSpot } from './fishingDock'
+import { refreshFishing } from './peace'
 import { brushTiles } from './nature'
 import type { BrushSize } from './nature'
 import { inside, offsets, SIZE } from './world'
@@ -53,6 +55,7 @@ export function waterBrushTiles(from: Position, to: Position, size: BrushSize): 
 }
 export function paintWater(world: World, from: Position, to: Position, mode: WaterBrush, size: BrushSize): number {
   if (mode !== 'water' && mode !== 'land') return 0
+  const previousDock = dockAtSpot(world, world.peace.destination)
   const protection = waterProtection(world), changed: number[] = []
   let decorationChanged = false
   for (const tile of waterBrushTiles(from, to, size)) {
@@ -62,6 +65,7 @@ export function paintWater(world: World, from: Position, to: Position, mode: Wat
     changed.push(tile)
   }
   if (changed.length) {
+    refreshFishing(world, previousDock)
     world.topologyRevision++ // Existing route and actor caches must see terrain changes.
     if (decorationChanged) world.nature.decorationRevision++
     invalidateTerrain(world, changed)

@@ -1,14 +1,15 @@
+import { dockAtSpot, FISHING_MS, reachableFishingSpot } from './fishingDock'
 import { neighboringTiles, reachableTiles, tilePath } from './navigation'
 import { PETE_COOLDOWN_MS, PETE_WALK_MS } from './pete'
 import { WARNING_MS } from './revenge'
 import { SIZE } from './world'
-import type { Position, World } from './world'
+import type { FishingDock, Position, World } from './world'
 
 export const TREEHOUSE_WOOD = 20
 export const GIFT_MIN_MS = 300000
 export const GIFT_MAX_MS = 600000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
@@ -47,8 +48,8 @@ function resetPete(world: World): void {
   Object.assign(p, { tile, x: tile % SIZE, y: Math.floor(tile / SIZE), next: null, travelMs: 0, mode: 'WANDERING', prison: null, imprisonedAtMs: null, graceUntilMs: world.timeMs, jailbreak: null, pumpkin: null, webMs: 0, water: null, trappedBy: null, ignoredWebs: [], path: [], pathRevision: -1, escape: null, cryingMs: 0, cooldownMs: PETE_COOLDOWN_MS })
   world.police.car = null; world.police.flash = null; world.police.retryAtMs = 0
 }
-function activity(world: World, name: PeaceActivity, duration = 0): void {
-  Object.assign(world.peace, { activity: name, sinceMs: world.timeMs, untilMs: world.timeMs + duration, destination: null })
+function activity(world: World, name: PeaceActivity, duration = 0, destination: number | null = null): void {
+  Object.assign(world.peace, { activity: name, sinceMs: world.timeMs, untilMs: world.timeMs + duration, destination })
   world.pete.path = []; world.pete.pathRevision = -1
 }
 export function beginPeace(world: World, home: number): void {
@@ -82,7 +83,9 @@ function plan(world: World): void {
   const p = world.pete, s = world.peace, parents = reachableTiles(world, p.tile)
   const local = localTiles(world, parents)
   const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i))
-  if (s.activity === 'homeward') {
+  if (s.activity === 'dockward') {
+    if (!dockAtSpot(world, s.destination) || !parents.has(s.destination!)) { activity(world, 'homeward'); plan(world); return }
+  } else if (s.activity === 'homeward') {
     const candidates = entrances.length ? entrances : local.length ? local : [p.tile]
     s.destination = candidates.sort((a, b) => (tilePath(parents, a)?.length ?? Infinity) - (tilePath(parents, b)?.length ?? Infinity) || a - b)[0]
   } else s.destination = local.length ? local[Math.floor(random(world) * local.length)] : p.tile
@@ -97,7 +100,8 @@ function move(world: World, delta: number): void {
       if (p.pathRevision !== world.topologyRevision || world.peace.destination === null) plan(world)
       p.next = p.path.shift() ?? null
       if (p.next === null) {
-        if (world.peace.activity === 'homeward') {
+        if (world.peace.activity === 'dockward') activity(world, 'fishing', FISHING_MS, world.peace.destination)
+        else if (world.peace.activity === 'homeward') {
           if (neighboringTiles(world.peace.home!).includes(p.tile)) activity(world, 'entering', 3000)
           else activity(world, 'waving', 4000) // Enclosed home: wait, then retry after obstacles change.
         } else activity(world, random(world) < .5 ? 'flowers' : 'waving', 5000)
@@ -129,18 +133,31 @@ export function collectGift(world: World, tile: number): string | null {
   world.nature.decorations[tile] = 'flowers'; world.nature.decorationRevision++
   return 'A bouquet from Pete! Flowers planted with love.'
 }
+export function refreshFishing(world: World, previousDock?: FishingDock | null): void {
+  if (!['dockward', 'fishing'].includes(world.peace.activity)) return
+  const dock = dockAtSpot(world, world.peace.destination)
+  if (dock && (!previousDock || previousDock === dock)) return
+  const p = world.pete
+  Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
+  activity(world, 'homeward')
+}
 export function advancePeace(world: World, delta: number): void {
   const s = world.peace, p = world.pete
   if (s.shutdown && world.timeMs - s.shutdown.atMs >= 6000) s.shutdown = null
   if (s.reactionAtMs !== null && world.timeMs - s.reactionAtMs >= 4000) s.reactionAtMs = null
   if (!peaceful(world)) return
+  refreshFishing(world)
   if (world.timeMs >= s.nextGiftAtMs) { spawnGift(world); scheduleGift(world) }
-  if (s.activity === 'homeward' || s.activity === 'walking') {
+  if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward') {
     if (p.next !== null && (world.water[p.next] || world.buildings[p.next])) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
     if (s.activity === 'entering') activity(world, 'resting', 12000)
-    else if (s.activity === 'resting') activity(world, 'walking')
+    else if (s.activity === 'resting') {
+      const spot = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableFishingSpot(world) : null
+      if (spot !== null && random(world) < .5) activity(world, 'dockward', 0, spot)
+      else activity(world, 'walking')
+    }
     else activity(world, 'homeward')
   }
 }

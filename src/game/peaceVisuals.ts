@@ -1,3 +1,5 @@
+import { dockAtSpot } from '../simulation/fishingDock'
+import { drawFishing } from './fishingDockVisuals'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
@@ -63,7 +65,9 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
         g.lineStyle(1, 0x35562c).lineBetween(x - 2, y, x - .5, y).lineBetween(x + 1, y, x + 2.5, y)
       }
     } else {
-      drawPete(g, world, tile, view)
+      const dock = s.activity === 'fishing' ? dockAtSpot(world, s.destination) : null
+      if (dock) drawFishing(g, world, dock, tile, view)
+      else drawPete(g, world, tile, view)
       if (s.activity === 'waving' && visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) {
         const x = (p.x + .5) * tile, y = (p.y + .5) * tile
         g.lineStyle(3, 0x91dd60).lineBetween(x + 7, y + 5, x + 14 + Math.sin((world.timeMs - s.sinceMs) / 400) * 2, y - 7)

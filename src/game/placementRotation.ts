@@ -4,9 +4,9 @@ import type { Direction, Position, World } from '../simulation/world'
 import type { Tool } from '../state/toolMetadata'
 
 export const ROTATION_THRESHOLD = 24
-export type RotationBuilding = 'waterwheel' | 'miner' | 'furnace' | 'assembler' | 'inserter' | 'splitter'
+export type RotationBuilding = 'fishingDock' | 'waterwheel' | 'miner' | 'furnace' | 'assembler' | 'inserter' | 'splitter'
 export function rotationBuilding(tool: Tool): tool is RotationBuilding {
-  return tool === 'waterwheel' || tool === 'miner' || tool === 'furnace' || tool === 'assembler' || tool === 'inserter' || tool === 'splitter'
+  return tool === 'fishingDock' || tool === 'waterwheel' || tool === 'miner' || tool === 'furnace' || tool === 'assembler' || tool === 'inserter' || tool === 'splitter'
 }
 // Input-only state. Screen coordinates are CSS pixels, independent of camera zoom.
 export class PlacementRotation {

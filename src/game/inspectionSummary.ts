@@ -2,6 +2,7 @@ import type { Inspection } from '../simulation/inspection'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { PLAYER_TOOLS } from '../state/toolMetadata'
 const descriptions: Record<Inspection['kind'], string> = {
+  fishingDock: 'A quiet place for peaceful Pete to fish. No items are produced.',
   waterwheel: 'Makes electricity from adjacent water. Connect it to a pole.',
   miner: 'Takes ore from the ground.', belt: 'Carries items in the arrow’s direction.', storage: 'Keeps items until they are needed.',
   furnace: 'Turns ore into metal plates.', assembler: 'Makes parts from ingredients.', inserter: 'Moves one item between neighbors.',
@@ -14,6 +15,7 @@ export function inspectionSummary(i: Inspection) {
   const name = i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
   let state = 'Ready.'
   if ('electrical' in i && i.electrical.state === 'sabotaged') state = 'Temporarily disabled.'
+  else if (i.kind === 'fishingDock') state = !i.waterAvailable ? 'Needs water on the fishing side.' : !i.accessible ? 'Keep the land approach behind the dock clear.' : i.fishing ? 'Pete is fishing.' : 'Ready for peaceful Pete.'
   else if (i.kind === 'waterwheel' && !i.waterAvailable) state = 'Needs water on the facing side.'
   else if (i.kind === 'assembler' && !i.recipeId) state = 'Choose a recipe first.'
   else if ('electrical' in i && ['disconnected', 'no-generation'].includes(i.electrical.state) && i.kind !== 'generator' && i.kind !== 'waterwheel' && i.kind !== 'powerPole') state = 'Needs electricity.'

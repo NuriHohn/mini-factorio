@@ -1,3 +1,4 @@
+import { drawFishingDock } from './fishingDockVisuals'
 import { waterwheelRunning } from '../simulation/waterwheel'
 import { drawWaterwheel } from './waterwheelVisuals'
 import { TerrainVisuals } from './terrainVisuals'
@@ -622,6 +623,8 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.lineStyle(2, 0xe8dfb6).strokeCircle(handX, handY, 5)
         this.arrow(x + d.x * 9, y + d.y * 9, building.direction, 0xa5edcf, .35)
         if (building.item) this.drawItem(building.item, handX, handY)
+      } else if (building.kind === 'fishingDock') {
+        drawFishingDock(this.machines, building)
       } else if (building.kind === 'waterwheel') {
         drawWaterwheel(this.machines, building, waterwheelRunning(this.world, building) ? this.world.remainder : 0)
       } else if (building.kind === 'generator') {
