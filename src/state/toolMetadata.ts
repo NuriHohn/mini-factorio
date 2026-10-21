@@ -1,9 +1,10 @@
+import type { NatureTool } from './natureTools'
 import type { BuildingKind } from '../simulation/world'
-export type BuildTab = 'factory' | 'pete'
-export type ToolKind = Exclude<BuildingKind, 'prison'> | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam'
+export type BuildTab = 'factory' | 'pete' | 'nature'
+export type ToolKind = Exclude<BuildingKind, 'prison' | 'tree'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam'
 export type Tool = ToolKind | null
 export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code?: string; tab: BuildTab }
-export const BUILD_TABS: readonly { id: BuildTab; label: string }[] = [{ id: 'factory', label: 'Factory' }, { id: 'pete', label: 'Pete' }]
+export const BUILD_TABS: readonly { id: BuildTab; label: string }[] = [{ id: 'factory', label: 'Factory' }, { id: 'pete', label: 'Pete' }, { id: 'nature', label: 'Nature' }]
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec at full power · on ore', key: '1', icon: '⚙', code: 'Digit1', tab: 'factory' },
   { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜', code: 'Digit2', tab: 'factory' },
@@ -20,6 +21,13 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'drill', label: 'Drill', hint: 'Click walker · 15 HP · shared 1.5 s cooldown', key: 'Click', icon: '⛏', tab: 'pete' },
   { tool: 'lightningBeam', label: 'Lightning Beam', hint: 'Click walker · 30 HP · shared 2 s cooldown', key: 'Click', icon: 'ϟ', tab: 'pete' },
   { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂', code: 'Digit0', tab: 'factory' },
+  { tool: 'plantOak', label: 'Plant Oak', hint: 'Free sapling · young at 2 min · mature at 5 min', key: 'Click', icon: '♣', tab: 'nature' },
+  { tool: 'plantPine', label: 'Plant Pine', hint: 'Free sapling · trees occupy one tile', key: 'Click', icon: '♠', tab: 'nature' },
+  { tool: 'plantBirch', label: 'Plant Birch', hint: 'Free sapling · may grow on ore', key: 'Click', icon: '♧', tab: 'nature' },
+  { tool: 'axe', label: 'Axe', hint: 'Chop trees · sapling 0 / young 1 / mature 3 Wood', key: 'Click', icon: '⚒', tab: 'nature' },
+  { tool: 'flowers', label: 'Flowers', hint: 'Click and drag · does not block factories', key: 'Drag', icon: '✿', tab: 'nature' },
+  { tool: 'grass', label: 'Grass', hint: 'Click and drag · keeps buildings and ore', key: 'Drag', icon: '❧', tab: 'nature' },
+  { tool: 'eraseDecoration', label: 'Erase decoration', hint: 'Click and drag · removes only flowers and grass', key: 'Drag', icon: '◌', tab: 'nature' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'factory' },
 ]
 export const TOOL_HOTKEYS: Readonly<Record<string, ToolKind>> = Object.fromEntries(PLAYER_TOOLS.filter(tool => tool.code).map(tool => [tool.code, tool.tool]))

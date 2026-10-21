@@ -51,7 +51,7 @@ describe('sprinkler and water-reaction persistence', () => {
     placeBuilding(world, 20, 20, 'miner', 'east'); placeBuilding(world, 21, 20, 'belt', 'south')
     advanceWorld(world, 725.5)
     const current = document(world), legacy = structuredClone(current)
-    Object.assign(legacy, { version: 1 }); Reflect.deleteProperty(legacy.game.pete, 'water'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs'); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'revenge'); legacy.game.pete.travelMs *= 1.3
+    Object.assign(legacy, { version: 1 }); Reflect.deleteProperty(legacy.game.pete, 'water'); Reflect.deleteProperty(legacy.game.pete, 'trappedBy'); Reflect.deleteProperty(legacy.game.pete, 'ignoredWebs'); Reflect.deleteProperty(legacy.game, 'webs'); Reflect.deleteProperty(legacy.game, 'analytics'); Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge'); legacy.game.pete.travelMs *= 1.3
     const loaded = decodeSave(JSON.stringify(legacy))
     expect(loaded.world.pete.water).toBeNull()
     expect(document(loaded.world)).toEqual({ ...current, game: { ...current.game, analytics: createAnalytics(world.timeMs) } })
@@ -59,11 +59,11 @@ describe('sprinkler and water-reaction persistence', () => {
   })
   it('rejects pretending new water fields or buildings are version 1 and preserves unknown-version rejection', () => {
     const current = document(setup())
-    for (const version of [0, 1, 7, '3']) {
+    for (const version of [0, 1, SAVE_VERSION + 1, '3']) {
       const copy = structuredClone(current); Object.assign(copy, { version })
       expect(() => decodeSave(JSON.stringify(copy))).toThrow()
     }
-    const fake = structuredClone(current); Object.assign(fake, { version: 1 }); Reflect.deleteProperty(fake.game.pete, 'water'); Reflect.deleteProperty(fake.game, 'webs'); Reflect.deleteProperty(fake.game, 'analytics'); Reflect.deleteProperty(fake.game, 'research'); Reflect.deleteProperty(fake.game, 'revenge')
+    const fake = structuredClone(current); Object.assign(fake, { version: 1 }); Reflect.deleteProperty(fake.game.pete, 'water'); Reflect.deleteProperty(fake.game, 'webs'); Reflect.deleteProperty(fake.game, 'analytics'); Reflect.deleteProperty(fake.game, 'research'); Reflect.deleteProperty(fake.game, 'nature'); Reflect.deleteProperty(fake.game, 'revenge')
     expect(() => decodeSave(JSON.stringify(fake))).toThrow('sprinklers require save version 2')
   })
   it.each([

@@ -122,3 +122,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 @media (prefers-reduced-motion: reduce) {
   .building, .save-action, .research-toggle, .technology-card, .build-tab { transition: none; }
 }
+
+.nature-options { padding: 10px; margin-top: 10px; border: 1px solid #526a43; border-radius: 5px; background: #222e23; }
+.nature-options fieldset { display: flex; gap: 6px; margin: 12px 0; border: 0; padding: 0; }
+.nature-options legend { font-size: 11px; color: #b8c6a4; margin-bottom: 8px; }
+.nature-options .save-action { flex: 1; }
+.nature-options .save-action[aria-pressed="true"] { border-color: #a7cb86; background: #35452b; }

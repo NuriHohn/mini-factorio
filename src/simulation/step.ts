@@ -1,3 +1,4 @@
+import { advanceNature } from './nature'
 import { advanceRevenge } from './revenge'
 import { awardResearch } from './research'
 import { observeMachines, pruneAnalytics, recordProduction } from './analytics'
@@ -19,6 +20,7 @@ export function advanceWorld(world: World, delta: number): void {
     world.remainder = Math.max(0, world.remainder - STEP_MS)
     world.timeMs += STEP_MS
     const reactingToWater = world.pete.water !== null
+    advanceNature(world)
     advanceWebs(world)
     advancePete(world, STEP_MS)
     const inserterFrame = createInserterFrame(world)

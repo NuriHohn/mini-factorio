@@ -1,3 +1,4 @@
+import { validateTree } from './natureValidation'
 import { isSabotageable } from '../simulation/buildingCapabilities'
 import { SPRINKLER_COOLDOWN_MS } from '../simulation/sprinklers'
 import { ITEMS, inventoryTotal } from '../simulation/items'
@@ -73,12 +74,14 @@ function validateCrafting(machine: CraftingMachine, path: string): void {
   }
   if (inventoryTotal(machine.output) + (machine.job ? inventoryTotal(machine.job.outputs) : 0) > MACHINE_DEFINITIONS[machine.kind].outputCapacity) invalid(path, 'output and reservations exceed capacity')
 }
-export function building(value: unknown, path: string, index: number, timeMs: number): Building | null {
+export function building(value: unknown, path: string, index: number, timeMs: number, version = 7): Building | null {
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    tree: ['species', 'origin', 'bornAtMs', 'nextReproductionAtMs'],
     miner: ['direction', 'elapsed', 'item'], belt: ['direction', 'item', 'progress', 'entry'], storage: ['inventory'],
     furnace: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'input', 'output', 'job'],
     assembler: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'autoWaitElapsedMs', 'input', 'output', 'job'],
@@ -92,6 +95,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'tree': return { kind, x, y, ...validateTree(r, path, timeMs) }
     case 'miner': {
       const elapsed = number(r.elapsed, `${path}.elapsed`, 0, INTERVAL)
       if (elapsed >= INTERVAL) invalid(path, 'mining progress exceeds one cycle')

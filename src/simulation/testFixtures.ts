@@ -13,7 +13,9 @@ export function poweredWorld(random = Math.random) {
 // Existing system regressions exercise their established machines independently
 // of progression. New-game/research tests use createWorld directly.
 export function createUnlockedWorld(random = Math.random) {
-  const world = createWorld(random)
+  const world = createWorld(random, { nature: false })
   world.research = createResearch(true)
   return world
 }
+
+export function createBareWorld(random = Math.random) { return createWorld(random, { nature: false }) }
