@@ -64,3 +64,5 @@ Drag **Belts** to preview an orthogonal route with obstacle detours, same-direct
 New worlds include ponds, winding streams and rivers. Drag the normal belt tool from bank to bank for automatic straight bridges across up to **5 water tiles** per crossing. Water blocks other buildings and NPC paths. Old saves stay dry; version 9 preserves new water and bridges. See [Water and bridges](docs/GAME_DESIGN.md#water-landscapes-and-conveyor-bridges).
 
 Use **Menu → Options → Graphics** to switch between Standard (60 FPS maximum) and Energy Saving (30 FPS maximum). Both preserve the same 50 ms simulation. Optional performance diagnostics are available there; see [Graphics options](docs/GAME_DESIGN.md#graphics-options).
+
+In **Nature**, use **Create Water** and **Restore Land** with the shared 1×1, 3×3 and 5×5 brushes. Drag to shape connected channels and rounded ponds; red protected cells, existing bridges and their dry banks stay unchanged. Terrain edits persist in version-9 saves. See [Water landscapes](docs/GAME_DESIGN.md#water-landscapes-and-conveyor-bridges).

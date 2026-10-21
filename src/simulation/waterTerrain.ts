@@ -41,3 +41,31 @@ export function bridgeCrossing(world: World, x: number, y: number, direction: Di
   }
   return cells.length <= MAX_BRIDGE_SPAN ? cells : null
 }
+
+// Derived runtime invalidation only: saves contain the water mask, never these caches.
+export const TERRAIN_CHUNK_SIZE = 8
+export function terrainChunks(): number { return SIZE / TERRAIN_CHUNK_SIZE }
+const terrainChanges = new WeakMap<World, { revision: number; chunks: number[] }>()
+export function terrainRevision(world: World): number { return terrainChanges.get(world)?.revision ?? 0 }
+export function terrainChunkRevision(world: World, chunk: number): number { return terrainChanges.get(world)?.chunks[chunk] ?? 0 }
+export function invalidateTerrain(world: World, tiles: readonly number[]): void {
+  if (!tiles.length) return
+  let changes = terrainChanges.get(world)
+  const chunks = terrainChunks()
+  if (!changes) { changes = { revision: 0, chunks: Array<number>(chunks * chunks).fill(0) }; terrainChanges.set(world, changes) }
+  changes.revision++
+  for (const tile of tiles) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const x = tile % SIZE + dx, y = Math.floor(tile / SIZE) + dy
+    if (inside(x, y)) changes.chunks[Math.floor(y / TERRAIN_CHUNK_SIZE) * chunks + Math.floor(x / TERRAIN_CHUNK_SIZE)] = changes.revision
+  }
+}
+export type ShoreCorner = 'open' | 'edge' | 'convex' | 'concave' | 'inlet' | 'land'
+// NW, NE, SE, SW. Diagonals distinguish an inside bay from a continuous surface.
+export function shorelineCorners(world: Pick<World, 'water'>, x: number, y: number): ShoreCorner[] {
+  const water = isWater(world, x, y)
+  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([dx, dy]) => {
+    const a = isWater(world, x + dx, y), b = isWater(world, x, y + dy), diagonal = isWater(world, x + dx, y + dy)
+    if (!water) return a && b && diagonal ? 'inlet' : 'land'
+    return !a && !b ? 'convex' : a && b ? diagonal ? 'open' : 'concave' : 'edge'
+  })
+}

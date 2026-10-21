@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { waterLife } from './landscapeWater'
+import type Phaser from 'phaser'
+import { paintWater } from '../simulation/waterLandscaping'
+import { LandscapeWater, waterLife } from './landscapeWater'
 import { createBareWorld } from '../simulation/testFixtures'
 import { isWater } from '../simulation/waterTerrain'
 describe('lightweight cosmetic living water', () => {
@@ -20,6 +22,19 @@ describe('lightweight cosmetic living water', () => {
       }
     }
     expect(fish).toBeGreaterThan(0); expect(bubbles).toBeGreaterThan(0); expect(quiet).toBeGreaterThan(600)
+  })
+  it('refreshes life sites after painting/removal and keeps tiny ponds quiet and observational', () => {
+    const w = createBareWorld(() => .5), visuals = new LandscapeWater(), calls: string[] = []
+    const graphics = new Proxy({}, { get: (_target, name) => () => { calls.push(String(name)); return graphics } }) as Phaser.GameObjects.Graphics
+    const view = { x: 0, y: 0, width: 1280, height: 1280 }
+    w.timeMs = 5000
+    visuals.draw(graphics, w, view, 32); expect(calls).toEqual(['clear'])
+    paintWater(w, { x: 5, y: 5 }, { x: 5, y: 5 }, 'water', 3)
+    calls.length = 0; const before = structuredClone(w)
+    visuals.draw(graphics, w, view, 32); expect(calls).toContain('strokeCircle'); expect(w).toEqual(before)
+    paintWater(w, { x: 5, y: 5 }, { x: 5, y: 5 }, 'land', 3)
+    calls.length = 0; visuals.draw(graphics, w, view, 32); expect(calls).toEqual(['clear'])
+    for (let t = 0; t < 100000; t += 200) expect(waterLife([205], [], t).length).toBeLessThanOrEqual(1)
   })
   it('uses water-only sites and no simulation entities or random state', () => {
     const w = createBareWorld(() => .5)

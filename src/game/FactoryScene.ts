@@ -1,6 +1,8 @@
+import { TerrainVisuals } from './terrainVisuals'
+import { waterEditError, waterProtection } from '../simulation/waterLandscaping'
 import { cameraViewport, visibleTileBounds, intersects } from './viewport'
 import { useGraphicsSettings } from '../state/graphicsSettings'
-import { LandscapeWater, drawWaterTile } from './landscapeWater'
+import { LandscapeWater } from './landscapeWater'
 import { ConstructionDrag } from './constructionDrag'
 import { placementInfo, planConstruction } from '../simulation/construction'
 import type { ConstructionPlan } from '../simulation/construction'
@@ -63,8 +65,7 @@ export class FactoryScene extends Phaser.Scene {
   private landscape!: Phaser.GameObjects.Graphics
   private revengeVisuals = new RevengeVisuals()
   private world = createWorld()
-  private terrain!: Phaser.GameObjects.Image
-  private terrainSerial = 0
+  private terrain!: TerrainVisuals
   private summaryWorld: World | null = null
   private summaryAt = -Infinity
   private summaryRevision = -1
@@ -113,6 +114,9 @@ export class FactoryScene extends Phaser.Scene {
       if (state.tool !== previous.tool || state.direction !== previous.direction || state.dragCancelToken !== previous.dragCancelToken || worldInputBlocked(state)) this.cancelConstruction()
       if (state.tool !== previous.tool || state.brushSize !== previous.brushSize || worldInputBlocked(state)) this.landscapeStroke.end()
     })
+    const destroyTerrain = () => this.terrain.destroy()
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, destroyTerrain)
+    this.events.once(Phaser.Scenes.Events.DESTROY, destroyTerrain)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopStrokeOnToolChange)
     this.events.once(Phaser.Scenes.Events.DESTROY, stopStrokeOnToolChange)
     // DOM delivery keeps Escape available even when a form control has focus.
@@ -283,41 +287,14 @@ export class FactoryScene extends Phaser.Scene {
     if (changed > 0 && !this.landscapeUsed) { useGameStore.getState().recordToolUse(state.tool); this.landscapeUsed = true }
   }
 
-  private drawTerrain(terrain: Phaser.GameObjects.Graphics, world: World) {
-    const greens = [0x344e37, 0x36513a, 0x38543b, 0x324b35]
-    world.tiles.forEach((resource, index) => {
-      const x = index % SIZE * TILE, y = Math.floor(index / SIZE) * TILE
-      if (world.water[index]) { drawWaterTile(terrain, world, index % SIZE, Math.floor(index / SIZE), TILE); return }
-      terrain.fillStyle(greens[(index * 7 + Math.floor(index / SIZE) * 3) % 4]).fillRect(x, y, TILE, TILE)
-      terrain.lineStyle(1, 0x14291e, .22).strokeRect(x, y, TILE, TILE)
-      if (resource) {
-        const visual = ITEM_DEFINITIONS[resource].visual
-        terrain.fillStyle(visual.color).fillRoundedRect(x + 3, y + 5, 25, 23, 5)
-        terrain.fillStyle(visual.accent).fillTriangle(x + 5, y + 19, x + 13, y + 6, x + 19, y + 19)
-        terrain.fillStyle(visual.shade).fillTriangle(x + 13, y + 24, x + 23, y + 9, x + 28, y + 24)
-        terrain.fillStyle(visual.highlight).fillRect(x + 11, y + 11, 3, 4)
-      } else terrain.fillStyle(0x65814b, .25).fillRect(x + 7 + index % 11, y + 10 + index % 13, 2, 3)
-    })
-  }
-  private createTerrain(world: World): Phaser.GameObjects.Image {
-    const graphics = this.add.graphics()
-    const key = `terrain-${++this.terrainSerial}`
-    try {
-      this.drawTerrain(graphics, world)
-      graphics.generateTexture(key, SIZE * TILE, SIZE * TILE)
-      const image = this.add.image(0, 0, key).setOrigin(0).setDepth(-1)
-      image.once(Phaser.GameObjects.Events.DESTROY, () => this.textures.remove(key))
-      return image
-    } catch (error) { this.textures.remove(key); throw error }
-    finally { graphics.destroy() }
-  }
+  private createTerrain(world: World, visible = true): TerrainVisuals { return new TerrainVisuals(this, world, TILE, visible) }
   private viewState(): ViewState {
     const c = this.cameras.main, state = useGameStore.getState()
     return { scrollX: c.scrollX, scrollY: c.scrollY, zoom: c.zoom, direction: state.direction, powerOverlay: state.powerOverlay }
   }
   private restore(candidate: LoadedGame) {
     // Build replacement rendering while hidden. A failed preparation leaves the old world intact.
-    const terrain = this.createTerrain(candidate.world).setVisible(false)
+    const terrain = this.createTerrain(candidate.world, false)
     this.landscapeStroke.end()
     this.cancelConstruction()
     const oldWorld = this.world, oldTerrain = this.terrain, oldView = this.viewState(), oldState = useGameStore.getState()
@@ -513,6 +490,7 @@ export class FactoryScene extends Phaser.Scene {
     this.items.clear()
     this.peteEffects.clear()
     this.paintDrag(this.input.activePointer)
+    this.terrain.update()
     this.landscapeWater.draw(this.waterSurface, this.world, view, TILE)
     this.natureVisuals.drawDecorations(this.landscape, this.world, TILE, view)
     this.drawnBuildings = 0
@@ -724,6 +702,25 @@ export class FactoryScene extends Phaser.Scene {
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       if (state.tool === 'belt') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, 'belt', state.direction)); return }
       if (natureTool(state.tool)) {
+        const waterMode = brushMode(state.tool)
+        if (waterMode === 'water' || waterMode === 'land') {
+          const protection = waterProtection(this.world)
+          let blocked = 0, unchanged = 0, paintable = 0, reason = ''
+          for (const i of brushTiles({ x, y }, { x, y }, state.brushSize)) {
+            const error = waterEditError(this.world, i, waterMode, protection)
+            const same = this.world.water[i] === (waterMode === 'water')
+            if (error) { blocked++; reason ||= error } else if (same) unchanged++; else paintable++
+            const color = error ? 0xe7a08d : same ? 0xa4c9df : waterMode === 'water' ? 0x8fcbd0 : 0xb2d08a
+            const px = i % SIZE * TILE, py = Math.floor(i / SIZE) * TILE
+            this.preview.fillStyle(color, .2).fillRect(px, py, TILE, TILE).lineStyle(1, color, .85).strokeRect(px + 1, py + 1, TILE - 2, TILE - 2)
+            if (error) this.preview.lineBetween(px + 8, py + 8, px + 24, py + 24).lineBetween(px + 24, py + 8, px + 8, py + 24)
+          }
+          if (!paintable && !unchanged && !blocked) reason = 'Choose a tile inside the world.'
+          this.placementTooltip(pointer, `${toolMetadata(state.tool).label} · Free
+${paintable} paintable · ${unchanged} unchanged · ${blocked} protected
+${reason || 'Drag to paint. Protected tiles are skipped.'}`)
+          return
+        }
         const previewSpecies = plantingSpecies(state.tool)
         const error = previewSpecies ? placementInfo(this.world, { x, y }, 'tree').error : state.tool === 'axe' && buildingAt(this.world, x, y)?.kind !== 'tree' ? 'Choose a tree to chop.' : brushMode(state.tool) !== undefined && this.world.water[y * SIZE + x] ? 'Only dry tiles are painted. Water stays clear.' : null
         this.placementTooltip(pointer, `${error ? '×' : '✓'} ${toolMetadata(state.tool).label} · Free${error ? `\n${error}` : ''}`)

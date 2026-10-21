@@ -82,3 +82,15 @@ describe('existing authoritative inspection, explained simply', () => {
     expect(inspectionSummary(inspectBuilding(w, 410)!).state).toBe('Waiting for items.')
   })
 })
+
+it('shares brush sizes across water tools and preserves cancellation/shortcuts', () => {
+  const store = useGameStore.getState()
+  store.setBrushSize(5); store.select('createWater')
+  expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Create Water')
+  expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Restore Land')
+  expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Brush size')
+  store.select('restoreLand'); expect(useGameStore.getState().brushSize).toBe(5)
+  expect(toolHintId('createWater')).toBe('water'); expect(toolHintId('restoreLand')).toBe('water')
+  store.handleToolKey({ code: 'Escape', repeat: false }); expect(useGameStore.getState().tool).toBe(null)
+  store.handleToolKey({ code: 'Digit2', repeat: false }); expect(useGameStore.getState().tool).toBe('belt')
+})
