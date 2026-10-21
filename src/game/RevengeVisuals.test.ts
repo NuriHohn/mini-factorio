@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type Phaser from 'phaser'
 import { RevengeVisuals } from './RevengeVisuals'
 import { createWorld, placeBuilding } from '../simulation/world'
+import { emptyInventory } from '../simulation/items'
+import { changeFurnaceRecipe } from '../simulation/smelting'
 import { advanceWorld } from '../simulation/step'
 import { attackWalker, damageWalker, recordArrest } from '../simulation/revenge'
 function renderer() {
@@ -99,18 +101,24 @@ describe('Revenge rendering stays observational', () => {
       visuals.destroy()
     }
   })
-  it('telegraphs a ready EMP target without changing attacks or simulation state', () => {
+  it.each([false, true])('telegraphs only a productive EMP target (productive=%s) without changing attacks or simulation state', productive => {
     const world = createWorld(() => .5), visuals = new RevengeVisuals(), { graphics, scene, labels } = renderer()
     for (let i = 0; i < 3; i++) recordArrest(world)
     advanceWorld(world, 5000)
     const boss = world.revenge.boss!
     // An authoritative target supplies the presentation; rendering never dispatches an EMP.
     placeBuilding(world, 2, 0, 'furnace', 'east')
-    boss.target = 2; boss.empAtMs = world.timeMs + 1000
+    if (productive) {
+      changeFurnaceRecipe(world, 2, 0, 'ironSmelting')
+      const furnace = world.buildings[2]
+      if (furnace?.kind === 'furnace') furnace.job = { recipeId: 'ironSmelting', elapsedMs: 0, inputs: { ...emptyInventory(), iron: 1 }, outputs: { ...emptyInventory(), ironPlate: 1 } }
+      world.power!.consumers[2] = { networkId: 0, requestedKw: 30, suppliedKw: 30, speedFraction: 1 }
+    }
+    boss.target = 2; boss.empAtMs = world.timeMs + (productive ? 1000 : -60000)
     const before = structuredClone(world)
     visuals.draw(graphics, world, 32, scene)
     expect(world).toEqual(before)
-    expect(labels[0].setText).toHaveBeenCalledWith('ϟ')
+    expect(labels[0].setText).toHaveBeenCalledWith(productive ? 'ϟ' : '')
     expect(scene.cameras.main.shake).not.toHaveBeenCalled()
   })
 
