@@ -30,13 +30,25 @@ These are the existing npm scripts; run them from the root.
 | `npm run build` | `tsc -b && vite build`: production output in ignored `dist/` |
 | `npm run preview` | `vite preview`: serve an already-built production bundle locally |
 
-Before delivery, run the full test suite, TypeScript checks, lint and production build. Fix introduced failures and identify any remaining failures or unavailable checks. Do not weaken tests, skip regressions or bypass electricity to make a change pass.
+**During implementation:** Run only focused tests relevant to changed behavior and dependencies; add meaningful regressions. Reserve the complete suite for final validation.
+
+**Before delivery of code changes:** Run the complete test suite once, plus lint and a production build:
+
+```sh
+npm test
+npm run lint
+npm run build
+```
+
+The build already executes `tsc -b`. Do not additionally run `npm run typecheck` when a successful build covers the same source; the standalone command remains useful for targeted TypeScript feedback during development. Fix introduced failures and identify any remaining failures or unavailable checks. Do not weaken tests, skip regressions or bypass electricity to make a change pass.
+
+Reuse passing results within the task while covered behavior, dependencies and inputs remain unchanged. Repeat only affected checks if subsequent changes invalidate them; re-run the complete suite when changes invalidate its regression coverage. Final validation must cover the delivered code.
 
 For a focused run, use `npm test -- src/simulation/manualAssemblers.test.ts` or `npm test -- src/game/cameraMovement.test.ts`. Simulation tests must remain independent of Phaser, React and the DOM. Use explicit power infrastructure; [`testFixtures.ts`](../src/simulation/testFixtures.ts) supplies a full-power world. Test timing changes with equivalent elapsed-time partitions, not only a single frame sequence. Test changed transfer/capacity rules with rejection, contention, backpressure and outages; use the [material-accounting invariants](ARCHITECTURE.md#invariants-and-extension-points).
 
 For persistence changes, verify strict validation and detached failure handling, round trips, resource accounting, and continuous N-step simulation versus K steps/save/load/N−K steps. Include fractional remainder, active jobs/reservations, transport buffers, NPC phases and timers, and supported old-version upgrades where affected. Compare authoritative state with a fixed metadata timestamp; JSON key order and derived caches are not gameplay state. Failed load/import must leave the live world and browser slots intact. Schema policy belongs in [Extending persistence](ARCHITECTURE.md#extending-persistence).
 
-Documentation-only changes need no new gameplay tests or browser run. In addition to the standard checks above, check Markdown links/anchors, verify source claims and command/file names, review `git diff --check`, and confirm only intended documentation files changed.
+**Documentation-only PRs:** Verify Markdown formatting and links/anchors, source claims and command/file names, run `git diff --check`, and confirm only intended documentation files changed. Do not run the gameplay suite, lint, TypeScript checks, production build or browser verification for prose-only changes. If the changes affect executable configuration, commands or tooling, run the applicable code-validation checks above for those effects.
 
 On CPU-limited hosts, use `npm test -- --maxWorkers=1` (or `--maxWorkers=2`) for the same full coverage with less contention. The default parallel run has intermittently exceeded the existing 5-second timeout in the long circuit-conservation regression. Historical validation used two workers for Sprint 7.6 (381 tests) and one for Sprint 8; no tests or timeout thresholds were changed in those historical runs. During Sprint 11 validation the circuit-conservation test exceeded 5 seconds even with one worker; the full 629-test suite passed with `npm test -- --maxWorkers=1 --testTimeout=15000`, a runner-only allowance without changing assertions or committed timeouts. Run browser checks separately from CPU-intensive unit tests.
 
@@ -101,7 +113,7 @@ The delivery summary should state what changed, validation actually performed, m
 
 ## Browser verification
 
-For input/rendering changes, verify affected flows in an available browser and identify whether checks were manual or automated. Unit tests alone do not establish browser behavior. Use the gameplay sections linked below for expected values and mechanics rather than copying their rules into test instructions.
+Browser verification is required for relevant visual/input changes when a browser is available; it is unnecessary for documentation-only changes or unrelated nonvisual changes. Verify affected flows and identify whether checks were manual or automated. Unit tests alone do not establish browser behavior. Use the gameplay sections linked below for expected values and mechanics rather than copying their rules into test instructions.
 
 | Area / expected behavior | Verification scenarios |
 | --- | --- |
