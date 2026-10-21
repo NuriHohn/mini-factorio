@@ -3,7 +3,7 @@ import { commitConstruction, planConstruction } from './construction'
 import { ConstructionDrag } from '../game/constructionDrag'
 import { beltPathPoint } from '../game/beltPath'
 import { createBareWorld } from './testFixtures'
-import { placeBuilding, placementError, opposite, SIZE } from './world'
+import { placeBuilding, opposite, SIZE } from './world'
 import type { Belt, Direction, World } from './world'
 import { advanceWorld } from './step'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
@@ -42,16 +42,55 @@ describe('axis-aware single belt overwrite', () => {
     commitConstruction(w, p(10, 10), p(10, 10), 'belt', direction)
     expect(b).toEqual(before.buildings[410])
   })
-  it.each([['east', 'north'], ['west', 'south'], ['north', 'east'], ['south', 'west']] as const)('rejects %s → %s without state changes', (from, to) => {
-    const w = createBareWorld(() => .5); placeBuilding(w, 10, 10, 'belt', from)
-    const b = belt(w, 10, 10); b.item = 'ironGear'; b.progress = .5
+  it.each(['east', 'west', 'north', 'south'] as const)('rotates a single %s belt to either perpendicular direction and delivers its packet once', from => {
+    for (const to of (['east', 'west', 'north', 'south'] as const).filter(d => (d === 'east' || d === 'west') !== (from === 'east' || from === 'west'))) {
+      const w = createBareWorld(() => .5); placeBuilding(w, 10, 10, 'belt', from)
+      const b = belt(w, 10, 10); b.item = 'ironGear'; b.progress = .4
+      const offset = to === 'east' ? p(1, 0) : to === 'west' ? p(-1, 0) : to === 'south' ? p(0, 1) : p(0, -1)
+      placeBuilding(w, 10 + offset.x, 10 + offset.y, 'storage', 'east')
+      const before = structuredClone(w), proposal = plan(w, 10, 10, 10, 10, to)
+      expect(proposal.error).toBeNull()
+      expect(proposal.cells[0]).toMatchObject({ direction: to, reuse: true, reverse: true, error: null })
+      expect(w).toEqual(before)
+      expect(commitConstruction(w, p(10, 10), p(10, 10), 'belt', to)).toEqual({ error: null, placed: 0, reversed: 1 })
+      expect(belt(w, 10, 10)).toBe(b)
+      expect(b).toMatchObject({ direction: to, item: 'ironGear', progress: .4 })
+      expect(w.nature).toEqual(before.nature)
+      expect(w.topologyRevision).toBe(before.topologyRevision + 1)
+      const loaded = decodeSave(encodeSave(w, view)).world
+      advanceWorld(w, 300); advanceWorld(loaded, 300)
+      expect(loaded.buildings).toEqual(w.buildings)
+      expect(b.item).toBeNull()
+      const receiver = w.buildings[(10 + offset.y) * SIZE + 10 + offset.x]
+      expect(receiver).toMatchObject({ inventory: { ironGear: 1 } })
+      advanceWorld(w, 1000)
+      expect(receiver).toMatchObject({ inventory: { ironGear: 1 } })
+    }
+  })
+  it('keeps a side-entered item valid when its old entry becomes the new output', () => {
+    const w = createBareWorld(() => .5); placeBuilding(w, 10, 10, 'belt', 'east')
+    const b = belt(w, 10, 10); Object.assign(b, { entry: 'north', item: 'iron', progress: .7 })
+    placeBuilding(w, 10, 9, 'storage', 'east')
+    commitConstruction(w, p(10, 10), p(10, 10), 'belt', 'north')
+    expect(b).toMatchObject({ entry: 'south', direction: 'north', item: 'iron', progress: .7 })
+    const loaded = decodeSave(encodeSave(w, view)).world
+    advanceWorld(w, 1000); advanceWorld(loaded, 1000)
+    expect(loaded.buildings).toEqual(w.buildings)
+    expect(b.item).toBeNull()
+    expect(w.buildings[370]).toMatchObject({ inventory: { iron: 1 } })
+  })
+  it('does not treat dragging away and returning as a single-click overwrite', () => {
+    const w = createBareWorld(() => .5), drag = new ConstructionDrag()
+    placeBuilding(w, 10, 10, 'belt', 'east')
     const before = structuredClone(w)
-    expect(placementError(w, 10, 10, 'belt', to)).toContain('Perpendicular')
-    expect(plan(w, 10, 10, 10, 10, to).error).toContain('Perpendicular')
-    expect(commitConstruction(w, p(10, 10), p(10, 10), 'belt', to).placed).toBe(0)
-    expect(w).toEqual(before); expect(belt(w, 10, 10)).toBe(b)
-    // Raw placement never recreates an existing belt, even on a compatible axis.
-    expect(placeBuilding(w, 10, 10, 'belt', from)).toBe(false)
+    expect(drag.begin(w, p(10, 10), 'belt', 'north')).toBeNull()
+    expect(drag.preview()?.error).toBeNull()
+    drag.move(p(10, 9))
+    expect(drag.preview()?.cells.find(c => c.x === 10 && c.y === 10)).toMatchObject({ direction: 'east', reuse: true, reverse: false })
+    drag.move(p(10, 10))
+    expect(drag.preview()?.error).not.toBeNull()
+    expect(drag.finish(w)?.error).not.toBeNull()
+    expect(w).toEqual(before)
   })
   it('keeps side-entered packets valid and transfers each item exactly once after reversal/save/load', () => {
     const w = createBareWorld(() => .5)
