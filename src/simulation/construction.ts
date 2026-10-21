@@ -1,3 +1,4 @@
+import { findBeltRoute } from './beltRouting'
 import { polesConnect } from './power'
 import { TREEHOUSE_WOOD } from './peace'
 import { inside, offsets, placeBuilding, placementError, SIZE } from './world'
@@ -5,7 +6,7 @@ import type { BuildingKind, Direction, Position, World } from './world'
 
 export type DragBuilding = 'belt' | 'powerPole'
 export interface ConstructionCell extends Position { direction: Direction; reuse: boolean; error: string | null }
-export interface ConstructionPlan { kind: DragBuilding; cells: ConstructionCell[]; error: string | null }
+export interface ConstructionPlan { kind: DragBuilding; cells: ConstructionCell[]; error: string | null; detour?: boolean }
 export interface PlacementInfo { state: 'valid' | 'invalid' | 'unaffordable'; error: string | null; wood: number; available: number }
 export function placementInfo(world: World, point: Position, kind: BuildingKind): PlacementInfo {
   const wood = kind === 'treehouse' ? TREEHOUSE_WOOD : 0
@@ -37,9 +38,16 @@ export function planConstruction(world: World, start: Position, end: Position, k
     return { ...p, direction: facing, reuse, error: reuse ? null : placementError(world, p.x, p.y, kind) }
   }
   if (kind === 'belt') {
-    const cells = orthogonal(start, end, facing).map(pointCell)
+    let cells = orthogonal(start, end, facing).map(pointCell)
+    let error = cells.find(c => c.error)?.error ?? null, detour = false
+    // Invalid endpoints remain explicit errors; a detour cannot fix them.
+    if (error && !cells[0].error && !cells[cells.length - 1].error) {
+      const route = findBeltRoute(start, end, facing, (x, y) => placementError(world, x, y, 'belt') === null)
+      if (route.points) { cells = route.points.map(pointCell); error = null; detour = true }
+      else error = route.exhausted ? 'Path search limit reached. Try a shorter drag.' : 'No free path to the destination. Try a shorter drag or another destination.'
+    }
     for (let i = 0; i < cells.length; i++) cells[i].direction = cells[i + 1] ? directionTo(cells[i], cells[i + 1]) : i > 0 ? cells[i - 1].direction : facing
-    return { kind, cells, error: cells.find(c => c.error)?.error ?? null }
+    return { kind, cells, error, detour }
   }
   const corridor = straight(start, end).map(pointCell), last = corridor.length - 1
   const steps = corridor.map(() => Infinity), hops = corridor.map(() => Infinity), next = corridor.map(() => -1)
