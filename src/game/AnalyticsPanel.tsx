@@ -17,8 +17,9 @@ export function AnalyticsPanel() {
   const x = (time: number) => 38 + (time - start) / Math.max(RATE_WINDOW_MS, analytics.timeMs - start) * 270
   const y = (rate: number) => 134 - rate / max * 112
   const unlocked = hasTechnology(research, 'analytics1')
+  if (!analyticsOpen || !unlocked) return null
   return <aside className={`analytics-panel ${analyticsOpen ? 'is-open' : ''}`} aria-label="Production analytics">
-    <button className="analytics-toggle" disabled={!unlocked} title={unlocked ? undefined : 'Requires Analytics I.'} aria-expanded={analyticsOpen && unlocked} aria-controls="analytics-content" onClick={toggleAnalytics}>{!unlocked ? 'Analytics · Requires Analytics I' : analyticsOpen ? '▸ Production analytics' : '◂ Analytics'}</button>
+    <button className="analytics-toggle" disabled={!unlocked} title={unlocked ? undefined : 'Requires Analytics I.'} aria-expanded={analyticsOpen && unlocked} aria-controls="analytics-content" onClick={toggleAnalytics}>Production analytics · Close ×</button>
     {analyticsOpen && unlocked && <div id="analytics-content">
       <p className="eyebrow">ROLLING 60 SIMULATION SECONDS</p>
       <div className="stats"><span>Total production</span><b>{analytics.totalPerMinute.toFixed(1)} items/min</b></div>

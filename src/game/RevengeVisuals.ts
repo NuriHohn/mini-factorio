@@ -67,7 +67,7 @@ export class RevengeVisuals {
         g.lineStyle(2, 0xb8d8cd, .7).strokeCircle(x - 34, y - 3, 7 + charge * 5).strokeCircle(x + 34, y - 3, 7 + charge * 5)
       }
       if (!this.name) this.name = scene.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '10px', color: '#ffe3a2', backgroundColor: '#17222bdd', padding: { x: 4, y: 3 } }).setOrigin(.5, 1).setDepth(9)
-      this.name.setPosition(x, y - 36).setText(breaking ? 'DOES NOT COMPUTE! · EJECT!' : r.stage === 'stomp' ? 'STOMP INCOMING!' : charging ? 'EMP charging…' : `REVENGE-O-MATIC 3000 · ${boss.hp} HP`)
+      this.name.setPosition(x, y - 36).setText(breaking ? '…' : r.stage === 'stomp' ? '!' : charging ? 'ϟ' : '').setVisible(breaking || r.stage === 'stomp' || !!charging)
     } else { this.name?.destroy(); this.name = null }
     if (r.stage === 'stunned') {
       const x = (world.pete.x + .5) * tile, y = (world.pete.y + .5) * tile - 20
@@ -90,8 +90,8 @@ export class RevengeVisuals {
       const fade = Math.min(1, (1 - t) / .35), ease = t * (2 - t)
       const x = (impact.position.x + .5) * tile, y = (impact.position.y + .5) * tile
       const color = impact.tool === 'flySwatter' ? 0xe9c575 : impact.tool === 'drill' ? 0xdbac75 : 0x91becf
-      const caption = impact.tool === 'flySwatter' ? impact.hit ? 'SMACK!' : 'PLOP' : impact.tool === 'drill' ? impact.hit ? 'BRRRR!' : 'DRRR…' : impact.hit ? 'ZAP!' : 'KRAK!'
-      if (!impact.label) impact.label = scene.add.text(x, y, `${caption}${impact.hit ? ` -${impact.damage}` : ' MISS'}`, { fontFamily: 'monospace', fontStyle: 'bold', fontSize: impact.hit ? '15px' : '11px', color: `#${color.toString(16)}`, stroke: '#16201b', strokeThickness: 3 }).setOrigin(.5, 1).setDepth(10)
+      const caption = impact.hit ? `−${impact.damage}` : '·'
+      if (!impact.label) impact.label = scene.add.text(x, y, caption, { fontFamily: 'monospace', fontStyle: 'bold', fontSize: impact.hit ? '15px' : '11px', color: `#${color.toString(16)}`, stroke: '#16201b', strokeThickness: 3 }).setOrigin(.5, 1).setDepth(10)
       impact.label.setPosition(x, y - 12 - ease * 24).setAlpha(fade)
       g.lineStyle(2, color, fade * .55).strokeCircle(x, y, 8 + t * (impact.tool === 'lightningBeam' ? 38 : 18))
       if (impact.tool === 'lightningBeam') {
