@@ -122,7 +122,7 @@ export function depositAt(world: World, x: number, y: number): Resource | null {
   return inside(x, y) ? world.tiles[y * SIZE + x] : null
 }
 
-export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner'): string | null {
+export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction): string | null {
   const technologyError = buildingTechnologyError(world.research, kind)
   if (technologyError) return technologyError
   if (kind === 'treehouse') {
@@ -135,7 +135,9 @@ export function placementError(world: World, x: number, y: number, kind: Buildin
   if (policeOccupiesTile(world, x, y)) return 'Keep the police route and prison exit clear.'
   if (kind === 'prison' && (!edgeTile(y * SIZE + x) || !neighboringTiles(y * SIZE + x).some(tile => !world.buildings[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE))))) return 'Prisons need an edge tile and an empty exit.'
   if (peteOccupiesTile(world, x, y)) return 'Pete is walking through this tile.'
-  if (buildingAt(world, x, y)?.kind === 'tree') return 'A tree occupies this tile. Use the Axe to clear it.'
+  const existing = buildingAt(world, x, y)
+  if (kind === 'belt' && direction && existing?.kind === 'belt') return !!offsets[direction].x === !!offsets[existing.direction].x ? null : 'Existing belt blocks this route. Perpendicular crossings are not allowed.'
+  if (existing?.kind === 'tree') return 'A tree occupies this tile. Use the Axe to clear it.'
   if (buildingAt(world, x, y)) return 'This tile already has a building.'
   if (kind === 'miner' && !depositAt(world, x, y)) return 'Place mining machines on ore deposits.'
   return null

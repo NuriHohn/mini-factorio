@@ -1,5 +1,6 @@
 import { ConstructionDrag } from './constructionDrag'
-import { placementInfo } from '../simulation/construction'
+import { placementInfo, planConstruction } from '../simulation/construction'
+import type { ConstructionPlan } from '../simulation/construction'
 import { toolMetadata } from '../state/toolMetadata'
 import { peteCaption } from './peteCaption'
 import { worldInputBlocked } from '../state/uiMetadata'
@@ -217,8 +218,8 @@ export class FactoryScene extends Phaser.Scene {
       const result = this.constructionDrag.finish(this.world)
       useGameStore.setState({ dragActive: false })
       if (result) {
-        if (!result.error && result.placed > 0) useGameStore.getState().recordToolUse(tool)
-        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · Free.` : 'Connection already exists. Nothing changed.' })
+        if (!result.error && (result.placed > 0 || result.reversed)) useGameStore.getState().recordToolUse(tool)
+        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} reversed · ${result.placed} new · Free.` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · Free.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
       }
     })
     this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); this.cancelConstruction() })
@@ -237,13 +238,18 @@ export class FactoryScene extends Phaser.Scene {
   private drawConstruction(pointer: Phaser.Input.Pointer) {
     this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
     const plan = this.constructionDrag.preview()
-    if (!plan) return
+    if (plan) this.drawConstructionPlan(pointer, plan)
+  }
+  private drawConstructionPlan(pointer: Phaser.Input.Pointer, plan: ConstructionPlan) {
     for (const cell of plan.cells) {
-      const color = cell.error ? 0xe7a08d : cell.reuse ? 0xa4c9df : plan.detour ? 0x9acdcc : 0xb2d08a
+      const color = cell.error ? 0xe7a08d : cell.reverse ? 0xe6c487 : cell.reuse ? 0xa4c9df : plan.detour ? 0x9acdcc : 0xb2d08a
       this.preview.fillStyle(color, .18).fillRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       this.preview.lineStyle(2, color).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       if (cell.error) this.preview.lineBetween(cell.x * TILE + 6, cell.y * TILE + 6, cell.x * TILE + 26, cell.y * TILE + 26).lineBetween(cell.x * TILE + 26, cell.y * TILE + 6, cell.x * TILE + 6, cell.y * TILE + 26)
-      else if (plan.kind === 'belt') this.arrow(cell.x * TILE, cell.y * TILE, cell.direction, color)
+      else if (plan.kind === 'belt') {
+        this.arrow(cell.x * TILE, cell.y * TILE, cell.direction, color)
+        if (cell.reverse) this.preview.lineStyle(2, color).strokeCircle((cell.x + .5) * TILE, (cell.y + .5) * TILE, 11)
+      }
       else this.preview.lineBetween((cell.x + .5) * TILE, cell.y * TILE + 6, (cell.x + .5) * TILE, cell.y * TILE + 27).strokeCircle((cell.x + .5) * TILE, cell.y * TILE + 10, 5)
     }
     if (plan.kind === 'powerPole') {
@@ -254,8 +260,9 @@ export class FactoryScene extends Phaser.Scene {
         this.preview.lineStyle(1, 0xa4c9df, .6).strokeCircle((from.x + .5) * TILE, (from.y + .5) * TILE, 7).lineBetween((from.x + .5) * TILE, (from.y + .5) * TILE, (last.x + .5) * TILE, (last.y + .5) * TILE)
       }
     }
-    const count = plan.cells.filter(c => !c.reuse).length, reused = plan.cells.length - count
-    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? 'tiles' : `new · ${reused} existing`}\nTotal cost: Free\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
+    if (plan.beltSnap) this.preview.lineStyle(2, 0xa4c9df, .7).strokeCircle((plan.beltSnap.x + .5) * TILE, (plan.beltSnap.y + .5) * TILE, 11)
+    const count = plan.cells.filter(c => !c.reuse).length, reversed = plan.cells.filter(c => c.reverse).length, reused = plan.cells.length - count - reversed
+    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? `new · ${reused} reused · ${reversed} reversed` : `new · ${reused} existing`}\nTotal cost: Free\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : plan.beltSnap ? 'Joining existing belt. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)
@@ -669,6 +676,7 @@ export class FactoryScene extends Phaser.Scene {
     if (!worldInputBlocked(state) && state.tool && !combatTool(state.tool) && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
+      if (state.tool === 'belt') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, 'belt', state.direction)); return }
       if (natureTool(state.tool)) {
         const previewSpecies = plantingSpecies(state.tool)
         const error = previewSpecies ? placementInfo(this.world, { x, y }, 'tree').error : state.tool === 'axe' && buildingAt(this.world, x, y)?.kind !== 'tree' ? 'Choose a tree to chop.' : null
@@ -722,7 +730,7 @@ export class FactoryScene extends Phaser.Scene {
       if (info?.state === 'unaffordable') this.preview.lineStyle(2, color).lineBetween(x * TILE + 16, y * TILE + 5, x * TILE + 27, y * TILE + 16).lineBetween(x * TILE + 27, y * TILE + 16, x * TILE + 16, y * TILE + 27).lineBetween(x * TILE + 16, y * TILE + 27, x * TILE + 5, y * TILE + 16).lineBetween(x * TILE + 5, y * TILE + 16, x * TILE + 16, y * TILE + 5)
       else if (error) this.preview.lineStyle(2, color).lineBetween(x * TILE + 5, y * TILE + 5, x * TILE + 27, y * TILE + 27).lineBetween(x * TILE + 27, y * TILE + 5, x * TILE + 5, y * TILE + 27)
       if (state.tool === 'treehouse' && inside(x, y) && !error) drawTreehouse(this.preview, this.world, { kind: 'treehouse', x, y, placedAtMs: this.world.timeMs }, TILE, true)
-      if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, state.direction, color)
+      if (state.tool === 'miner' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, state.direction, color)
     }
   }
 }

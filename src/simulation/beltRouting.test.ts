@@ -21,7 +21,7 @@ describe('smart belt routing', () => {
   })
   it.each(['tree', 'storage', 'belt', 'generator'] as const)('routes around %s without removing or modifying it or any other world state', kind => {
     const w = createBareWorld(() => .5)
-    placeBuilding(w, 7, 5, kind, 'west')
+    placeBuilding(w, 7, 5, kind, kind === 'belt' ? 'south' : 'west')
     const before = structuredClone(w), plan = planConstruction(w, p(5, 5), p(9, 5), 'belt', 'east')
     expect(plan).toMatchObject({ error: null, detour: true })
     expect(plan.cells).toHaveLength(7)
@@ -66,7 +66,8 @@ describe('smart belt routing', () => {
     let calls = 0
     const limited = findBeltRoute(p(5, 5), p(35, 35), 'east', () => { calls++; return true }, 4)
     expect(limited).toEqual({ points: null, exhausted: true, expanded: 4 })
-    expect(calls).toBeLessThanOrEqual(18)
+    // Each expansion now checks outgoing and incoming directions separately.
+    expect(calls).toBeLessThanOrEqual(2 + 8 * limited.expanded)
     // The map has a route around the bottom of the wall, outside this local search.
     expect(findBeltRoute(p(4, 4), p(8, 4), 'east', (x, y) => x !== 6 || y === 20)).toMatchObject({ points: null, exhausted: false })
     expect(findBeltRoute(p(0, 0), p(39, 39), 'east', () => true).points).not.toBeNull()
