@@ -1,3 +1,4 @@
+import { peaceful } from './peace'
 import { bossAlive, damageWalker, peteUnavailable, recordArrest } from './revenge'
 import { releaseWebTrap } from './webs'
 import { edgeTile, reachableTiles, tilePath } from './navigation'
@@ -46,7 +47,7 @@ export function radarPowered(world: World, index: number): boolean {
 }
 export function radarDetects(world: World, index: number): boolean {
   const radar = world.buildings[index]
-  return !!radar && radarPowered(world, index) && withinRange(radar, bossAlive(world) ? world.revenge.boss! : world.pete, RADAR_RANGE)
+  return !peaceful(world) && !!radar && radarPowered(world, index) && withinRange(radar, bossAlive(world) ? world.revenge.boss! : world.pete, RADAR_RANGE)
 }
 export function policeOccupiesTile(world: World, x: number, y: number): boolean {
   const tile = y * SIZE + x, car = world.police.car
@@ -69,6 +70,7 @@ function prisonFor(world: World, reachable: Map<number, number>, start = world.p
   return null
 }
 function dispatch(world: World): void {
+  if (peaceful(world)) return
   const pete = world.pete
   if ((peteUnavailable(world) && !bossAlive(world)) || pete.water || world.police.car || world.timeMs < world.police.retryAtMs || pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' || pete.mode === 'IMPRISONED') return
   if (world.police.radarRevision !== world.topologyRevision) {
@@ -123,6 +125,7 @@ function beginArrest(world: World, car: PoliceCar): void {
   Object.assign(pete, { mode: 'ARRESTED', prison: car.prison, next: null, travelMs: 0, pumpkin: null, webMs: 0 })
 }
 export function advancePolice(world: World, delta: number): void {
+  if (peaceful(world)) return
   const pete = world.pete
   if (peteUnavailable(world) && !bossAlive(world)) return
   if (world.police.flash && world.timeMs >= world.police.flash.untilMs) world.police.flash = null

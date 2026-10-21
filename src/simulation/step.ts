@@ -1,3 +1,4 @@
+import { advancePeace } from './peace'
 import { advanceNature } from './nature'
 import { advanceRevenge } from './revenge'
 import { awardResearch } from './research'
@@ -21,6 +22,7 @@ export function advanceWorld(world: World, delta: number): void {
     world.timeMs += STEP_MS
     const reactingToWater = world.pete.water !== null
     advanceNature(world)
+    advancePeace(world, STEP_MS)
     advanceWebs(world)
     advancePete(world, STEP_MS)
     const inserterFrame = createInserterFrame(world)

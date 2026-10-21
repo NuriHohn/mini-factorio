@@ -46,7 +46,7 @@ export interface InserterInspection {
   target: BuildingKind | null
   electrical: ElectricalDetails
 }
-export type Inspection = { kind: 'tree'; species: TreeSpecies; stage: TreeStage; ageMs: number; wood: number; origin: 'natural' | 'manual' } | InserterInspection | { kind: 'splitter'; direction: Direction; inputDirection: Direction; outputDirections: [Direction, Direction]; ports: ReturnType<typeof splitterPorts>; input: SplitterPacket | null; outputs: [SplitterPacket | null, SplitterPacket | null]; nextOutput: 0 | 1; blocked: [boolean, boolean]; delivered: [number, number]; itemsPerSec: number }
+export type Inspection = { kind: 'treehouse'; activity: string; gifts: number } | { kind: 'tree'; species: TreeSpecies; stage: TreeStage; ageMs: number; wood: number; origin: 'natural' | 'manual' } | InserterInspection | { kind: 'splitter'; direction: Direction; inputDirection: Direction; outputDirections: [Direction, Direction]; ports: ReturnType<typeof splitterPorts>; input: SplitterPacket | null; outputs: [SplitterPacket | null, SplitterPacket | null]; nextOutput: 0 | 1; blocked: [boolean, boolean]; delivered: [number, number]; itemsPerSec: number }
   | { kind: 'prison'; occupied: boolean; elapsedMs: number; remainingMs: number; imprisonedAtMs: number | null; exit: Position }
   | { kind: 'sprinkler'; radius: number; status: ReturnType<typeof sprinklerState>; cooldownMs: number; sprayProgress: number; sprays: number; electrical: ElectricalDetails }
   | { kind: 'radar'; radius: number; active: boolean; operation: string; prison: Position | null; electrical: ElectricalDetails } | { kind: 'storage'; inventory: Inventory }
@@ -98,6 +98,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   const building = index === null ? null : world.buildings[index]
   if (building?.kind === 'storage') return { kind: 'storage', inventory: { ...building.inventory } }
   if (!building || index === null) return null
+  if (building.kind === 'treehouse') return { kind: 'treehouse', activity: world.peace.activity, gifts: world.peace.gifts.length }
   if (building.kind === 'tree') return { kind: 'tree', species: building.species, stage: treeStage(world, building), ageMs: treeAge(world, building), wood: treeWood(world, building), origin: building.origin }
   if (building.kind === 'splitter') return {
     kind: 'splitter', direction: building.direction, inputDirection: opposite(building.direction), outputDirections: splitterDirections(building.direction), ports: splitterPorts(building),
@@ -114,7 +115,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   if (building.kind === 'sprinkler') return { kind: 'sprinkler', radius: SPRINKLER_RANGE, status: sprinklerState(world, building), cooldownMs: Math.max(0, building.cooldownUntilMs - world.timeMs), sprayProgress: world.pete.mode === 'SPRAYED' && world.pete.water?.source === index ? 1 - world.pete.water.remainingMs / SPRAY_MS : 0, sprays: building.sprays, electrical }
   if (building.kind === 'radar') {
     const prison = world.buildings.find(b => b?.kind === 'prison')
-    return { kind: 'radar', radius: RADAR_RANGE, active: radarPowered(world, index), operation: world.police.car?.phase ?? (world.pete.mode === 'IMPRISONED' ? 'Pete in prison' : world.pete.graceUntilMs > world.timeMs ? 'Release grace period' : world.police.retryAtMs > world.timeMs ? 'Waiting for a reachable edge route' : 'Monitoring'), prison: prison ? { x: prison.x, y: prison.y } : null, electrical }
+    return { kind: 'radar', radius: RADAR_RANGE, active: radarPowered(world, index), operation: world.peace.home !== null ? 'Pete is peaceful' : world.police.car?.phase ?? (world.pete.mode === 'IMPRISONED' ? 'Pete in prison' : world.police.retryAtMs > world.timeMs ? 'Waiting for a reachable edge route' : 'Monitoring'), prison: prison ? { x: prison.x, y: prison.y } : null, electrical }
   }
   if (building.kind === 'inserter') {
     const { pickup, drop } = inserterPorts(building)

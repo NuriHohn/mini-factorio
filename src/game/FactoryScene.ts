@@ -1,3 +1,5 @@
+import { collectGift, peaceful } from '../simulation/peace'
+import { drawPeace, drawTreehouse, peacefulLabel } from './peaceVisuals'
 import { NatureVisuals, drawTree } from './natureVisuals'
 import { LandscapeStroke, landscapeTile } from './landscapeStroke'
 import { brushTiles, chopTree, MATURE_TREE_MS, plantTree, REPRODUCTION_MS } from '../simulation/nature'
@@ -144,14 +146,18 @@ export class FactoryScene extends Phaser.Scene {
       const { tool, direction } = useGameStore.getState()
       if (tool === 'spiderWeb' || combatTool(tool) || natureTool(tool)) return
       if (!tool) {
+        const gift = collectGift(this.world, y * SIZE + x)
+        if (gift) { useGameStore.setState({ message: gift }); return }
         useGameStore.getState().inspect(this.world, x, y)
         return
       }
       const error = tool === 'remove' ? removalError(this.world, x, y) : placementError(this.world, x, y, tool)
       if (error) { useGameStore.setState({ message: error }); return }
+      const wasHome = buildingAt(this.world, x, y)?.kind === 'treehouse'
+      const wasBoss = this.world.revenge.boss !== null
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'treehouse' ? wasBoss ? 'A home for Pete! The walker sighs, powers down, and Pete moves in. ♥' : 'Welcome home, Pete! Peace begins · -20 Wood. ♥' : wasHome ? 'Pete looks confused… back to mischief. Revenge preserved; no Wood refund.' : tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.paintDrag(pointer))
     this.input.on('pointerup', () => this.landscapeStroke.end())
@@ -371,7 +377,9 @@ export class FactoryScene extends Phaser.Scene {
     for (const building of this.world.buildings) {
       if (!building) continue
       const x = building.x * TILE, y = building.y * TILE
-      if (building.kind === 'tree') {
+      if (building.kind === 'treehouse') {
+        drawTreehouse(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'tree') {
         drawTree(this.machines, this.world, building, TILE)
       } else if (building.kind === 'sprinkler') {
         drawSprinkler(this.machines, this.world, building, TILE)
@@ -532,14 +540,16 @@ export class FactoryScene extends Phaser.Scene {
     this.webVisuals.draw(this.peteEffects, this.world, TILE)
     this.waterVisuals.draw(this.peteEffects, this.world, TILE)
     this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this)
-    if (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned') drawPete(this.peteEffects, this.world, TILE)
+    drawPeace(this.peteEffects, this.world, TILE)
+    if (!peaceful(this.world) && (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')) drawPete(this.peteEffects, this.world, TILE)
     drawPoliceEffects(this.peteEffects, this.world, TILE)
     const arrest = arrestVisual(this.world)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
     this.peteLabel.setVisible(!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')
-    const labelPosition = arrest?.caption ? this.world.police.car! : pete.mode === 'ARRESTED' ? arrest?.pete ?? pete : pete
+    const home = this.world.peace.home === null ? null : this.world.buildings[this.world.peace.home]
+    const labelPosition = home && ['entering', 'resting'].includes(this.world.peace.activity) ? home : arrest?.caption ? this.world.police.car! : pete.mode === 'ARRESTED' ? arrest?.pete ?? pete : pete
     this.peteLabel.setPosition((labelPosition.x + .5) * TILE, (labelPosition.y + .5) * TILE - (arrest?.active ? 59 : arrest?.caption ? 32 : complaining ? 29 : 15))
-    const label = arrest?.caption ?? (this.world.revenge.stage === 'stunned' ? 'Pete · seeing stars!' : complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete')
+    const label = peacefulLabel(this.world) ?? arrest?.caption ?? (this.world.revenge.stage === 'stunned' ? 'Pete · seeing stars!' : complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete')
     if (this.peteLabel.text !== label) {
       this.peteLabel.setText(label).setStyle({ fontSize: arrest?.caption ? '13px' : '9px', color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
     }
@@ -600,6 +610,7 @@ export class FactoryScene extends Phaser.Scene {
       const color = pole ? pole.state === 'invalid' ? 0x929b9f : pole.state === 'connected' ? 0x8df0b3 : 0xf0ac60 : error ? 0xf08172 : 0x8df0b3
       this.preview.fillStyle(color, .25).fillRect(x * TILE, y * TILE, TILE, TILE)
       this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
+      if (state.tool === 'treehouse' && inside(x, y)) drawTreehouse(this.preview, this.world, { kind: 'treehouse', x, y, placedAtMs: this.world.timeMs }, TILE, true)
       if (state.tool === 'miner' || state.tool === 'belt' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, state.direction, color)
     }
   }

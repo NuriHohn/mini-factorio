@@ -1,3 +1,4 @@
+import { peaceful } from './peace'
 import { peteUnavailable } from './revenge'
 import { isSabotageable } from './buildingCapabilities'
 import { releaseWebTrap, tryWebTrap } from './webs'
@@ -62,6 +63,7 @@ export function peteHit(world: World, position: Position): boolean {
 // Free web hits replay visuals; water/custody clicks are consumed without a scare.
 export function clickPete(world: World, position: Position): boolean {
   if (!peteHit(world, position)) return false
+  if (peaceful(world)) return true
   if (world.pete.mode === 'IMPRISONED') return true
   if (world.pete.water) return true
   if (world.pete.mode === 'ARRESTED' || world.pete.mode === 'TRANSPORTED') return true
@@ -81,6 +83,7 @@ export function peteOccupiesTile(world: World, x: number, y: number): boolean {
   return world.pete.tile === tile || world.pete.next === tile
 }
 export function advancePete(world: World, delta: number): void {
+  if (peaceful(world)) return
   if (peteUnavailable(world)) return
   const pete = world.pete
   pete.cooldownMs = Math.max(0, pete.cooldownMs - delta)

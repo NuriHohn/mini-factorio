@@ -20,14 +20,18 @@ export default function App() {
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
       <ResearchPanel />
-      <span className="version"><i /> SPRINT 13</span>
+      <span className="version"><i /> SPRINT 14</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
         {inspection && <section className="inspection" aria-label="Building inspection">
           <p className="eyebrow">{inspection.kind === 'powerPole' ? 'POWER POLE' : inspection.kind.toUpperCase()} INSPECTION</p>
           {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
-          {inspection.kind === 'tree' ? <>
+          {inspection.kind === 'treehouse' ? <>
+            <h2>Pete’s Treehouse</h2>
+            <p className="inspection-note">♥ Pete is peaceful · {inspection.activity}. {inspection.gifts} gifts nearby. Escape, then click a gift to collect it.</p>
+            <p className="inspection-note">Built with 20 Wood, no power needed. Demolition returns Pete to mischief; no Wood refund. Revenge progress is preserved.</p>
+          </> : inspection.kind === 'tree' ? <>
             <h2>{inspection.species[0].toUpperCase() + inspection.species.slice(1)}</h2>
             <div className="stats"><span>Growth stage</span><b>{inspection.stage}</b></div>
             <div className="stats"><span>Age</span><b>{(inspection.ageMs / 60000).toFixed(1)} min</b></div>
@@ -39,7 +43,7 @@ export default function App() {
             <div className="stats"><span>Imprisonment elapsed</span><b>{(inspection.elapsedMs / 1000).toFixed(2)} s</b></div>
             <div className="stats"><span>Automatic escape in</span><b>{(inspection.remainingMs / 1000).toFixed(2)} s</b></div>
             <button className="building" disabled={!inspection.occupied} onClick={requestRelease}>Release Pete</button>
-            <p className="inspection-note">Release is immediate. Pete escapes after 60 simulation seconds; release grants 10 seconds of radar grace. Exit: {inspection.exit.x}, {inspection.exit.y}.</p>
+            <p className="inspection-note">Release is immediate. Pete escapes after 60 simulation seconds; radars can detect him immediately after release. Exit: {inspection.exit.x}, {inspection.exit.y}.</p>
           </> : inspection.kind === 'sprinkler' ? <>
             <h2>Anti-Goblin Sprinkler</h2>
             <div className="stats"><span>State</span><b>{inspection.status}</b></div>

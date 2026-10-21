@@ -21,6 +21,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'drill', label: 'Drill', hint: 'Click walker · 15 HP · shared 1.5 s cooldown', key: 'Click', icon: '⛏', tab: 'pete' },
   { tool: 'lightningBeam', label: 'Lightning Beam', hint: 'Click walker · 30 HP · shared 2 s cooldown', key: 'Click', icon: 'ϟ', tab: 'pete' },
   { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂', code: 'Digit0', tab: 'factory' },
+  { tool: 'treehouse', label: 'Pete’s Treehouse', hint: '20 Wood · one home · makes Pete peaceful · no power', key: 'Click', icon: '⌂', tab: 'nature' },
   { tool: 'plantOak', label: 'Plant Oak', hint: 'Free sapling · young at 2 min · mature at 5 min', key: 'Click', icon: '♣', tab: 'nature' },
   { tool: 'plantPine', label: 'Plant Pine', hint: 'Free sapling · trees occupy one tile', key: 'Click', icon: '♠', tab: 'nature' },
   { tool: 'plantBirch', label: 'Plant Birch', hint: 'Free sapling · may grow on ore', key: 'Click', icon: '♧', tab: 'nature' },

@@ -9,8 +9,8 @@ beforeEach(() => {
   useGameStore.getState().publish(createWorld(() => .5, { nature: false }))
 })
 describe('Nature toolbar and copied inventory', () => {
-  it('registers seven Nature controls without replacing any existing shortcut', () => {
-    expect(PLAYER_TOOLS.filter(t => t.tab === 'nature').map(t => t.tool)).toEqual([...NATURE_TOOLS])
+  it('registers Nature controls and the treehouse without replacing any existing shortcut', () => {
+    expect(PLAYER_TOOLS.filter(t => t.tab === 'nature').map(t => t.tool)).toEqual(['treehouse', ...NATURE_TOOLS])
     expect(TOOL_HOTKEYS).toMatchObject({ Digit1: 'miner', Digit9: 'radar', Digit0: 'splitter', KeyX: 'remove', KeyB: 'spiderWeb', KeyG: 'sprinkler' })
     expect(PLAYER_TOOLS.some(t => t.tool === ('tree' as string))).toBe(false)
     for (const tool of NATURE_TOOLS) {

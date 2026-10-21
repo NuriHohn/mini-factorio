@@ -1,3 +1,5 @@
+import { beginPeace, createPeace, endPeace, TREEHOUSE_WOOD } from './peace'
+import type { PeaceState } from './peace'
 import { createNature, generateNature, MATURE_TREE_MS, REPRODUCTION_MS } from './nature'
 import type { NatureState, TreeSpecies } from './nature'
 import { createRevenge, walkerOccupiesTile } from './revenge'
@@ -23,7 +25,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
+export type BuildingKind = 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -81,8 +83,9 @@ export interface Splitter extends BuildingPosition {
   placedAtMs: number
 }
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
-export type Building = Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
+export type Building = Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export interface World { peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -111,7 +114,7 @@ export function createWorld(random = Math.random, options: { nature?: boolean } 
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  const world: World = { nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  const world: World = { peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
   if (options.nature !== false) generateNature(world, Math.floor(random() * 4294967296))
   return world
 }
@@ -122,6 +125,11 @@ export function depositAt(world: World, x: number, y: number): Resource | null {
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner'): string | null {
   const technologyError = buildingTechnologyError(world.research, kind)
   if (technologyError) return technologyError
+  if (kind === 'treehouse') {
+    if (world.peace.home !== null) return 'Only one treehouse may exist. Remove the current home first.'
+    if (!world.buildings.some((b, i) => !b && i !== y * SIZE + x)) return 'Keep a free tile for Pete to leave custody.'
+    if (world.nature.wood < TREEHOUSE_WOOD) return `Pete’s Treehouse costs ${TREEHOUSE_WOOD} Wood · ${world.nature.wood} available.`
+  }
   if (!inside(x, y)) return 'Choose a tile inside the world.'
   if (walkerOccupiesTile(world, y * SIZE + x)) return 'The walker is occupying this tile.'
   if (policeOccupiesTile(world, x, y)) return 'Keep the police route and prison exit clear.'
@@ -136,6 +144,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   if (placementError(world, x, y, kind)) return false
   let building: Building
   switch (kind) {
+    case 'treehouse': building = { kind, x, y, placedAtMs: world.timeMs }; break
     case 'tree': building = { kind, x, y, species: 'oak', origin: 'manual', bornAtMs: world.timeMs, nextReproductionAtMs: world.timeMs + MATURE_TREE_MS + REPRODUCTION_MS }; break
     case 'splitter': building = { kind, x, y, direction, input: null, outputs: [null, null], nextOutput: 0, delivered: [0, 0], placedAtMs: world.timeMs }; break
     case 'sprinkler': building = { kind, x, y, cooldownUntilMs: 0, sprays: 0 }; break
@@ -152,6 +161,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   }
   world.buildings[y * SIZE + x] = building
   world.topologyRevision++
+  if (building.kind === 'treehouse') { world.nature.wood -= TREEHOUSE_WOOD; beginPeace(world, y * SIZE + x) }
   if (building.kind === 'tree') world.nature.nextAttemptAtMs = Math.min(world.nature.nextAttemptAtMs ?? Infinity, building.nextReproductionAtMs)
   return true
 }
@@ -166,6 +176,7 @@ export function removeBuilding(world: World, x: number, y: number): boolean {
   removePoliceBuilding(world, world.buildings[y * SIZE + x]!)
   removeSprinkler(world, world.buildings[y * SIZE + x]!)
   delete world.analytics.machines[y * SIZE + x]
+  if (world.buildings[y * SIZE + x]?.kind === 'treehouse') endPeace(world)
   world.buildings[y * SIZE + x] = null
   world.topologyRevision++
   return true

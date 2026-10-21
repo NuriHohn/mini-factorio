@@ -1,6 +1,7 @@
 import { useGameStore } from '../state/gameStore'
 export function RevengeHUD() {
-  const { revenge: r, simulationTime } = useGameStore()
+  const { peaceful, peaceActivity, gifts, revenge: r, simulationTime } = useGameStore()
+  if (peaceful) return <span className="revenge-progress peace-status" role="status">♥ Pete is peaceful · {peaceActivity} · {gifts ? `${gifts} gift${gifts === 1 ? '' : 's'} nearby · Escape, then click to collect` : 'Home sweet home'} · Revenge preserved: {r.arrests}/{r.threshold}</span>
   if (r.stage === 'idle') return <span className="revenge-progress">Pete’s Revenge: {r.arrests} / {r.threshold} arrests</span>
   return <section className="revenge-hud" aria-label="Pete's Revenge">
     <strong>Pete’s Revenge · Revenge-O-Matic 3000</strong>
