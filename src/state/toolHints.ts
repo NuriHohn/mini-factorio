@@ -2,7 +2,7 @@ import { brushMode, natureTool, plantingSpecies } from './natureTools'
 import type { Tool } from './toolMetadata'
 export const TOOL_HINTS = {
   miner: 'Click an ore patch to build.',
-  belt: 'Drag to build belts. Blocked paths try a detour.', powerPole: 'Drag to connect power around obstacles. Blue rings reuse existing poles.', axe: 'Click a tree to collect Wood.',
+  belt: 'Drag to build or reverse belts along their axis. Crossings stay blocked.', powerPole: 'Drag to connect power around obstacles. Blue rings reuse existing poles.', axe: 'Click a tree to collect Wood.',
   landscape: 'Drag to paint the ground.', planting: 'Click an empty tile to plant a tree.',
   building: 'Click an empty tile to build.', remove: 'Click a building to remove it. Items inside are lost.',
   spiderWeb: 'Click Pete or the ground to throw a web.', combat: 'Click the walker to defend your factory.',
