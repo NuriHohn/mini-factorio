@@ -1,3 +1,4 @@
+import { advanceWaterwheels } from './waterwheel'
 import { advancePeace } from './peace'
 import { advanceNature } from './nature'
 import { advanceRevenge } from './revenge'
@@ -31,6 +32,7 @@ export function advanceWorld(world: World, delta: number): void {
     const power = allocatePower(world, inserterFrame)
     advanceRevenge(world, STEP_MS)
     if (world.revenge.blast?.atMs === world.timeMs) allocatePower(world, inserterFrame)
+    advanceWaterwheels(world, STEP_MS)
     advancePolice(world, STEP_MS)
     advanceSprinklers(world, STEP_MS, !reactingToWater)
     advanceInserters(world, STEP_MS, inserterFrame)

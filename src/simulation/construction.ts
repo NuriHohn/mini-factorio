@@ -1,3 +1,4 @@
+import { WATERWHEEL_WOOD } from './waterwheel'
 import { BRIDGE_WOOD } from './waterTerrain'
 import { planBelts, redirectBelt } from './beltConstruction'
 import { findPowerRoute } from './powerRouting'
@@ -9,11 +10,11 @@ export type DragBuilding = 'belt' | 'powerPole'
 export interface ConstructionCell extends Position { direction: Direction; reuse: boolean; reverse?: boolean; bridge?: boolean; error: string | null }
 export interface ConstructionPlan { kind: DragBuilding; cells: ConstructionCell[]; error: string | null; detour?: boolean; snapFrom?: Position; beltSnap?: Position; wood?: number; unaffordable?: boolean }
 export interface PlacementInfo { state: 'valid' | 'invalid' | 'unaffordable'; error: string | null; wood: number; available: number }
-export function placementInfo(world: World, point: Position, kind: BuildingKind): PlacementInfo {
-  const wood = kind === 'treehouse' ? TREEHOUSE_WOOD : 0
+export function placementInfo(world: World, point: Position, kind: BuildingKind, direction: Direction = 'east'): PlacementInfo {
+  const wood = kind === 'treehouse' ? TREEHOUSE_WOOD : kind === 'waterwheel' ? WATERWHEEL_WOOD : 0
   // Check geometry independently of funding, without changing any live state.
   const candidate = wood > world.nature.wood ? { ...world, nature: { ...world.nature, wood } } : world
-  const error = placementError(candidate, point.x, point.y, kind)
+  const error = placementError(candidate, point.x, point.y, kind, kind === 'waterwheel' ? direction : undefined)
   return { state: error ? 'invalid' : world.nature.wood < wood ? 'unaffordable' : 'valid', error: error ?? (world.nature.wood < wood ? `Needs ${wood} Wood.` : null), wood, available: world.nature.wood }
 }
 export function planConstruction(world: World, start: Position, end: Position, kind: DragBuilding, facing: Direction, dragged = false): ConstructionPlan {

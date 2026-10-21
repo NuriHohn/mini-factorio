@@ -1,3 +1,4 @@
+import { WATERWHEEL_KW, waterwheelRunning } from './waterwheel'
 import { SPRINKLER_KW } from './sprinklers'
 import { RADAR_KW } from './police'
 import { sabotageRemaining } from './pete'
@@ -9,6 +10,13 @@ import type { InserterFrame } from './inserters'
 import { MACHINE_DEFINITIONS } from './recipes'
 
 export const GENERATOR_KW = 100
+export function ratedGeneration(building: Building): number {
+  return building.kind === 'generator' ? GENERATOR_KW : building.kind === 'waterwheel' ? WATERWHEEL_KW : 0
+}
+export function generationKw(world: World, building: Building): number {
+  if (sabotageRemaining(world, building) > 0) return 0
+  return building.kind === 'waterwheel' ? waterwheelRunning(world, building) ? WATERWHEEL_KW : 0 : ratedGeneration(building)
+}
 export const MINER_KW = 30
 export const FURNACE_KW = MACHINE_DEFINITIONS.furnace.powerKw
 export const ASSEMBLER_KW = MACHINE_DEFINITIONS.assembler.powerKw
@@ -104,13 +112,13 @@ function discover(world: World): PowerState {
   }
   const byId = new Map(networks.map(n => [n.id, n]))
   world.buildings.forEach((building, index) => {
-    if (!building || (building.kind !== 'generator' && powerRequirement(building) === 0)) return
+    if (!building || (ratedGeneration(building) === 0 && powerRequirement(building) === 0)) return
     const pole = poles.find(i => withinRange(building, world.buildings[i]!, POLE_COVERAGE_RADIUS))
     if (pole === undefined) return
     const networkId = assignments[pole]
     assignments[index] = networkId
     const network = byId.get(networkId)!
-    if (building.kind === 'generator') network.generatorIndices.push(index)
+    if (ratedGeneration(building) > 0) network.generatorIndices.push(index)
     else network.consumerIndices.push(index)
   })
   return { topologyRevision: world.topologyRevision, networks, assignments, consumers: {}, poleConnections: edges }
@@ -120,7 +128,7 @@ export function allocatePower(world: World, frame?: InserterFrame): PowerState {
   const power = world.power
   power.consumers = {}
   for (const network of power.networks) {
-    network.capacityKw = network.generatorIndices.filter(i => sabotageRemaining(world, world.buildings[i]!) === 0).length * GENERATOR_KW
+    network.capacityKw = network.generatorIndices.reduce((sum, i) => sum + generationKw(world, world.buildings[i]!), 0)
     network.requestedKw = 0
     network.suppliedKw = 0
   }
@@ -143,7 +151,7 @@ export function allocatePower(world: World, frame?: InserterFrame): PowerState {
 }
 export function powerOverview(world: World): PowerOverview {
   const power = world.power
-  const summary: PowerOverview = { installedKw: world.buildings.filter(b => b?.kind === 'generator').length * GENERATOR_KW, connectedKw: 0, requestedKw: 0, suppliedKw: 0, surplusKw: 0, deficitKw: 0, networks: power?.networks.length ?? 0 }
+  const summary: PowerOverview = { installedKw: world.buildings.reduce((sum, b) => sum + (b ? ratedGeneration(b) : 0), 0), connectedKw: 0, requestedKw: 0, suppliedKw: 0, surplusKw: 0, deficitKw: 0, networks: power?.networks.length ?? 0 }
   for (const network of power?.networks ?? []) {
     summary.connectedKw += network.capacityKw
     summary.suppliedKw += network.suppliedKw

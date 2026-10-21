@@ -1,3 +1,4 @@
+import { WATERWHEEL_WOOD, waterwheelWater } from './waterwheel'
 import { bridgeCrossing, generateWater, isWater } from './waterTerrain'
 import { beginPeace, createPeace, endPeace, TREEHOUSE_WOOD } from './peace'
 import type { PeaceState } from './peace'
@@ -26,7 +27,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
+export type BuildingKind = 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -68,6 +69,7 @@ export interface Inserter extends BuildingPosition {
   item: Item | null
   elapsedMs: number
 }
+export interface Waterwheel extends BuildingPosition { kind: 'waterwheel'; direction: Direction; rotationMs: number }
 export interface Generator extends BuildingPosition { kind: 'generator' }
 export interface PowerPole extends BuildingPosition { kind: 'powerPole' }
 export interface Sprinkler extends BuildingPosition { kind: 'sprinkler'; cooldownUntilMs: number; sprays: number }
@@ -85,7 +87,7 @@ export interface Splitter extends BuildingPosition {
 }
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
-export type Building = Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export type Building = Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
 export interface World { peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
@@ -143,13 +145,18 @@ export function placementError(world: World, x: number, y: number, kind: Buildin
   if (kind === 'belt' && direction && existing?.kind === 'belt') return !!offsets[direction].x === !!offsets[existing.direction].x ? null : 'Existing belt blocks this route. Perpendicular crossings are not allowed.'
   if (existing?.kind === 'tree') return 'A tree occupies this tile. Use the Axe to clear it.'
   if (buildingAt(world, x, y)) return 'This tile already has a building.'
+  if (kind === 'waterwheel') {
+    if (!waterwheelWater(world, { x, y }, direction ?? 'east')) return 'Face the waterwheel toward directly adjacent water.'
+    if (world.nature.wood < WATERWHEEL_WOOD) return `Waterwheel costs ${WATERWHEEL_WOOD} Wood · ${world.nature.wood} available.`
+  }
   if (kind === 'miner' && !depositAt(world, x, y)) return 'Place mining machines on ore deposits.'
   return null
 }
 export function placeBuilding(world: World, x: number, y: number, kind: BuildingKind, direction: Direction): boolean {
-  if (placementError(world, x, y, kind)) return false
+  if (placementError(world, x, y, kind, kind === 'waterwheel' ? direction : undefined)) return false
   let building: Building
   switch (kind) {
+    case 'waterwheel': building = { kind, x, y, direction, rotationMs: 0 }; break
     case 'treehouse': building = { kind, x, y, placedAtMs: world.timeMs }; break
     case 'tree': building = { kind, x, y, species: 'oak', origin: 'manual', bornAtMs: world.timeMs, nextReproductionAtMs: world.timeMs + MATURE_TREE_MS + REPRODUCTION_MS }; break
     case 'splitter': building = { kind, x, y, direction, input: null, outputs: [null, null], nextOutput: 0, delivered: [0, 0], placedAtMs: world.timeMs }; break
@@ -167,6 +174,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   }
   world.buildings[y * SIZE + x] = building
   world.topologyRevision++
+  if (building.kind === 'waterwheel') world.nature.wood -= WATERWHEEL_WOOD
   if (building.kind === 'treehouse') { world.nature.wood -= TREEHOUSE_WOOD; beginPeace(world, y * SIZE + x) }
   if (building.kind === 'tree') world.nature.nextAttemptAtMs = Math.min(world.nature.nextAttemptAtMs ?? Infinity, building.nextReproductionAtMs)
   return true

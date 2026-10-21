@@ -6,6 +6,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Milestone | Delivered |
 | --- | --- |
+| Sprint 15.5: Waterwheel Generator | 10-Wood, 50-kW water-facing land generator through existing poles; anchored rotation, automatic dry-bank stop/restart, gentle fixed-step wheel animation, inspection and strict version-10 saves with version-1–9 compatibility |
 | Initial mining and movement | Ore deposits, directional mining, WASD camera and zoom |
 | Conveyor belts and storage | Individual items, directional transport, automatic curves, typed chest counts, occupied-building removal |
 | Furnaces and smelting | Crafting jobs, iron plates, buffers, output reservations and inspection |

@@ -4,9 +4,9 @@ import type { Direction, Position, World } from '../simulation/world'
 import type { Tool } from '../state/toolMetadata'
 
 export const ROTATION_THRESHOLD = 24
-export type RotationBuilding = 'miner' | 'furnace' | 'assembler' | 'inserter' | 'splitter'
+export type RotationBuilding = 'waterwheel' | 'miner' | 'furnace' | 'assembler' | 'inserter' | 'splitter'
 export function rotationBuilding(tool: Tool): tool is RotationBuilding {
-  return tool === 'miner' || tool === 'furnace' || tool === 'assembler' || tool === 'inserter' || tool === 'splitter'
+  return tool === 'waterwheel' || tool === 'miner' || tool === 'furnace' || tool === 'assembler' || tool === 'inserter' || tool === 'splitter'
 }
 // Input-only state. Screen coordinates are CSS pixels, independent of camera zoom.
 export class PlacementRotation {
@@ -27,13 +27,13 @@ export class PlacementRotation {
   setDirection(direction: Direction) { if (this.gesture) this.gesture.direction = direction }
   preview() {
     const g = this.gesture
-    return g ? { ...g.tile, kind: g.kind, direction: g.direction, info: placementInfo(g.world, g.tile, g.kind) } : null
+    return g ? { ...g.tile, kind: g.kind, direction: g.direction, info: placementInfo(g.world, g.tile, g.kind, g.direction) } : null
   }
   finish(world: World) {
     const g = this.gesture
     this.cancel() // Consume even rejected placements; a second release cannot build.
     if (!g || g.world !== world) return null
-    const error = placementError(world, g.tile.x, g.tile.y, g.kind)
+    const error = placementError(world, g.tile.x, g.tile.y, g.kind, g.direction)
     if (error) return { kind: g.kind, error }
     const placed = placeBuilding(world, g.tile.x, g.tile.y, g.kind, g.direction)
     return { kind: g.kind, error: placed ? null : 'The placement changed. Nothing was built.' }

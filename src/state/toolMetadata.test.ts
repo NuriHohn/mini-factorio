@@ -11,7 +11,7 @@ describe('categorized build menu', () => {
     expect(PLAYER_TOOLS.filter(t => t.tab === 'pete').map(t => t.tool)).toEqual(['radar', 'spiderWeb', 'sprinkler', 'flySwatter', 'drill', 'lightningBeam', 'remove'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'factory').map(t => t.tool)).toEqual(['miner', 'furnace', 'assembler'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'logistics').map(t => t.tool)).toEqual(['belt', 'storage', 'inserter', 'splitter'])
-    expect(PLAYER_TOOLS.filter(t => t.tab === 'power').map(t => t.tool)).toEqual(['generator', 'powerPole'])
+    expect(PLAYER_TOOLS.filter(t => t.tab === 'power').map(t => t.tool)).toEqual(['waterwheel', 'generator', 'powerPole'])
     expect(PLAYER_TOOLS.map(t => t.tool)).not.toContain('prison')
     expect(Object.keys(TOOL_HOTKEYS)).toHaveLength(PLAYER_TOOLS.filter(t => t.code).length)
   })

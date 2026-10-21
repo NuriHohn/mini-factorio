@@ -1,3 +1,5 @@
+import { waterwheelRunning } from '../simulation/waterwheel'
+import { drawWaterwheel } from './waterwheelVisuals'
 import { TerrainVisuals } from './terrainVisuals'
 import { waterEditError, waterProtection } from '../simulation/waterLandscaping'
 import { cameraViewport, visibleTileBounds, intersects } from './viewport'
@@ -620,6 +622,8 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.lineStyle(2, 0xe8dfb6).strokeCircle(handX, handY, 5)
         this.arrow(x + d.x * 9, y + d.y * 9, building.direction, 0xa5edcf, .35)
         if (building.item) this.drawItem(building.item, handX, handY)
+      } else if (building.kind === 'waterwheel') {
+        drawWaterwheel(this.machines, building, waterwheelRunning(this.world, building) ? this.world.remainder : 0)
       } else if (building.kind === 'generator') {
         const networkId = power.assignments[building.y * SIZE + building.x]
         const network = power.networks.find(n => n.id === networkId)
@@ -804,7 +808,7 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
           this.preview.lineStyle(1, portColor, .8).lineBetween((x + .5) * TILE, (y + .5) * TILE, (port.x + .5) * TILE, (port.y + .5) * TILE)
         }
       }
-      const info = state.tool !== 'remove' && state.tool !== 'spiderWeb' ? rotation?.info ?? placementInfo(this.world, { x, y }, state.tool) : null
+      const info = state.tool !== 'remove' && state.tool !== 'spiderWeb' ? rotation?.info ?? placementInfo(this.world, { x, y }, state.tool, direction) : null
       const existingPole = state.tool === 'powerPole' && buildingAt(this.world, x, y)?.kind === 'powerPole'
       if (info) this.placementTooltip(pointer, `${existingPole || info.state === 'valid' ? '✓' : info.state === 'unaffordable' ? '◇' : '×'} ${toolMetadata(state.tool).label}\n${info.wood ? `Cost: ${info.wood} Wood · You have ${info.available}` : 'Cost: Free'}${existingPole ? '\nExisting pole · Drag to extend.' : info.error ? `\n${info.error}` : ''}`)
       if (state.tool === 'powerPole') this.previewPole(x, y)
@@ -815,7 +819,7 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
       if (info?.state === 'unaffordable') this.preview.lineStyle(2, color).lineBetween(x * TILE + 16, y * TILE + 5, x * TILE + 27, y * TILE + 16).lineBetween(x * TILE + 27, y * TILE + 16, x * TILE + 16, y * TILE + 27).lineBetween(x * TILE + 16, y * TILE + 27, x * TILE + 5, y * TILE + 16).lineBetween(x * TILE + 5, y * TILE + 16, x * TILE + 16, y * TILE + 5)
       else if (error) this.preview.lineStyle(2, color).lineBetween(x * TILE + 5, y * TILE + 5, x * TILE + 27, y * TILE + 27).lineBetween(x * TILE + 27, y * TILE + 5, x * TILE + 5, y * TILE + 27)
       if (state.tool === 'treehouse' && inside(x, y) && !error) drawTreehouse(this.preview, this.world, { kind: 'treehouse', x, y, placedAtMs: this.world.timeMs }, TILE, true)
-      if (state.tool === 'miner' || state.tool === 'furnace' || state.tool === 'assembler' || state.tool === 'inserter' || state.tool === 'splitter') this.arrow(x * TILE, y * TILE, direction, color)
+      if (rotationBuilding(state.tool)) this.arrow(x * TILE, y * TILE, direction, color)
     }
   }
 }
