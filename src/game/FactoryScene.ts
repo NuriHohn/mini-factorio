@@ -239,7 +239,7 @@ export class FactoryScene extends Phaser.Scene {
     const plan = this.constructionDrag.preview()
     if (!plan) return
     for (const cell of plan.cells) {
-      const color = cell.error ? 0xe7a08d : 0xb2d08a
+      const color = cell.error ? 0xe7a08d : plan.detour ? 0x9acdcc : 0xb2d08a
       this.preview.fillStyle(color, .18).fillRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       this.preview.lineStyle(2, color).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       if (cell.error) this.preview.lineBetween(cell.x * TILE + 6, cell.y * TILE + 6, cell.x * TILE + 26, cell.y * TILE + 26).lineBetween(cell.x * TILE + 26, cell.y * TILE + 6, cell.x * TILE + 6, cell.y * TILE + 26)
@@ -247,7 +247,7 @@ export class FactoryScene extends Phaser.Scene {
       else this.preview.lineBetween((cell.x + .5) * TILE, cell.y * TILE + 6, (cell.x + .5) * TILE, cell.y * TILE + 27).strokeCircle((cell.x + .5) * TILE, cell.y * TILE + 10, 5)
     }
     if (plan.kind === 'powerPole') for (let i = 1; i < plan.cells.length; i++) this.preview.lineStyle(2, plan.error ? 0xe7a08d : 0xb2d08a, .65).lineBetween((plan.cells[i - 1].x + .5) * TILE, (plan.cells[i - 1].y + .5) * TILE, (plan.cells[i].x + .5) * TILE, (plan.cells[i].y + .5) * TILE)
-    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? 'Belts' : 'Power connection'} · ${plan.cells.filter(c => !c.reuse).length} ${plan.kind === 'belt' ? 'tiles' : 'poles'}\nTotal cost: Free\n${plan.error ?? 'Release to build. Escape or right-click to cancel.'}`)
+    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${plan.cells.filter(c => !c.reuse).length} ${plan.kind === 'belt' ? 'tiles' : 'poles'}\nTotal cost: Free\n${plan.error ?? 'Release to build. Escape or right-click to cancel.'}`)
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)

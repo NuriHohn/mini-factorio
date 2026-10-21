@@ -25,20 +25,20 @@ describe('deterministic atomic belt construction', () => {
   })
   it('rejects occupied, actor, tree and out-of-world cells without building any partial path', () => {
     const w = createBareWorld(() => .5)
-    placeBuilding(w, 12, 10, 'storage', 'east')
-    for (const [a, b] of [[point(10, 10), point(15, 10)], [point(10, 23), point(20, 23)], [point(10, 10), point(40, 10)]]) {
+    placeBuilding(w, 15, 10, 'storage', 'east')
+    for (const [a, b] of [[point(10, 10), point(15, 10)], [point(10, 23), point(w.pete.tile % SIZE, Math.floor(w.pete.tile / SIZE))], [point(10, 10), point(40, 10)]]) {
       const before = structuredClone(w)
       expect(commitConstruction(w, a, b, 'belt', 'east')).toMatchObject({ placed: 0 })
       expect(w).toEqual(before)
     }
     placeBuilding(w, 10, 12, 'tree', 'east')
-    expect(commitConstruction(w, point(8, 12), point(12, 12), 'belt', 'east').error).toContain('tree')
+    expect(commitConstruction(w, point(8, 12), point(10, 12), 'belt', 'east').error).toContain('tree')
   })
   it('revalidates a changed world at release, commits once, and does not overwrite existing belts', () => {
     const w = createBareWorld(() => .5), drag = new ConstructionDrag()
     drag.begin(w, point(10, 10), 'belt', 'east'); drag.move(point(15, 10))
     expect(drag.preview()?.error).toBeNull()
-    placeBuilding(w, 13, 10, 'storage', 'east')
+    placeBuilding(w, 15, 10, 'storage', 'east')
     expect(drag.preview()?.error).not.toBeNull()
     const before = structuredClone(w)
     expect(drag.finish(w)?.placed).toBe(0); expect(w).toEqual(before)

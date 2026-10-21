@@ -48,10 +48,10 @@ describe('single-layer cancellation and session-only hints', () => {
   })
   it('shows one relevant hint, hides after three successful gestures, and keeps the instructions in Help', () => {
     const store = useGameStore.getState(); store.select('belt')
-    expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Drag to build several belts.')
+    expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Drag to build belts. Blocked paths try a detour.')
     for (let i = 0; i < 3; i++) store.recordToolUse('belt')
-    expect(renderToStaticMarkup(<BuildToolbar />)).not.toContain('Drag to build several belts.')
-    expect(renderToStaticMarkup(<HelpContents />)).toContain('Drag to build several belts.')
+    expect(renderToStaticMarkup(<BuildToolbar />)).not.toContain('Drag to build belts. Blocked paths try a detour.')
+    expect(renderToStaticMarkup(<HelpContents />)).toContain('Drag to build belts. Blocked paths try a detour.')
     store.select('powerPole'); expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Drag to connect power.')
     store.recordToolUse('powerPole'); expect(useGameStore.getState().hintUses).toEqual({ belt: 3, powerPole: 1 })
     for (const tool of ['axe', 'plantOak', 'flowers', 'spiderWeb', 'flySwatter', 'miner'] as const) expect(TOOL_HINTS[toolHintId(tool)!].length).toBeGreaterThan(5)
