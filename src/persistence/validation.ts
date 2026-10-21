@@ -74,13 +74,15 @@ function validateCrafting(machine: CraftingMachine, path: string): void {
   }
   if (inventoryTotal(machine.output) + (machine.job ? inventoryTotal(machine.job.outputs) : 0) > MACHINE_DEFINITIONS[machine.kind].outputCapacity) invalid(path, 'output and reservations exceed capacity')
 }
-export function building(value: unknown, path: string, index: number, timeMs: number, version = 7): Building | null {
+export function building(value: unknown, path: string, index: number, timeMs: number, version = 8): Building | null {
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    treehouse: ['placedAtMs'],
     tree: ['species', 'origin', 'bornAtMs', 'nextReproductionAtMs'],
     miner: ['direction', 'elapsed', 'item'], belt: ['direction', 'item', 'progress', 'entry'], storage: ['inventory'],
     furnace: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'input', 'output', 'job'],
@@ -95,6 +97,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'treehouse': {
+      const placedAtMs = count(r.placedAtMs, `${path}.placedAtMs`, timeMs)
+      if (placedAtMs % 50) invalid(path, 'expected fixed-step construction time')
+      return { kind, x, y, placedAtMs }
+    }
     case 'tree': return { kind, x, y, ...validateTree(r, path, timeMs) }
     case 'miner': {
       const elapsed = number(r.elapsed, `${path}.elapsed`, 0, INTERVAL)

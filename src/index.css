@@ -128,3 +128,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .nature-options legend { font-size: 11px; color: #b8c6a4; margin-bottom: 8px; }
 .nature-options .save-action { flex: 1; }
 .nature-options .save-action[aria-pressed="true"] { border-color: #a7cb86; background: #35452b; }
+
+.peace-status {
+  color: #bdd6a6;
+  background: #233729;
+  border-color: #486347;
+}

@@ -1,3 +1,4 @@
+import { peaceful } from './peace'
 import { reachableTiles, tilePath, edgeTile } from './navigation'
 import { isSabotageable } from './buildingCapabilities'
 import { hasTechnology } from './research'
@@ -34,6 +35,7 @@ export function createRevenge(): RevengeState {
 export function bossAlive(world: World): boolean { return world.revenge.stage === 'hunting' || world.revenge.stage === 'stomp' }
 export function peteUnavailable(world: World): boolean { return !['idle', 'warning'].includes(world.revenge.stage) }
 export function recordArrest(world: World): void {
+  if (peaceful(world)) return
   const r = world.revenge
   if (r.stage !== 'idle') return
   r.arrests++
@@ -60,7 +62,7 @@ function spawn(world: World): void {
 }
 export function damageWalker(world: World, damage: number): boolean {
   const r = world.revenge, boss = r.boss
-  if (!boss || !bossAlive(world) || !Number.isSafeInteger(damage) || damage <= 0) return false
+  if (peaceful(world) || !boss || !bossAlive(world) || !Number.isSafeInteger(damage) || damage <= 0) return false
   const previous = boss.hp
   boss.hp = Math.max(0, boss.hp - damage)
   if (boss.hp === 0) {
@@ -93,6 +95,7 @@ function blast(world: World, position: Position, kind: 'emp' | 'stomp'): void {
   world.revenge.blast = { kind, position: { x: position.x, y: position.y }, atMs: world.timeMs }
 }
 export function advanceRevenge(world: World, delta: number): void {
+  if (peaceful(world)) return
   const r = world.revenge, boss = r.boss
   if (r.blast && world.timeMs - r.blast.atMs >= 1000) r.blast = null
   if (r.stage === 'warning') { if (world.timeMs >= r.untilMs) spawn(world); return }
@@ -139,6 +142,7 @@ export function advanceRevenge(world: World, delta: number): void {
 }
 export function combatTool(tool: string | null): tool is CombatTool { return tool !== null && Object.hasOwn(COMBAT_TOOLS, tool) }
 export function combatError(world: World, tool: CombatTool): string | null {
+  if (peaceful(world)) return 'Pete is peaceful. Enjoy your new neighbor!'
   const technology = COMBAT_TOOLS[tool].technology
   return technology && !hasTechnology(world.research, technology) ? 'Research the required Revenge Defense technology.' : null
 }

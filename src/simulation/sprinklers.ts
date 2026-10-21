@@ -1,3 +1,4 @@
+import { peaceful } from './peace'
 import { bossAlive, damageWalker, peteUnavailable } from './revenge'
 import { neighboringTiles, reachableTiles, tilePath } from './navigation'
 import { PETE_FLEE_MS, PETE_WALK_MS } from './pete'
@@ -19,7 +20,7 @@ export function sprinklerPowered(world: World, index: number): boolean {
 }
 export function sprinklerDetects(world: World, index: number): boolean {
   const building = world.buildings[index]
-  return building?.kind === 'sprinkler' && sprinklerPowered(world, index) && withinRange(building, world.pete, SPRINKLER_RANGE)
+  return !peaceful(world) && building?.kind === 'sprinkler' && sprinklerPowered(world, index) && withinRange(building, world.pete, SPRINKLER_RANGE)
 }
 export function sprinklerState(world: World, building: Sprinkler): 'Unpowered' | 'Ready' | 'Spraying' | 'Cooling down' {
   const index = building.y * SIZE + building.x
@@ -37,6 +38,7 @@ export function removeSprinkler(world: World, building: Building): void {
 }
 // Called after current power allocation and police dispatch: a committed police case wins.
 export function advanceSprinklers(world: World, delta: number, allowDetection = true): void {
+  if (peaceful(world)) return
   if (bossAlive(world)) {
     const r = world.revenge
     if (world.timeMs < r.sprinklerReadyAtMs) return

@@ -1,3 +1,4 @@
+import { peaceful } from '../simulation/peace'
 import { natureTool } from './natureTools'
 import type { BrushSize } from '../simulation/nature'
 import { combatTool, createRevenge } from '../simulation/revenge'
@@ -24,6 +25,9 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  peaceful: boolean
+  peaceActivity: string
+  gifts: number
   wood: number
   brushSize: BrushSize
   setBrushSize: (size: BrushSize) => void
@@ -71,7 +75,7 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
-  wood: 0, brushSize: 3,
+  peaceful: false, peaceActivity: 'homeward', gifts: 0, wood: 0, brushSize: 3,
   setBrushSize: size => { if ([1, 3, 5].includes(size)) set({ brushSize: size }) },
   revenge: createRevenge(), simulationTime: 0,
   research: createResearch(), researchRate: 0, researchOpen: false, researchRequest: null, researchFeedback: '',
@@ -117,7 +121,7 @@ export const useGameStore = create<State>((set, get) => ({
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
     if (get().researchOpen) { if (event.code === 'Escape') get().toggleResearch(); return }
@@ -128,7 +132,7 @@ export const useGameStore = create<State>((set, get) => ({
   useWebTool: (world, position) => {
     if (get().tool !== 'spiderWeb') return false
     const result = shootWeb(world, position)
-    set({ message: result === 'ground' ? 'Web fired · lands for 10 seconds. Click Pete directly to scare him.' : result === 'outside' ? 'Choose a tile inside the world.' : result === 'full' ? 'Too many active webs. Wait for some to expire.' : world.pete.water ? 'Pete is soaked! Let his water reaction finish.' : ['ARRESTED', 'TRANSPORTED', 'IMPRISONED'].includes(world.pete.mode) ? 'Pete is in police custody.' : 'Pete is frightened! He will cry in a safe corner, then return.' })
+    set({ message: peaceful(world) && result === 'hit' ? 'Pete is peaceful. No need for webs!' : result === 'ground' ? 'Web fired · lands for 10 seconds. Click Pete directly to scare him.' : result === 'outside' ? 'Choose a tile inside the world.' : result === 'full' ? 'Too many active webs. Wait for some to expire.' : world.pete.water ? 'Pete is soaked! Let his water reaction finish.' : ['ARRESTED', 'TRANSPORTED', 'IMPRISONED'].includes(world.pete.mode) ? 'Pete is in police custody.' : 'Pete is frightened! He will cry in a safe corner, then return.' })
     return true
   },
   inspect: (world, x, y) => set(state => {
@@ -147,7 +151,7 @@ export const useGameStore = create<State>((set, get) => ({
     const inspection = inspectBuilding(world, state.inspected)
     const inspected = inspection ? state.inspected : null
     // Publish value snapshots only when summaries change, never live world objects.
-    if (world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
+    if (peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
+    return { peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
   }),
 }))
