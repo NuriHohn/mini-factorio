@@ -107,7 +107,7 @@ export function advancePete(world: World, delta: number): void {
     if (pete.cryingMs === 0) { pete.mode = 'WANDERING'; pete.escape = null }
     return
   }
-  if (pete.next !== null && world.buildings[pete.next]) { pete.next = null; pete.travelMs = 0; pete.x = pete.tile % SIZE; pete.y = Math.floor(pete.tile / SIZE); pete.pathRevision = -1 }
+  if (pete.next !== null && (world.water[pete.next] || world.buildings[pete.next])) { pete.next = null; pete.travelMs = 0; pete.x = pete.tile % SIZE; pete.y = Math.floor(pete.tile / SIZE); pete.pathRevision = -1 }
   // Carry the unused part of a fixed step across tile boundaries at the faster speed.
   let remaining = delta
   while (remaining > 1e-8) {
@@ -117,7 +117,7 @@ export function advancePete(world: World, delta: number): void {
         pete.next = pete.path.shift() ?? null
         if (pete.next === null) { pete.mode = 'CRYING'; pete.cryingMs = SABOTAGE_MS; break }
       } else {
-        const choices = neighboringTiles(pete.tile).filter(tile => !world.buildings[tile])
+        const choices = neighboringTiles(pete.tile).filter(tile => !world.water[tile] && !world.buildings[tile])
         if (choices.length) pete.next = choices[Math.floor(random(pete) * choices.length)]
         else break
       }

@@ -52,7 +52,7 @@ export class NatureVisuals {
     g.clear()
     for (let i = 0; i < world.nature.decorations.length; i++) {
       const decoration = world.nature.decorations[i]
-      if (!decoration || world.buildings[i]) continue
+      if (!decoration || world.water[i] || world.buildings[i]) continue
       const x = i % SIZE * tile, y = Math.floor(i / SIZE) * tile, seed = hash(i)
       g.fillStyle(0x729354, .18).fillEllipse(x + 16, y + 18, 29, 21)
       for (let n = 0; n < 5; n++) {

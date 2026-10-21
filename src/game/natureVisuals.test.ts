@@ -9,7 +9,7 @@ function graphics() {
   const g = new Proxy({}, { get: (_target, name) => (...args: unknown[]) => { calls.push({ name: String(name), args }); return g } }) as Phaser.GameObjects.Graphics
   return { g, calls }
 }
-const bare = () => createWorld(() => .5, { nature: false })
+const bare = () => createWorld(() => .5, { nature: false, water: false })
 describe('observational nature rendering', () => {
   it('distinguishes species/stages and freezes when simulation time is unchanged', () => {
     const w = bare(), { g, calls } = graphics()

@@ -1,3 +1,4 @@
+import { LandscapeWater, drawWaterTile } from './landscapeWater'
 import { ConstructionDrag } from './constructionDrag'
 import { placementInfo, planConstruction } from '../simulation/construction'
 import type { ConstructionPlan } from '../simulation/construction'
@@ -50,6 +51,8 @@ import { moveCamera, updateCameraBounds } from './cameraMovement'
 const TILE = 32
 export class FactoryScene extends Phaser.Scene {
   private natureVisuals = new NatureVisuals()
+  private landscapeWater = new LandscapeWater()
+  private waterSurface!: Phaser.GameObjects.Graphics
   private constructionDrag = new ConstructionDrag()
   private constructionLabel!: Phaser.GameObjects.Text
   private handledContextMenu = false
@@ -81,6 +84,7 @@ export class FactoryScene extends Phaser.Scene {
     useGameStore.setState({ saveStatus: this.saves.initialize() })
     this.terrain = this.add.graphics().setDepth(-1)
     this.drawTerrain(this.terrain, this.world)
+    this.waterSurface = this.add.graphics().setDepth(-.75)
     this.landscape = this.add.graphics().setDepth(-.5)
     this.wires = this.add.graphics()
     this.coverage = this.add.graphics()
@@ -219,7 +223,7 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.setState({ dragActive: false })
       if (result) {
         if (!result.error && (result.placed > 0 || result.reversed)) useGameStore.getState().recordToolUse(tool)
-        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} reversed · ${result.placed} new · Free.` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · Free.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
+        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} reversed · ${result.placed} new · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
       }
     })
     this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); this.cancelConstruction() })
@@ -242,11 +246,12 @@ export class FactoryScene extends Phaser.Scene {
   }
   private drawConstructionPlan(pointer: Phaser.Input.Pointer, plan: ConstructionPlan) {
     for (const cell of plan.cells) {
-      const color = cell.error ? 0xe7a08d : cell.reverse ? 0xe6c487 : cell.reuse ? 0xa4c9df : plan.detour ? 0x9acdcc : 0xb2d08a
+      const color = cell.error ? 0xe7a08d : (plan.unaffordable && cell.bridge && !cell.reuse) ? 0xe6c487 : cell.reverse ? 0xe6c487 : cell.reuse ? 0xa4c9df : plan.detour ? 0x9acdcc : 0xb2d08a
       this.preview.fillStyle(color, .18).fillRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       this.preview.lineStyle(2, color).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       if (cell.error) this.preview.lineBetween(cell.x * TILE + 6, cell.y * TILE + 6, cell.x * TILE + 26, cell.y * TILE + 26).lineBetween(cell.x * TILE + 26, cell.y * TILE + 6, cell.x * TILE + 6, cell.y * TILE + 26)
       else if (plan.kind === 'belt') {
+        if (cell.bridge) this.preview.lineStyle(2, 0xd1b88b, .85).strokeRect(cell.x * TILE + 4, cell.y * TILE + 4, TILE - 8, TILE - 8)
         this.arrow(cell.x * TILE, cell.y * TILE, cell.direction, color)
         if (cell.reverse) this.preview.lineStyle(2, color).strokeCircle((cell.x + .5) * TILE, (cell.y + .5) * TILE, 11)
       }
@@ -262,7 +267,7 @@ export class FactoryScene extends Phaser.Scene {
     }
     if (plan.beltSnap) this.preview.lineStyle(2, 0xa4c9df, .7).strokeCircle((plan.beltSnap.x + .5) * TILE, (plan.beltSnap.y + .5) * TILE, 11)
     const count = plan.cells.filter(c => !c.reuse).length, reversed = plan.cells.filter(c => c.reverse).length, reused = plan.cells.length - count - reversed
-    this.placementTooltip(pointer, `${plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? `new · ${reused} reused · ${reversed} reversed` : `new · ${reused} existing`}\nTotal cost: Free\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : plan.beltSnap ? 'Joining existing belt. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
+    this.placementTooltip(pointer, `${plan.unaffordable ? '◇' : plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? `new · ${reused} reused · ${reversed} reversed` : `new · ${reused} existing`}\nTotal cost: ${plan.wood ? `${plan.wood} Wood · You have ${this.world.nature.wood}` : 'Free'}${plan.cells.some(c => c.bridge) ? ` · ${plan.cells.filter(c => c.bridge && !c.reuse).length} new bridge segments` : ''}\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : plan.beltSnap ? 'Joining existing belt. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)
@@ -275,6 +280,7 @@ export class FactoryScene extends Phaser.Scene {
     const greens = [0x344e37, 0x36513a, 0x38543b, 0x324b35]
     world.tiles.forEach((resource, index) => {
       const x = index % SIZE * TILE, y = Math.floor(index / SIZE) * TILE
+      if (world.water[index]) { drawWaterTile(terrain, world, index % SIZE, Math.floor(index / SIZE), TILE); return }
       terrain.fillStyle(greens[(index * 7 + Math.floor(index / SIZE) * 3) % 4]).fillRect(x, y, TILE, TILE)
       terrain.lineStyle(1, 0x14291e, .22).strokeRect(x, y, TILE, TILE)
       if (resource) {
@@ -481,6 +487,7 @@ export class FactoryScene extends Phaser.Scene {
     this.items.clear()
     this.peteEffects.clear()
     this.paintDrag(this.input.activePointer)
+    this.landscapeWater.draw(this.waterSurface, this.world, camera.worldView, TILE)
     this.natureVisuals.drawDecorations(this.landscape, this.world, TILE)
     for (const building of this.world.buildings) {
       if (!building) continue
@@ -613,6 +620,13 @@ export class FactoryScene extends Phaser.Scene {
           this.drawItem(building.input.item, x + 16 + point.x * TILE, y + 16 + point.y * TILE)
         }
       } else if (building.kind === 'belt') {
+        if (building.bridge) {
+          const horizontal = !!offsets[building.direction].x
+          this.machines.fillStyle(0xa88a61).fillRect(x + (horizontal ? 0 : 1), y + (horizontal ? 1 : 0), horizontal ? TILE : 30, horizontal ? 30 : TILE)
+          this.machines.lineStyle(2, 0xd1b88b)
+          for (const edge of [2, 30]) if (horizontal) this.machines.lineBetween(x, y + edge, x + TILE, y + edge)
+          else this.machines.lineBetween(x + edge, y, x + edge, y + TILE)
+        }
         const inputs = beltInputs(this.world, building)
         const paths = inputs.length ? inputs : [opposite(building.direction)]
         // Draw every valid input, with a stable main lane independent of items.
@@ -679,12 +693,13 @@ export class FactoryScene extends Phaser.Scene {
       if (state.tool === 'belt') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, 'belt', state.direction)); return }
       if (natureTool(state.tool)) {
         const previewSpecies = plantingSpecies(state.tool)
-        const error = previewSpecies ? placementInfo(this.world, { x, y }, 'tree').error : state.tool === 'axe' && buildingAt(this.world, x, y)?.kind !== 'tree' ? 'Choose a tree to chop.' : null
+        const error = previewSpecies ? placementInfo(this.world, { x, y }, 'tree').error : state.tool === 'axe' && buildingAt(this.world, x, y)?.kind !== 'tree' ? 'Choose a tree to chop.' : brushMode(state.tool) !== undefined && this.world.water[y * SIZE + x] ? 'Only dry tiles are painted. Water stays clear.' : null
         this.placementTooltip(pointer, `${error ? '×' : '✓'} ${toolMetadata(state.tool).label} · Free${error ? `\n${error}` : ''}`)
         const mode = brushMode(state.tool), species = plantingSpecies(state.tool)
         if (mode !== undefined) {
           const color = mode === 'flowers' ? 0xe5c3a1 : mode === 'grass' ? 0xa6c27d : 0xc6bca7
           for (const i of brushTiles({ x, y }, { x, y }, state.brushSize)) {
+            if (this.world.water[i]) { this.preview.lineStyle(1, 0xe7a08d, .6).strokeRect(i % SIZE * TILE + 2, Math.floor(i / SIZE) * TILE + 2, TILE - 4, TILE - 4); continue }
             this.preview.fillStyle(color, .2).fillRect(i % SIZE * TILE, Math.floor(i / SIZE) * TILE, TILE, TILE)
             this.preview.lineStyle(1, color, .7).strokeRect(i % SIZE * TILE + 1, Math.floor(i / SIZE) * TILE + 1, TILE - 2, TILE - 2)
           }
@@ -700,6 +715,8 @@ export class FactoryScene extends Phaser.Scene {
       if (state.tool === 'spiderWeb' && peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) this.preview.lineStyle(2, 0xeaf3f5).strokeCircle((this.world.pete.x + .5) * TILE, (this.world.pete.y + .5) * TILE, .8 * TILE)
       if (state.tool === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, SPRINKLER_RANGE * TILE)
       if (state.tool === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, RADAR_RANGE * TILE)
+      const removalTarget = state.tool === 'remove' ? buildingAt(this.world, x, y) : null
+      if (removalTarget?.kind === 'belt' && removalTarget.bridge) this.placementTooltip(pointer, 'Remove entire bridge crossing. Items are lost; no Wood refund.')
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
       if (state.tool === 'splitter') {
         const ports = splitterPorts({ x, y, direction: state.direction })

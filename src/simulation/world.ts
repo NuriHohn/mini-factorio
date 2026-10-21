@@ -1,3 +1,4 @@
+import { bridgeCrossing, generateWater, isWater } from './waterTerrain'
 import { beginPeace, createPeace, endPeace, TREEHOUSE_WOOD } from './peace'
 import type { PeaceState } from './peace'
 import { createNature, generateNature, MATURE_TREE_MS, REPRODUCTION_MS } from './nature'
@@ -29,7 +30,7 @@ export type BuildingKind = 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' |
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
-export interface Belt extends BuildingPosition { kind: 'belt'; direction: Direction; item: Item | null; progress: number; entry: Direction }
+export interface Belt extends BuildingPosition { kind: 'belt'; bridge?: true; direction: Direction; item: Item | null; progress: number; entry: Direction }
 export interface Storage extends BuildingPosition { kind: 'storage'; inventory: Inventory }
 export interface ProcessingJob {
   recipeId: RecipeId
@@ -85,7 +86,7 @@ export interface Splitter extends BuildingPosition {
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
 export type Building = Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -99,7 +100,7 @@ export function inside(x: number, y: number): boolean {
 export function buildingAt(world: World, x: number, y: number): Building | null {
   return inside(x, y) ? world.buildings[y * SIZE + x] : null
 }
-export function createWorld(random = Math.random, options: { nature?: boolean } = {}): World {
+export function createWorld(random = Math.random, options: { nature?: boolean; water?: boolean } = {}): World {
   const tiles: (Resource | null)[] = Array.from({ length: SIZE * SIZE }, () => null)
   for (const resource of RESOURCES) for (let n = 0; n < 35; n++) {
     const cx = Math.floor(random() * SIZE), cy = Math.floor(random() * SIZE)
@@ -114,28 +115,31 @@ export function createWorld(random = Math.random, options: { nature?: boolean } 
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  const world: World = { peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
-  if (options.nature !== false) generateNature(world, Math.floor(random() * 4294967296))
+  const world: World = { peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), water: Array<boolean>(SIZE * SIZE).fill(false), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  const seed = Math.floor(random() * 4294967296)
+  if (options.water !== false) generateWater(world, seed)
+  if (options.nature !== false) generateNature(world, seed)
   return world
 }
 export function depositAt(world: World, x: number, y: number): Resource | null {
   return inside(x, y) ? world.tiles[y * SIZE + x] : null
 }
 
-export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction): string | null {
+export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction, bridge = false): string | null {
   const technologyError = buildingTechnologyError(world.research, kind)
   if (technologyError) return technologyError
   if (kind === 'treehouse') {
     if (world.peace.home !== null) return 'Only one treehouse may exist. Remove the current home first.'
-    if (!world.buildings.some((b, i) => !b && i !== y * SIZE + x)) return 'Keep a free tile for Pete to leave custody.'
+    if (!world.buildings.some((b, i) => !b && !world.water[i] && i !== y * SIZE + x)) return 'Keep a free tile for Pete to leave custody.'
     if (world.nature.wood < TREEHOUSE_WOOD) return `Pete’s Treehouse costs ${TREEHOUSE_WOOD} Wood · ${world.nature.wood} available.`
   }
   if (!inside(x, y)) return 'Choose a tile inside the world.'
   if (walkerOccupiesTile(world, y * SIZE + x)) return 'The walker is occupying this tile.'
   if (policeOccupiesTile(world, x, y)) return 'Keep the police route and prison exit clear.'
-  if (kind === 'prison' && (!edgeTile(y * SIZE + x) || !neighboringTiles(y * SIZE + x).some(tile => !world.buildings[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE))))) return 'Prisons need an edge tile and an empty exit.'
+  if (kind === 'prison' && (!edgeTile(y * SIZE + x) || !neighboringTiles(y * SIZE + x).some(tile => !world.buildings[tile] && !world.water[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE))))) return 'Prisons need an edge tile and an empty exit.'
   if (peteOccupiesTile(world, x, y)) return 'Pete is walking through this tile.'
   const existing = buildingAt(world, x, y)
+  if (isWater(world, x, y) && !(kind === 'belt' && bridge)) return 'Water needs a complete belt bridge. Drag from land to land.'
   if (kind === 'belt' && direction && existing?.kind === 'belt') return !!offsets[direction].x === !!offsets[existing.direction].x ? null : 'Existing belt blocks this route. Perpendicular crossings are not allowed.'
   if (existing?.kind === 'tree') return 'A tree occupies this tile. Use the Axe to clear it.'
   if (buildingAt(world, x, y)) return 'This tile already has a building.'
@@ -151,7 +155,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
     case 'splitter': building = { kind, x, y, direction, input: null, outputs: [null, null], nextOutput: 0, delivered: [0, 0], placedAtMs: world.timeMs }; break
     case 'sprinkler': building = { kind, x, y, cooldownUntilMs: 0, sprays: 0 }; break
     case 'radar': building = { kind, x, y }; break
-    case 'prison': building = { kind, x, y, exit: neighboringTiles(y * SIZE + x).find(tile => !world.buildings[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)))! }; break
+    case 'prison': building = { kind, x, y, exit: neighboringTiles(y * SIZE + x).find(tile => !world.buildings[tile] && !world.water[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)))! }; break
     case 'inserter': building = { kind, x, y, direction, phase: 'idle', item: null, elapsedMs: 0 }; break
     case 'generator': building = { kind, x, y }; break
     case 'powerPole': building = { kind, x, y }; break
@@ -175,6 +179,12 @@ export function removalError(world: World, x: number, y: number): string | null 
 }
 export function removeBuilding(world: World, x: number, y: number): boolean {
   if (removalError(world, x, y)) return false
+  const removed = world.buildings[y * SIZE + x]
+  if (removed?.kind === 'belt' && removed.bridge) {
+    for (const i of bridgeCrossing(world, x, y, removed.direction) ?? [y * SIZE + x]) if (world.buildings[i]?.kind === 'belt') world.buildings[i] = null
+    world.topologyRevision++
+    return true
+  }
   removePoliceBuilding(world, world.buildings[y * SIZE + x]!)
   removeSprinkler(world, world.buildings[y * SIZE + x]!)
   delete world.analytics.machines[y * SIZE + x]

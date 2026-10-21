@@ -90,7 +90,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
     splitter: ['direction', 'input', 'outputs', 'nextOutput', 'delivered', 'placedAtMs'],
   }
-  const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs'])
+  const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs', ...(version >= 9 && kind === 'belt' ? ['bridge'] : [])])
   const x = count(r.x, `${path}.x`, SIZE - 1), y = count(r.y, `${path}.y`, SIZE - 1)
   if (y * SIZE + x !== index) invalid(path, 'building position disagrees with its tile')
   const base = { x, y, ...(r.sabotageUntilMs === undefined ? {} : { sabotageUntilMs: count(r.sabotageUntilMs, `${path}.sabotageUntilMs`) }) }
@@ -111,7 +111,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     case 'belt': {
       const d = facing(), entry = direction(r.entry, `${path}.entry`)
       if (entry === d) invalid(path, 'belt cannot enter and leave on the same side')
-      return { ...base, kind, direction: d, entry, item: nullableItem(r.item, `${path}.item`), progress: number(r.progress, `${path}.progress`, 0, 1) }
+      if (r.bridge !== undefined && r.bridge !== true) invalid(path, 'bridge marker must be true')
+      return { ...base, kind, ...(r.bridge === true ? { bridge: true as const } : {}), direction: d, entry, item: nullableItem(r.item, `${path}.item`), progress: number(r.progress, `${path}.progress`, 0, 1) }
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }

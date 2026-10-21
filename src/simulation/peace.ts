@@ -43,7 +43,7 @@ function resetPete(world: World): void {
   const p = world.pete
   // Custody can place Pete on a prison tile; choose the nearest free legal cell.
   const origin = p.tile
-  const tile = world.buildings.flatMap((b, i) => !b ? [i] : []).sort((a, b) => Math.abs(a % SIZE - origin % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(origin / SIZE)) - Math.abs(b % SIZE - origin % SIZE) - Math.abs(Math.floor(b / SIZE) - Math.floor(origin / SIZE)) || a - b)[0]
+  const tile = world.buildings.flatMap((b, i) => !b && !world.water[i] ? [i] : []).sort((a, b) => Math.abs(a % SIZE - origin % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(origin / SIZE)) - Math.abs(b % SIZE - origin % SIZE) - Math.abs(Math.floor(b / SIZE) - Math.floor(origin / SIZE)) || a - b)[0]
   Object.assign(p, { tile, x: tile % SIZE, y: Math.floor(tile / SIZE), next: null, travelMs: 0, mode: 'WANDERING', prison: null, imprisonedAtMs: null, graceUntilMs: world.timeMs, jailbreak: null, pumpkin: null, webMs: 0, water: null, trappedBy: null, ignoredWebs: [], path: [], pathRevision: -1, escape: null, cryingMs: 0, cooldownMs: PETE_COOLDOWN_MS })
   world.police.car = null; world.police.flash = null; world.police.retryAtMs = 0
 }
@@ -76,12 +76,12 @@ export function endPeace(world: World): void {
 }
 function localTiles(world: World, parents: Map<number, number>): number[] {
   const home = world.peace.home!
-  return [...parents.keys()].filter(i => !world.buildings[i] && !reserved(world, i) && Math.max(Math.abs(i % SIZE - home % SIZE), Math.abs(Math.floor(i / SIZE) - Math.floor(home / SIZE))) <= 3)
+  return [...parents.keys()].filter(i => !world.water[i] && !world.buildings[i] && !reserved(world, i) && Math.max(Math.abs(i % SIZE - home % SIZE), Math.abs(Math.floor(i / SIZE) - Math.floor(home / SIZE))) <= 3)
 }
 function plan(world: World): void {
   const p = world.pete, s = world.peace, parents = reachableTiles(world, p.tile)
   const local = localTiles(world, parents)
-  const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.buildings[i] && !reserved(world, i))
+  const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i))
   if (s.activity === 'homeward') {
     const candidates = entrances.length ? entrances : local.length ? local : [p.tile]
     s.destination = candidates.sort((a, b) => (tilePath(parents, a)?.length ?? Infinity) - (tilePath(parents, b)?.length ?? Infinity) || a - b)[0]
@@ -136,7 +136,7 @@ export function advancePeace(world: World, delta: number): void {
   if (!peaceful(world)) return
   if (world.timeMs >= s.nextGiftAtMs) { spawnGift(world); scheduleGift(world) }
   if (s.activity === 'homeward' || s.activity === 'walking') {
-    if (p.next !== null && world.buildings[p.next]) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
+    if (p.next !== null && (world.water[p.next] || world.buildings[p.next])) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
     if (s.activity === 'entering') activity(world, 'resting', 12000)

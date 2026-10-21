@@ -19,7 +19,7 @@ describe('version 8 peace persistence', () => {
   it.each([0, 50, 1500, 3000, 6000, 17000, 80000, 400000])('restores exact routine, gifts, RNG and time remainder at %i ms', time => {
     const w = home(); advanceWorld(w, time + 12.5)
     const restored = load(w)
-    expect(SAVE_VERSION).toBe(8); expect(snapshot(restored)).toEqual(snapshot(w))
+    expect(SAVE_VERSION).toBe(9); expect(snapshot(restored)).toEqual(snapshot(w))
     for (const delta of [37.5, 112.5, 1450, 7500]) {
       advanceWorld(w, delta); advanceWorld(restored, delta)
       expect(snapshot(restored)).toEqual(snapshot(w))
@@ -80,7 +80,7 @@ describe('version 8 peace persistence', () => {
     const w = poweredWorld(() => .5)
     placeBuilding(w, 20, 20, 'miner', 'east'); w.revenge.arrests = 2; w.revenge.threshold = 5; w.nature.wood = 13
     advanceWorld(w, 1250)
-    const old = snapshot(w); Object.assign(old, { version: 7 }); Reflect.deleteProperty(old.game, 'peace')
+    const old = snapshot(w); Object.assign(old, { version: 7 }); Reflect.deleteProperty(old.game, 'water'); Reflect.deleteProperty(old.game, 'peace')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.peace).toEqual(createPeace())
     expect(snapshot(restored)).toEqual(snapshot(w))
@@ -92,7 +92,7 @@ describe('version 8 peace persistence', () => {
     if (prison.kind !== 'prison') throw Error('fixture')
     Object.assign(w.pete, { mode: 'IMPRISONED', prison, imprisonedAtMs: 0, tile: 40, x: 0, y: 1 })
     advanceWorld(w, 59950)
-    const old = snapshot(w); Object.assign(old, { version: 7 }); Reflect.deleteProperty(old.game, 'peace')
+    const old = snapshot(w); Object.assign(old, { version: 7 }); Reflect.deleteProperty(old.game, 'water'); Reflect.deleteProperty(old.game, 'peace')
     const restored = decodeSave(JSON.stringify(old)).world
     advanceWorld(w, 50); advanceWorld(restored, 50)
     expect(snapshot(restored)).toEqual(snapshot(w)); expect(restored.pete.prison).toBeNull()
@@ -115,7 +115,7 @@ describe('version 8 peace persistence', () => {
     ['duplicate IDs', (d: SaveDocument) => { d.game.peace.gifts = [{ id: 1, tile: 939, kind: 'wood', wood: 1, atMs: 0 }, { id: 1, tile: 940, kind: 'wood', wood: 1, atMs: 0 }]; d.game.peace.nextId = 2 }],
     ['invalid Wood gift', (d: SaveDocument) => { d.game.peace.gifts = [{ id: 1, tile: 939, kind: 'wood', wood: 0, atMs: 0 }]; d.game.peace.nextId = 2 }],
     ['distant gift', (d: SaveDocument) => { d.game.peace.gifts = [{ id: 1, tile: 0, kind: 'wood', wood: 1, atMs: 0 }]; d.game.peace.nextId = 2 }],
-    ['hidden version-8 state', (d: SaveDocument) => { Object.assign(d, { version: 7 }) }],
+    ['hidden version-8 state', (d: SaveDocument) => { Object.assign(d, { version: 7 }); Reflect.deleteProperty(d.game, 'water') }],
   ])('rejects %s without touching the running world', (_name, mutate) => {
     const w = home(), before = snapshot(w), bad = structuredClone(before)
     mutate(bad)

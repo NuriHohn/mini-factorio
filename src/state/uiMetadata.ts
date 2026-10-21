@@ -33,7 +33,7 @@ export const CONTROL_ROWS = [
   { keys: 'P', action: 'Show or hide power coverage' },
   { keys: 'Escape', action: 'Cancel a drag first, then close a panel or menu, then put away your tool' },
   { keys: 'Right click', action: 'Cancel a drag, or put away your tool; never removes a building' },
-  { keys: 'Drag belt / pole', action: 'Preview belts with safe same-axis reuse/reversal and detours or a power route that reuses existing poles; release to build all at once' },
+  { keys: 'Drag belt / pole', action: 'Preview belts, safe reversals and land-to-land bridges (up to 5 water tiles; 3 Wood each) or a power route that reuses existing poles; release to build all at once' },
   { keys: 'Left click', action: 'Use your selected tool, or inspect when no tool is selected' },
   { keys: 'Click active tool', action: 'Cancel that tool; choosing a different group also cancels it' },
   { keys: 'Click and drag', action: 'Paint flowers or grass, or erase decoration, with a landscape brush' },

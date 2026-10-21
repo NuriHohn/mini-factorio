@@ -7,7 +7,7 @@ import { advanceWorld } from './step'
 import { reachableTiles } from './navigation'
 import { allocatePower } from './power'
 import { analyticsSnapshot } from './analytics'
-const bare = () => createWorld(() => .5, { nature: false })
+const bare = () => createWorld(() => .5, { nature: false, water: false })
 function tree(world: World, x = 5, y = 5) {
   expect(plantTree(world, x, y, 'oak')).toBe(true)
   return world.buildings[y * SIZE + x] as Tree

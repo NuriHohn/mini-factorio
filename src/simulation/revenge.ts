@@ -46,7 +46,7 @@ export function walkerOccupiesTile(world: World, tile: number): boolean {
 }
 function freeTile(world: World, tile: number): boolean {
   const car = world.police.car
-  return !world.buildings[tile] && car?.tile !== tile && car?.next !== tile && !world.buildings.some(b => b?.kind === 'prison' && b.exit === tile)
+  return !world.water[tile] && !world.buildings[tile] && car?.tile !== tile && car?.next !== tile && !world.buildings.some(b => b?.kind === 'prison' && b.exit === tile)
 }
 function resetPete(world: World, tile: number): void {
   Object.assign(world.pete, { x: tile % SIZE, y: Math.floor(tile / SIZE), tile, next: null, travelMs: 0, mode: 'WANDERING', prison: null, imprisonedAtMs: null, pumpkin: null, webMs: 0, water: null, trappedBy: null, ignoredWebs: [], jailbreak: null, graceUntilMs: world.timeMs, path: [], pathRevision: -1, escape: null, cryingMs: 0 })

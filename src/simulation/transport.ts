@@ -18,7 +18,7 @@ export function canReceive(target: Building, item: Item, travel: Direction, rese
   switch (target.kind) {
     case 'splitter': return travel === target.direction && target.input === null && inventoryTotal(reserved) === 0
     case 'storage': return true
-    case 'belt': return !target.item && inventoryTotal(reserved) === 0 && target.direction !== opposite(travel)
+    case 'belt': return !target.item && inventoryTotal(reserved) === 0 && (target.bridge ? target.direction === travel : target.direction !== opposite(travel))
     case 'assembler': return target.direction !== opposite(travel)
       && target.input[item] + (reserved[item] ?? 0) < assemblerInputCapacity(target, item)
     case 'furnace': return target.direction !== opposite(travel)

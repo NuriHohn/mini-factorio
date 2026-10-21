@@ -8,7 +8,7 @@ export function neighboringTiles(tile: number): number[] {
 export function reachableTiles(world: World, start: number): Map<number, number> {
   const queue = [start], parents = new Map<number, number>([[start, -1]])
   for (let head = 0; head < queue.length; head++) for (const tile of neighboringTiles(queue[head])) {
-    if (!world.buildings[tile] && !parents.has(tile)) { parents.set(tile, queue[head]); queue.push(tile) }
+    if (!world.water[tile] && !world.buildings[tile] && !parents.has(tile)) { parents.set(tile, queue[head]); queue.push(tile) }
   }
   return parents
 }

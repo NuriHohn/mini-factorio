@@ -113,7 +113,7 @@ export function generateNature(world: World, seed: number): void {
   for (const [cx, cy] of [[11, 8], [31, 17], [13, 30], [14, 24]]) {
     for (let dy = -2; dy <= 2; dy++) for (let dx = -3; dx <= 3; dx++) {
       const roll = natureRandom(world.nature)
-      if (dx * dx / 9 + dy * dy / 4 <= 1 && roll < .75) world.nature.decorations[(cy + dy) * SIZE + cx + dx] = roll < .55 ? 'flowers' : 'grass'
+      if (!world.water[(cy + dy) * SIZE + cx + dx] && dx * dx / 9 + dy * dy / 4 <= 1 && roll < .75) world.nature.decorations[(cy + dy) * SIZE + cx + dx] = roll < .55 ? 'flowers' : 'grass'
     }
   }
   world.topologyRevision++
@@ -150,7 +150,7 @@ export function brushTiles(from: Position, to: Position, size: BrushSize): numbe
 export function paintLandscape(world: World, from: Position, to: Position, decoration: Decoration | null, size: BrushSize): number {
   if (decoration !== null && decoration !== 'grass' && decoration !== 'flowers') return 0
   let changed = 0
-  for (const tile of brushTiles(from, to, size)) if (world.nature.decorations[tile] !== decoration) {
+  for (const tile of brushTiles(from, to, size)) if (!world.water[tile] && world.nature.decorations[tile] !== decoration) {
     world.nature.decorations[tile] = decoration
     changed++
   }

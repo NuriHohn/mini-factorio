@@ -6,7 +6,7 @@ import type { Belt, Direction, World } from './world'
 // Rear input is the main lane; side inputs follow source tile order.
 export function beltInputs(world: World, belt: Belt): Direction[] {
   const inputs = DIRECTIONS.filter(side => {
-    if (side === belt.direction) return false
+    if (side === belt.direction || (belt.bridge && side !== opposite(belt.direction))) return false
     const offset = offsets[side]
     const source = buildingAt(world, belt.x + offset.x, belt.y + offset.y)
     if (source?.kind === 'splitter') return splitterDirections(source.direction).includes(opposite(side))

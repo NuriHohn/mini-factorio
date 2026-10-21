@@ -19,6 +19,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
 | Sprint 7.5: Pete | Deterministic immortal goblin, timed pumpkin sabotage, mush/slime feedback and click-to-scare corner crying |
 | Sprint 7.6: police and prison | Powered radar traps, single obstacle-aware police dispatch, visible arrest/transport, prison inspector/manual release, timed jailbreak and re-arrest grace |
+| Sprint 15.0: Water & Bridges | Seeded ponds/stream/river with protected dry starting land, shoreline/living-water graphics, water-aware building/nature/NPC rules, automatic straight 1–5-cell conveyor bridges at 3 Wood/new segment, atomic cost-aware routing/reuse/reversal/whole-crossing demolition and strict version-9 saves with dry version-1–8 migration |
 | Sprint 14.9: Belt Connection Polish & Smart Overwrite | In-place same-axis reuse/reversal with packet preservation, protected perpendicular lines, direction-aware conservative detours and unique rear endpoint joins, new/reused/reversed previews and atomic free construction; existing power routing and version-8 saves preserved |
 | Sprint 14.8: Smart Power Routing | Bounded deterministic minimum-new-pole electrical routing, forest/factory site detours without line of sight, existing infrastructure reuse and network joins, explicit adjacent endpoint snapping, blue reuse rings and new/existing counts, atomic free construction and preserved coverage/simulation/version-8 saves |
 | Sprint 14.7: Smart Conveyor Belt Routing | Preferred direct belt drags with bounded deterministic A* obstacle detours, shortest/few-turn cardinal routes, turquoise detour previews and accurate free tile counts, atomic live revalidation, cached planning, graceful search failures and unchanged transport/version-8 saves; pole routing unchanged |
@@ -42,6 +43,8 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Proposal | Intended scope / prerequisite |
 | --- | --- |
+| Sprint 15.1: Water & Industry | Future extension: separately scoped water-related industry; no pumps, fluids or new water-powered machines are implemented in Sprint 15.0 |
+| Sprint 16.0: Pete’s Cozy Home | Subsequent planned major feature: fences, gates and treehouse decorations; no such construction is implemented yet |
 | Improved logistics | Build on basic inserters with separately approved filtering, priorities, stack/reach variants or throughput improvements |
 | Advanced routing | Future filtering, configurable output priorities and more complex junctions beyond the implemented compact splitter |
 | Blueprints | Capture layouts, preview placement and validate collisions/resources before player confirmation |
