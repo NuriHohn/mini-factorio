@@ -54,8 +54,18 @@ function resetPete(world: World, tile: number): void {
 }
 function spawn(world: World): void {
   // Tile order is stable; a full/obstructed edge leaves the warning pending.
-  const tile = world.buildings.findIndex((_, i) => edgeTile(i) && freeTile(world, i) && world.pete.tile !== i && world.pete.next !== i)
+  let tile = world.buildings.findIndex((_, i) => edgeTile(i) && freeTile(world, i) && world.pete.tile !== i && world.pete.next !== i)
   if (tile < 0) return
+  // Prefer a connected edge with an approachable productive target. Visit each
+  // component only once; retain the original waiting behavior if none exists.
+  const visited = new Set<number>()
+  const hasTargets = world.buildings.some((_, index) => productiveTarget(world, index))
+  for (let i = tile; hasTargets && i < world.buildings.length; i++) {
+    if (!edgeTile(i) || visited.has(i) || !freeTile(world, i) || world.pete.tile === i || world.pete.next === i) continue
+    const parents = reachableTiles(world, i)
+    for (const reachable of parents.keys()) visited.add(reachable)
+    if (chooseTarget(world, { tile: i, x: i % SIZE, y: Math.floor(i / SIZE), lastTarget: null }, parents) !== null) { tile = i; break }
+  }
   resetPete(world, tile)
   world.revenge.boss = { x: tile % SIZE, y: Math.floor(tile / SIZE), tile, next: null, travelMs: 0, hp: 100, phase: 1, stomped: false, target: null, lastTarget: null, empAtMs: world.timeMs + 8000 }
   world.revenge.stage = 'hunting'; world.revenge.untilMs = 0
@@ -81,11 +91,11 @@ export function productiveTarget(world: World, index: number): boolean {
   if (b.kind === 'miner') return !b.item && !!world.tiles[index]
   return (b.kind === 'furnace' || b.kind === 'assembler') && !!b.job && b.job.elapsedMs < RECIPES[b.job.recipeId].durationMs
 }
-function chooseTarget(world: World, boss: Walker): number | null {
+function chooseTarget(world: World, boss: Pick<Walker, 'tile' | 'x' | 'y' | 'lastTarget'>, parents?: Map<number, number>): number | null {
   const priority = { assembler: 0, furnace: 1, miner: 2 }
   const candidates = world.buildings.flatMap((b, i) => b && productiveTarget(world, i) && (b.kind === 'assembler' || b.kind === 'furnace' || b.kind === 'miner') ? [{ index: i, rank: priority[b.kind], distance: (b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 }] : [])
   if (!candidates.length) return null
-  const reachable = reachableTiles(world, boss.tile)
+  const reachable = parents ?? reachableTiles(world, boss.tile)
   const canApproach = (index: number) => [...reachable.keys()].some(tile => (tile % SIZE - index % SIZE) ** 2 + (Math.floor(tile / SIZE) - Math.floor(index / SIZE)) ** 2 <= 36)
   return candidates.filter(c => canApproach(c.index)).sort((a, b) => a.rank - b.rank || Number(a.index === boss.lastTarget) - Number(b.index === boss.lastTarget) || a.distance - b.distance || a.index - b.index)[0]?.index ?? null
 }
@@ -118,7 +128,15 @@ export function advanceRevenge(world: World, delta: number): void {
     return
   }
   if (boss.target === null || !productiveTarget(world, boss.target)) boss.target = chooseTarget(world, boss)
-  const target = boss.target === null ? null : world.buildings[boss.target]
+  let target = boss.target === null ? null : world.buildings[boss.target]
+  let parents: Map<number, number> | undefined
+  if (boss.next === null && target && Math.hypot(target.x - boss.x, target.y - boss.y) > 6) {
+    parents = reachableTiles(world, boss.tile)
+    if (![...parents.keys()].some(tile => Math.hypot(tile % SIZE - target!.x, Math.floor(tile / SIZE) - target!.y) <= 6)) {
+      boss.target = chooseTarget(world, boss, parents)
+      target = boss.target === null ? null : world.buildings[boss.target]
+    }
+  }
   // Complete the current tile traversal before aiming or choosing a fresh path.
   if (boss.next === null && target && Math.hypot(target.x - boss.x, target.y - boss.y) <= 6) {
     if (world.timeMs >= boss.empAtMs) {
@@ -128,7 +146,7 @@ export function advanceRevenge(world: World, delta: number): void {
     return
   }
   if (boss.next === null && target) {
-    const parents = reachableTiles(world, boss.tile)
+    parents ??= reachableTiles(world, boss.tile)
     const approach = [...parents.keys()].filter(tile => Math.hypot(tile % SIZE - target.x, Math.floor(tile / SIZE) - target.y) <= 6).sort((a, b) => (Math.abs(a % SIZE - boss.tile % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(boss.tile / SIZE))) - (Math.abs(b % SIZE - boss.tile % SIZE) + Math.abs(Math.floor(b / SIZE) - Math.floor(boss.tile / SIZE))) || a - b)[0]
     boss.next = approach === undefined ? null : tilePath(parents, approach)?.[0] ?? null
   }
