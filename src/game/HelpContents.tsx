@@ -22,7 +22,7 @@ export function HelpContents() {
       <h3>⚙ Make something</h3><p>Put a miner on ore. Add belts to carry ore to a furnace, then into a chest. Furnaces turn ore into plates. Assemblers make parts: pick a recipe in their inspector first.</p>
       <h3>➜ Keep things moving</h3><p>Rotate tools to point their output the right way. Inserters move items between neighbors. If items cannot leave, machines wait.</p>
       <h3>✦ Discover new tools</h3><p>Working machines earn research points. Open Research and choose an unlock when you have enough points.</p>
-      <h3>♣ Enjoy nature</h3><p>Plant trees and paint flowers. Trees grow while you play. Chop young or mature trees with the Axe for Wood. A treehouse costs 20 Wood.</p>
+      <h3>♣ Enjoy nature</h3><p>Plant trees and paint flowers. Trees grow while you play. Chop young or mature trees with the Axe for Wood. A treehouse costs 20 Wood. Create Water and Restore Land share the 1×1, 3×3 and 5×5 brushes. Red tiles are protected; existing bridges and their dry banks stay safe.</p>
       <h3>♥ Meet Pete</h3><p>Pete plays pranks and briefly stops machines. Radar traps call the police. Repeated arrests bring his Revenge walker. Choose a combat tool to defend your factory, or build Pete a home for peace and little gifts.</p>
       <h3>Building tips</h3><ul className="help-tool-hints">{Object.values(TOOL_HINTS).map(hint => <li key={hint}>{hint}</li>)}</ul>
       <h3>☰ Keep your factory</h3><p>Open Menu to save or load. Autosave keeps a separate copy every two minutes of play. Export a file for a backup. Loading is always your choice.</p>

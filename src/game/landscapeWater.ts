@@ -1,5 +1,5 @@
 import type Phaser from 'phaser'
-import { isWater, shoreline } from '../simulation/waterTerrain'
+import { isWater, shoreline, shorelineCorners, terrainRevision } from '../simulation/waterTerrain'
 import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 const hash = (n: number) => (Math.imul(n + 71, 1103515245) ^ Math.imul(n + 9, 2654435761)) >>> 0
@@ -8,7 +8,7 @@ export interface WaterLife { tile: number; kind: 'fish' | 'bubbles'; t: number; 
 export function waterLife(sites: number[], deep: number[], timeMs: number): WaterLife[] {
   if (!sites.length) return []
   const result: WaterLife[] = []
-  for (let slot = 0; slot < 3; slot++) {
+  for (let slot = 0; slot < Math.min(3, Math.ceil(sites.length / 4)); slot++) {
     const period = 19000 + slot * 7000, clock = timeMs + slot * 4700
     const cycle = Math.floor(clock / period), age = clock % period
     if (age < 4000 || age >= 6800) continue
@@ -18,16 +18,34 @@ export function waterLife(sites: number[], deep: number[], timeMs: number): Wate
   }
   return result
 }
+const WATER_COLOR = 0x4e7d80
+const BANK_COLOR = 0x98aa80
 export function drawWaterTile(g: Phaser.GameObjects.Graphics, world: World, x: number, y: number, tile: number) {
   const px = x * tile, py = y * tile, mask = shoreline(world, x, y), seed = hash(y * SIZE + x)
-  g.fillStyle(mask ? 0x527f83 : 0x416f7e).fillRect(px, py, tile, tile)
-  g.fillStyle(0x6f9b91, .05).fillEllipse(px + tile / 2, py + tile / 2, tile - 8, tile - 20)
-  g.lineStyle(3, 0x95a47b, .9)
-  if (mask & 1) g.lineBetween(px, py + 1, px + tile, py + 1)
-  if (mask & 2) g.lineBetween(px + tile - 1, py, px + tile - 1, py + tile)
-  if (mask & 4) g.lineBetween(px, py + tile - 1, px + tile, py + tile - 1)
-  if (mask & 8) g.lineBetween(px + 1, py, px + 1, py + tile)
-  for (const [bits, cx, cy] of [[9, px, py], [3, px + tile, py], [6, px + tile, py + tile], [12, px, py + tile]]) if ((mask & bits) === bits) g.fillStyle(0x7e956a).fillCircle(cx, cy, 4)
+  const corners = shorelineCorners(world, x, y), radius = tile * .31
+  if (!isWater(world, x, y)) {
+    // Round a concave water corner in the diagonal land tile. This joins the
+    // neighboring straight banks without a square bite or disconnected seam.
+    for (let i = 0; i < 4; i++) if (corners[i] === 'inlet') {
+      const east = i === 1 || i === 2, south = i >= 2
+      g.save().translateCanvas(px + (east ? tile : 0), py + (south ? tile : 0)).scaleCanvas(east ? -1 : 1, south ? -1 : 1)
+      g.fillStyle(WATER_COLOR).beginPath().moveTo(0, 0).lineTo(radius, 0).arc(radius, radius, radius, -Math.PI / 2, -Math.PI, true).lineTo(0, 0).closePath().fillPath()
+      g.lineStyle(2, BANK_COLOR, .8).beginPath().arc(radius, radius, radius, -Math.PI / 2, -Math.PI, true).strokePath().restore()
+    }
+    return
+  }
+  const r = corners.map(c => c === 'convex' ? radius : 0)
+  g.fillStyle(WATER_COLOR).fillRoundedRect(px, py, tile, tile, { tl: r[0], tr: r[1], br: r[2], bl: r[3] })
+  g.lineStyle(2, BANK_COLOR, .8)
+  if (mask & 1) g.lineBetween(px + r[0], py, px + tile - r[1], py)
+  if (mask & 2) g.lineBetween(px + tile, py + r[1], px + tile, py + tile - r[2])
+  if (mask & 4) g.lineBetween(px + r[3], py + tile, px + tile - r[2], py + tile)
+  if (mask & 8) g.lineBetween(px, py + r[0], px, py + tile - r[3])
+  for (let i = 0; i < 4; i++) if (r[i]) {
+    const east = i === 1 || i === 2, south = i >= 2
+    g.save().translateCanvas(px + (east ? tile : 0), py + (south ? tile : 0)).scaleCanvas(east ? -1 : 1, south ? -1 : 1)
+    g.beginPath().arc(radius, radius, radius, Math.PI, Math.PI * 1.5).strokePath().restore()
+  }
   if (mask && seed % 7 === 0) {
     const xx = px + (mask & 8 ? 4 : mask & 2 ? tile - 4 : 12), yy = py + (mask & 1 ? 5 : tile - 5)
     g.lineStyle(1, 0xabc08a, .75).lineBetween(xx, yy + 3, xx - 2, yy - 4).lineBetween(xx + 3, yy + 3, xx + 4, yy - 5)
@@ -35,12 +53,19 @@ export function drawWaterTile(g: Phaser.GameObjects.Graphics, world: World, x: n
 }
 export class LandscapeWater {
   private world: World | null = null
+  private revision = -1
   private sites: number[] = []
   private deep: number[] = []
   draw(g: Phaser.GameObjects.Graphics, world: World, view: { x: number; y: number; width: number; height: number }, tile: number) {
-    if (this.world !== world) {
-      this.world = world; this.sites = world.water.flatMap((water, i) => water ? [i] : [])
-      this.deep = this.sites.filter(i => [-1, 0, 1].every(dy => [-1, 0, 1].every(dx => isWater(world, i % SIZE + dx, Math.floor(i / SIZE) + dy))))
+    const revision = terrainRevision(world)
+    if (this.world !== world || this.revision !== revision) {
+      this.world = world; this.revision = revision; this.sites = []; this.deep = []
+      for (let i = 0; i < world.water.length; i++) if (world.water[i]) {
+        this.sites.push(i)
+        let deep = true
+        for (let dy = -1; dy <= 1 && deep; dy++) for (let dx = -1; dx <= 1; dx++) if (!isWater(world, i % SIZE + dx, Math.floor(i / SIZE) + dy)) { deep = false; break }
+        if (deep) this.deep.push(i)
+      }
     }
     g.clear()
     const visible = (i: number) => { const x = i % SIZE * tile, y = Math.floor(i / SIZE) * tile; return x + tile >= view.x && x <= view.x + view.width && y + tile >= view.y && y <= view.y + view.height }

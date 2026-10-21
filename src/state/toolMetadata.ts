@@ -29,6 +29,8 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'flowers', label: 'Flowers', hint: 'Click and drag · does not block factories', key: 'Drag', icon: '✿', tab: 'nature' },
   { tool: 'grass', label: 'Grass', hint: 'Click and drag · keeps buildings and ore', key: 'Drag', icon: '❧', tab: 'nature' },
   { tool: 'eraseDecoration', label: 'Erase decoration', hint: 'Click and drag · removes only flowers and grass', key: 'Drag', icon: '◌', tab: 'nature' },
+  { tool: 'createWater', label: 'Create Water', hint: 'Free · drag to shape water · protected tiles are skipped', key: 'Drag', icon: '≈', tab: 'nature' },
+  { tool: 'restoreLand', label: 'Restore Land', hint: 'Free · drag to remove water · bridges stay protected', key: 'Drag', icon: '▱', tab: 'nature' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'pete' },
 ]
 export const TOOL_HOTKEYS: Readonly<Record<string, ToolKind>> = Object.fromEntries(PLAYER_TOOLS.filter(tool => tool.code).map(tool => [tool.code, tool.tool]))

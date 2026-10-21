@@ -36,7 +36,7 @@ export const CONTROL_ROWS = [
   { keys: 'Drag belt / pole', action: 'Preview belts, safe reversals and land-to-land bridges (up to 5 water tiles; 3 Wood each) or a power route that reuses existing poles; release to build all at once' },
   { keys: 'Left click', action: 'Use your selected tool, or inspect when no tool is selected' },
   { keys: 'Click active tool', action: 'Cancel that tool; choosing a different group also cancels it' },
-  { keys: 'Click and drag', action: 'Paint flowers or grass, or erase decoration, with a landscape brush' },
+  { keys: 'Click and drag', action: 'Paint flowers, grass or water; restore land or erase decoration with a landscape brush' },
   { keys: 'Gift click', action: 'Press Escape, then click Pete’s gift to collect it' },
 ] as const
 // One existing message slot, no toast queue. Tool instructions belong in Help/tooltips.

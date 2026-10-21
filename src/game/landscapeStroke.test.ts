@@ -39,3 +39,15 @@ describe('landscape gestures and camera conversion', () => {
     expect(a.nature.decorations[20 * SIZE + 20]).toBe(null)
   })
 })
+
+it('uses the same continuous/cancellable stroke for water and land without crossing tool changes', () => {
+  const w = world(), stroke = new LandscapeStroke()
+  expect(stroke.begin(w, { x: 1, y: 10 }, 'water', 1)).toBe(1)
+  expect(stroke.move(w, { x: 30, y: 10 }, 'water', 1)).toBe(29)
+  for (let x = 1; x <= 30; x++) expect(w.water[10 * SIZE + x]).toBe(true)
+  expect(stroke.move(w, { x: 31, y: 10 }, 'land', 1)).toBe(0)
+  expect(stroke.begin(w, { x: 1, y: 10 }, 'land', 1)).toBe(1)
+  expect(stroke.move(w, { x: 30, y: 10 }, 'land', 1)).toBe(29)
+  expect(w.water.some(Boolean)).toBe(false)
+  stroke.end(); expect(stroke.move(w, { x: 31, y: 10 }, 'water', 1)).toBe(0)
+})
