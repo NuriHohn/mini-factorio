@@ -1,3 +1,4 @@
+import type { UiPanel } from './uiMetadata'
 import { peaceful } from '../simulation/peace'
 import { natureTool } from './natureTools'
 import type { BrushSize } from '../simulation/nature'
@@ -25,6 +26,9 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  uiPanel: UiPanel | null
+  togglePanel: (panel: UiPanel) => void
+  closePanel: () => void
   peaceful: boolean
   peaceActivity: string
   gifts: number
@@ -75,11 +79,14 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  uiPanel: null,
+  togglePanel: panel => set(state => ({ uiPanel: state.uiPanel === panel ? null : panel, researchOpen: false, analyticsOpen: false })),
+  closePanel: () => set({ uiPanel: null }),
   peaceful: false, peaceActivity: 'homeward', gifts: 0, wood: 0, brushSize: 3,
   setBrushSize: size => { if ([1, 3, 5].includes(size)) set({ brushSize: size }) },
   revenge: createRevenge(), simulationTime: 0,
   research: createResearch(), researchRate: 0, researchOpen: false, researchRequest: null, researchFeedback: '',
-  toggleResearch: () => set(state => ({ researchOpen: !state.researchOpen, analyticsOpen: false, researchFeedback: '' })),
+  toggleResearch: () => set(state => ({ researchOpen: !state.researchOpen, analyticsOpen: false, uiPanel: null, researchFeedback: '' })),
   requestResearch: id => set(state => state.researchRequest === null ? { researchRequest: id } : state),
   applyResearch: world => {
     const id = get().researchRequest
@@ -89,7 +96,7 @@ export const useGameStore = create<State>((set, get) => ({
     get().publish(world)
   },
   analytics: { timeMs: 0, produced: emptyInventory(), consumed: emptyInventory(), totalPerMinute: 0, utilization: 0, configuredMachines: 0, problems: [], history: [], recentItems: [] }, analyticsOpen: false,
-  toggleAnalytics: () => set(state => hasTechnology(state.research, 'analytics1') ? { analyticsOpen: !state.analyticsOpen, researchOpen: false } : state),
+  toggleAnalytics: () => set(state => hasTechnology(state.research, 'analytics1') ? { analyticsOpen: !state.analyticsOpen, researchOpen: false, uiPanel: null } : state),
   focusRequest: null,
   focusBuilding: index => { if (!hasTechnology(get().research, 'analytics1')) return; get().select(null); set({ focusRequest: index }) },
   saveStatus: { manualAt: null, autoAt: null, message: '', error: false }, saveBusy: false, saveRequest: null,
@@ -124,6 +131,7 @@ export const useGameStore = create<State>((set, get) => ({
     return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
+    if (get().uiPanel !== null) { if (event.code === 'Escape') get().closePanel(); return }
     if (get().researchOpen) { if (event.code === 'Escape') get().toggleResearch(); return }
     if (event.code === 'Escape') { get().select(null); return }
     if (event.repeat || event.editing) return

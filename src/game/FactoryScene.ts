@@ -1,5 +1,7 @@
+import { peteCaption } from './peteCaption'
+import { worldInputBlocked } from '../state/uiMetadata'
 import { collectGift, peaceful } from '../simulation/peace'
-import { drawPeace, drawTreehouse, peacefulLabel } from './peaceVisuals'
+import { drawPeace, drawTreehouse } from './peaceVisuals'
 import { NatureVisuals, drawTree } from './natureVisuals'
 import { LandscapeStroke, landscapeTile } from './landscapeStroke'
 import { brushTiles, chopTree, MATURE_TREE_MS, plantTree, REPRODUCTION_MS } from '../simulation/nature'
@@ -11,7 +13,7 @@ import { hasTechnology } from '../simulation/research'
 import { WebVisuals } from './webVisuals'
 import { peteHit, sabotageRemaining } from '../simulation/pete'
 import { WaterVisuals, drawSprinkler } from './sprinklerVisuals'
-import { SPRINKLER_RANGE, WATER_COMPLAINTS } from '../simulation/sprinklers'
+import { SPRINKLER_RANGE } from '../simulation/sprinklers'
 import { SaveSession, errorMessage } from '../persistence/storage'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import type { LoadedGame, ViewState } from '../persistence/saveGame'
@@ -65,7 +67,7 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
@@ -88,7 +90,7 @@ export class FactoryScene extends Phaser.Scene {
     this.keys = this.input.keyboard!.addKeys('W,A,S,D', true) as typeof this.keys
     const keyboard = this.input.keyboard!
     const stopStrokeOnToolChange = useGameStore.subscribe((state, previous) => {
-      if (state.tool !== previous.tool || state.brushSize !== previous.brushSize || state.researchOpen) this.landscapeStroke.end()
+      if (state.tool !== previous.tool || state.brushSize !== previous.brushSize || worldInputBlocked(state)) this.landscapeStroke.end()
     })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopStrokeOnToolChange)
     this.events.once(Phaser.Scenes.Events.DESTROY, stopStrokeOnToolChange)
@@ -96,7 +98,7 @@ export class FactoryScene extends Phaser.Scene {
     const toolKeyDown = (event: KeyboardEvent) => {
       const target = event.target
       const editing = target instanceof HTMLElement && (target.matches('input, select, textarea') || target.isContentEditable)
-      if (useGameStore.getState().researchOpen && event.code === 'Escape') event.preventDefault()
+      if (worldInputBlocked(useGameStore.getState()) && event.code === 'Escape') event.preventDefault()
       useGameStore.getState().handleToolKey({ code: event.code, repeat: event.repeat, editing })
     }
     window.addEventListener('keydown', toolKeyDown)
@@ -104,15 +106,16 @@ export class FactoryScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.revengeVisuals.destroy())
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeToolKeyListener)
     this.events.once(Phaser.Scenes.Events.DESTROY, removeToolKeyListener)
-    keyboard.on('keydown-P', () => { if (!useGameStore.getState().researchOpen) useGameStore.getState().togglePowerOverlay() })
-    keyboard.on('keydown-R', () => { if (!useGameStore.getState().researchOpen) useGameStore.getState().rotate() })
+    keyboard.on('keydown-P', () => { if (!worldInputBlocked(useGameStore.getState())) useGameStore.getState().togglePowerOverlay() })
+    keyboard.on('keydown-R', () => { if (!worldInputBlocked(useGameStore.getState())) useGameStore.getState().rotate() })
     this.input.on('wheel', (_p: Phaser.Input.Pointer, _objects: unknown[], _dx: number, dy: number) => {
+      if (worldInputBlocked(useGameStore.getState())) return
       this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom * (dy > 0 ? .9 : 1.1), .5, 2.5))
     })
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.leftButtonDown()) return
       const selected = useGameStore.getState().tool
-      if (useGameStore.getState().researchOpen) return
+      if (worldInputBlocked(useGameStore.getState())) return
       if (natureTool(selected)) {
         const point = landscapeTile(pointer, this.cameras.main, TILE), mode = brushMode(selected)
         if (mode !== undefined) {
@@ -166,7 +169,7 @@ export class FactoryScene extends Phaser.Scene {
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)
-    if (!pointer.leftButtonDown() || !this.input.isOver || state.researchOpen || mode === undefined) { this.landscapeStroke.end(); return }
+    if (!pointer.leftButtonDown() || !this.input.isOver || worldInputBlocked(state) || mode === undefined) { this.landscapeStroke.end(); return }
     this.landscapeStroke.move(this.world, landscapeTile(pointer, this.cameras.main, TILE), mode, state.brushSize)
   }
 
@@ -200,7 +203,7 @@ export class FactoryScene extends Phaser.Scene {
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -218,11 +221,17 @@ export class FactoryScene extends Phaser.Scene {
   private processSaveRequest(): boolean {
     const request = useGameStore.getState().saveRequest
     if (!request) return false
-    const loading = request.kind === 'load' || request.kind === 'load-auto' || request.kind === 'import'
+    const loading = request.kind === 'load' || request.kind === 'load-auto' || request.kind === 'import' || request.kind === 'new'
     useGameStore.setState({ saveRequest: null })
     try {
       if (request.kind === 'save') this.saves.save(this.world, this.viewState(), 'manual')
-      else if (request.kind === 'export') {
+      else if (request.kind === 'new') {
+        if (window.confirm('Start a new factory? Unsaved progress will be lost. Your browser saves will be kept.')) {
+          const camera = this.cameras.main
+          this.restore({ world: createWorld(), view: { scrollX: SIZE * TILE / 2 - camera.width / 2, scrollY: SIZE * TILE / 2 - camera.height / 2, zoom: 1.3, direction: 'east', powerOverlay: false }, savedAt: new Date().toISOString() })
+          this.saves.feedback('New factory started. Browser save slots were kept.')
+        } else this.saves.feedback('New game cancelled. Current factory kept.')
+      } else if (request.kind === 'export') {
         const savedAt = new Date().toISOString()
         downloadSave(encodeSave(this.world, this.viewState(), savedAt), savedAt)
         this.saves.feedback('JSON save exported. Browser save slots were kept.')
@@ -326,7 +335,7 @@ export class FactoryScene extends Phaser.Scene {
   update(_time: number, delta: number) {
     const camera = this.cameras.main
     updateCameraBounds(camera, SIZE * TILE)
-    if (!useGameStore.getState().researchOpen) moveCamera(camera, this.keys, delta)
+    if (!worldInputBlocked(useGameStore.getState())) moveCamera(camera, this.keys, delta)
     const focus = useGameStore.getState().focusRequest
     if (focus !== null) {
       const building = this.world.buildings[focus]
@@ -545,11 +554,11 @@ export class FactoryScene extends Phaser.Scene {
     drawPoliceEffects(this.peteEffects, this.world, TILE)
     const arrest = arrestVisual(this.world)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
-    this.peteLabel.setVisible(!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')
     const home = this.world.peace.home === null ? null : this.world.buildings[this.world.peace.home]
     const labelPosition = home && ['entering', 'resting'].includes(this.world.peace.activity) ? home : arrest?.caption ? this.world.police.car! : pete.mode === 'ARRESTED' ? arrest?.pete ?? pete : pete
     this.peteLabel.setPosition((labelPosition.x + .5) * TILE, (labelPosition.y + .5) * TILE - (arrest?.active ? 59 : arrest?.caption ? 32 : complaining ? 29 : 15))
-    const label = peacefulLabel(this.world) ?? arrest?.caption ?? (this.world.revenge.stage === 'stunned' ? 'Pete · seeing stars!' : complaining ? WATER_COMPLAINTS[pete.water!.complaint] : pete.water ? pete.mode === 'SLIPPING' ? 'Pete · whoops!' : pete.mode === 'WATER_FLEEING' ? 'Pete · soggy escape!' : 'Pete · soaked!' : pete.mode === 'IMPRISONED' ? 'Pete · grrr!' : pete.mode === 'ARRESTED' || pete.mode === 'TRANSPORTED' ? 'Pete · busted!' : pete.mode === 'TRAPPED' ? 'Pete · stuck?!' : pete.mode === 'CRYING' ? 'Pete · sniff…' : 'Pete')
+    const label = peteCaption(this.world)
+    this.peteLabel.setVisible(label !== '' && (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned'))
     if (this.peteLabel.text !== label) {
       this.peteLabel.setText(label).setStyle({ fontSize: arrest?.caption ? '13px' : '9px', color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
     }
@@ -561,9 +570,9 @@ export class FactoryScene extends Phaser.Scene {
     if (inspected?.kind === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, RADAR_RANGE * TILE)
     if (inspected?.kind === 'powerPole') this.showCoverage(inspected, power.assignments[state.inspected!] ?? null)
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
-    this.poleLinks.setVisible(state.tool === 'powerPole' && this.input.isOver)
+    this.poleLinks.setVisible(!worldInputBlocked(state) && state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer
-    if (state.tool && !combatTool(state.tool) && this.input.isOver) {
+    if (!worldInputBlocked(state) && state.tool && !combatTool(state.tool) && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       if (natureTool(state.tool)) {

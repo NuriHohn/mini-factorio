@@ -8,7 +8,7 @@ export const AUTOSAVE_INTERVAL_MS = 120000
 export interface SaveStorage { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export type SaveSlot = 'manual' | 'auto'
 export interface SaveStatus { manualAt: string | null; autoAt: string | null; message: string; error: boolean }
-export type SaveRequest = { kind: 'save' | 'load' | 'load-auto' | 'export' } | { kind: 'import'; text: string }
+export type SaveRequest = { kind: 'save' | 'load' | 'load-auto' | 'export' | 'new' } | { kind: 'import'; text: string }
 export function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.name === 'QuotaExceededError' ? 'Browser storage is full. Export JSON to keep a local backup.' : error.name === 'SecurityError' ? 'Browser storage is unavailable. JSON export/import still works.' : error.message
   return 'Save operation failed. Your current factory was kept.'

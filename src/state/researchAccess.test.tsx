@@ -1,17 +1,25 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { useGameStore } from './gameStore'
 import { BuildToolbar } from '../game/BuildToolbar'
+import { toolMetadata } from './toolMetadata'
 import { AnalyticsPanel } from '../game/AnalyticsPanel'
 import { createWorld, placeBuilding } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 import { createResearch, RP_UNITS } from '../simulation/research'
 
+vi.mock('./gameStore', async importOriginal => {
+  const actual = await importOriginal<typeof import('./gameStore')>()
+  const store = actual.useGameStore
+  return { ...actual, useGameStore: Object.assign(() => store.getState(), store) }
+})
 beforeEach(() => useGameStore.setState(useGameStore.getInitialState(), true))
 describe('research access and command boundary', () => {
   it.each([['assembler', 'Digit7', 'Automation I'], ['inserter', 'Digit8', 'Logistics I'], ['splitter', 'Digit0', 'Logistics II']] as const)('keeps %s visible but disables selection and its hotkey before research', (tool, code, name) => {
+    const metadata = toolMetadata(tool)
+    useGameStore.getState().setBuildTab(metadata.tab)
     const html = renderToStaticMarkup(<BuildToolbar />)
-    expect(html).toMatch(new RegExp(`<button[^>]*disabled=""[^>]*title="Requires ${name}\\."[^>]*data-tool="${tool}"`))
+    expect(html).toMatch(new RegExp(`<button[^>]*disabled=""[^>]*title="${metadata.label} · Requires ${name}\\.[^"]*"[^>]*data-tool="${tool}"`))
     const previous = useGameStore.getState().tool
     useGameStore.getState().select(tool)
     expect(useGameStore.getState().tool).toBe(previous)

@@ -2,26 +2,37 @@ import { brushMode } from '../state/natureTools'
 import { combatTool } from '../simulation/revenge'
 import { buildingTechnologyError } from '../simulation/research'
 import { useGameStore } from '../state/gameStore'
-import { BUILD_TABS, PLAYER_TOOLS } from '../state/toolMetadata'
+import { BUILD_TABS, PLAYER_TOOLS, toolMetadata } from '../state/toolMetadata'
 export function BuildToolbar() {
   const { peaceful, revenge, simulationTime, research, brushSize, setBrushSize, wood, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
-  const error = (tool: typeof PLAYER_TOOLS[number]['tool']) => buildingTechnologyError(research, tool) ?? (tool === 'treehouse' ? peaceful ? 'Only one treehouse · Pete already has a home.' : wood < 20 ? `20 Wood required · ${wood} available` : null : null)
-  return <section aria-label="Build toolbar">
-    <div className="build-tabs" role="tablist" aria-label="Building categories">{BUILD_TABS.map(tab => <button key={tab.id} className="build-tab" role="tab" id={`tab-${tab.id}`} aria-controls="build-panel" aria-selected={buildTab === tab.id} tabIndex={buildTab === tab.id ? 0 : -1} onClick={() => setBuildTab(tab.id)} onKeyDown={event => {
-      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
-      event.preventDefault()
-      const next = event.key === 'Home' ? BUILD_TABS[0] : event.key === 'End' ? BUILD_TABS.at(-1)! : BUILD_TABS[(BUILD_TABS.findIndex(t => t.id === buildTab) + (event.key === 'ArrowLeft' ? BUILD_TABS.length - 1 : 1)) % BUILD_TABS.length]
-      setBuildTab(next.id)
-      document.getElementById(`tab-${next.id}`)?.focus()
-    }}>{tab.label}</button>)}</div>
-    <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="flex flex-col gap-2">{PLAYER_TOOLS.filter(option => option.tab === buildTab).map(option => <button key={option.tool} className="building" disabled={!!error(option.tool)} title={error(option.tool) ?? option.hint} data-tool={option.tool} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}><span className="machine-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{error(option.tool) ?? option.hint}</small>{combatTool(option.tool) && <small>{revenge.playerReadyAtMs > simulationTime ? `Shared cooldown: ${((revenge.playerReadyAtMs - simulationTime) / 1000).toFixed(1)} s` : 'Shared cooldown: Ready'}</small>}{combatTool(option.tool) && <progress aria-label={`${option.label} shared cooldown`} max={revenge.playerCooldownMs || 1} value={Math.max(0, (revenge.playerCooldownMs || 1) - Math.max(0, revenge.playerReadyAtMs - simulationTime))} />}</span><span className="key">{option.key}</span></button>)}</div>
-    {buildTab === 'nature' && <div className="nature-options">
-      <div className="stats"><span>Wood · global stock</span><b>{wood.toLocaleString()}</b></div>
-      <fieldset disabled={brushMode(tool) === undefined}><legend>Landscape brush size</legend>
-        {([1, 3, 5] as const).map(size => <button key={size} className="save-action" aria-pressed={brushSize === size} onClick={() => setBrushSize(size)}>{size}×{size}</button>)}
-      </fieldset>
-      <p className="inspection-note">Trees occupy tiles; flowers and grass do not. Erase only removes decoration. Escape cancels the selected tool.</p>
-    </div>}
-    <button className="building mt-3" onClick={rotate} disabled={!['miner', 'belt', 'furnace', 'assembler', 'inserter', 'splitter'].includes(tool ?? '')}><span><strong>Output: {direction}</strong><small>Remove and replace to redirect buildings</small></span><span className="key">R</span></button>
+  const error = (id: typeof PLAYER_TOOLS[number]['tool']) => buildingTechnologyError(research, id) ?? (id === 'treehouse' ? peaceful ? 'Only one treehouse · Pete already has a home.' : wood < 20 ? `20 Wood required · ${wood} available` : null : null)
+  const selected = tool ? toolMetadata(tool) : null
+  return <section className="construction-toolbar" aria-label="Build toolbar">
+    <div className="toolbar-top">
+      <div className="build-tabs" role="tablist" aria-label="Building categories">{BUILD_TABS.map(tab => <button key={tab.id} className="build-tab" role="tab" id={`tab-${tab.id}`} aria-controls="build-panel" aria-selected={buildTab === tab.id} tabIndex={buildTab === tab.id ? 0 : -1} onClick={() => setBuildTab(tab.id)} onKeyDown={event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+        event.preventDefault()
+        const next = event.key === 'Home' ? BUILD_TABS[0] : event.key === 'End' ? BUILD_TABS.at(-1)! : BUILD_TABS[(BUILD_TABS.findIndex(t => t.id === buildTab) + (event.key === 'ArrowLeft' ? BUILD_TABS.length - 1 : 1)) % BUILD_TABS.length]
+        setBuildTab(next.id)
+        document.getElementById(`tab-${next.id}`)?.focus()
+      }}><span aria-hidden="true">{tab.icon}</span> {tab.label}</button>)}</div>
+      <span className="selected-tool" aria-live="polite">{selected ? <><span aria-hidden="true">{selected.icon}</span> {selected.label}</> : 'Explore'}</span>
+    </div>
+    <div className="toolbar-tools">
+      <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="tool-icons">{PLAYER_TOOLS.filter(option => option.tab === buildTab).map(option => {
+        const reason = error(option.tool)
+        const cooldown = combatTool(option.tool) && revenge.playerReadyAtMs > simulationTime ? `${((revenge.playerReadyAtMs - simulationTime) / 1000).toFixed(1)} s cooldown` : ''
+        return <button key={option.tool} className="building tool-icon" disabled={!!reason} title={`${option.label} · ${reason ?? option.hint}${cooldown ? ` · ${cooldown}` : ''}${option.code ? ` (${option.key})` : ''}`} aria-label={`${option.label}${reason ? ` · ${reason}` : ''}`} data-tool={option.tool} onClick={() => select(option.tool)} aria-pressed={tool === option.tool}>
+          <span className="machine-icon" aria-hidden="true">{option.icon}</span><strong>{option.label}</strong>
+          {reason && <span className="lock-mark" aria-hidden="true">{option.tool === 'treehouse' ? '!' : '🔒'}</span>}
+          {option.code && <span className="tool-key" aria-hidden="true">{option.key}</span>}
+          {combatTool(option.tool) && <progress aria-label={`${option.label} shared cooldown`} max={revenge.playerCooldownMs || 1} value={Math.max(0, (revenge.playerCooldownMs || 1) - Math.max(0, revenge.playerReadyAtMs - simulationTime))} />}
+        </button>
+      })}</div>
+      <div className="toolbar-options">
+        {brushMode(tool) !== undefined && <fieldset className="brush-options"><legend>Brush size</legend>{([1, 3, 5] as const).map(size => <button key={size} className="save-action" aria-pressed={brushSize === size} onClick={() => setBrushSize(size)}>{size}×{size}</button>)}</fieldset>}
+        {['miner', 'belt', 'furnace', 'assembler', 'inserter', 'splitter'].includes(tool ?? '') && <button className="save-action rotate-tool" title="Rotate output clockwise (R)" aria-label={`Rotate output: ${direction}`} onClick={rotate}>↻ <span>{direction}</span></button>}
+      </div>
+    </div>
   </section>
 }

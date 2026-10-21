@@ -26,12 +26,6 @@ export function drawTreehouse(g: Phaser.GameObjects.Graphics, world: World, home
     g.fillStyle(0xd8ad72, (1 - t) * .7).fillRect(x + Math.sin(a) * 16, baseY + 9 - t * 14 - i, 3, 2)
   }
 }
-export function peacefulLabel(world: World): string | null {
-  const s = world.peace
-  if (s.shutdown) return 'Pete · a home? For me? ♥'
-  if (!peaceful(world)) return s.reactionAtMs !== null ? 'Pete · where did my home go…?' : null
-  return s.activity === 'resting' ? 'Pete · Zzz…' : s.activity === 'entering' ? 'Pete · home sweet home ♥' : s.activity === 'flowers' ? 'Pete · lovely flowers!' : s.activity === 'waving' ? 'Pete · hello, neighbor!' : 'Pete · peaceful ♥'
-}
 export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: number): void {
   const s = world.peace
   if (s.shutdown) {

@@ -9,7 +9,7 @@ function renderer() {
   const graphics = new Proxy({}, { get: (_target, key) => () => { calls.push(String(key)); return graphics } }) as Phaser.GameObjects.Graphics
   const labels: { destroy: ReturnType<typeof vi.fn>; setPosition: ReturnType<typeof vi.fn>; setText: ReturnType<typeof vi.fn> }[] = []
   const label = () => {
-    const text = { setOrigin: () => text, setDepth: () => text, setPosition: vi.fn(() => text), setText: vi.fn(() => text), setAlpha: vi.fn(() => text), destroy: vi.fn() }
+    const text = { setOrigin: () => text, setDepth: () => text, setPosition: vi.fn(() => text), setText: vi.fn(() => text), setAlpha: vi.fn(() => text), setVisible: vi.fn(() => text), destroy: vi.fn() }
     labels.push(text)
     return text
   }
@@ -64,7 +64,7 @@ describe('Revenge rendering stays observational', () => {
       const before = structuredClone(world)
       visuals.impact(impact, world)
       visuals.draw(graphics, world, 32, scene)
-      const label = vi.mocked(scene.add.text).mock.calls.find(call => String(call[2]).includes(hit ? `-${impact.damage}` : 'MISS'))
+      const label = vi.mocked(scene.add.text).mock.calls.find(call => String(call[2]) === (hit ? `−${impact.damage}` : '·'))
       expect(label).toBeDefined()
       const caption = labels.at(-1)!
       const position = caption.setPosition.mock.calls.at(-1)
@@ -88,7 +88,7 @@ describe('Revenge rendering stays observational', () => {
     const before = structuredClone(world)
     visuals.draw(graphics, world, 32, scene)
     expect(world).toEqual(before)
-    expect(labels[0].setText).toHaveBeenCalledWith('EMP charging…')
+    expect(labels[0].setText).toHaveBeenCalledWith('ϟ')
     expect(scene.cameras.main.shake).not.toHaveBeenCalled()
   })
 
