@@ -52,7 +52,7 @@ describe('single-layer cancellation and session-only hints', () => {
     for (let i = 0; i < 3; i++) store.recordToolUse('belt')
     expect(renderToStaticMarkup(<BuildToolbar />)).not.toContain('Drag to build belts. Blocked paths try a detour.')
     expect(renderToStaticMarkup(<HelpContents />)).toContain('Drag to build belts. Blocked paths try a detour.')
-    store.select('powerPole'); expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Drag to connect power.')
+    store.select('powerPole'); expect(renderToStaticMarkup(<BuildToolbar />)).toContain('Drag to connect power around obstacles. Blue rings reuse existing poles.')
     store.recordToolUse('powerPole'); expect(useGameStore.getState().hintUses).toEqual({ belt: 3, powerPole: 1 })
     for (const tool of ['axe', 'plantOak', 'flowers', 'spiderWeb', 'flySwatter', 'miner'] as const) expect(TOOL_HINTS[toolHintId(tool)!].length).toBeGreaterThan(5)
   })

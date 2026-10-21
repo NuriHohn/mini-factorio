@@ -1,3 +1,4 @@
+import { pushRoute, popRoute } from './routingQueue'
 import { offsets, SIZE } from './world'
 import type { Direction, Position } from './world'
 
@@ -9,31 +10,6 @@ interface Node { tile: number; direction: number; cost: number; estimate: number
 const directions: Direction[] = ['north', 'east', 'south', 'west']
 // A step always outweighs every possible turn in this finite directional graph.
 const STEP_COST = SIZE * SIZE * 4 + 1
-function before(a: Node, b: Node) { return a.estimate < b.estimate || (a.estimate === b.estimate && a.order < b.order) }
-function push(heap: Node[], node: Node) {
-  heap.push(node)
-  let i = heap.length - 1
-  while (i > 0) {
-    const parent = (i - 1) >> 1
-    if (!before(node, heap[parent])) break
-    heap[i] = heap[parent]; i = parent
-  }
-  heap[i] = node
-}
-function pop(heap: Node[]): Node {
-  const first = heap[0], last = heap.pop()!
-  if (heap.length) {
-    let i = 0
-    while (i * 2 + 1 < heap.length) {
-      let child = i * 2 + 1
-      if (child + 1 < heap.length && before(heap[child + 1], heap[child])) child++
-      if (!before(heap[child], last)) break
-      heap[i] = heap[child]; i = child
-    }
-    heap[i] = last
-  }
-  return first
-}
 // Read-only A*: cardinal movement, shortest length then fewest turns, stable ties.
 // The callback is the existing authoritative belt placement validator.
 export function findBeltRoute(start: Position, end: Position, facing: Direction, canBuild: (x: number, y: number) => boolean, budget = BELT_SEARCH_BUDGET): BeltRoute {
@@ -49,11 +25,11 @@ export function findBeltRoute(start: Position, end: Position, facing: Direction,
   if (!free(start.x, start.y) || !free(end.x, end.y)) return { points: null, exhausted: false, expanded }
   const distance = (x: number, y: number) => Math.abs(end.x - x) + Math.abs(end.y - y)
   const initial: Node = { tile: start.y * SIZE + start.x, direction: -1, cost: 0, estimate: distance(start.x, start.y) * STEP_COST, order: order++, parent: null }
-  push(heap, initial)
+  pushRoute(heap, initial)
   const first = directions.indexOf(facing)
   const neighbors = [first, (first + 1) % 4, (first + 3) % 4, (first + 2) % 4]
   while (heap.length) {
-    const node = pop(heap)
+    const node = popRoute(heap)
     if (node.direction !== -1 && best.get(node.tile * 4 + node.direction) !== node.cost) continue
     if (expanded >= budget) return { points: null, exhausted: true, expanded }
     expanded++
@@ -70,7 +46,7 @@ export function findBeltRoute(start: Position, end: Position, facing: Direction,
       const cost = node.cost + STEP_COST + (node.direction !== -1 && node.direction !== direction ? 1 : 0)
       if (cost >= (best.get(key) ?? Infinity)) continue
       best.set(key, cost)
-      push(heap, { tile, direction, cost, estimate: cost + distance(nx, ny) * STEP_COST, order: order++, parent: node })
+      pushRoute(heap, { tile, direction, cost, estimate: cost + distance(nx, ny) * STEP_COST, order: order++, parent: node })
     }
   }
   return { points: null, exhausted: false, expanded }

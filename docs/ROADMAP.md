@@ -19,6 +19,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Post-Sprint-7 hotfix | Unified tool toggles/inspection mode and one-time furnace/assembler recipe locking |
 | Sprint 7.5: Pete | Deterministic immortal goblin, timed pumpkin sabotage, mush/slime feedback and click-to-scare corner crying |
 | Sprint 7.6: police and prison | Powered radar traps, single obstacle-aware police dispatch, visible arrest/transport, prison inspector/manual release, timed jailbreak and re-arrest grace |
+| Sprint 14.8: Smart Power Routing | Bounded deterministic minimum-new-pole electrical routing, forest/factory site detours without line of sight, existing infrastructure reuse and network joins, explicit adjacent endpoint snapping, blue reuse rings and new/existing counts, atomic free construction and preserved coverage/simulation/version-8 saves |
 | Sprint 14.7: Smart Conveyor Belt Routing | Preferred direct belt drags with bounded deterministic A* obstacle detours, shortest/few-turn cardinal routes, turquoise detour previews and accurate free tile counts, atomic live revalidation, cached planning, graceful search failures and unchanged transport/version-8 saves; pole routing unchanged |
 | Sprint 14.6: Building UX & Controls | Atomic belt L-route and minimum-new-pole straight-corridor drag previews/commit, reused poles, accurate free/Wood funding feedback, one-layer Escape and safe right-click/focus/menu cancellation, three-use session hints/Help, and concise authoritative building diagnostics with retained details/settings; version-8 saves unchanged |
 | Sprint 14.5: UI Cleanup & Navigation | Compact five-group bottom toolbar, Wood HUD, closed-by-default management/help/overview, clearer manual technology states/funding, guarded menu input, safe confirmed restart, calmer Pete captions/notifications and responsive desktop navigation; gameplay and version-8 saves preserved |
@@ -40,7 +41,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Proposal | Intended scope / prerequisite |
 | --- | --- |
-| Sprint 14.8: Smart Power Routing | Next planned improvement: obstacle-aware power-pole drag planning; current direct-corridor pole routing is unchanged |
+| Sprint 14.9: Belt Connection Polish | Next planned improvement: conveyor endpoint connection/snapping polish; current belt endpoint rules remain unchanged |
 | Improved logistics | Build on basic inserters with separately approved filtering, priorities, stack/reach variants or throughput improvements |
 | Advanced routing | Future filtering, configurable output priorities and more complex junctions beyond the implemented compact splitter |
 | Blueprints | Capture layouts, preview placement and validate collisions/resources before player confirmation |
