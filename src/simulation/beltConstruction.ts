@@ -13,18 +13,21 @@ function orthogonal(start: Position, end: Position, facing: Direction): Position
   }
   return points
 }
-export function planBelts(world: World, start: Position, end: Position, facing: Direction): ConstructionPlan {
+export function planBelts(world: World, start: Position, end: Position, facing: Direction, dragged = false): ConstructionPlan {
   const direct = orthogonal(start, end, facing)
+  const single = direct.length === 1 && !dragged && !isWater(world, start.x, start.y)
   const outgoing = (points: Position[], i: number) => points[i + 1] ? directionTo(points[i], points[i + 1]) : i ? directionTo(points[i - 1], points[i]) : facing
   const intent = new Map(direct.map((p, i) => [p.y * SIZE + p.x, outgoing(direct, i)]))
   const geometry = new Map<string, string | null>()
   const errorAt = (x: number, y: number, direction: Direction, incoming?: Direction) => {
+    const belt = buildingAt(world, x, y)
+    // A land click may redirect a belt; retain all normal actor/unlock checks.
+    const validationDirection = single && belt?.kind === 'belt' ? belt.direction : direction
     const key = `${x},${y},${direction}`
-    if (!geometry.has(key)) geometry.set(key, placementError(world, x, y, 'belt', direction, isWater(world, x, y)))
+    if (!geometry.has(key)) geometry.set(key, placementError(world, x, y, 'belt', validationDirection, isWater(world, x, y)))
     const error = geometry.get(key)!
     if (error) return error
     if (isWater(world, x, y) && incoming && incoming !== direction) return 'Bridges stay straight while crossing water.'
-    const belt = buildingAt(world, x, y)
     if (belt?.kind !== 'belt') return null
     if (incoming && incoming !== direction) return 'Existing belt blocks this route. Join it along its flow axis.'
     if (belt.direction !== direction && intent.get(y * SIZE + x) !== direction) return 'Keep this existing belt direction. Drag along it to reverse it.'
@@ -72,10 +75,14 @@ export function planBelts(world: World, start: Position, end: Position, facing: 
   }
   return { kind: 'belt', cells, error, detour, beltSnap, wood: cost(cells), unaffordable }
 }
-// Keep entity and packet identity. Mirror a straight packet's progress so its
-// position is continuous; a side-entered packet keeps its entry and progress.
-export function reverseBelt(belt: Belt): void {
-  const direction = opposite(belt.direction)
+// Keep entity/item identity and progress on turns, with a legal entry side.
+// Reversal mirrors straight packets to retain their position; side entries stay.
+export function redirectBelt(belt: Belt, direction: Direction): void {
+  if (direction !== opposite(belt.direction)) {
+    belt.direction = direction
+    if (belt.entry === direction) belt.entry = opposite(direction)
+    return
+  }
   const straight = belt.entry === opposite(belt.direction)
   belt.direction = direction
   if (straight) { belt.entry = opposite(direction); if (belt.item) belt.progress = 1 - belt.progress }

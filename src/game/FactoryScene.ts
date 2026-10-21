@@ -223,7 +223,10 @@ export class FactoryScene extends Phaser.Scene {
       else placeBuilding(this.world, x, y, tool, direction)
       useGameStore.setState({ message: tool === 'treehouse' ? wasBoss ? 'A home for Pete! The walker sighs, powers down, and Pete moves in. ♥' : 'Welcome home, Pete! Peace begins · -20 Wood. ♥' : wasHome ? 'Pete looks confused… back to mischief. Revenge preserved; no Wood refund.' : tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
     })
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.paintDrag(pointer))
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.constructionDrag.active) this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
+      this.paintDrag(pointer)
+    })
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.landscapeStroke.end()
       if ('button' in pointer.event && pointer.event.button !== 0) return
@@ -234,7 +237,7 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.setState({ dragActive: false })
       if (result) {
         if (!result.error && (result.placed > 0 || result.reversed)) useGameStore.getState().recordToolUse(tool)
-        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} reversed · ${result.placed} new · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
+        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} rotated · ${result.placed} new · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
       }
     })
     this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); this.cancelConstruction() })
@@ -278,7 +281,7 @@ export class FactoryScene extends Phaser.Scene {
     }
     if (plan.beltSnap) this.preview.lineStyle(2, 0xa4c9df, .7).strokeCircle((plan.beltSnap.x + .5) * TILE, (plan.beltSnap.y + .5) * TILE, 11)
     const count = plan.cells.filter(c => !c.reuse).length, reversed = plan.cells.filter(c => c.reverse).length, reused = plan.cells.length - count - reversed
-    this.placementTooltip(pointer, `${plan.unaffordable ? '◇' : plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? `new · ${reused} reused · ${reversed} reversed` : `new · ${reused} existing`}\nTotal cost: ${plan.wood ? `${plan.wood} Wood · You have ${this.world.nature.wood}` : 'Free'}${plan.cells.some(c => c.bridge) ? ` · ${plan.cells.filter(c => c.bridge && !c.reuse).length} new bridge segments` : ''}\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : plan.beltSnap ? 'Joining existing belt. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
+    this.placementTooltip(pointer, `${plan.unaffordable ? '◇' : plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? `new · ${reused} reused · ${reversed} rotated` : `new · ${reused} existing`}\nTotal cost: ${plan.wood ? `${plan.wood} Wood · You have ${this.world.nature.wood}` : 'Free'}${plan.cells.some(c => c.bridge) ? ` · ${plan.cells.filter(c => c.bridge && !c.reuse).length} new bridge segments` : ''}\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : plan.beltSnap ? 'Joining existing belt. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)
