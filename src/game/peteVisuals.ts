@@ -1,3 +1,5 @@
+import { visiblePoint } from './viewport'
+import type { Viewport } from './viewport'
 import { arrestVisual } from './arrestVisuals'
 import { drawWeb } from './webVisuals'
 import { drawWetPete } from './sprinklerVisuals'
@@ -23,7 +25,8 @@ export function drawSabotage(g: Phaser.GameObjects.Graphics, world: World, build
     g.fillStyle(0x79df49)
   }
 }
-export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: number): void {
+export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
+  if (!visiblePoint(view, (world.pete.x + .5) * tile, (world.pete.y + .5) * tile, 128)) return
   if (world.pete.mode === 'TRANSPORTED') return
   if (world.pete.water) { drawWetPete(g, world, tile); return }
   const arrest = world.pete.mode === 'ARRESTED' ? arrestVisual(world) : null

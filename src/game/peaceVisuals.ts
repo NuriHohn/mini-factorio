@@ -1,3 +1,5 @@
+import { visiblePoint } from './viewport'
+import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import { SIZE } from '../simulation/world'
 import type { Treehouse, World } from '../simulation/world'
@@ -26,9 +28,9 @@ export function drawTreehouse(g: Phaser.GameObjects.Graphics, world: World, home
     g.fillStyle(0xd8ad72, (1 - t) * .7).fillRect(x + Math.sin(a) * 16, baseY + 9 - t * 14 - i, 3, 2)
   }
 }
-export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: number): void {
+export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
   const s = world.peace
-  if (s.shutdown) {
+  if (s.shutdown && visiblePoint(view, (s.shutdown.position.x + .5) * tile, (s.shutdown.position.y + .5) * tile, 128)) {
     const t = (world.timeMs - s.shutdown.atMs) / 6000, fade = Math.min(1, (1 - t) * 2)
     const x = (s.shutdown.position.x + .5) * tile, y = (s.shutdown.position.y + .5) * tile
     const settle = t * t * (3 - 2 * t) * 6
@@ -61,19 +63,19 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
         g.lineStyle(1, 0x35562c).lineBetween(x - 2, y, x - .5, y).lineBetween(x + 1, y, x + 2.5, y)
       }
     } else {
-      drawPete(g, world, tile)
-      if (s.activity === 'waving') {
+      drawPete(g, world, tile, view)
+      if (s.activity === 'waving' && visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) {
         const x = (p.x + .5) * tile, y = (p.y + .5) * tile
         g.lineStyle(3, 0x91dd60).lineBetween(x + 7, y + 5, x + 14 + Math.sin((world.timeMs - s.sinceMs) / 400) * 2, y - 7)
       }
-      if (s.activity === 'flowers') {
+      if (s.activity === 'flowers' && visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) {
         const x = (p.x + .5) * tile, y = (p.y + .5) * tile
         g.lineStyle(2, 0x759c55).lineBetween(x + 8, y + 6, x + 11, y - 1)
         g.fillStyle(0xf2c6b6).fillCircle(x + 11, y - 3, 4).fillStyle(0xffd97c).fillCircle(x + 11, y - 3, 1.5)
       }
     }
     for (const gift of s.gifts) {
-      if (world.buildings[gift.tile]) continue
+      if (world.buildings[gift.tile] || !visiblePoint(view, (gift.tile % SIZE + .5) * tile, (Math.floor(gift.tile / SIZE) + .5) * tile, 32)) continue
       const x = (gift.tile % SIZE + .5) * tile, y = (Math.floor(gift.tile / SIZE) + .5) * tile + Math.sin((world.timeMs - gift.atMs) / 700) * 1.5
       g.fillStyle(0x17271b, .3).fillEllipse(x, y + 9, 20, 6)
       g.fillStyle(gift.kind === 'wood' ? 0xd2a56d : 0xd6a9bc).fillRoundedRect(x - 9, y - 6, 18, 14, 2)

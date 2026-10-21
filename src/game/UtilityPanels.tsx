@@ -1,3 +1,4 @@
+import { GraphicsOptions } from './GraphicsOptions'
 import { useEffect, useRef } from 'react'
 import { useGameStore } from '../state/gameStore'
 import { SaveControls } from './SaveControls'
@@ -21,6 +22,7 @@ export function UtilityPanels() {
     {uiPanel === 'menu' ? <>
       <SaveControls />
       <h3>Options</h3>
+      <GraphicsOptions />
       <button className="save-action" aria-pressed={powerOverlay} onClick={togglePowerOverlay}>ϟ Power coverage {powerOverlay ? 'on' : 'off'}</button>
     </> : uiPanel === 'help' ? <HelpContents /> : <FactoryOverview />}
   </section>

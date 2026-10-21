@@ -1,3 +1,5 @@
+import { visiblePoint } from './viewport'
+import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import type { CombatImpact } from '../simulation/revenge'
 import { BREAKDOWN_MS, STOMP_MS, peteUnavailable } from '../simulation/revenge'
@@ -25,10 +27,10 @@ export class RevengeVisuals {
     for (const impact of this.impacts) impact.label?.destroy()
     this.impacts = []; this.name?.destroy(); this.name = null; this.world = null
   }
-  draw(g: Phaser.GameObjects.Graphics, world: World, tile: number, scene: Phaser.Scene) {
+  draw(g: Phaser.GameObjects.Graphics, world: World, tile: number, scene: Phaser.Scene, view?: Viewport) {
     this.reset(world)
     const r = world.revenge, boss = r.boss
-    if (boss) {
+    if (boss && visiblePoint(view, (boss.x + .5) * tile, (boss.y + .5) * tile, 400)) {
       const breaking = r.stage === 'defeating', t = breaking ? Math.min(1, 1 - (r.untilMs - world.timeMs) / BREAKDOWN_MS) : 0
       const hit = this.impacts.findLast(i => i.hit && world.timeMs - i.atMs < 400)
       const wobble = hit || breaking ? Math.sin(world.timeMs / 180) * (breaking ? 2 : 1) : 0
@@ -69,12 +71,12 @@ export class RevengeVisuals {
       if (!this.name) this.name = scene.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '10px', color: '#ffe3a2', backgroundColor: '#17222bdd', padding: { x: 4, y: 3 } }).setOrigin(.5, 1).setDepth(9)
       this.name.setPosition(x, y - 36).setText(breaking ? '…' : r.stage === 'stomp' ? '!' : charging ? 'ϟ' : '').setVisible(breaking || r.stage === 'stomp' || !!charging)
     } else { this.name?.destroy(); this.name = null }
-    if (r.stage === 'stunned') {
+    if (r.stage === 'stunned' && visiblePoint(view, (world.pete.x + .5) * tile, (world.pete.y + .5) * tile, 64)) {
       const x = (world.pete.x + .5) * tile, y = (world.pete.y + .5) * tile - 20
       for (let i = 0; i < 5; i++) { const a = world.timeMs / 250 + i * Math.PI * 2 / 5; g.fillStyle(0xffda6e); star(g, x + Math.cos(a) * 16, y + Math.sin(a) * 6, 3) }
     }
     const blast = r.blast
-    if (blast) {
+    if (blast && visiblePoint(view, (blast.position.x + .5) * tile, (blast.position.y + .5) * tile, 200)) {
       const t = (world.timeMs - blast.atMs) / 1000, x = (blast.position.x + .5) * tile, y = (blast.position.y + .5) * tile
       const radius = (blast.kind === 'emp' ? 3 : 5) * tile
       g.fillStyle(blast.kind === 'emp' ? 0x50bfff : 0xc5a27b, (1 - t) * .1).fillCircle(x, y, radius * t)
@@ -89,6 +91,8 @@ export class RevengeVisuals {
       if (t >= 1) { impact.label?.destroy(); return false }
       const fade = Math.min(1, (1 - t) / .35), ease = t * (2 - t)
       const x = (impact.position.x + .5) * tile, y = (impact.position.y + .5) * tile
+      if (!visiblePoint(view, x, y, 160)) { impact.label?.setVisible(false); return true }
+      impact.label?.setVisible(true)
       const color = impact.tool === 'flySwatter' ? 0xe9c575 : impact.tool === 'drill' ? 0xdbac75 : 0x91becf
       const caption = impact.hit ? `−${impact.damage}` : '·'
       if (!impact.label) impact.label = scene.add.text(x, y, caption, { fontFamily: 'monospace', fontStyle: 'bold', fontSize: impact.hit ? '15px' : '11px', color: `#${color.toString(16)}`, stroke: '#16201b', strokeThickness: 3 }).setOrigin(.5, 1).setDepth(10)

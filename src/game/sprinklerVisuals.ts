@@ -1,3 +1,5 @@
+import { visiblePoint } from './viewport'
+import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import { SLIP_MS, SPRAY_MS, SPRINKLER_COOLDOWN_MS, sprinklerPowered } from '../simulation/sprinklers'
 import { SIZE } from '../simulation/world'
@@ -23,7 +25,7 @@ export class WaterVisuals {
   private world: World | null = null
   private puddles: { x: number; y: number; atMs: number }[] = []
   private lastSampleMs = -400
-  draw(g: Phaser.GameObjects.Graphics, world: World, tile: number): void {
+  draw(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
     if (this.world !== world) { this.world = world; this.puddles = []; this.lastSampleMs = world.timeMs - 400 }
     this.puddles = this.puddles.filter(p => world.timeMs >= p.atMs && world.timeMs - p.atMs < 5000)
     if (world.pete.mode === 'WATER_FLEEING' && world.timeMs - this.lastSampleMs >= 400) {
@@ -31,11 +33,12 @@ export class WaterVisuals {
       this.puddles = this.puddles.slice(-14); this.lastSampleMs = world.timeMs
     }
     for (const p of this.puddles) {
+      if (!visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) continue
       const alpha = .45 * (1 - (world.timeMs - p.atMs) / 5000)
       g.fillStyle(0x62c8ee, alpha).fillEllipse((p.x + .5) * tile, (p.y + .5) * tile + 9, 17, 6)
     }
     const p = world.pete, water = p.water
-    if (!water) return
+    if (!water || !visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 160)) return
     const x = (p.x + .5) * tile, y = (p.y + .5) * tile
     if (p.mode === 'SLIPPING') {
       const t = 1 - water.remainingMs / SLIP_MS

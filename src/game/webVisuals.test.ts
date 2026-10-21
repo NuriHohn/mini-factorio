@@ -24,6 +24,18 @@ describe('web rendering lifecycle', () => {
     advanceWorld(w, 500); clear(); visuals.draw(g, w, 32)
     expect(calls.lineBetween).not.toHaveBeenCalled()
   })
+  it('keeps offscreen expiry bookkeeping while culling geometry and Pete', () => {
+    const w = createUnlockedWorld(() => .5), visuals = new WebVisuals(), { g, calls, clear } = graphics()
+    shootWeb(w, { x: 0, y: 0 }); advanceWorld(w, 300)
+    const far = { x: 5000, y: 5000, width: 100, height: 100 }
+    visuals.draw(g, w, 32, far); drawPete(g, w, 32, far)
+    expect(calls.lineBetween).not.toHaveBeenCalled(); expect(calls.fillEllipse).not.toHaveBeenCalled()
+    visuals.draw(g, w, 32, { x: 0, y: 0, width: 100, height: 100 })
+    expect(calls.lineBetween).toHaveBeenCalled()
+    advanceWorld(w, 10000); clear(); visuals.draw(g, w, 32, far)
+    advanceWorld(w, 500); clear(); visuals.draw(g, w, 32)
+    expect(calls.lineBetween).not.toHaveBeenCalled()
+  })
   it('does not retain cosmetic webs across world replacement', () => {
     const w = createUnlockedWorld(() => .5), visuals = new WebVisuals(), { g, calls, clear } = graphics()
     shootWeb(w, { x: 0, y: 0 }); advanceWorld(w, 300); visuals.draw(g, w, 32)
