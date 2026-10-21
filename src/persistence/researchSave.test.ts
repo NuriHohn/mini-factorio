@@ -1,5 +1,6 @@
+import { createBareWorld as createWorld } from '../simulation/testFixtures'
 import { describe, expect, it } from 'vitest'
-import { createWorld, placeBuilding } from '../simulation/world'
+import { placeBuilding } from '../simulation/world'
 import type { CraftingMachine, World } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 import { changeCraftingRecipe } from '../simulation/crafting'
@@ -28,7 +29,7 @@ describe('version-5 research persistence', () => {
   it('restores fractional currency, exact unlocks and deterministic continuation alongside analytics and jobs', () => {
     const world = setup(), before = document(world)
     const loaded = decodeSave(JSON.stringify(before))
-    expect(SAVE_VERSION).toBe(6)
+    expect(SAVE_VERSION).toBe(7)
     expect(loaded.world.research).toEqual(world.research)
     expect(loaded.world.research.unlocked).toEqual(['basicIndustry', 'automation1'])
     expect(loaded.view).toEqual(view)
@@ -41,7 +42,7 @@ describe('version-5 research persistence', () => {
   it.each([1, 2, 3, 4])('migrates genuine version %i fields with zero RP and every Sprint 11 unlock', version => {
     const world = setup(), legacy = document(world)
     Object.assign(legacy, { version })
-    Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'revenge')
+    Reflect.deleteProperty(legacy.game, 'research'); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge')
     if (version < 4) Reflect.deleteProperty(legacy.game, 'analytics')
     if (version < 3) {
       Reflect.deleteProperty(legacy.game, 'webs')

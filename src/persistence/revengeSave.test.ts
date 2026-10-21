@@ -1,6 +1,7 @@
+import { createBareWorld as createWorld } from '../simulation/testFixtures'
 import { emptyInventory } from '../simulation/items'
 import { describe, expect, it } from 'vitest'
-import { createWorld, placeBuilding } from '../simulation/world'
+import { placeBuilding } from '../simulation/world'
 import type { CraftingMachine, World } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 import { attackWalker, createRevenge, damageWalker, recordArrest } from '../simulation/revenge'
@@ -53,7 +54,7 @@ describe('Revenge versioned persistence', () => {
     world.research = createResearch(true)
     world.research.balanceUnits = '1234567890123'
     const legacy = snapshot(world)
-    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'revenge')
+    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge')
     if (version < 5) Reflect.deleteProperty(legacy.game, 'research')
     if (version < 4) Reflect.deleteProperty(legacy.game, 'analytics')
     if (version < 3) {
@@ -71,7 +72,7 @@ describe('Revenge versioned persistence', () => {
   it('preserves a version-5 player’s partial research exactly instead of granting other technologies', () => {
     const world = createWorld(() => .5)
     world.research.unlocked.push('automation1'); world.research.balanceUnits = '901'
-    const legacy = snapshot(world); Object.assign(legacy, { version: 5 }); Reflect.deleteProperty(legacy.game, 'revenge')
+    const legacy = snapshot(world); Object.assign(legacy, { version: 5 }); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge')
     expect(decodeSave(JSON.stringify(legacy)).world.research).toEqual(world.research)
   })
   it.each([

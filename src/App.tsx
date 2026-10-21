@@ -13,21 +13,27 @@ import { SplitterInspector } from './game/SplitterInspector'
 import { CraftingInspector } from './game/CraftingInspector'
 import { ITEM_DEFINITIONS, ITEMS, inventoryTotal } from './simulation/items'
 export default function App() {
-  const { stats, electricity, powerOverlay, togglePowerOverlay, message, requestRecipe, requestRelease, inspected, inspection } = useGameStore()
+  const { stats, wood, electricity, powerOverlay, togglePowerOverlay, message, requestRecipe, requestRelease, inspected, inspection } = useGameStore()
   const sidebar = useRef<HTMLElement>(null)
   useEffect(() => { if (inspected !== null && sidebar.current) sidebar.current.scrollTop = 0 }, [inspected])
   return <div className="app-shell">
     <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
       <div className="flex items-center gap-3"><span className="brand-mark">M</span><div><h1>MINI FACTORIO</h1><p className="eyebrow">A small beginning. An industrial future.</p></div></div>
       <ResearchPanel />
-      <span className="version"><i /> SPRINT 12</span>
+      <span className="version"><i /> SPRINT 13</span>
     </header>
     <main>
       <aside ref={sidebar} className="flex flex-col gap-7 p-6">
         {inspection && <section className="inspection" aria-label="Building inspection">
           <p className="eyebrow">{inspection.kind === 'powerPole' ? 'POWER POLE' : inspection.kind.toUpperCase()} INSPECTION</p>
-          {inspection.kind !== 'storage' && inspection.kind !== 'prison' && inspection.kind !== 'splitter' && <PowerInspector details={inspection.electrical} />}
-          {inspection.kind === 'splitter' ? <SplitterInspector inspection={inspection} /> : inspection.kind === 'prison' ? <>
+          {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
+          {inspection.kind === 'tree' ? <>
+            <h2>{inspection.species[0].toUpperCase() + inspection.species.slice(1)}</h2>
+            <div className="stats"><span>Growth stage</span><b>{inspection.stage}</b></div>
+            <div className="stats"><span>Age</span><b>{(inspection.ageMs / 60000).toFixed(1)} min</b></div>
+            <div className="stats"><span>Axe yield</span><b>{inspection.wood} Wood</b></div>
+            <p className="inspection-note">Young after 2 minutes; mature after 5. Use Nature → Axe to chop. The ore beneath stays intact.</p>
+          </> : inspection.kind === 'splitter' ? <SplitterInspector inspection={inspection} /> : inspection.kind === 'prison' ? <>
             <h2>Pete’s prison</h2>
             <div className="stats"><span>Occupant</span><b>{inspection.occupied ? 'Angry Pete' : 'Empty'}</b></div>
             <div className="stats"><span>Imprisonment elapsed</span><b>{(inspection.elapsedMs / 1000).toFixed(2)} s</b></div>
@@ -66,6 +72,7 @@ export default function App() {
         <section><p className="eyebrow">STORAGE & PRODUCTION</p>
           <div className="resource"><span className="ore-icon">◆</span><div><strong>{inventoryTotal(stats.stored).toLocaleString()}</strong><p>Items in storage</p></div></div>
           <table className="resource-table" aria-label="Resource statistics"><thead><tr><th>Item</th><th>Stored</th><th>Lifetime</th></tr></thead><tbody>{ITEMS.map(item => <tr key={item}><th><span className="item-swatch" style={{ backgroundColor: `#${ITEM_DEFINITIONS[item].visual.color.toString(16).padStart(6, '0')}` }} />{ITEM_DEFINITIONS[item].label}</th><td>{stats.stored[item].toLocaleString()}</td><td>{(ITEM_DEFINITIONS[item].category === 'ore' ? stats.mined[item] : stats.produced[item]).toLocaleString()}</td></tr>)}</tbody></table>
+          <div className="stats"><span>Wood · global stock</span><b>{wood.toLocaleString()}</b></div>
           <p className="inspection-note">Lifetime: ore mined · products crafted</p>
           <div className="stats"><span>Mining machines</span><b>{stats.miners}</b></div>
           <div className="stats"><span>Furnaces</span><b>{stats.furnaces}</b></div>
