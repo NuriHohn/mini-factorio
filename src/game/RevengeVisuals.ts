@@ -2,7 +2,7 @@ import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import type { CombatImpact } from '../simulation/revenge'
-import { BREAKDOWN_MS, STOMP_MS, peteUnavailable, productiveTarget } from '../simulation/revenge'
+import { BREAKDOWN_MS, STOMP_MS, peteUnavailable, empTargetEligible, WALKER_TILE_MS } from '../simulation/revenge'
 import type { World } from '../simulation/world'
 
 function star(g: Phaser.GameObjects.Graphics, x: number, y: number, size: number) {
@@ -30,6 +30,10 @@ export class RevengeVisuals {
   draw(g: Phaser.GameObjects.Graphics, world: World, tile: number, scene: Phaser.Scene, view?: Viewport) {
     this.reset(world)
     const r = world.revenge, boss = r.boss
+    const selected = boss?.target === null || !boss ? null : world.buildings[boss.target]
+    if (r.stage === 'hunting' && selected && visiblePoint(view, (selected.x + .5) * tile, (selected.y + .5) * tile, tile)) {
+      g.lineStyle(1.5, 0xd6b875, .65).strokeRoundedRect(selected.x * tile - 3, selected.y * tile - 3, tile + 6, tile + 6, 5)
+    }
     if (boss && visiblePoint(view, (boss.x + .5) * tile, (boss.y + .5) * tile, 400)) {
       const breaking = r.stage === 'defeating', t = breaking ? Math.min(1, 1 - (r.untilMs - world.timeMs) / BREAKDOWN_MS) : 0
       const hit = this.impacts.findLast(i => i.hit && world.timeMs - i.atMs < 400)
@@ -37,8 +41,8 @@ export class RevengeVisuals {
       const x = (boss.x + .5) * tile + wobble, y = (boss.y + .5) * tile
       const stomp = r.stage === 'stomp' ? 1 - (r.untilMs - world.timeMs) / STOMP_MS : 0
       const lift = 35 * Math.sin(Math.min(1, stomp) * Math.PI)
-      const stride = boss.next === null ? 0 : Math.sin(boss.travelMs / 1500 * Math.PI) * 5
-      const weight = boss.next === null ? 0 : Math.sin(boss.travelMs / 1500 * Math.PI) * 2
+      const stride = boss.next === null ? 0 : Math.sin(boss.travelMs / WALKER_TILE_MS * Math.PI) * 5
+      const weight = boss.next === null ? 0 : Math.sin(boss.travelMs / WALKER_TILE_MS * Math.PI) * 2
       g.fillStyle(0x090f14, .5).fillEllipse(x, y + 25, 74, 25)
       g.lineStyle(9, 0x586879).lineBetween(x - 19, y, x - 26, y + 22 - lift + stride).lineBetween(x + 19, y, x + 26, y + 22 - stride)
       g.fillStyle(0x9faab5).fillRoundedRect(x - 38, y + 18 - lift + stride, 28, 12, 3).fillRoundedRect(x + 10, y + 18 - stride, 28, 12, 3)
@@ -62,9 +66,9 @@ export class RevengeVisuals {
         g.fillStyle(i % 2 ? 0xe7bf76 : 0x89958c, 1 - t * .5).fillCircle(x + Math.cos(a) * 26 * t, y - 8 - t * (i * 7), 3 + t * 8)
       }
       const target = boss.target === null ? null : world.buildings[boss.target]
-      const charging = r.stage === 'hunting' && target && productiveTarget(world, boss.target!) && boss.next === null && Math.hypot(target.x - boss.x, target.y - boss.y) <= 6 && boss.empAtMs - world.timeMs <= 1600
+      const charging = r.stage === 'hunting' && target && empTargetEligible(world, boss.target!) && boss.next === null && Math.hypot(target.x - boss.x, target.y - boss.y) <= 6 && boss.empAtMs - world.timeMs <= 1600
       if (charging) {
-        const charge = Math.max(0, 1 - (boss.empAtMs - world.timeMs) / 1600)
+        const charge = Math.max(0, Math.min(1, 1 - (boss.empAtMs - world.timeMs) / 1600))
         g.lineStyle(2, 0x9ac6ca, .25 + charge * .35).strokeCircle((target.x + .5) * tile, (target.y + .5) * tile, 3 * tile)
         g.lineStyle(2, 0xb8d8cd, .7).strokeCircle(x - 34, y - 3, 7 + charge * 5).strokeCircle(x + 34, y - 3, 7 + charge * 5)
       }

@@ -71,6 +71,21 @@ describe('Revenge rendering stays observational', () => {
     visuals.draw(graphics, world, 32, scene, far)
     expect(labels).toHaveLength(count)
   })
+  it('marks the current machine even when the walker is offscreen and removes the mark with its target', () => {
+    const world = createWorld(() => .5), visuals = new RevengeVisuals(), { graphics, scene, calls } = renderer()
+    for (let i = 0; i < 3; i++) recordArrest(world)
+    advanceWorld(world, 5000)
+    placeBuilding(world, 20, 20, 'furnace', 'east')
+    world.revenge.boss!.target = 820
+    const view = { x: 630, y: 630, width: 64, height: 64 }, before = structuredClone(world)
+    visuals.draw(graphics, world, 32, scene, view)
+    expect(calls.filter(c => c === 'strokeRoundedRect')).toHaveLength(1)
+    expect(world).toEqual(before)
+    world.revenge.boss!.target = null
+    calls.length = 0
+    visuals.draw(graphics, world, 32, scene, view)
+    expect(calls).toHaveLength(0)
+  })
   it('cleans up impact labels when loading another world', () => {
     const world = createWorld(() => .5), visuals = new RevengeVisuals(), { graphics, scene, labels } = renderer()
     const miss = attackWalker(world, 'flySwatter', { x: 8, y: 8 })!

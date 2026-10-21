@@ -49,6 +49,18 @@ describe('Revenge versioned persistence', () => {
       expect(snapshot(loaded)).toEqual(snapshot(world))
     }
   })
+  it('migrates a legacy 1500-ms traversal without changing coordinates or Revenge progress', () => {
+    const w = setup('hunting'), legacy = snapshot(w), boss = legacy.game.revenge.boss!
+    Object.assign(boss, { next: 1, travelMs: 1450, x: 1450 / 1500 })
+    Reflect.deleteProperty(boss, 'targetInactiveMs')
+    const loaded = decodeSave(JSON.stringify(legacy)).world
+    expect(loaded.revenge.boss).toMatchObject({ x: boss.x, y: boss.y, travelMs: 725, targetInactiveMs: 0 })
+    expect(loaded.revenge.arrests).toBe(w.revenge.arrests)
+    const again = decodeSave(encodeSave(loaded, view)).world
+    advanceWorld(loaded, 50); advanceWorld(again, 50)
+    expect(again.revenge).toEqual(loaded.revenge)
+    expect(loaded.revenge.boss).toMatchObject({ tile: 1, travelMs: 0 })
+  })
   it.each([1, 2, 3, 4, 5])('migrates version %i with zero progress, threshold 3 and locked Revenge research', version => {
     const world = createWorld(() => .5)
     world.research = createResearch(true)
@@ -87,6 +99,9 @@ describe('Revenge versioned persistence', () => {
     ['repeated stomp', (d: SaveDocument) => { d.game.revenge.boss!.stomped = true }],
     ['invalid position', (d: SaveDocument) => { d.game.revenge.boss!.x += 1 }],
     ['nonadjacent movement', (d: SaveDocument) => { d.game.revenge.boss!.next = 1000 }],
+    ['negative target inactivity', (d: SaveDocument) => { d.game.revenge.boss!.targetInactiveMs = -50 }],
+    ['fractional target inactivity', (d: SaveDocument) => { d.game.revenge.boss!.targetInactiveMs = 1 }],
+    ['targetless inactivity', (d: SaveDocument) => { d.game.revenge.boss!.targetInactiveMs = 50 }],
     ['bad target', (d: SaveDocument) => { d.game.revenge.boss!.target = 1600 }],
     ['autonomous pilot', (d: SaveDocument) => { d.game.pete.escape = 100 }],
     ['blast during warning', (d: SaveDocument) => { d.game.revenge.stage = 'warning'; d.game.revenge.boss = null; d.game.revenge.untilMs = d.game.timeMs + 5000; d.game.revenge.blast = { kind: 'emp', position: { x: 0, y: 0 }, atMs: d.game.timeMs } }],
