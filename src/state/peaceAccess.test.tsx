@@ -17,7 +17,7 @@ describe('treehouse toolbar and copied peace status', () => {
   it('shows cost, affordability, one-home limit and restored availability after demolition', () => {
     const w = createBareWorld(() => .5), store = useGameStore.getState()
     store.setBuildTab('nature'); store.publish(w)
-    expect(renderToStaticMarkup(<BuildToolbar />)).toMatch(/disabled=""[^>]*title="Pete’s Treehouse · 20 Wood required · 0 available"[^>]*data-tool="treehouse"/)
+    expect(renderToStaticMarkup(<BuildToolbar />)).toMatch(/class="building tool-icon tool-unaffordable"[^>]*title="Pete’s Treehouse · 20 Wood required · 0 available · Preview only"[^>]*data-tool="treehouse"/)
     w.nature.wood = 40; store.publish(w)
     expect(renderToStaticMarkup(<BuildToolbar />)).toMatch(/<button class="building tool-icon" title="Pete’s Treehouse · 20 Wood[^>]*data-tool="treehouse"/)
     store.select('treehouse'); expect(useGameStore.getState().tool).toBe('treehouse')

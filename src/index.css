@@ -266,3 +266,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .technology-locked progress::-moz-progress-bar { background: #6c8066; }
 .technology-detail { top: 92px; }
 .hud-button[aria-label="Power coverage"][aria-pressed="true"] { border-color: #83c0d4; background: #22313b; }
+.tool-hint { margin-left: auto; font-size: 12px; color: #dfce9b; }
+.inspection-summary p { font-size: 12px; line-height: 1.6; color: #bfccb6; }
+.inspection-summary > strong { display: block; padding: 9px; background: #30432c; border: 1px solid #667e53; border-radius: 6px; font-size: 13px; }
+.inspection-technical { margin-top: 14px; font-size: 12px; }
+.inspection-technical > summary { min-height: 40px; padding: 10px 0; cursor: pointer; color: #d9c49b; }
+.help-tool-hints { padding-left: 18px; line-height: 1.8; color: #bfccb6; }
+@media (max-width: 850px) { .tool-hint { max-width: 200px; font-size: 11px; } }
+.tool-icon.tool-unaffordable { border-style: dashed; border-color: #bca267; background: #342e20; }

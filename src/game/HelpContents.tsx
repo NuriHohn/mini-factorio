@@ -1,3 +1,4 @@
+import { TOOL_HINTS } from '../state/toolHints'
 import type { KeyboardEvent } from 'react'
 import { useState } from 'react'
 import { CONTROL_ROWS } from '../state/uiMetadata'
@@ -23,9 +24,10 @@ export function HelpContents() {
       <h3>✦ Discover new tools</h3><p>Working machines earn research points. Open Research and choose an unlock when you have enough points.</p>
       <h3>♣ Enjoy nature</h3><p>Plant trees and paint flowers. Trees grow while you play. Chop young or mature trees with the Axe for Wood. A treehouse costs 20 Wood.</p>
       <h3>♥ Meet Pete</h3><p>Pete plays pranks and briefly stops machines. Radar traps call the police. Repeated arrests bring his Revenge walker. Choose a combat tool to defend your factory, or build Pete a home for peace and little gifts.</p>
+      <h3>Building tips</h3><ul className="help-tool-hints">{Object.values(TOOL_HINTS).map(hint => <li key={hint}>{hint}</li>)}</ul>
       <h3>☰ Keep your factory</h3><p>Open Menu to save or load. Autosave keeps a separate copy every two minutes of play. Export a file for a backup. Loading is always your choice.</p>
     </div> : <div id="help-controls" role="tabpanel" aria-labelledby="help-controls-tab">
-      <p className="inspection-note">Click a group below the world, then choose a tool. Click the active tool again to put it away. Right click has no cancel action.</p>
+      <p className="inspection-note">Click a group below the world, then choose a tool. Click the active tool again to put it away. Right-click cancels a drag first, then puts away the selected tool.</p>
       <dl className="controls-list">{CONTROL_ROWS.map(row => <div key={row.keys}><dt><kbd>{row.keys}</kbd></dt><dd>{row.action}</dd></div>)}</dl>
       <p className="inspection-note">Close an open menu with its button, Close or Escape. The world keeps running while menus are open; game shortcuts wait until you close them.</p>
     </div>}

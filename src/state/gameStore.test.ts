@@ -71,7 +71,8 @@ describe('normal selection and inspection', () => {
     expect(useGameStore.getState()).toMatchObject({ tool: null, inspected: 10 * SIZE + 10, inspection: { kind: 'furnace', recipeLocked: false } })
     const snapshot = useGameStore.getState().inspection
     key('Escape')
-    expect(useGameStore.getState().inspection).toBe(snapshot)
+    expect(snapshot).not.toBeNull()
+    expect(useGameStore.getState().inspection).toBeNull()
     expect(world).toEqual(before)
   })
   it('clears inspection and queued recipe commands when a new tool activates', () => {

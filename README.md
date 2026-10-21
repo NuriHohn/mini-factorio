@@ -22,7 +22,7 @@ Place a generator and a nearby power pole, then build **miner → belt → furna
 | R / X | Rotate placement direction / remove, discarding contents |
 | P | Electricity overlay |
 | B | Toggle Spider Web in the Special group |
-| Escape, then click | Cancel placement and inspect a building |
+| Escape / right-click | Cancel a pending drag first; then close panels / put away tools |
 
 Factory placement is free once its technology is unlocked; Pete’s Treehouse costs 20 Wood. New games begin with Basic Industry; productive miners, furnaces and assemblers earn RP. Use **Research** to unlock inserters, assemblers, splitters and the analytics dashboard. See [Research and technology](docs/GAME_DESIGN.md#research-and-technology). For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
 
@@ -58,3 +58,5 @@ Three completed arrests trigger a five-second warning and Pete’s **Revenge-O-M
 Choose **Nature** for free Oak/Pine/Birch saplings, the **Axe**, and Flowers/Grass/Erase brushes in 1×1, 3×3 or 5×5 sizes. Drag to paint continuously. Trees block construction; decoration does not, and ore stays intact beneath both. Trees grow over five simulation minutes; the Axe yields 0/1/3 global Wood for saplings/young/mature trees. New worlds include forests and meadows with a clear starting area; existing saves load without newly generated nature. See [Nature rules](docs/GAME_DESIGN.md#nature-and-forestry).
 
 Build **Pete’s Treehouse** in Nature for **20 Wood** to make Pete peaceful, gently shut down an active walker, and enjoy his walks, naps and occasional gifts. Only one home may exist; demolition returns him to mischief without a refund or loss of Revenge progress. See [Treehouse and peace](docs/GAME_DESIGN.md#petes-treehouse-and-peace).
+
+Drag **Belts** to preview an orthogonal route, or **Power poles** for a spaced straight connection; release to build the whole valid proposal. Both remain free. Escape or right-click cancels the unfinished path without building. Cursor feedback explains costs and blocked cells. Short hints hide after three successful uses and stay in Help. Inspect a building for a simple status, then expand **Details and settings** for its existing controls. See [Building gestures](docs/GAME_DESIGN.md#building-gestures-and-previews).

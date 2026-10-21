@@ -1,3 +1,5 @@
+import { toolHintId } from './toolHints'
+import type { HintId } from './toolHints'
 import type { UiPanel } from './uiMetadata'
 import { peaceful } from '../simulation/peace'
 import { natureTool } from './natureTools'
@@ -26,6 +28,11 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  dragActive: boolean
+  dragCancelToken: number
+  hintUses: Partial<Record<HintId, number>>
+  recordToolUse: (tool: Tool) => void
+
   uiPanel: UiPanel | null
   togglePanel: (panel: UiPanel) => void
   closePanel: () => void
@@ -79,6 +86,12 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  dragActive: false, dragCancelToken: 0, hintUses: {},
+  recordToolUse: tool => set(state => {
+    const id = toolHintId(tool)
+    if (!id || (state.hintUses[id] ?? 0) >= 3) return state
+    return { hintUses: { ...state.hintUses, [id]: (state.hintUses[id] ?? 0) + 1 } }
+  }),
   uiPanel: null,
   togglePanel: panel => set(state => ({ uiPanel: state.uiPanel === panel ? null : panel, researchOpen: false, analyticsOpen: false })),
   closePanel: () => set({ uiPanel: null }),
@@ -131,15 +144,21 @@ export const useGameStore = create<State>((set, get) => ({
     return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
+    if (event.code === 'Escape' && get().dragActive) { set(state => ({ dragActive: false, dragCancelToken: state.dragCancelToken + 1 })); return }
     if (get().uiPanel !== null) { if (event.code === 'Escape') get().closePanel(); return }
     if (get().researchOpen) { if (event.code === 'Escape') get().toggleResearch(); return }
-    if (event.code === 'Escape') { get().select(null); return }
+    if (event.code === 'Escape') {
+      if (get().inspection !== null) { set({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null }); return }
+      if (get().analyticsOpen) { set({ analyticsOpen: false }); return }
+      get().select(null); return
+    }
     if (event.repeat || event.editing) return
     if (Object.hasOwn(TOOL_HOTKEYS, event.code)) get().select(TOOL_HOTKEYS[event.code])
   },
   useWebTool: (world, position) => {
     if (get().tool !== 'spiderWeb') return false
     const result = shootWeb(world, position)
+    if (result === 'ground' || (result === 'hit' && !peaceful(world))) get().recordToolUse('spiderWeb')
     set({ message: peaceful(world) && result === 'hit' ? 'Pete is peaceful. No need for webs!' : result === 'ground' ? 'Web fired · lands for 10 seconds. Click Pete directly to scare him.' : result === 'outside' ? 'Choose a tile inside the world.' : result === 'full' ? 'Too many active webs. Wait for some to expire.' : world.pete.water ? 'Pete is soaked! Let his water reaction finish.' : ['ARRESTED', 'TRANSPORTED', 'IMPRISONED'].includes(world.pete.mode) ? 'Pete is in police custody.' : 'Pete is frightened! He will cry in a safe corner, then return.' })
     return true
   },
