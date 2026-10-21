@@ -1,9 +1,13 @@
 import { inside, offsets, SIZE } from './world'
-import type { Direction, World } from './world'
+import type { Direction, Position, World } from './world'
 import { natureRandom } from './nature'
 export const MAX_BRIDGE_SPAN = 5
 export const BRIDGE_WOOD = 3
 export function isWater(world: Pick<World, 'water'>, x: number, y: number): boolean { return inside(x, y) && world.water[y * SIZE + x] }
+export function facesWater(world: Pick<World, 'water'>, position: Position, direction: Direction): boolean {
+  const d = offsets[direction]
+  return isWater(world, position.x + d.x, position.y + d.y)
+}
 // N/E/S/W land bits, with map boundaries treated as a bank.
 export function shoreline(world: Pick<World, 'water'>, x: number, y: number): number {
   if (!isWater(world, x, y)) return 0

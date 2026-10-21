@@ -89,7 +89,7 @@ describe('atomic belt bridges', () => {
     if (b.kind !== 'belt') throw Error('fixture')
     b.item = 'iron'; b.progress = .4
     const text = encodeSave(w, view), restored = decodeSave(text).world
-    expect(JSON.parse(text).version).toBe(10); expect(restored.water).toEqual(w.water)
+    expect(JSON.parse(text).version).toBe(11); expect(restored.water).toEqual(w.water)
     advanceWorld(w, 2500); advanceWorld(restored, 2500)
     expect(restored.buildings).toEqual(w.buildings); expect(w.buildings[415]).toMatchObject({ inventory: { iron: 1 } })
     const wood = w.nature.wood

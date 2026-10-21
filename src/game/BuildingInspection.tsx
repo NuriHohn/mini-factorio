@@ -26,7 +26,10 @@ export function BuildingInspection() {
       </div>
       <details className="inspection-technical" key={inspected}><summary>Details and settings</summary>
       {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
-      {inspection.kind === 'treehouse' ? <>
+      {inspection.kind === 'fishingDock' ? <>
+        <div className="stats"><span>Fishing side</span><b>{inspection.direction}</b></div>
+        <p className="inspection-note">8 Wood · No electricity or item production. Keep the rear land approach clear. Pete visits only while peaceful.</p>
+      </> : inspection.kind === 'treehouse' ? <>
         <h2>Pete’s Treehouse</h2>
         <p className="inspection-note">♥ Pete is peaceful · {inspection.activity}. {inspection.gifts} gifts nearby. Escape, then click a gift to collect it.</p>
         <p className="inspection-note">Built with 20 Wood, no power needed. Demolition returns Pete to mischief; no Wood refund. Revenge progress is preserved.</p>

@@ -7,6 +7,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Milestone | Delivered |
 | --- | --- |
 | Sprint 15.5: Waterwheel Generator | 10-Wood, 50-kW water-facing land generator through existing poles; anchored rotation, automatic dry-bank stop/restart, gentle fixed-step wheel animation, inspection and strict version-10 saves with version-1–9 compatibility |
+| Sprint 15.6: Pete’s Fishing Dock | 8-Wood water-facing Nature dock, reachable peaceful visits and 20-second recreational fishing, quiet rod/line/ripples, safe demolition/water/approach recovery, existing inspection/rotation and strict version-11 continuation with version-1–10 compatibility |
 | Initial mining and movement | Ore deposits, directional mining, WASD camera and zoom |
 | Conveyor belts and storage | Individual items, directional transport, automatic curves, typed chest counts, occupied-building removal |
 | Furnaces and smelting | Crafting jobs, iron plates, buffers, output reservations and inspection |
