@@ -56,16 +56,22 @@ function spawn(world: World): void {
   // Tile order is stable; a full/obstructed edge leaves the warning pending.
   let tile = world.buildings.findIndex((_, i) => edgeTile(i) && freeTile(world, i) && world.pete.tile !== i && world.pete.next !== i)
   if (tile < 0) return
-  // Prefer a connected edge with an approachable productive target. Visit each
+  // Prefer a connected edge with an approachable machine. Visit each
   // component only once; retain the original waiting behavior if none exists.
   const visited = new Set<number>()
-  const hasTargets = world.buildings.some((_, index) => productiveTarget(world, index))
+  const hasTargets = world.buildings.some((_, index) => pursuitTarget(world, index))
+  const hasProductiveTargets = world.buildings.some((_, index) => productiveTarget(world, index))
+  let fallback: number | null = null
   for (let i = tile; hasTargets && i < world.buildings.length; i++) {
     if (!edgeTile(i) || visited.has(i) || !freeTile(world, i) || world.pete.tile === i || world.pete.next === i) continue
     const parents = reachableTiles(world, i)
     for (const reachable of parents.keys()) visited.add(reachable)
-    if (chooseTarget(world, { tile: i, x: i % SIZE, y: Math.floor(i / SIZE), lastTarget: null }, parents) !== null) { tile = i; break }
+    const target = chooseTarget(world, { tile: i, x: i % SIZE, y: Math.floor(i / SIZE), lastTarget: null }, parents)
+    if (target === null) continue
+    fallback ??= i
+    if (!hasProductiveTargets || productiveTarget(world, target)) { fallback = i; break }
   }
+  tile = fallback ?? tile
   resetPete(world, tile)
   world.revenge.boss = { x: tile % SIZE, y: Math.floor(tile / SIZE), tile, next: null, travelMs: 0, hp: 100, phase: 1, stomped: false, target: null, lastTarget: null, empAtMs: world.timeMs + 8000 }
   world.revenge.stage = 'hunting'; world.revenge.untilMs = 0
@@ -85,6 +91,10 @@ export function damageWalker(world: World, damage: number): boolean {
   }
   return true
 }
+function pursuitTarget(world: World, index: number): boolean {
+  const kind = world.buildings[index]?.kind
+  return kind === 'miner' || kind === 'furnace' || kind === 'assembler'
+}
 export function productiveTarget(world: World, index: number): boolean {
   const b = world.buildings[index], speed = world.power?.consumers[index]?.speedFraction ?? 0
   if (speed <= 0 || !b) return false
@@ -93,11 +103,11 @@ export function productiveTarget(world: World, index: number): boolean {
 }
 function chooseTarget(world: World, boss: Pick<Walker, 'tile' | 'x' | 'y' | 'lastTarget'>, parents?: Map<number, number>): number | null {
   const priority = { assembler: 0, furnace: 1, miner: 2 }
-  const candidates = world.buildings.flatMap((b, i) => b && productiveTarget(world, i) && (b.kind === 'assembler' || b.kind === 'furnace' || b.kind === 'miner') ? [{ index: i, rank: priority[b.kind], distance: (b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 }] : [])
+  const candidates = world.buildings.flatMap((b, i) => b && (b.kind === 'assembler' || b.kind === 'furnace' || b.kind === 'miner') ? [{ index: i, idle: Number(!productiveTarget(world, i)), rank: priority[b.kind], distance: (b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 }] : [])
   if (!candidates.length) return null
   const reachable = parents ?? reachableTiles(world, boss.tile)
   const canApproach = (index: number) => [...reachable.keys()].some(tile => (tile % SIZE - index % SIZE) ** 2 + (Math.floor(tile / SIZE) - Math.floor(index / SIZE)) ** 2 <= 36)
-  return candidates.filter(c => canApproach(c.index)).sort((a, b) => a.rank - b.rank || Number(a.index === boss.lastTarget) - Number(b.index === boss.lastTarget) || a.distance - b.distance || a.index - b.index)[0]?.index ?? null
+  return candidates.filter(c => canApproach(c.index)).sort((a, b) => a.idle - b.idle || a.rank - b.rank || Number(a.index === boss.lastTarget) - Number(b.index === boss.lastTarget) || a.distance - b.distance || a.index - b.index)[0]?.index ?? null
 }
 function blast(world: World, position: Position, kind: 'emp' | 'stomp'): void {
   const radius = kind === 'emp' ? 3 : 5, duration = kind === 'emp' ? 6000 : 8000
@@ -127,7 +137,9 @@ export function advanceRevenge(world: World, delta: number): void {
     if (world.timeMs >= r.untilMs) { blast(world, boss, 'stomp'); r.stage = 'hunting'; r.untilMs = 0; boss.empAtMs = world.timeMs + 6000 }
     return
   }
-  if (boss.target === null || !productiveTarget(world, boss.target)) boss.target = chooseTarget(world, boss)
+  // Production readiness controls EMP eligibility, not whether pursuit exists.
+  // Finish a tile before reconsidering idle targets; productive machines win.
+  if (boss.target === null || !pursuitTarget(world, boss.target) || (boss.next === null && !productiveTarget(world, boss.target))) boss.target = chooseTarget(world, boss)
   let target = boss.target === null ? null : world.buildings[boss.target]
   let parents: Map<number, number> | undefined
   if (boss.next === null && target && Math.hypot(target.x - boss.x, target.y - boss.y) > 6) {
@@ -139,7 +151,7 @@ export function advanceRevenge(world: World, delta: number): void {
   }
   // Complete the current tile traversal before aiming or choosing a fresh path.
   if (boss.next === null && target && Math.hypot(target.x - boss.x, target.y - boss.y) <= 6) {
-    if (world.timeMs >= boss.empAtMs) {
+    if (world.timeMs >= boss.empAtMs && productiveTarget(world, boss.target!)) {
       blast(world, target, 'emp'); boss.lastTarget = boss.target; boss.target = null
       boss.empAtMs = world.timeMs + (boss.phase === 1 ? 8000 : 6000)
     }

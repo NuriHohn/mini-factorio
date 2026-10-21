@@ -2,7 +2,7 @@ import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import type { CombatImpact } from '../simulation/revenge'
-import { BREAKDOWN_MS, STOMP_MS, peteUnavailable } from '../simulation/revenge'
+import { BREAKDOWN_MS, STOMP_MS, peteUnavailable, productiveTarget } from '../simulation/revenge'
 import type { World } from '../simulation/world'
 
 function star(g: Phaser.GameObjects.Graphics, x: number, y: number, size: number) {
@@ -62,7 +62,7 @@ export class RevengeVisuals {
         g.fillStyle(i % 2 ? 0xe7bf76 : 0x89958c, 1 - t * .5).fillCircle(x + Math.cos(a) * 26 * t, y - 8 - t * (i * 7), 3 + t * 8)
       }
       const target = boss.target === null ? null : world.buildings[boss.target]
-      const charging = r.stage === 'hunting' && target && boss.next === null && Math.hypot(target.x - boss.x, target.y - boss.y) <= 6 && boss.empAtMs - world.timeMs <= 1600
+      const charging = r.stage === 'hunting' && target && productiveTarget(world, boss.target!) && boss.next === null && Math.hypot(target.x - boss.x, target.y - boss.y) <= 6 && boss.empAtMs - world.timeMs <= 1600
       if (charging) {
         const charge = Math.max(0, 1 - (boss.empAtMs - world.timeMs) / 1600)
         g.lineStyle(2, 0x9ac6ca, .25 + charge * .35).strokeCircle((target.x + .5) * tile, (target.y + .5) * tile, 3 * tile)
