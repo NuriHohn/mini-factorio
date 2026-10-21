@@ -274,3 +274,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .help-tool-hints { padding-left: 18px; line-height: 1.8; color: #bfccb6; }
 @media (max-width: 850px) { .tool-hint { max-width: 200px; font-size: 11px; } }
 .tool-icon.tool-unaffordable { border-style: dashed; border-color: #bca267; background: #342e20; }
+
+.graphics-options { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: .8rem; }
+.graphics-options select { margin-left: .5rem; background: #243c2c; color: #edf1dd; padding: .4rem; border: 1px solid #66806a; border-radius: .3rem; }
+.performance-overlay { position: absolute; top: .5rem; left: .5rem; z-index: 5; pointer-events: none; white-space: pre-line; font: 11px/1.5 monospace; color: #d5eacb; background: #17221ce6; padding: .5rem; border-radius: .3rem; }

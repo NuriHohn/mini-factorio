@@ -154,3 +154,44 @@ Sprint 14.9 coverage in `simulation/beltOverwrite.test.ts` verifies all four sin
 
 
 Sprint 15.0 coverage is in `waterTerrain.test.ts`, `bridges.test.ts`, `waterSave.test.ts` and `landscapeWater.test.ts`: seeded layouts/coverage/protected connected land and ore, shoreline masks/nature restrictions, NPC water obstacles, 1/3/5-cell horizontal/vertical bridges, invalid width/endpoints/turn detours, multiple crossings, cost/reuse/reversal/atomicity/cancellation, rear-only transport, whole-crossing demolition, strict version-9 round trips and dry version-8 migration, and bounded pause-safe cosmetic schedules. Historical schema fixtures remove root water explicitly; old factory fixtures request dry maps without weakening assertions. Browser review must inspect generated features/banks and living water, real machine rejection, bridge previews/directions/cost/shortages, 3/5/6-cell and corner routing, live packets, removal/rebuild, same-axis protection, cancellation, old/new import/save/load and camera zoom. Current saves are version 9; prior-version regression names identify the originally introduced feature schema rather than the current writer.
+
+## Performance profiling and validation
+
+Sprint 15.1 investigated the actual Phaser loop, simulation scheduling, Graphics command buffers, publication/React work and existing caches before changing them. The base (`ce8a0b0`) used uncapped rAF callbacks with smoothed deltas, replayed full-map terrain Graphics, redrew all buildings/trees each frame, and constructed copied/serialized HUD summaries every frame. Canvas CPU samples placed `GraphicsCanvasRenderer`, Canvas stroke/fill operations and development React JSX creation among the dominant named consumers. Power topology already invalidates by revision; forestry already checks the next deadline before scanning. Neither needed a speculative simulation rewrite. The large static terrain replay, offscreen dynamic geometry and excessive summary construction justified the changes described in [rendering architecture](ARCHITECTURE.md#frame-pacing-and-rendering-efficiency).
+
+A reproducible optional harness is [`scripts/profile-browser.py`](../scripts/profile-browser.py). It requires an available Python Playwright installation and `/usr/bin/chromium`, not a game/runtime dependency. Start each revision's Vite dev server on a different port, then run sequentially, without tests/builds/source edits in parallel:
+
+```sh
+python scripts/profile-browser.py before http://127.0.0.1:5174
+python scripts/profile-browser.py standard http://127.0.0.1:5175
+python scripts/profile-browser.py saving http://127.0.0.1:5175 energy-saving
+```
+
+The harness constructs the same seeded `.42` world, sets trees to five-minute age, fills dry starting-area cells `(11..29, 11..29)` with east-facing belts/storage (skipping `(20,20)`), and restores it through the scene's transactional restore path. This is a 410-building/decorated-map conveyor rendering stress scene, not a production or pathfinding benchmark. Viewport is 1440×1000 at zoom 2.5, Canvas fallback (`--disable-webgl`), two-second warmup and an eight-second requested CDP CPU-sampling window. Timings include profiler/browser scheduling overhead; measured windows were about 9.1–9.4 seconds. JSON metrics and sampled CPU profiles are written to `/tmp/perf151-LABEL*.json`. Profiling intentionally uses development-module access; use DevTools for production-bundle measurements.
+
+One sequential local comparison on this shared cloud host:
+
+| Measured metric | Base `ce8a0b0` | Standard after | Energy Saving after |
+| --- | ---: | ---: | ---: |
+| Observed scene callbacks / second during profiling | 15.7 | 44.6 | 25.9 |
+| Mean scene update (ms) | 4.67 | 1.81 | 1.78 |
+| Scene update p95 (ms) | 9.90 | 3.50 | 4.10 |
+| Machine Graphics command-buffer entries | 83,425 | 52,680 | 52,680 |
+| Buildings drawn / total | 410 / 410 | 265 / 410 | 265 / 410 |
+| Summary publications in measured window | 143 | 84 | 81 |
+| CDP task duration / measured elapsed (seconds) | 8.98 / 9.11 | 8.88 / 9.41 | 5.89 / 9.14 |
+
+These single-run results establish lower per-frame work and less busy main-thread time in the capped mode in this fallback scene; host contention, development React and sampling overhead limit generalization. Earlier exploratory runs varied substantially. They do not establish WebGL GPU savings, laptop power draw, fan noise or temperature reductions. Repeat runs on the target machine before drawing thermal conclusions.
+
+Automated timing tests cover 60/120/144/240 Hz callbacks, irregular intervals, mode switching, exact save-state equivalence with powered production, simulation-clock water effects, hidden-time rejection and retained fixed-step remainders. Viewport/cache tests cover camera bounds before preRender, margins/crossing lines, off-map views, decoration/topology/world changes; settings tests cover defaults, malformed/denied storage and diagnostics. Full existing save/routing/NPC regressions remain required.
+
+Manual target-machine validation:
+
+1. Use `npm run build` and `npm run preview`, load the same representative exported factory, keep camera/zoom/display resolution fixed, and warm up before each comparison. Repeat Standard and Energy Saving recordings several times, alternating their order. Use browser Performance/Rendering tools to inspect the main-thread flame chart, frames, allocation/GC and GPU/compositor work; record browser, renderer and monitor refresh rate. Compare with DevTools closed as well, since instrumentation adds work.
+2. Toggle diagnostics and compare FPS/intervals. Watch transported items, furnace/assembler jobs, water, trees, Pete, police cuffs/rope and boss effects for the same animation speed. Pan/zoom across viewport edges, test long wires/coverage and large attacks near the boundary; build/remove/paint/chop and repeatedly load saves. Look for missing geometry, stale scenery, item loss and growing texture counts.
+3. Hide the real tab for a minute and return. Verify frozen production/NPC timers, no catch-up spike, smooth resumption and cancelled drags. Also test blur without hiding, window resizing and repeated mount/unmount. Automated simulated visibility transitions exercise application guards but cannot establish every browser's OS/tab lifecycle behavior.
+4. For the reported heat/fan issue, compare several minutes in each mode on the user's actual hardware using OS CPU/GPU/power/temperature instruments where available, with the same scene and background load. Record fan/thermal behavior separately from CPU percentage. The cloud browser cannot measure those physical effects.
+
+Follow-ups require measurements: WebGL/GPU profiling on real devices, very dense fully zoomed-out scenes, and profiling the remaining 10 Hz React/analytics snapshot work. The static terrain texture adds bounded memory; further chunk caches, simulation indexes or power-allocation caches are deliberately deferred until justified.
+
+Sprint 15.1 verification: all **1,007 tests in 63 files**, TypeScript, lint and production build passed. Automated Chromium Canvas checks covered preference refresh, diagnostics, actual frame ceilings/elapsed simulation progress, current camera bounds at 2.5/1.3/0.65 zoom, repeated terrain texture replacement without leaks, and synthetic hidden/visible callbacks with no hidden work/catch-up. The full Sprint 15.0 browser scenario also passed at 1.3/0.65 zoom (bridge previews/payment/reuse/reversal/removal/transport, invalid/shortage/cancel cases, mid-packet saves and dry version-8 import). A production-build smoke test also passed with Chromium software WebGL (SwiftShader): bridge rendering, diagnostics, persistent graphics selection and manual save/load, with no browser errors. This validates the WebGL code path, not physical GPU performance. Screenshots were visually inspected. The existing Vite warning for the large Phaser bundle remains; no dependency or save-schema changes were made.

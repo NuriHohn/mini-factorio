@@ -1,3 +1,5 @@
+import { cameraViewport, visibleTileBounds, intersects } from './viewport'
+import { useGraphicsSettings } from '../state/graphicsSettings'
 import { LandscapeWater, drawWaterTile } from './landscapeWater'
 import { ConstructionDrag } from './constructionDrag'
 import { placementInfo, planConstruction } from '../simulation/construction'
@@ -61,7 +63,13 @@ export class FactoryScene extends Phaser.Scene {
   private landscape!: Phaser.GameObjects.Graphics
   private revengeVisuals = new RevengeVisuals()
   private world = createWorld()
-  private terrain!: Phaser.GameObjects.Graphics
+  private terrain!: Phaser.GameObjects.Image
+  private terrainSerial = 0
+  private summaryWorld: World | null = null
+  private summaryAt = -Infinity
+  private summaryRevision = -1
+  drawnBuildings = 0
+  tickCostMs = 0
   private saves!: SaveSession
   private skipNextDelta = false
   private keys!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>
@@ -82,8 +90,7 @@ export class FactoryScene extends Phaser.Scene {
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
-    this.terrain = this.add.graphics().setDepth(-1)
-    this.drawTerrain(this.terrain, this.world)
+    this.terrain = this.createTerrain(this.world)
     this.waterSurface = this.add.graphics().setDepth(-.75)
     this.landscape = this.add.graphics().setDepth(-.5)
     this.wires = this.add.graphics()
@@ -292,14 +299,25 @@ export class FactoryScene extends Phaser.Scene {
       } else terrain.fillStyle(0x65814b, .25).fillRect(x + 7 + index % 11, y + 10 + index % 13, 2, 3)
     })
   }
+  private createTerrain(world: World): Phaser.GameObjects.Image {
+    const graphics = this.add.graphics()
+    const key = `terrain-${++this.terrainSerial}`
+    try {
+      this.drawTerrain(graphics, world)
+      graphics.generateTexture(key, SIZE * TILE, SIZE * TILE)
+      const image = this.add.image(0, 0, key).setOrigin(0).setDepth(-1)
+      image.once(Phaser.GameObjects.Events.DESTROY, () => this.textures.remove(key))
+      return image
+    } catch (error) { this.textures.remove(key); throw error }
+    finally { graphics.destroy() }
+  }
   private viewState(): ViewState {
     const c = this.cameras.main, state = useGameStore.getState()
     return { scrollX: c.scrollX, scrollY: c.scrollY, zoom: c.zoom, direction: state.direction, powerOverlay: state.powerOverlay }
   }
   private restore(candidate: LoadedGame) {
     // Build replacement rendering while hidden. A failed preparation leaves the old world intact.
-    const terrain = this.add.graphics().setDepth(-1).setVisible(false)
-    try { this.drawTerrain(terrain, candidate.world) } catch (error) { terrain.destroy(); throw error }
+    const terrain = this.createTerrain(candidate.world).setVisible(false)
     this.landscapeStroke.end()
     this.cancelConstruction()
     const oldWorld = this.world, oldTerrain = this.terrain, oldView = this.viewState(), oldState = useGameStore.getState()
@@ -402,6 +420,7 @@ export class FactoryScene extends Phaser.Scene {
     graphics.strokePath()
   }
   private showCoverage(position: { x: number; y: number }, networkId: number | null, alpha = .1) {
+    if (!intersects(cameraViewport(this.cameras.main), (position.x + .5 - POLE_COVERAGE_RADIUS) * TILE, (position.y + .5 - POLE_COVERAGE_RADIUS) * TILE, 2 * POLE_COVERAGE_RADIUS * TILE, 2 * POLE_COVERAGE_RADIUS * TILE, TILE)) return
     const graphics = this.coverage
     graphics.fillStyle(0x66c6e0, alpha).fillCircle((position.x + .5) * TILE, (position.y + .5) * TILE, POLE_COVERAGE_RADIUS * TILE)
     graphics.lineStyle(1, 0x83d5ec, .8).strokeCircle((position.x + .5) * TILE, (position.y + .5) * TILE, POLE_COVERAGE_RADIUS * TILE)
@@ -465,21 +484,28 @@ export class FactoryScene extends Phaser.Scene {
     const skip = this.skipNextDelta
     if (skip && !loading) this.skipNextDelta = false
     const before = this.world.timeMs
+    const diagnostics = useGraphicsSettings.getState().diagnostics
+    const tickStart = diagnostics ? performance.now() : 0
     if (!loading && !skip) advanceWorld(this.world, delta)
+    if (diagnostics && this.world.timeMs > before) this.tickCostMs = (performance.now() - tickStart) / ((this.world.timeMs - before) / 50)
     const autosave = this.saves.tick(document.hidden ? 0 : this.world.timeMs - before, this.world, this.viewState(), !loading && !skip)
     if (autosave) useGameStore.setState({ saveStatus: autosave })
     const power = allocatePower(this.world)
     const overlay = useGameStore.getState().powerOverlay
+    const view = cameraViewport(camera)
+    const bounds = visibleTileBounds(view, TILE)
     this.wires.clear()
     this.coverage.clear()
     for (const [a, b] of power.poleConnections) {
       const from = tilePosition(a), to = tilePosition(b)
+      if (!intersects(view, Math.min(from.x, to.x) * TILE, Math.min(from.y, to.y) * TILE, Math.abs(to.x - from.x) * TILE, Math.abs(to.y - from.y) * TILE, TILE)) continue
       this.wires.lineStyle(overlay ? 2 : 1, 0xd7b66c, .8).lineBetween((from.x + .5) * TILE, (from.y + .5) * TILE, (to.x + .5) * TILE, (to.y + .5) * TILE)
     }
     for (const network of power.networks) for (const index of network.generatorIndices) {
       const generator = this.world.buildings[index]!
       const pole = network.poleIndices.find(i => withinRange(generator, tilePosition(i), POLE_COVERAGE_RADIUS))!
       const to = tilePosition(pole)
+      if (!intersects(view, Math.min(generator.x, to.x) * TILE, Math.min(generator.y, to.y) * TILE, Math.abs(to.x - generator.x) * TILE, Math.abs(to.y - generator.y) * TILE, TILE)) continue
       this.wires.lineStyle(1, 0x78c9bc, .8).lineBetween((generator.x + .5) * TILE, (generator.y + .5) * TILE, (to.x + .5) * TILE, (to.y + .5) * TILE)
     }
     if (overlay) for (const network of power.networks) for (const index of network.poleIndices) this.showCoverage(tilePosition(index), network.id, .035)
@@ -487,10 +513,13 @@ export class FactoryScene extends Phaser.Scene {
     this.items.clear()
     this.peteEffects.clear()
     this.paintDrag(this.input.activePointer)
-    this.landscapeWater.draw(this.waterSurface, this.world, camera.worldView, TILE)
-    this.natureVisuals.drawDecorations(this.landscape, this.world, TILE)
-    for (const building of this.world.buildings) {
+    this.landscapeWater.draw(this.waterSurface, this.world, view, TILE)
+    this.natureVisuals.drawDecorations(this.landscape, this.world, TILE, view)
+    this.drawnBuildings = 0
+    for (let row = bounds.top; row <= bounds.bottom; row++) for (let column = bounds.left; column <= bounds.right; column++) {
+      const building = this.world.buildings[row * SIZE + column]
       if (!building) continue
+      this.drawnBuildings++
       const x = building.x * TILE, y = building.y * TILE
       if (building.kind === 'treehouse') {
         drawTreehouse(this.machines, this.world, building, TILE)
@@ -658,13 +687,13 @@ export class FactoryScene extends Phaser.Scene {
         if (overlay) this.items.lineStyle(2, color).strokeRect(x + 1, y + 1, TILE - 2, TILE - 2)
       }
     }
-    this.natureVisuals.drawEffects(this.peteEffects, this.world, TILE)
-    this.webVisuals.draw(this.peteEffects, this.world, TILE)
-    this.waterVisuals.draw(this.peteEffects, this.world, TILE)
-    this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this)
-    drawPeace(this.peteEffects, this.world, TILE)
-    if (!peaceful(this.world) && (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')) drawPete(this.peteEffects, this.world, TILE)
-    drawPoliceEffects(this.peteEffects, this.world, TILE)
+    this.natureVisuals.drawEffects(this.peteEffects, this.world, TILE, view)
+    this.webVisuals.draw(this.peteEffects, this.world, TILE, view)
+    this.waterVisuals.draw(this.peteEffects, this.world, TILE, view)
+    this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this, view)
+    drawPeace(this.peteEffects, this.world, TILE, view)
+    if (!peaceful(this.world) && (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')) drawPete(this.peteEffects, this.world, TILE, view)
+    drawPoliceEffects(this.peteEffects, this.world, TILE, view)
     const arrest = arrestVisual(this.world)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
     const home = this.world.peace.home === null ? null : this.world.buildings[this.world.peace.home]
@@ -675,7 +704,10 @@ export class FactoryScene extends Phaser.Scene {
     if (this.peteLabel.text !== label) {
       this.peteLabel.setText(label).setStyle({ fontSize: arrest?.caption ? '13px' : '9px', color: complaining ? '#56341a' : '#f8cf86', backgroundColor: complaining ? '#fff3c9' : '#17221cbb', padding: { x: 3, y: 2 } })
     }
-    useGameStore.getState().publish(this.world)
+    if (this.summaryWorld !== this.world || this.world.timeMs - this.summaryAt >= 100 || this.summaryRevision !== this.world.topologyRevision) {
+      useGameStore.getState().publish(this.world)
+      this.summaryWorld = this.world; this.summaryAt = this.world.timeMs; this.summaryRevision = this.world.topologyRevision
+    }
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
     this.preview.clear()

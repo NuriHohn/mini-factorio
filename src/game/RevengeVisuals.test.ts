@@ -47,6 +47,28 @@ describe('Revenge rendering stays observational', () => {
     visuals.destroy()
     expect(labels.every(text => text.destroy.mock.calls.length > 0)).toBe(true)
   })
+  it('culls offscreen walker geometry and still expires hidden impacts without replay', () => {
+    const world = createWorld(() => .5), visuals = new RevengeVisuals(), { graphics, scene, calls, labels } = renderer()
+    for (let i = 0; i < 3; i++) recordArrest(world)
+    advanceWorld(world, 5000)
+    const far = { x: 5000, y: 5000, width: 100, height: 100 }
+    const before = structuredClone(world)
+    visuals.draw(graphics, world, 32, scene, far)
+    expect(calls).toHaveLength(0); expect(world).toEqual(before)
+    const boss = world.revenge.boss!
+    const near = { x: boss.x * 32 - 64, y: boss.y * 32 - 64, width: 160, height: 160 }
+    visuals.draw(graphics, world, 32, scene, near)
+    expect(calls).toContain('fillEllipse')
+    const impact = attackWalker(world, 'flySwatter', boss)!
+    visuals.impact(impact, world); visuals.draw(graphics, world, 32, scene, near)
+    const label = labels.at(-1)!
+    visuals.draw(graphics, world, 32, scene, far)
+    advanceWorld(world, 1250); visuals.draw(graphics, world, 32, scene, far)
+    expect(label.destroy).toHaveBeenCalledOnce()
+    const count = labels.length
+    visuals.draw(graphics, world, 32, scene, far)
+    expect(labels).toHaveLength(count)
+  })
   it('cleans up impact labels when loading another world', () => {
     const world = createWorld(() => .5), visuals = new RevengeVisuals(), { graphics, scene, labels } = renderer()
     const miss = attackWalker(world, 'flySwatter', { x: 8, y: 8 })!

@@ -1,3 +1,5 @@
+import { visiblePoint } from './viewport'
+import type { Viewport } from './viewport'
 import { arrestVisual } from './arrestVisuals'
 import type Phaser from 'phaser'
 import { radarPowered } from '../simulation/police'
@@ -25,16 +27,16 @@ export function drawSecurityBuilding(g: Phaser.GameObjects.Graphics, world: Worl
     g.fillStyle(0xdab564).fillCircle(x + 10, y - 12, 2)
   }
 }
-export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, tile: number): void {
+export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
   const flash = world.police.flash
-  if (flash) {
+  if (flash && visiblePoint(view, (flash.position.x + .5) * tile, (flash.position.y + .5) * tile, 40)) {
     const x = (flash.position.x + .5) * tile, y = (flash.position.y + .5) * tile
     const alpha = Math.max(0, (flash.untilMs - world.timeMs) / 350)
     g.fillStyle(0xe8d9b5, alpha * .12).fillCircle(x, y, 26)
     g.lineStyle(2, 0xe8d9b5, alpha * .7)
     for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.lineBetween(x + Math.cos(a) * 28, y + Math.sin(a) * 28, x + Math.cos(a) * 36, y + Math.sin(a) * 36) }
   }
-  for (const prison of world.buildings) if (prison?.kind === 'prison') {
+  for (const prison of world.buildings) if (prison?.kind === 'prison' && visiblePoint(view, (prison.x + .5) * tile, (prison.y + .5) * tile, 32)) {
     const occupied = world.pete.mode === 'IMPRISONED' && world.pete.prison === prison
     const escaping = world.pete.jailbreak && world.pete.jailbreak.position.x === prison.x && world.pete.jailbreak.position.y === prison.y
     const rattle = escaping ? Math.sin(world.timeMs / 140) * 1.5 : occupied && world.timeMs % 3000 < 650 ? Math.sin(world.timeMs / 150) * .8 : 0
@@ -44,7 +46,7 @@ export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, 
     g.lineBetween(x - 13, y + 6, x + 13, y + 6)
   }
   const jailbreak = world.pete.jailbreak
-  if (jailbreak) {
+  if (jailbreak && visiblePoint(view, (jailbreak.position.x + .5) * tile, (jailbreak.position.y + .5) * tile, 64)) {
     const t = 1 - (jailbreak.untilMs - world.timeMs) / 1200
     const x = (jailbreak.position.x + .5) * tile, y = (jailbreak.position.y + .5) * tile
     for (let i = 0; i < 6; i++) {
@@ -53,7 +55,7 @@ export function drawPoliceEffects(g: Phaser.GameObjects.Graphics, world: World, 
     }
   }
   const car = world.police.car
-  if (!car) return
+  if (!car || !visiblePoint(view, (car.x + .5) * tile, (car.y + .5) * tile, 160)) return
   const arrest = arrestVisual(world)
   const x = (car.x + .5) * tile + (arrest?.wobble ?? 0), y = (car.y + .5) * tile
   const horizontal = car.next === null || car.next % SIZE !== car.tile % SIZE

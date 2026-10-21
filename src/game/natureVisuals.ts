@@ -1,3 +1,5 @@
+import { visiblePoint, visibleTileBounds } from './viewport'
+import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import { MATURE_TREE_MS, treeAge, treeStage, YOUNG_TREE_MS } from '../simulation/nature'
 import { SIZE } from '../simulation/world'
@@ -35,6 +37,7 @@ export class NatureVisuals {
   private world: World | null = null
   private decorationRevision = -1
   private topologyRevision = -1
+  private viewKey = ''
   private fellings: { tree: Tree; atMs: number }[] = []
   private reset(world: World) {
     if (world === this.world) return
@@ -45,12 +48,16 @@ export class NatureVisuals {
     this.fellings.push({ tree, atMs: world.timeMs })
     if (this.fellings.length > 32) this.fellings.shift()
   }
-  drawDecorations(g: Phaser.GameObjects.Graphics, world: World, tile: number) {
+  drawDecorations(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport) {
     this.reset(world)
-    if (this.decorationRevision === world.nature.decorationRevision && this.topologyRevision === world.topologyRevision) return
+    const bounds = visibleTileBounds(view ?? { x: 0, y: 0, width: SIZE * tile, height: SIZE * tile }, tile)
+    const key = `${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}`
+    if (this.decorationRevision === world.nature.decorationRevision && this.topologyRevision === world.topologyRevision && this.viewKey === key) return
+    this.viewKey = key
     this.decorationRevision = world.nature.decorationRevision; this.topologyRevision = world.topologyRevision
     g.clear()
-    for (let i = 0; i < world.nature.decorations.length; i++) {
+    for (let row = bounds.top; row <= bounds.bottom; row++) for (let column = bounds.left; column <= bounds.right; column++) {
+      const i = row * SIZE + column
       const decoration = world.nature.decorations[i]
       if (!decoration || world.water[i] || world.buildings[i]) continue
       const x = i % SIZE * tile, y = Math.floor(i / SIZE) * tile, seed = hash(i)
@@ -65,11 +72,11 @@ export class NatureVisuals {
       }
     }
   }
-  drawEffects(g: Phaser.GameObjects.Graphics, world: World, tile: number) {
+  drawEffects(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport) {
     this.reset(world)
     this.fellings = this.fellings.filter(f => stumpVisual(world.timeMs - f.atMs).visible)
     for (const f of this.fellings) {
-      if (world.buildings[f.tree.y * SIZE + f.tree.x]) continue
+      if (world.buildings[f.tree.y * SIZE + f.tree.x] || !visiblePoint(view, (f.tree.x + .5) * tile, (f.tree.y + .5) * tile, 64)) continue
       const visual = stumpVisual(world.timeMs - f.atMs), x = (f.tree.x + .5) * tile, y = (f.tree.y + .5) * tile + 10
       g.fillStyle(0x85613d, visual.alpha).fillRoundedRect(x - 5, y - 4, 10, 7, 2)
       g.fillStyle(0xd9b582, visual.alpha).fillEllipse(x, y - 4, 11, 5)
