@@ -1,3 +1,4 @@
+import { generationKw, ratedGeneration } from './power'
 import { peaceful } from './peace'
 import { reachableTiles, tilePath, edgeTile, neighboringTiles } from './navigation'
 import { isSabotageable } from './buildingCapabilities'
@@ -61,13 +62,18 @@ function spawn(world: World): void {
   if (tile < 0) return
   // Visit each edge component once, preferring an approachable productive target.
   const visited = new Set<number>()
+  let generatorEdge: number | null = null
   const hasTargets = world.buildings.some((_, index) => productiveTarget(world, index))
   for (let i = tile; hasTargets && i < world.buildings.length; i++) {
     if (!edgeTile(i) || visited.has(i) || !freeTile(world, i) || world.pete.tile === i || world.pete.next === i) continue
     const parents = reachableTiles(world, i)
     for (const reachable of parents.keys()) visited.add(reachable)
-    if (chooseTarget(world, { tile: i, x: i % SIZE, y: Math.floor(i / SIZE), lastTarget: null }, parents) !== null) { tile = i; break }
+    const target = chooseTarget(world, { tile: i, x: i % SIZE, y: Math.floor(i / SIZE), lastTarget: null }, parents)
+    if (target === null) continue
+    if (ratedGeneration(world.buildings[target]!) === 0) { generatorEdge = i; break }
+    generatorEdge ??= i
   }
+  tile = generatorEdge ?? tile
   resetPete(world, tile)
   world.revenge.boss = { x: tile % SIZE, y: Math.floor(tile / SIZE), tile, next: null, travelMs: 0, hp: 100, phase: 1, stomped: false, target: null, targetInactiveMs: 0, lastTarget: null, empAtMs: world.timeMs + 4000 }
   world.revenge.stage = 'hunting'; world.revenge.untilMs = 0
@@ -89,11 +95,14 @@ export function damageWalker(world: World, damage: number): boolean {
 }
 function pursuitTarget(world: World, index: number): boolean {
   const kind = world.buildings[index]?.kind
-  return kind === 'miner' || kind === 'furnace' || kind === 'assembler'
+  return kind === 'miner' || kind === 'furnace' || kind === 'assembler' || kind === 'generator' || kind === 'waterwheel'
 }
 export function productiveTarget(world: World, index: number): boolean {
-  const b = world.buildings[index], speed = world.power?.consumers[index]?.speedFraction ?? 0
-  if (speed <= 0 || !b) return false
+  const b = world.buildings[index]
+  if (!b) return false
+  if (ratedGeneration(b) > 0) return generationKw(world, b) > 0
+  const speed = world.power?.consumers[index]?.speedFraction ?? 0
+  if (speed <= 0) return false
   if (b.kind === 'miner') return !b.item && !!world.tiles[index]
   return (b.kind === 'furnace' || b.kind === 'assembler') && !!b.job && b.job.elapsedMs < RECIPES[b.job.recipeId].durationMs
 }
@@ -104,8 +113,8 @@ export function empTargetEligible(world: World, index: number): boolean {
   return productiveTarget(world, index) && !!target && world.buildings.every(b => !b || !isSabotageable(b) || Math.hypot(b.x - target.x, b.y - target.y) > 3 || !b.sabotageUntilMs || world.timeMs >= b.sabotageUntilMs + EMP_RECOVERY_MS)
 }
 function chooseTarget(world: World, boss: Pick<Walker, 'tile' | 'x' | 'y' | 'lastTarget'>, parents?: Map<number, number>): number | null {
-  const priority = { assembler: 0, furnace: 1, miner: 2 }
-  const candidates = world.buildings.flatMap((b, i) => b && productiveTarget(world, i) && (b.kind === 'assembler' || b.kind === 'furnace' || b.kind === 'miner') ? [{ index: i, rank: priority[b.kind], distance: (b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 }] : [])
+  const priority = { assembler: 0, furnace: 1, miner: 2, generator: 3, waterwheel: 3 }
+  const candidates = world.buildings.flatMap((b, i) => b && productiveTarget(world, i) && (b.kind === 'assembler' || b.kind === 'furnace' || b.kind === 'miner' || b.kind === 'generator' || b.kind === 'waterwheel') ? [{ index: i, rank: priority[b.kind], distance: (b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 }] : [])
   if (!candidates.length) return null
   const reachable = parents ?? reachableTiles(world, boss.tile)
   const canApproach = (index: number) => [...reachable.keys()].some(tile => (tile % SIZE - index % SIZE) ** 2 + (Math.floor(tile / SIZE) - Math.floor(index / SIZE)) ** 2 <= 36)
