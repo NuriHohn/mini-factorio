@@ -139,7 +139,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     until(w, () => w.coopProject?.phase === 'complete')
     const tile = w.coopProject!.tiles[0], coop = w.buildings[tile]!
     expect(placeBuilding(w, 1, 1, 'peteCoop', 'east')).toBe(false)
-    expect(inspectBuilding(w, tile)).toEqual({ kind: 'peteCoop' })
+    expect(inspectBuilding(w, tile)).toMatchObject({ kind: 'peteCoop', collected: 0 })
     expect(powerRequirement(coop)).toBe(0); expect(generationKw(w, coop)).toBe(0)
     expect(Object.keys(coop).sort()).toEqual(['kind', 'x', 'y'])
   })

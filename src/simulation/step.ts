@@ -1,3 +1,4 @@
+import { advancePoultry } from './poultry'
 import { advanceWaterwheels } from './waterwheel'
 import { advancePeace } from './peace'
 import { advanceNature } from './nature'
@@ -53,5 +54,6 @@ export function advanceWorld(world: World, delta: number): void {
       }
     }
     pruneAnalytics(world)
+    advancePoultry(world, STEP_MS)
   }
 }

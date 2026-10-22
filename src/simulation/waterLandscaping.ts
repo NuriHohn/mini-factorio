@@ -1,3 +1,4 @@
+import { refreshPoultry } from './poultry'
 import { footbridgeBanks } from './footbridge'
 import { dockAtSpot } from './fishingDock'
 import { refreshFishing } from './peace'
@@ -73,6 +74,7 @@ export function paintWater(world: World, from: Position, to: Position, mode: Wat
     world.topologyRevision++ // Existing route and actor caches must see terrain changes.
     if (decorationChanged) world.nature.decorationRevision++
     invalidateTerrain(world, changed)
+    refreshPoultry(world)
   }
   return changed.length
 }
