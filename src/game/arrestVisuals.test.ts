@@ -97,7 +97,7 @@ describe('gentle cycle-based arrest scenes', () => {
     const world = arrest(3)
     advanceWorld(world, elapsed)
     const loaded = decodeSave(save(world)).world
-    expect(SAVE_VERSION).toBe(21)
+    expect(SAVE_VERSION).toBe(22)
     expect(JSON.parse(save(loaded))).toEqual(JSON.parse(save(world)))
     expect(arrestVisual(loaded)).toEqual(arrestVisual(world))
     for (const delta of [50, 200, 400, 500, 2500]) {

@@ -4,7 +4,7 @@ import { placeBuilding, removeBuilding, SIZE } from './world'
 import type { SupplyCrate, World } from './world'
 import { advanceWorld } from './step'
 import { supplyWood } from './supplyCrate'
-import { COOP_WOOD, COOP_BUILD_MS, currentProject, projectSiteClear } from './secretProject'
+import { COOP_WOOD, COOP_BUILD_MS, currentProject, projectCandidates, projectSiteClear, trySecretProject } from './secretProject'
 import { reachableTiles } from './navigation'
 import { inspectBuilding } from './inspection'
 import { generationKw, powerRequirement } from './power'
@@ -28,6 +28,12 @@ function fenced() {
   until(w, () => w.project?.phase === 'complete')
   return w
 }
+// Pin the seeded choice when a regression specifically exercises coop construction.
+function chooseCoop(w: World): boolean {
+  if (!projectCandidates(w).some(c => c.definition.id === 'coop')) return false
+  w.peace.seed = 0
+  return trySecretProject(w) && currentProject(w) === w.coopProject
+}
 const coops = (w: World) => w.buildings.filter(b => b?.kind === 'peteCoop')
 describe('Pete’s chicken coop follow-up project', () => {
   it('requires the completed fence, then waits for ten supplied Wood without touching industrial items', () => {
@@ -47,8 +53,9 @@ describe('Pete’s chicken coop follow-up project', () => {
   })
   it('needs the full ten Wood, builds visibly over twelve seconds, then never duplicates after load or demolition', () => {
     const w = fenced(); supplyWood(w, 824, COOP_WOOD - 1)
-    advanceWorld(w, 50000); expect(w.coopProject).toBeNull(); expect(crate(w).wood).toBe(9)
-    supplyWood(w, 824, 3) // Existing six-Wood icon batches can leave two surplus Wood.
+    advanceWorld(w, 50000); expect(w.coopProject).toBeNull(); expect(crate(w).wood).toBe(4) // Five Wood now funds the independently eligible campfire.
+    expect(w.campfireProject?.phase).toBe('complete')
+    supplyWood(w, 824, 8) // Leave two surplus Wood after the ten-Wood pickup.
     until(w, () => (w.coopProject?.elapsedMs ?? 0) >= 500)
     const p = w.coopProject!, wood = w.nature.wood
     expect(crate(w).wood).toBe(2); expect(p.carried).toBe(10); expect(coops(w)).toHaveLength(0)
@@ -59,7 +66,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     expect(w.nature.wood).toBe(wood)
     const loaded = load(w), tile = p.tiles[0]
     supplyWood(loaded, 824, 10); advanceWorld(loaded, 60000)
-    expect(coops(loaded)).toHaveLength(1); expect(crate(loaded).wood + 2 * (loaded.yard?.built ?? 0) + (loaded.yard?.carried ?? 0)).toBe(7) // Five Wood funds the new campfire, never a duplicate coop.
+    expect(coops(loaded)).toHaveLength(1); expect(crate(loaded).wood + 2 * (loaded.yard?.built ?? 0) + (loaded.yard?.carried ?? 0)).toBe(12) // The campfire is already complete; no duplicate construction debit.
     expect(loaded.campfireProject?.phase).toBe('complete')
     removeBuilding(loaded, tile % SIZE, Math.floor(tile / SIZE)); advanceWorld(loaded, 60000)
     expect(coops(loaded)).toHaveLength(0); expect(loaded.coopProject?.phase).toBe('complete')
@@ -70,6 +77,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     supplyWood(w, 824, 10); advanceWorld(w, 50000)
     expect(w.coopProject).toBeNull(); expect(crate(w).wood).toBe(10)
     removeBuilding(w, 23, 20)
+    until(w, () => chooseCoop(w))
     until(w, () => w.coopProject?.phase === 'building')
     const p = w.coopProject!, tile = p.tiles[0]
     expect(tile).toBe(823); expect(projectSiteClear(w, p)).toBe(true)
@@ -88,6 +96,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     for (const i of [784, 825, 864, 823]) placeBuilding(w, i % SIZE, Math.floor(i / SIZE), 'storage', 'east')
     supplyWood(w, 824, 10); advanceWorld(w, 50000); expect(w.coopProject).toBeNull()
     removeBuilding(w, 24, 19)
+    until(w, () => chooseCoop(w))
     until(w, () => w.coopProject?.phase === 'collecting')
     advanceWorld(w, 50); removeBuilding(w, 24, 20)
     expect(w.coopProject?.crate).toBeNull(); expect(() => load(w)).not.toThrow()
@@ -115,7 +124,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     until(w, () => (w.project?.elapsedMs ?? 0) >= 500)
     for (const complete of [false, true]) {
       if (complete) until(w, () => w.project?.phase === 'complete')
-      const old = snapshot(w); Object.assign(old, { version: 15 }); Reflect.deleteProperty(old.game, 'personality')
+      const old = snapshot(w); Object.assign(old, { version: 15 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.project!, 'selected')
       const loaded = decodeSave(JSON.stringify(old)).world
       expect(loaded.project).toEqual(w.project); expect(loaded.coopProject).toBeNull()
       expect(crate(loaded).wood).toBe(crate(w).wood)
