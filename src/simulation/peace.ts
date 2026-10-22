@@ -1,11 +1,12 @@
+import { preparePeteGate } from './gardenGate'
 import { CAMPFIRE_HAPPY_MS, COOKING_MS, finishCooking, reachableCampfire, refreshCooking } from './campfire'
 import { collectEgg, eggAt, EGG_COLLECT_MS, reachableEgg, refreshPoultry } from './poultry'
-import { advanceSecretProject, trySecretProject, tryYard } from './secretProject'
+import { advanceSecretProject, trySecretProject, tryYard, tryGate } from './secretProject'
 import { crateAtSpot, reachableCrateSpot, SUPPLY_INSPECTION_MS } from './supplyCrate'
 import { BOARDING_MS, moveRowboat, planRowboat, rowboatValid } from './rowboat'
 import type { RowboatTrip } from './rowboat'
 import { dockAtSpot, FISHING_MS, reachableFishingSpot } from './fishingDock'
-import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navigation'
+import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from './navigation'
 import { PETE_COOLDOWN_MS, PETE_WALK_MS } from './pete'
 import { WARNING_MS } from './revenge'
 import { SIZE } from './world'
@@ -129,6 +130,7 @@ function move(world: World, delta: number): void {
         return
       }
     }
+    if (!preparePeteGate(world, p.next)) return
     const spent = Math.min(PETE_WALK_MS - p.travelMs, remaining)
     p.travelMs += spent; remaining -= spent
     const t = p.travelMs / PETE_WALK_MS
@@ -196,7 +198,7 @@ export function advancePeace(world: World, delta: number): void {
     else if (s.activity === 'collectingEgg') { collectEgg(world); activity(world, 'homeward') }
     else if (s.activity === 'entering') activity(world, 'resting', 12000)
     else if (s.activity === 'resting') {
-      if (trySecretProject(world) || tryYard(world)) return
+      if (trySecretProject(world) || tryYard(world) || tryGate(world)) return
       const fire = reachableCampfire(world)
       if (fire !== null && random(world) < 1 / 3) { activity(world, 'campfireward', 0, fire); return }
       const egg = reachableEgg(world)

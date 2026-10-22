@@ -1,3 +1,4 @@
+import { preparePeteGate } from './gardenGate'
 import { peaceful } from './peace'
 import { peteUnavailable } from './revenge'
 import { isSabotageable } from './buildingCapabilities'
@@ -5,7 +6,7 @@ import { releaseWebTrap, tryWebTrap } from './webs'
 import { allocatePower, generationKw, ratedGeneration } from './power'
 import { advanceWaterReaction } from './sprinklers'
 import type { WaterReaction } from './sprinklers'
-import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navigation'
+import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from './navigation'
 import { SIZE } from './world'
 import type { Building, Position, Prison, World } from './world'
 
@@ -123,6 +124,7 @@ export function advancePete(world: World, delta: number): void {
       }
     }
     if (pete.next !== null) {
+      if (!preparePeteGate(world, pete.next)) break
       const duration = pete.mode === 'FLEEING' ? PETE_FLEE_MS : PETE_WALK_MS
       const spent = Math.min(duration - pete.travelMs, remaining)
       pete.travelMs += spent

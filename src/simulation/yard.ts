@@ -24,7 +24,7 @@ export function yardBoundary(y: Pick<Yard, 'left' | 'right' | 'top' | 'bottom'>)
 export function yardDirection(y: Yard, i: number): 'east' | 'south' { return Math.floor(i / SIZE) === y.top || Math.floor(i / SIZE) === y.bottom ? 'east' : 'south' }
 export function enclosedYard(world: World): Yard | null {
   const y = world.yard, coop = world.coopProject?.tiles[0]
-  return y?.phase === 'complete' && coop !== undefined && world.buildings[coop]?.kind === 'peteCoop' && yardInterior(y, coop) && yardBoundary(y).every(i => i === y.entrance || world.buildings[i]?.kind === 'peteFence') && !world.water[y.entrance] && !world.buildings[y.entrance] ? y : null
+  return y?.phase === 'complete' && coop !== undefined && world.buildings[coop]?.kind === 'peteCoop' && yardInterior(y, coop) && yardBoundary(y).every(i => i === y.entrance || world.buildings[i]?.kind === 'peteFence') && !world.water[y.entrance] && (!world.buildings[y.entrance] || world.buildings[y.entrance]?.kind === 'peteGate') ? y : null
 }
 function occupied(world: World, i: number): boolean {
   const actors = [world.pete, ...(world.police.car ? [world.police.car] : []), ...(world.revenge.boss ? [world.revenge.boss] : [])]

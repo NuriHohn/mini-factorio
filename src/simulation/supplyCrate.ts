@@ -1,5 +1,5 @@
 import { inventoryTotal } from './items'
-import { neighboringTiles, reachableTiles, tilePath } from './navigation'
+import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
 import type { SupplyCrate, World } from './world'
 export const SUPPLY_CRATE_WOOD = 6
 export const SUPPLY_CRATE_CAPACITY = 200

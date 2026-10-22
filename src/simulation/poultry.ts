@@ -1,5 +1,5 @@
 import { enclosedYard, yardInterior } from './yard'
-import { neighboringTiles, reachableTiles, tilePath } from './navigation'
+import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
 import { SIZE } from './world'
 import type { World } from './world'
 export const CHICK_DELAY_MS = 150000

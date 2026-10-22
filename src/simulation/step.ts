@@ -1,3 +1,4 @@
+import { advanceGate } from './gardenGate'
 import { advancePoultry } from './poultry'
 import { advanceWaterwheels } from './waterwheel'
 import { advancePeace } from './peace'
@@ -24,6 +25,7 @@ export function advanceWorld(world: World, delta: number): void {
     world.timeMs += STEP_MS
     const reactingToWater = world.pete.water !== null
     advanceNature(world)
+    advanceGate(world, STEP_MS)
     advancePeace(world, STEP_MS)
     advanceWebs(world)
     advancePete(world, STEP_MS)

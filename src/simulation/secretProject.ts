@@ -1,10 +1,11 @@
+import { gateSiteClear, GATE_WOOD, planGate, preparePeteGate } from './gardenGate'
 import type { Yard } from './yard'
 import { planYard, yardDirection, yardNavigation, yardSiteClear } from './yard'
-import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navigation'
+import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from './navigation'
 import { footbridgeBank } from './footbridge'
 import { PETE_WALK_MS } from './pete'
 import { inside, SIZE } from './world'
-import type { PeteCampfire, PeteCoop, PeteFence, World } from './world'
+import type { PeteGate, PeteCampfire, PeteCoop, PeteFence, World } from './world'
 export const PROJECT_WOOD = 6
 export const FENCE_SEGMENT_MS = 4000
 export const COOP_WOOD = 10
@@ -12,7 +13,7 @@ export const COOP_BUILD_MS = 12000
 export const CAMPFIRE_WOOD = 5
 export const CAMPFIRE_BUILD_MS = 6000
 export interface SecretProject {
-  kind?: 'coop' | 'campfire' | 'yard'
+  kind?: 'coop' | 'campfire' | 'yard' | 'gate'
   home: number
   direction: 'east' | 'south'
   tiles: number[]
@@ -26,14 +27,15 @@ export interface SecretProject {
 export function currentProject(world: World): SecretProject | null {
   if (world.project?.phase !== 'complete') return world.project
   if (world.coopProject?.phase === 'complete' && world.yard && world.yard.phase !== 'complete') return world.yard
+  if (world.gateProject && world.gateProject.phase !== 'complete') return world.gateProject
   return world.coopProject?.phase === 'complete' ? world.campfireProject : world.coopProject
 }
-export function projectWood(project: SecretProject | null): number { return project?.kind === 'yard' ? 2 : project?.kind === 'campfire' ? CAMPFIRE_WOOD : project?.kind === 'coop' ? COOP_WOOD : PROJECT_WOOD }
+export function projectWood(project: SecretProject | null): number { return project?.kind === 'gate' ? GATE_WOOD : project?.kind === 'yard' ? 2 : project?.kind === 'campfire' ? CAMPFIRE_WOOD : project?.kind === 'coop' ? COOP_WOOD : PROJECT_WOOD }
 export function projectBuildMs(project: SecretProject): number { return project.kind === 'campfire' ? CAMPFIRE_BUILD_MS : project.kind === 'coop' ? COOP_BUILD_MS : FENCE_SEGMENT_MS }
 function worldYard(project: SecretProject): Yard { return project as Yard }
-function projectBuilding(project: SecretProject, i: number): PeteCampfire | PeteCoop | PeteFence {
+function projectBuilding(project: SecretProject, i: number): PeteGate | PeteCampfire | PeteCoop | PeteFence {
   const position = { x: i % SIZE, y: Math.floor(i / SIZE) }
-  return project.kind === 'campfire' ? { ...position, kind: 'peteCampfire' } : project.kind === 'coop' ? { ...position, kind: 'peteCoop' } : { ...position, kind: 'peteFence', direction: project.kind === 'yard' ? yardDirection(worldYard(project), i) : project.direction }
+  return project.kind === 'gate' ? { ...position, kind: 'peteGate', direction: project.direction, openMs: 0, holdUntilMs: 0 } : project.kind === 'campfire' ? { ...position, kind: 'peteCampfire' } : project.kind === 'coop' ? { ...position, kind: 'peteCoop' } : { ...position, kind: 'peteFence', direction: project.kind === 'yard' ? yardDirection(worldYard(project), i) : project.direction }
 }
 function navigationWorld(world: World, project = currentProject(world)): World {
   if (!project) return world
@@ -48,6 +50,7 @@ function source(world: World, project = currentProject(world), wood = projectWoo
   return candidates.sort((a, b) => (tilePath(parents, a.spot)?.length ?? Infinity) - (tilePath(parents, b.spot)?.length ?? Infinity) || a.crate - b.crate || a.spot - b.spot)[0] ?? null
 }
 export function projectSiteClear(world: World, project: SecretProject): boolean {
+  if (project.kind === 'gate') return gateSiteClear(world, project)
   if (project.kind === 'yard') return yardSiteClear(world, worldYard(project))
   const remaining = project.tiles.slice(project.built)
   const actors = [world.pete, ...(world.police.car ? [world.police.car] : []), ...(world.revenge.boss ? [world.revenge.boss] : [])]
@@ -74,7 +77,7 @@ function stop(world: World): void {
   Object.assign(world.peace, { activity: 'homeward', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
 }
 export function refreshProject(world: World): void {
-  for (const project of [world.project, world.coopProject, world.campfireProject, world.yard]) if (project && project.crate !== null && world.buildings[project.crate]?.kind !== 'supplyCrate') {
+  for (const project of [world.project, world.coopProject, world.campfireProject, world.yard, world.gateProject]) if (project && project.crate !== null && world.buildings[project.crate]?.kind !== 'supplyCrate') {
     project.crate = null
     if (world.peace.activity === 'project' && currentProject(world) === project) stop(world)
   }
@@ -105,6 +108,13 @@ export function tryYard(world: World): boolean {
   world.yard = yard
   return trySecretProject(world)
 }
+export function tryGate(world: World): boolean {
+  if (world.gateProject || world.peace.home === null || world.yard?.phase !== 'complete' || world.pete.mode !== 'WANDERING' || world.police.car || world.revenge.boss || !source(world, null, GATE_WOOD)) return false
+  const plan = planGate(world)
+  if (!plan || !source(world, plan)) return false
+  world.gateProject = plan
+  return trySecretProject(world)
+}
 function moveTo(world: World, target: number, delta: number): boolean {
   const p = world.pete, s = world.peace
   if (p.next !== null && !walkableTile(world, p.next)) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
@@ -115,6 +125,7 @@ function moveTo(world: World, target: number, delta: number): boolean {
   }
   if (p.next === null) p.next = p.path.shift() ?? null
   if (p.next === null) return p.tile === target
+  if (!preparePeteGate(world, p.next)) return false
   p.travelMs += delta
   const t = Math.min(1, p.travelMs / PETE_WALK_MS)
   p.x = p.tile % SIZE + (p.next % SIZE - p.tile % SIZE) * t
