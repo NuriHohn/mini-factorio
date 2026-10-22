@@ -13,6 +13,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Sprint 15.7.1: Revenge-O-Matic Power Generator Targeting | Operational conventional generators and waterwheels as lower-priority pursuit/EMP targets, production-first spawn components, existing target stability and recovery protection, unchanged combat timings and saves |
 | Sprint 15.8: Wooden Footbridges | Separate straight shore-to-shore 1–5-water-tile crossings at 3 Wood per deck, atomic drag previews, Pete/police navigation, protected landings and occupied-removal guard, whole-crossing demolition and strict version-13 saves with version-1–12 compatibility |
 | Sprint 15.9: Shoreline Vegetation | Deterministic irregular reed/cattail clusters, gentle selected simulation-time sway, terrain/topology cache invalidation, viewport culling and clearance around structures/bridges; decorative only, unchanged version-13 saves |
+| Sprint 16.0: Pete’s Supply Crate | 6-Wood receive-only 200-item supply inventory, shared belt/splitter/inserter capacity protection, direct material inspection, seeded peaceful visits with four-second clipboard checks, safe cancellation and strict version-14 saves with version-1–13 compatibility |
 | Initial mining and movement | Ore deposits, directional mining, WASD camera and zoom |
 | Conveyor belts and storage | Individual items, directional transport, automatic curves, typed chest counts, occupied-building removal |
 | Furnaces and smelting | Crafting jobs, iron plates, buffers, output reservations and inspection |
@@ -53,7 +54,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Proposal | Intended scope / prerequisite |
 | --- | --- |
 | Water & Industry (future scope, unassigned sprint) | Future extension: separately scoped water-related industry; no pumps, fluids or new water-powered machines are implemented in Sprint 15.0 |
-| Sprint 16.0: Pete’s Cozy Home | Subsequent planned major feature: fences, gates and treehouse decorations; no such construction is implemented yet |
+| Pete’s Cozy Home (future scope, unassigned sprint) | Subsequent planned major feature: fences, gates and treehouse decorations; no such construction is implemented yet |
 | Improved logistics | Build on basic inserters with separately approved filtering, priorities, stack/reach variants or throughput improvements |
 | Advanced routing | Future filtering, configurable output priorities and more complex junctions beyond the implemented compact splitter |
 | Blueprints | Capture layouts, preview placement and validate collisions/resources before player confirmation |

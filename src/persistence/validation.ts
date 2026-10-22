@@ -1,3 +1,4 @@
+import { SUPPLY_CRATE_CAPACITY } from '../simulation/supplyCrate'
 import { WATERWHEEL_PERIOD_MS } from '../simulation/waterwheel'
 import { validateTree } from './natureValidation'
 import { isSabotageable } from '../simulation/buildingCapabilities'
@@ -79,13 +80,15 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 14 && kind === 'supplyCrate') invalid(path, 'supply crates require save version 14')
   if (version < 13 && kind === 'footbridge') invalid(path, 'footbridges require save version 13')
   if (version < 11 && kind === 'fishingDock') invalid(path, 'fishing docks require save version 11')
   if (version < 10 && kind === 'waterwheel') invalid(path, 'waterwheels require save version 10')
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    supplyCrate: ['inventory'],
     footbridge: ['direction'],
     fishingDock: ['direction'],
     waterwheel: ['direction', 'rotationMs'],
@@ -127,6 +130,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       if (entry === d) invalid(path, 'belt cannot enter and leave on the same side')
       if (r.bridge !== undefined && r.bridge !== true) invalid(path, 'bridge marker must be true')
       return { ...base, kind, ...(r.bridge === true ? { bridge: true as const } : {}), direction: d, entry, item: nullableItem(r.item, `${path}.item`), progress: number(r.progress, `${path}.progress`, 0, 1) }
+    }
+    case 'supplyCrate': {
+      const contents = inventory(r.inventory, `${path}.inventory`)
+      if (inventoryTotal(contents) > SUPPLY_CRATE_CAPACITY) invalid(`${path}.inventory`, 'supply crate capacity exceeded')
+      return { ...base, kind, inventory: contents }
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }

@@ -1,3 +1,4 @@
+import { crateAtSpot, reachableCrateSpot, SUPPLY_INSPECTION_MS } from './supplyCrate'
 import { BOARDING_MS, moveRowboat, planRowboat, rowboatValid } from './rowboat'
 import type { RowboatTrip } from './rowboat'
 import { dockAtSpot, FISHING_MS, reachableFishingSpot } from './fishingDock'
@@ -11,7 +12,7 @@ export const TREEHOUSE_WOOD = 20
 export const GIFT_MIN_MS = 300000
 export const GIFT_MAX_MS = 600000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
@@ -87,7 +88,9 @@ function plan(world: World): void {
   const p = world.pete, s = world.peace, parents = reachableTiles(world, p.tile)
   const local = localTiles(world, parents)
   const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i))
-  if (s.activity === 'dockward') {
+  if (s.activity === 'crateward') {
+    if (!crateAtSpot(world, s.destination) || !parents.has(s.destination!)) { activity(world, 'homeward'); plan(world); return }
+  } else if (s.activity === 'dockward') {
     if (!dockAtSpot(world, s.destination) || !parents.has(s.destination!)) { activity(world, 'homeward'); plan(world); return }
   } else if (s.activity === 'homeward') {
     const candidates = entrances.length ? entrances : local.length ? local : [p.tile]
@@ -104,7 +107,8 @@ function move(world: World, delta: number): void {
       if (p.pathRevision !== world.topologyRevision || world.peace.destination === null) plan(world)
       p.next = p.path.shift() ?? null
       if (p.next === null) {
-        if (world.peace.activity === 'dockward') {
+        if (world.peace.activity === 'crateward') activity(world, 'checkingCrate', SUPPLY_INSPECTION_MS, world.peace.destination)
+        else if (world.peace.activity === 'dockward') {
           const dock = dockAtSpot(world, world.peace.destination), boat = dock ? planRowboat(world, dock) : null
           if (boat && random(world) < 1 / 3) { world.peace.boat = boat; activity(world, 'boating', BOARDING_MS, world.peace.destination) }
           else activity(world, 'fishing', FISHING_MS, world.peace.destination)
@@ -150,12 +154,19 @@ export function refreshFishing(world: World, previousDock?: FishingDock | null):
   delete world.peace.boat
   activity(world, 'homeward')
 }
+export function refreshSupplyVisit(world: World): void {
+  if (!['crateward', 'checkingCrate'].includes(world.peace.activity) || crateAtSpot(world, world.peace.destination)) return
+  const p = world.pete
+  Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
+  activity(world, 'homeward')
+}
 export function advancePeace(world: World, delta: number): void {
   const s = world.peace, p = world.pete
   if (s.shutdown && world.timeMs - s.shutdown.atMs >= 6000) s.shutdown = null
   if (s.reactionAtMs !== null && world.timeMs - s.reactionAtMs >= 4000) s.reactionAtMs = null
   if (!peaceful(world)) return
   refreshFishing(world)
+  refreshSupplyVisit(world)
   if (world.timeMs >= s.nextGiftAtMs) { spawnGift(world); scheduleGift(world) }
   if (s.activity === 'boating' && s.boat) {
     const boat = s.boat
@@ -165,7 +176,7 @@ export function advancePeace(world: World, delta: number): void {
       if (boat.phase === 'boarding') { boat.phase = 'rowing'; activity(world, 'boating', 0, s.destination) }
       else { delete s.boat; activity(world, 'homeward') }
     }
-  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward') {
+  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward') {
     if (p.next !== null && (!walkableTile(world, p.next))) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
@@ -173,7 +184,11 @@ export function advancePeace(world: World, delta: number): void {
     else if (s.activity === 'resting') {
       const spot = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableFishingSpot(world) : null
       if (spot !== null && random(world) < .5) activity(world, 'dockward', 0, spot)
-      else activity(world, 'walking')
+      else {
+        const crate = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableCrateSpot(world) : null
+        if (crate !== null && random(world) < 1 / 3) activity(world, 'crateward', 0, crate)
+        else activity(world, 'walking')
+      }
     }
     else activity(world, 'homeward')
   }
