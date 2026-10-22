@@ -1,7 +1,8 @@
+import { drawChickenCoop } from './chickenCoopVisuals'
 import type Phaser from 'phaser'
 import type { PeteFence, World } from '../simulation/world'
 import { SIZE } from '../simulation/world'
-import { FENCE_SEGMENT_MS } from '../simulation/secretProject'
+import { currentProject, projectBuildMs } from '../simulation/secretProject'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 export function drawPeteFence(g: Phaser.GameObjects.Graphics, fence: PeteFence, tile: number, progress = 1): void {
@@ -17,10 +18,14 @@ export function drawPeteFence(g: Phaser.GameObjects.Graphics, fence: PeteFence, 
   g.restore()
 }
 export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
-  const project = world.project, p = world.pete
+  const project = currentProject(world), p = world.pete
   if (!project || project.phase === 'complete') return
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
-  if (project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) drawPeteFence(g, { kind: 'peteFence', x, y, direction: project.direction }, tile, project.elapsedMs / FENCE_SEGMENT_MS)
+  if (project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
+    const progress = project.elapsedMs / projectBuildMs(project)
+    if (project.kind === 'coop') drawChickenCoop(g, { kind: 'peteCoop', x, y }, tile, progress)
+    else drawPeteFence(g, { kind: 'peteFence', x, y, direction: project.direction }, tile, progress)
+  }
   if (world.peace.activity !== 'project' || !project.carried || !visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, tile)) return
   const px = (p.x + .5) * tile, py = (p.y + .5) * tile
   if (p.tile === project.spots[project.built] && p.next === null) {

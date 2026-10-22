@@ -2,10 +2,13 @@ import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navi
 import { footbridgeBank } from './footbridge'
 import { PETE_WALK_MS } from './pete'
 import { inside, SIZE } from './world'
-import type { World } from './world'
+import type { PeteCoop, PeteFence, World } from './world'
 export const PROJECT_WOOD = 6
 export const FENCE_SEGMENT_MS = 4000
+export const COOP_WOOD = 10
+export const COOP_BUILD_MS = 12000
 export interface SecretProject {
+  kind?: 'coop'
   home: number
   direction: 'east' | 'south'
   tiles: number[]
@@ -16,15 +19,24 @@ export interface SecretProject {
   carried: number
   elapsedMs: number
 }
-function navigationWorld(world: World, project = world.project): World {
+export function currentProject(world: World): SecretProject | null {
+  return world.project?.phase === 'complete' ? world.coopProject : world.project
+}
+export function projectWood(project: SecretProject | null): number { return project?.kind === 'coop' ? COOP_WOOD : PROJECT_WOOD }
+export function projectBuildMs(project: SecretProject): number { return project.kind === 'coop' ? COOP_BUILD_MS : FENCE_SEGMENT_MS }
+function projectBuilding(project: SecretProject, i: number): PeteCoop | PeteFence {
+  const position = { x: i % SIZE, y: Math.floor(i / SIZE) }
+  return project.kind === 'coop' ? { ...position, kind: 'peteCoop' } : { ...position, kind: 'peteFence', direction: project.direction }
+}
+function navigationWorld(world: World, project = currentProject(world)): World {
   if (!project) return world
   const buildings = [...world.buildings]
-  for (const i of project.tiles.slice(project.built)) buildings[i] = { kind: 'peteFence', x: i % SIZE, y: Math.floor(i / SIZE), direction: project.direction }
+  for (const i of project.tiles.slice(project.built)) buildings[i] = projectBuilding(project, i)
   return { ...world, buildings }
 }
-function source(world: World, project = world.project): { crate: number; spot: number } | null {
+function source(world: World, project = currentProject(world), wood = projectWood(project)): { crate: number; spot: number } | null {
   const parents = reachableTiles(navigationWorld(world, project), world.pete.tile)
-  const candidates = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && b.wood >= PROJECT_WOOD ? neighboringTiles(crate).filter(spot => !world.water[spot] && !world.buildings[spot] && parents.has(spot) && !world.buildings.some(b => b?.kind === 'prison' && b.exit === spot)).map(spot => ({ crate, spot })) : [])
+  const candidates = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && b.wood >= wood ? neighboringTiles(crate).filter(spot => !world.water[spot] && !world.buildings[spot] && parents.has(spot) && !world.buildings.some(b => b?.kind === 'prison' && b.exit === spot)).map(spot => ({ crate, spot })) : [])
   return candidates.sort((a, b) => (tilePath(parents, a.spot)?.length ?? Infinity) - (tilePath(parents, b.spot)?.length ?? Infinity) || a.crate - b.crate || a.spot - b.spot)[0] ?? null
 }
 export function projectSiteClear(world: World, project: SecretProject): boolean {
@@ -33,16 +45,16 @@ export function projectSiteClear(world: World, project: SecretProject): boolean 
   if (remaining.some(i => world.water[i] || world.buildings[i] || footbridgeBank(world, i) || world.buildings.some(b => b?.kind === 'prison' && b.exit === i) || actors.some(a => a.tile === i || a.next === i || ('path' in a && a.path.includes(i))))) return false
   if (project.spots.slice(project.built).some(i => world.water[i] || world.buildings[i])) return false
   const before = reachableTiles(world, world.pete.tile), buildings = [...world.buildings]
-  for (const i of remaining) buildings[i] = { kind: 'peteFence', x: i % SIZE, y: Math.floor(i / SIZE), direction: project.direction }
+  for (const i of remaining) buildings[i] = projectBuilding(project, i)
   const after = reachableTiles({ ...world, buildings }, world.pete.tile)
   return project.spots.slice(project.built).every(i => after.has(i)) && [...before.keys()].every(i => remaining.includes(i) || after.has(i))
 }
-function layout(world: World): SecretProject | null {
+function layout(world: World, coop: boolean): SecretProject | null {
   const home = world.peace.home!, x = home % SIZE, y = Math.floor(home / SIZE)
   for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-    const cells = [-1, 0, 1].map(n => ({ x: x + dx * 3 + (dy ? n : 0), y: y + dy * 3 + (dx ? n : 0) }))
+    const cells = (coop ? [0] : [-1, 0, 1]).map(n => ({ x: x + dx * 3 + (dy ? n : 0), y: y + dy * 3 + (dx ? n : 0) }))
     if (cells.some(p => !inside(p.x, p.y))) continue
-    const project: SecretProject = { home, direction: dy ? 'east' : 'south', tiles: cells.map(p => p.y * SIZE + p.x), spots: cells.map(p => (p.y - dy) * SIZE + p.x - dx), phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
+    const project: SecretProject = { ...(coop ? { kind: 'coop' as const } : {}), home, direction: dy ? 'east' : 'south', tiles: cells.map(p => p.y * SIZE + p.x), spots: cells.map(p => (p.y - dy) * SIZE + p.x - dx), phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
     if (projectSiteClear(world, project) && source(world, project)) return project
   }
   return null
@@ -53,21 +65,25 @@ function stop(world: World): void {
   Object.assign(world.peace, { activity: 'homeward', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
 }
 export function refreshProject(world: World): void {
-  const project = world.project
-  if (project && project.crate !== null && world.buildings[project.crate]?.kind !== 'supplyCrate') {
+  for (const project of [world.project, world.coopProject]) if (project && project.crate !== null && world.buildings[project.crate]?.kind !== 'supplyCrate') {
     project.crate = null
-    if (world.peace.activity === 'project') stop(world)
+    if (world.peace.activity === 'project' && currentProject(world) === project) stop(world)
   }
 }
 export function trySecretProject(world: World): boolean {
-  if (world.project?.phase === 'complete' || world.peace.home === null || world.police.car || world.revenge.boss || world.pete.mode !== 'WANDERING') return false
-  if (!world.project) {
-    if (!source(world)) return false
-    const plan = layout(world)
+  if (world.peace.home === null || world.police.car || world.revenge.boss || world.pete.mode !== 'WANDERING') return false
+  const coop = world.project?.phase === 'complete'
+  let project = currentProject(world)
+  if (project?.phase === 'complete') return false
+  if (!project) {
+    if (!source(world, null, coop ? COOP_WOOD : PROJECT_WOOD)) return false
+    const plan = layout(world, coop)
     if (!plan) return false
-    world.project = plan
+    if (coop) world.coopProject = plan
+    else world.project = plan
+    project = plan
   }
-  if (!projectSiteClear(world, world.project) || (world.project.phase === 'collecting' && !source(world))) return false
+  if (!projectSiteClear(world, project) || (project.phase === 'collecting' && !source(world))) return false
   Object.assign(world.peace, { activity: 'project', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
   world.pete.path = []; world.pete.pathRevision = -1
   return true
@@ -90,19 +106,20 @@ function moveTo(world: World, target: number, delta: number): boolean {
   return false
 }
 export function advanceSecretProject(world: World, delta: number): void {
-  const project = world.project
+  const project = currentProject(world)
   if (!project || project.phase === 'complete' || world.peace.home === null) { stop(world); return }
+  const wood = projectWood(project)
   if (project.phase === 'collecting') {
     const stored = project.crate === null ? null : world.buildings[project.crate], spot = world.peace.destination
     // Keep an in-flight pickup stable when another crate receives Wood.
-    const pickup = stored?.kind === 'supplyCrate' && stored.wood >= PROJECT_WOOD && spot !== null && !world.water[spot] && !world.buildings[spot] && neighboringTiles(project.crate!).includes(spot) ? { crate: project.crate!, spot } : source(world)
+    const pickup = stored?.kind === 'supplyCrate' && stored.wood >= wood && spot !== null && !world.water[spot] && !world.buildings[spot] && neighboringTiles(project.crate!).includes(spot) ? { crate: project.crate!, spot } : source(world)
     if (!pickup || !projectSiteClear(world, project)) { project.crate = null; stop(world); return }
     project.crate = pickup.crate
     if (!moveTo(world, pickup.spot, delta)) return
     const crate = world.buildings[pickup.crate]!
-    if (crate.kind !== 'supplyCrate' || crate.wood < PROJECT_WOOD) { stop(world); return }
-    crate.wood -= PROJECT_WOOD
-    project.carried = PROJECT_WOOD; project.phase = 'building'; project.crate = null
+    if (crate.kind !== 'supplyCrate' || crate.wood < wood) { stop(world); return }
+    crate.wood -= wood
+    project.carried = wood; project.phase = 'building'; project.crate = null
     world.peace.destination = null; world.pete.pathRevision = -1
     return
   }
@@ -110,11 +127,11 @@ export function advanceSecretProject(world: World, delta: number): void {
   if (!moveTo(world, spot, delta)) return
   if (!projectSiteClear(world, project)) { stop(world); return }
   project.elapsedMs += delta
-  if (project.elapsedMs < FENCE_SEGMENT_MS) return
+  if (project.elapsedMs < projectBuildMs(project)) return
   const tile = project.tiles[project.built]
-  world.buildings[tile] = { kind: 'peteFence', x: tile % SIZE, y: Math.floor(tile / SIZE), direction: project.direction }
+  world.buildings[tile] = projectBuilding(project, tile)
   world.topologyRevision++
-  project.built++; project.carried -= PROJECT_WOOD / 3; project.elapsedMs = 0
+  project.built++; project.carried -= wood / project.tiles.length; project.elapsedMs = 0
   world.peace.destination = null; world.pete.pathRevision = -1
-  if (project.built === 3) { project.phase = 'complete'; stop(world) }
+  if (project.built === project.tiles.length) { project.phase = 'complete'; stop(world) }
 }
