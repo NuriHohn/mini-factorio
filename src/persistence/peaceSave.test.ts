@@ -19,7 +19,7 @@ describe('version 8 peace persistence', () => {
   it.each([0, 50, 1500, 3000, 6000, 17000, 80000, 400000])('restores exact routine, gifts, RNG and time remainder at %i ms', time => {
     const w = home(); advanceWorld(w, time + 12.5)
     const restored = load(w)
-    expect(SAVE_VERSION).toBe(14); expect(snapshot(restored)).toEqual(snapshot(w))
+    expect(SAVE_VERSION).toBe(15); expect(snapshot(restored)).toEqual(snapshot(w))
     for (const delta of [37.5, 112.5, 1450, 7500]) {
       advanceWorld(w, delta); advanceWorld(restored, delta)
       expect(snapshot(restored)).toEqual(snapshot(w))

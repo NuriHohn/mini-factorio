@@ -21,13 +21,16 @@ export function BuildingInspection() {
         <h2><span aria-hidden="true">{summary.icon}</span> {summary.name}</h2>
         <p>{summary.description}</p><strong role="status">{summary.state}</strong>
         {summary.power && <p>Power: {summary.power}</p>}
-        {inspection.kind === 'supplyCrate' && <InventoryView inventory={inspection.inventory} showAll />}
+        {inspection.kind === 'supplyCrate' && <>
+          <InventoryView inventory={inspection.inventory} showAll />
+          <div className="stats"><span>Supplied Wood</span><b>{inspection.wood}</b></div>
+        </>}
         {inspection.kind === 'belt' && <p>Output: {inspection.direction} · {inspection.item ? ITEM_DEFINITIONS[inspection.item].label : 'No item'}</p>}
         {inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}
       </div>
       <details className="inspection-technical" key={inspected}><summary>Details and settings</summary>
       {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
-      {inspection.kind === 'supplyCrate' ? <p className="inspection-note">6 Wood · {inspection.capacity} items total · No power. Input only; full crates stop incoming items. Pete inspects without consuming materials. Demolition discards contents; no Wood refund.</p> : inspection.kind === 'fishingDock' ? <>
+      {inspection.kind === 'supplyCrate' ? <p className="inspection-note">6 Wood · {inspection.capacity} items total · No power. Input only; full crates stop incoming items. Click the Wood icon above the crate to unload 6 Wood. Pete may collect supplied Wood for his secret project. Other materials stay stored. Demolition discards contents; no Wood refund.</p> : inspection.kind === 'fishingDock' ? <>
         <div className="stats"><span>Fishing side</span><b>{inspection.direction}</b></div>
         <p className="inspection-note">8 Wood · No electricity or item production. Keep the rear land approach clear. Pete visits only while peaceful.</p>
       </> : inspection.kind === 'treehouse' ? <>

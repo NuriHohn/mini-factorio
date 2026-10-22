@@ -1,3 +1,4 @@
+import { advanceSecretProject, trySecretProject } from './secretProject'
 import { crateAtSpot, reachableCrateSpot, SUPPLY_INSPECTION_MS } from './supplyCrate'
 import { BOARDING_MS, moveRowboat, planRowboat, rowboatValid } from './rowboat'
 import type { RowboatTrip } from './rowboat'
@@ -12,7 +13,7 @@ export const TREEHOUSE_WOOD = 20
 export const GIFT_MIN_MS = 300000
 export const GIFT_MAX_MS = 600000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
@@ -168,6 +169,7 @@ export function advancePeace(world: World, delta: number): void {
   refreshFishing(world)
   refreshSupplyVisit(world)
   if (world.timeMs >= s.nextGiftAtMs) { spawnGift(world); scheduleGift(world) }
+  if (s.activity === 'project') { advanceSecretProject(world, delta); return }
   if (s.activity === 'boating' && s.boat) {
     const boat = s.boat
     if (boat.phase === 'rowing') {
@@ -182,6 +184,7 @@ export function advancePeace(world: World, delta: number): void {
   } else if (world.timeMs >= s.untilMs) {
     if (s.activity === 'entering') activity(world, 'resting', 12000)
     else if (s.activity === 'resting') {
+      if (trySecretProject(world)) return
       const spot = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableFishingSpot(world) : null
       if (spot !== null && random(world) < .5) activity(world, 'dockward', 0, spot)
       else {

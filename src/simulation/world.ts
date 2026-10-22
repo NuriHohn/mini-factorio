@@ -1,3 +1,5 @@
+import { refreshProject } from './secretProject'
+import type { SecretProject } from './secretProject'
 import { SUPPLY_CRATE_WOOD } from './supplyCrate'
 import { footbridgeBank, footbridgeRemovalError, removeFootbridge } from './footbridge'
 import { dockAtSpot, FISHING_DOCK_WOOD } from './fishingDock'
@@ -31,7 +33,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'supplyCrate' | 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
+export type BuildingKind = 'peteFence' | 'supplyCrate' | 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -73,7 +75,8 @@ export interface Inserter extends BuildingPosition {
   item: Item | null
   elapsedMs: number
 }
-export interface SupplyCrate extends BuildingPosition { kind: 'supplyCrate'; inventory: Inventory }
+export interface PeteFence extends BuildingPosition { kind: 'peteFence'; direction: 'east' | 'south' }
+export interface SupplyCrate extends BuildingPosition { kind: 'supplyCrate'; inventory: Inventory; wood: number }
 export interface Footbridge extends BuildingPosition { kind: 'footbridge'; direction: 'east' | 'south' }
 export interface FishingDock extends BuildingPosition { kind: 'fishingDock'; direction: Direction }
 export interface Waterwheel extends BuildingPosition { kind: 'waterwheel'; direction: Direction; rotationMs: number }
@@ -94,8 +97,8 @@ export interface Splitter extends BuildingPosition {
 }
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
-export type Building = SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export type Building = PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export interface World { project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -124,7 +127,7 @@ export function createWorld(random = Math.random, options: { nature?: boolean; w
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  const world: World = { peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), water: Array<boolean>(SIZE * SIZE).fill(false), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  const world: World = { project: null, peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), water: Array<boolean>(SIZE * SIZE).fill(false), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
   const seed = Math.floor(random() * 4294967296)
   if (options.water !== false) generateWater(world, seed)
   if (options.nature !== false) generateNature(world, seed)
@@ -135,6 +138,7 @@ export function depositAt(world: World, x: number, y: number): Resource | null {
 }
 
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction, bridge = false): string | null {
+  if (kind === 'peteFence') return 'Only Pete builds this secret project.'
   if (kind === 'footbridge') return 'Drag a straight footbridge between two dry shores.'
   const technologyError = buildingTechnologyError(world.research, kind)
   if (technologyError) return technologyError
@@ -171,6 +175,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   const previousDock = dockAtSpot(world, world.peace.destination)
   let building: Building
   switch (kind) {
+    case 'peteFence':
     case 'footbridge': return false
     case 'fishingDock': building = { kind, x, y, direction }; break
     case 'waterwheel': building = { kind, x, y, direction, rotationMs: 0 }; break
@@ -183,7 +188,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
     case 'inserter': building = { kind, x, y, direction, phase: 'idle', item: null, elapsedMs: 0 }; break
     case 'generator': building = { kind, x, y }; break
     case 'powerPole': building = { kind, x, y }; break
-    case 'supplyCrate': building = { kind, x, y, inventory: emptyInventory() }; break
+    case 'supplyCrate': building = { kind, x, y, inventory: emptyInventory(), wood: 0 }; break
     case 'storage': building = { kind, x, y, inventory: emptyInventory() }; break
     case 'miner': building = { kind, x, y, direction, elapsed: 0, item: null }; break
     case 'belt': building = { kind, x, y, direction, item: null, progress: 0, entry: opposite(direction) }; break
@@ -198,6 +203,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   if (building.kind === 'treehouse') { world.nature.wood -= TREEHOUSE_WOOD; beginPeace(world, y * SIZE + x) }
   refreshFishing(world, previousDock)
   refreshSupplyVisit(world)
+  refreshProject(world)
   if (building.kind === 'tree') world.nature.nextAttemptAtMs = Math.min(world.nature.nextAttemptAtMs ?? Infinity, building.nextReproductionAtMs)
   return true
 }
@@ -225,6 +231,7 @@ export function removeBuilding(world: World, x: number, y: number): boolean {
   world.buildings[y * SIZE + x] = null
   refreshFishing(world, previousDock)
   refreshSupplyVisit(world)
+  refreshProject(world)
   world.topologyRevision++
   return true
 }

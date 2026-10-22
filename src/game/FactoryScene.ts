@@ -1,3 +1,5 @@
+import { CrateSupplyAction } from './crateSupplyAction'
+import { drawPeteFence } from './secretProjectVisuals'
 import { drawSupplyCrate } from './supplyCrateVisuals'
 import { ShoreVegetation } from './shoreVegetation'
 import { drawFootbridge } from './footbridgeVisuals'
@@ -63,6 +65,7 @@ const TILE = 32
 export class FactoryScene extends Phaser.Scene {
   private natureVisuals = new NatureVisuals()
   private landscapeWater = new LandscapeWater()
+  private crateSupply = new CrateSupplyAction()
   private shoreVegetation = new ShoreVegetation()
   private waterSurface!: Phaser.GameObjects.Graphics
   private constructionDrag = new ConstructionDrag()
@@ -188,6 +191,15 @@ export class FactoryScene extends Phaser.Scene {
       }
       if (!pointer.leftButtonDown()) return
       const selected = useGameStore.getState().tool
+      if (selected === null) {
+        const point = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2
+        const index = this.crateSupply.hit(this.world, point, TILE, this.cameras.main.zoom)
+        if (index !== null) {
+          const supplied = this.crateSupply.activate(this.world, index)
+          useGameStore.setState({ message: supplied ? '6 Wood unloaded into Pete’s crate.' : 'Needs 6 Wood and six free crate slots.' })
+          return
+        }
+      }
       if (selected === 'footbridge' || selected === 'belt' || selected === 'powerPole') {
         const point = landscapeTile(pointer, this.cameras.main, TILE)
         const error = this.constructionDrag.begin(this.world, point, selected, useGameStore.getState().direction)
@@ -555,6 +567,8 @@ export class FactoryScene extends Phaser.Scene {
         drawSprinkler(this.machines, this.world, building, TILE)
       } else if (building.kind === 'radar' || building.kind === 'prison') {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'peteFence') {
+        drawPeteFence(this.machines, building, TILE)
       } else if (building.kind === 'supplyCrate') {
         drawSupplyCrate(this.machines, building, TILE)
       } else if (building.kind === 'storage') {
@@ -724,6 +738,7 @@ export class FactoryScene extends Phaser.Scene {
     this.waterVisuals.draw(this.peteEffects, this.world, TILE, view)
     this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this, view)
     drawPeace(this.peteEffects, this.world, TILE, view)
+    this.crateSupply.draw(this.peteEffects, this.world, view, TILE, camera.zoom, useGameStore.getState().tool === null && !worldInputBlocked(useGameStore.getState()))
     if (!peaceful(this.world) && (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')) drawPete(this.peteEffects, this.world, TILE, view)
     drawPoliceEffects(this.peteEffects, this.world, TILE, view)
     const arrest = arrestVisual(this.world)
@@ -749,6 +764,10 @@ export class FactoryScene extends Phaser.Scene {
     if (inspected?.kind === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, RADAR_RANGE * TILE)
     if (inspected?.kind === 'powerPole') this.showCoverage(inspected, power.assignments[state.inspected!] ?? null)
     if (inspected) this.preview.lineStyle(2, 0xf3d282).strokeRect(inspected.x * TILE + 1, inspected.y * TILE + 1, TILE - 2, TILE - 2)
+    if (state.tool === null && !worldInputBlocked(state) && this.input.isOver) {
+      const pointer = this.input.activePointer, point = pointer.positionToCamera(camera) as Phaser.Math.Vector2
+      if (this.crateSupply.hit(this.world, point, TILE, camera.zoom) !== null) this.placementTooltip(pointer, 'Unload 6 Wood into Pete’s crate')
+    }
     this.poleLinks.setVisible(!worldInputBlocked(state) && state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer
     if (!worldInputBlocked(state) && state.tool && !combatTool(state.tool) && this.input.isOver) {
