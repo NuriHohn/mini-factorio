@@ -115,7 +115,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     until(w, () => (w.project?.elapsedMs ?? 0) >= 500)
     for (const complete of [false, true]) {
       if (complete) until(w, () => w.project?.phase === 'complete')
-      const old = snapshot(w); Object.assign(old, { version: 15 })
+      const old = snapshot(w); Object.assign(old, { version: 15 }); Reflect.deleteProperty(old.game, 'personality')
       const loaded = decodeSave(JSON.stringify(old)).world
       expect(loaded.project).toEqual(w.project); expect(loaded.coopProject).toBeNull()
       expect(crate(loaded).wood).toBe(crate(w).wood)
@@ -135,7 +135,7 @@ describe('Pete’s chicken coop follow-up project', () => {
       (d: SaveDocument) => { d.game.coopProject!.tiles.push(10) },
       (d: SaveDocument) => { d.game.coopProject!.spots[0]++ },
       (d: SaveDocument) => { d.game.buildings[41] = { kind: 'peteCoop', x: 1, y: 1 } },
-      (d: SaveDocument) => { Object.assign(d, { version: 15 }) },
+      (d: SaveDocument) => { Object.assign(d, { version: 15 }); Reflect.deleteProperty(d.game, 'personality') },
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }
     until(w, () => w.coopProject?.phase === 'complete')
     const tile = w.coopProject!.tiles[0], coop = w.buildings[tile]!

@@ -21,7 +21,7 @@ describe('edited water in existing save version 9', () => {
     if (belt.kind !== 'belt') throw Error('fixture')
     belt.item = 'copper'; belt.progress = .4
     const text = encodeSave(w, view, stamp), loaded = decodeSave(text).world
-    expect(SAVE_VERSION).toBe(20); expect(text).not.toContain('terrainRevision'); expect(terrainRevision(loaded)).toBe(0)
+    expect(SAVE_VERSION).toBe(21); expect(text).not.toContain('terrainRevision'); expect(terrainRevision(loaded)).toBe(0)
     expect(JSON.parse(encodeSave(loaded, view, stamp))).toEqual(JSON.parse(text))
     expect(loaded.water[205]).toBe(false)
     expect(shorelineCorners(loaded, 6, 6)).toEqual(shorelineCorners(w, 6, 6))
@@ -30,7 +30,7 @@ describe('edited water in existing save version 9', () => {
   })
   it('keeps pre-water version-8 saves dry, editable and otherwise unchanged', () => {
     const w = poweredWorld(() => .5); placeBuilding(w, 20, 20, 'miner', 'east'); advanceWorld(w, 575)
-    const document = JSON.parse(encodeSave(w, view, stamp)); document.version = 8; delete document.game.water
+    const document = JSON.parse(encodeSave(w, view, stamp)); document.version = 8; delete document.game.personality; delete document.game.water
     const loaded = decodeSave(JSON.stringify(document)).world
     expect(loaded.water.every(v => !v)).toBe(true)
     expect(JSON.parse(encodeSave(loaded, view, stamp))).toEqual(JSON.parse(encodeSave(w, view, stamp)))

@@ -118,7 +118,7 @@ describe('Pete’s autonomous campfire and fried eggs', () => {
   })
   it('migrates populated version-17 saves with exact flock/egg state and no cooked eggs', () => {
     const w = world(); until(w, () => availableEggs(w) > 0)
-    const old = snapshot(w); Object.assign(old, { version: 17 }); Reflect.deleteProperty(old.game.poultry!, 'eaten')
+    const old = snapshot(w); Object.assign(old, { version: 17 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.poultry!, 'eaten')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.campfireProject).toBeNull(); expect(restored.poultry).toEqual(w.poultry)
     expect(availableEggs(restored)).toBe(w.poultry!.collected)
@@ -137,7 +137,7 @@ describe('Pete’s autonomous campfire and fried eggs', () => {
       (d: SaveDocument) => { d.game.poultry!.eaten = d.game.poultry!.collected + 1 },
       (d: SaveDocument) => { d.game.poultry!.eaten = d.game.poultry!.collected },
       (d: SaveDocument) => { d.game.peace.destination = 10 },
-      (d: SaveDocument) => { Object.assign(d, { version: 17 }) },
+      (d: SaveDocument) => { Object.assign(d, { version: 17 }); Reflect.deleteProperty(d.game, 'personality') },
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }
   })
 })

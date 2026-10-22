@@ -119,7 +119,7 @@ it.each(['dockward', 'fishing'] as const)('restores %s mid-activity deterministi
 })
 it('keeps no-dock peaceful routines and version-10 saves unchanged', () => {
   const w = fixture(); removeBuilding(w, 20, 23)
-  const original = snapshot(w); original.version = 10
+  const original = snapshot(w); original.version = 10; delete original.game.personality
   const loaded = decodeSave(JSON.stringify(original)).world
   expect(snapshot(loaded)).toEqual(snapshot(w))
   for (let i = 0; i < 10; i++) { advanceWorld(w, 5000); advanceWorld(loaded, 5000) }
@@ -140,8 +140,8 @@ it.each(['hostile', 'boss', 'prison'] as const)('does not affect %s Pete behavio
 })
 it.each(['old-kind', 'old-activity', 'destination', 'direction', 'clock'] as const)('rejects malformed %s save data', mutation => {
   const w = startFishing(), save = snapshot(w)
-  if (mutation === 'old-kind') save.version = 10
-  if (mutation === 'old-activity') { save.version = 10; save.game.buildings[940] = null }
+  if (mutation === 'old-kind') { save.version = 10; delete save.game.personality }
+  if (mutation === 'old-activity') { save.version = 10; delete save.game.personality; save.game.buildings[940] = null }
   if (mutation === 'destination') save.game.peace.destination = 1
   if (mutation === 'direction') save.game.buildings[940].direction = 'diagonal'
   if (mutation === 'clock') save.game.peace.untilMs += 50

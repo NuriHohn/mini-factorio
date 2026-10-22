@@ -108,10 +108,10 @@ it.each(['missing', 'direction', 'bank', 'old-version', 'water'] as const)('reje
   if (bad === 'missing') save.game.buildings[411] = null
   if (bad === 'direction') save.game.buildings[411].direction = 'south'
   if (bad === 'bank') save.game.buildings[409] = { kind: 'powerPole', x: 9, y: 10 }
-  if (bad === 'old-version') save.version = 12
+  if (bad === 'old-version') { save.version = 12; delete save.game.personality }
   if (bad === 'water') save.game.water[411] = false
   expect(() => decodeSave(JSON.stringify(save))).toThrow('Invalid save')
-  const old = river(); const legacy = JSON.parse(encodeSave(old, view)); legacy.version = 12
+  const old = river(); const legacy = JSON.parse(encodeSave(old, view)); legacy.version = 12; delete legacy.game.personality
   expect(decodeSave(JSON.stringify(legacy)).world.water).toEqual(old.water)
 })
 

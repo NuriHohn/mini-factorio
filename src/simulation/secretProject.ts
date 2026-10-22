@@ -1,3 +1,4 @@
+import { rewardProject } from './personality'
 import { gateSiteClear, GATE_WOOD, planGate, preparePeteGate } from './gardenGate'
 import type { Yard } from './yard'
 import { planYard, yardDirection, yardNavigation, yardSiteClear } from './yard'
@@ -162,5 +163,5 @@ export function advanceSecretProject(world: World, delta: number): void {
   project.built++; project.carried -= project.kind === 'yard' ? wood : wood / project.tiles.length; project.elapsedMs = 0
   if (project.kind === 'yard' && project.built < project.tiles.length) project.phase = 'collecting'
   world.peace.destination = null; world.pete.pathRevision = -1
-  if (project.built === project.tiles.length) { project.phase = 'complete'; stop(world) }
+  if (project.built === project.tiles.length) { project.phase = 'complete'; rewardProject(world.personality, project.kind ?? 'fence'); stop(world) }
 }

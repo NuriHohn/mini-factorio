@@ -21,7 +21,7 @@ function setup() {
 describe('version 7 nature persistence and legacy compatibility', () => {
   it('round trips a generated landscape without regenerating forests or consuming RNG', () => {
     const world = createWorld(() => .5), loaded = restore(world)
-    expect(SAVE_VERSION).toBe(20)
+    expect(SAVE_VERSION).toBe(21)
     expect(snapshot(loaded)).toEqual(snapshot(world))
     expect(loaded.nature.seed).toBe(world.nature.seed)
     expect(loaded.nature.nextAttemptAtMs).toBe(world.nature.nextAttemptAtMs)
@@ -50,7 +50,7 @@ describe('version 7 nature persistence and legacy compatibility', () => {
     w.research = createResearch(true)
     w.revenge.arrests = version >= 6 ? 2 : 0
     const old = snapshot(w)
-    Object.assign(old, { version }); Reflect.deleteProperty(old.game, 'water'); Reflect.deleteProperty(old.game, 'peace'); Reflect.deleteProperty(old.game, 'nature')
+    Object.assign(old, { version }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game, 'water'); Reflect.deleteProperty(old.game, 'peace'); Reflect.deleteProperty(old.game, 'nature')
     if (version < 6) Reflect.deleteProperty(old.game, 'revenge')
     if (version < 5) Reflect.deleteProperty(old.game, 'research')
     if (version < 4) Reflect.deleteProperty(old.game, 'analytics')
@@ -100,7 +100,7 @@ describe('version 7 nature persistence and legacy compatibility', () => {
   })
   it('rejects tree occupancy hidden inside a legacy version and invalid natural-cap saves', () => {
     const w = setup(), bad = snapshot(w)
-    Object.assign(bad, { version: 6 }); Reflect.deleteProperty(bad.game, 'water'); Reflect.deleteProperty(bad.game, 'peace'); Reflect.deleteProperty(bad.game, 'nature')
+    Object.assign(bad, { version: 6 }); Reflect.deleteProperty(bad.game, 'personality'); Reflect.deleteProperty(bad.game, 'water'); Reflect.deleteProperty(bad.game, 'peace'); Reflect.deleteProperty(bad.game, 'nature')
     expect(() => decodeSave(JSON.stringify(bad))).toThrow('trees require save version 7')
     for (let i = 0; i < SIZE * SIZE && w.buildings.filter(b => b?.kind === 'tree').length < 324; i++) if (plantTree(w, i % SIZE, Math.floor(i / SIZE), 'oak')) (w.buildings[i] as Tree).origin = 'natural'
     expect(() => snapshot(w)).toThrow('natural tree cap exceeded')

@@ -1,3 +1,4 @@
+import { PersonalityOverview } from './PersonalityOverview'
 import { RecipeAmounts } from './InventoryView'
 import { inspectionSummary } from './inspectionSummary'
 import { useEffect, useRef } from 'react'
@@ -25,6 +26,7 @@ export function BuildingInspection() {
           <InventoryView inventory={inspection.inventory} showAll />
           <div className="stats"><span>Supplied Wood</span><b>{inspection.wood}</b></div>
         </>}
+        {inspection.kind === 'treehouse' && <PersonalityOverview personality={inspection.personality} />}
         {inspection.kind === 'peteCoop' && <p>{inspection.adults} chickens · {inspection.chicks} chicks</p>}
         {inspection.kind === 'belt' && <p>Output: {inspection.direction} · {inspection.item ? ITEM_DEFINITIONS[inspection.item].label : 'No item'}</p>}
         {inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}

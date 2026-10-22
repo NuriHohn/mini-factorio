@@ -139,7 +139,7 @@ describe('Pete’s autonomous garden gate', () => {
     expect(() => load(w)).not.toThrow()
   })
   it('migrates version-19 yard/flock state exactly and rejects malformed gate state or clocks', () => {
-    const legacy = world(), old = snapshot(legacy); Object.assign(old, { version: 19 })
+    const legacy = world(), old = snapshot(legacy); Object.assign(old, { version: 19 }); Reflect.deleteProperty(old.game, 'personality')
     const loaded = decodeSave(JSON.stringify(old)).world
     expect(loaded.gateProject).toBeNull(); expect(loaded.yard).toEqual(legacy.yard); expect(loaded.poultry).toEqual(legacy.poultry)
     const w = gate(), entry = w.yard!.entrance
@@ -151,7 +151,7 @@ describe('Pete’s autonomous garden gate', () => {
       (d: SaveDocument) => { Object.assign(d.game.buildings[entry]!, { openMs: 251 }) },
       (d: SaveDocument) => { Object.assign(d.game.buildings[entry]!, { openMs: 1 }) },
       (d: SaveDocument) => { Object.assign(d.game.buildings[entry]!, { holdUntilMs: w.timeMs + 650 }) },
-      (d: SaveDocument) => { Object.assign(d, { version: 19 }) },
+      (d: SaveDocument) => { Object.assign(d, { version: 19 }); Reflect.deleteProperty(d.game, 'personality') },
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }
     expect(preparePeteGate(w, 1)).toBe(true)
   })

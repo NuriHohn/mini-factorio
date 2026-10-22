@@ -31,7 +31,7 @@ describe('coop chickens, eggs and chicks', () => {
     const w = world(); expect(w.poultry?.birds).toHaveLength(3)
     expect(w.poultry?.birds.every(b => b.kind === 'adult' && b.mode === 'inside')).toBe(true)
     expect(w.buildings[824]).toMatchObject({ wood: 0 })
-    const legacy = snapshot(w); Object.assign(legacy, { version: 16 }); Reflect.deleteProperty(legacy.game, 'poultry'); Reflect.deleteProperty(legacy.game, 'campfireProject')
+    const legacy = snapshot(w); Object.assign(legacy, { version: 16 }); Reflect.deleteProperty(legacy.game, 'personality'); Reflect.deleteProperty(legacy.game, 'poultry'); Reflect.deleteProperty(legacy.game, 'campfireProject')
     const restored = decodeSave(JSON.stringify(legacy)).world
     expect(restored.poultry).toBeNull(); expect(restored.coopProject).toEqual(w.coopProject)
     advanceWorld(restored, 50); expect(restored.poultry?.birds).toHaveLength(3)
@@ -146,7 +146,7 @@ describe('coop chickens, eggs and chicks', () => {
       (d: SaveDocument) => { d.game.poultry!.birds[0].travelMs = 1 },
       (d: SaveDocument) => { d.game.poultry!.eggs.push(...Array(4).fill(d.game.poultry!.eggs[0])) },
       (d: SaveDocument) => { Reflect.deleteProperty(d.game, 'coopProject') },
-      (d: SaveDocument) => { Object.assign(d, { version: 16 }) },
+      (d: SaveDocument) => { Object.assign(d, { version: 16 }); Reflect.deleteProperty(d.game, 'personality') },
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }
   })
 })
