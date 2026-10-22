@@ -25,6 +25,7 @@ beforeAll(() => {
 })
 const world = () => structuredClone(template)
 const crate = (w: World) => w.buildings[824] as SupplyCrate
+const surplus = (w: World) => crate(w).wood + 2 * (w.yard?.built ?? 0) + (w.yard?.carried ?? 0)
 function fire() { const w = world(); supplyWood(w, 824, 5); until(w, () => w.campfireProject?.phase === 'complete'); return w }
 function cooking() { const w = fire(); until(w, () => w.peace.activity === 'cooking'); return w }
 describe('Pete’s autonomous campfire and fried eggs', () => {
@@ -64,10 +65,10 @@ describe('Pete’s autonomous campfire and fried eggs', () => {
       advanceWorld(w, 765); for (const ms of [17, 101, 200, 447]) advanceWorld(restored, ms)
       expect(snapshot(restored)).toEqual(snapshot(w))
     }
-    expect(crate(w).wood).toBe(6)
+    expect(surplus(w)).toBe(6)
     const restored = load(w), tile = w.campfireProject!.tiles[0]
     removeBuilding(restored, tile % SIZE, Math.floor(tile / SIZE)); advanceWorld(restored, 90000)
-    expect(restored.buildings.some(b => b?.kind === 'peteCampfire')).toBe(false); expect(crate(restored).wood).toBe(6)
+    expect(restored.buildings.some(b => b?.kind === 'peteCampfire')).toBe(false); expect(surplus(restored)).toBe(6)
     expect(restored.campfireProject?.phase).toBe('complete'); expect(() => load(restored)).not.toThrow()
   })
   it('needs a real campfire and available eggs; normal peaceful collection leads to cooking', () => {

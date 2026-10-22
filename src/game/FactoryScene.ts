@@ -1,3 +1,4 @@
+import { drawYardCorner, drawYardEntrance, yardCorner } from './yardVisuals'
 import { drawCampfire, drawCampfireEffects } from './campfireVisuals'
 import { drawPoultry } from './poultryVisuals'
 import { drawChickenCoop } from './chickenCoopVisuals'
@@ -575,7 +576,8 @@ export class FactoryScene extends Phaser.Scene {
       } else if (building.kind === 'peteCoop') {
         drawChickenCoop(this.machines, building, TILE)
       } else if (building.kind === 'peteFence') {
-        drawPeteFence(this.machines, building, TILE)
+        if (this.world.yard && yardCorner(this.world.yard, building.y * SIZE + building.x)) drawYardCorner(this.machines, building, this.world.yard, TILE)
+        else drawPeteFence(this.machines, building, TILE)
       } else if (building.kind === 'supplyCrate') {
         drawSupplyCrate(this.machines, building, TILE)
       } else if (building.kind === 'storage') {
@@ -745,6 +747,7 @@ export class FactoryScene extends Phaser.Scene {
     this.waterVisuals.draw(this.peteEffects, this.world, TILE, view)
     this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this, view)
     drawCampfireEffects(this.peteEffects, this.world, TILE, view)
+    drawYardEntrance(this.peteEffects, this.world, TILE, view)
     drawPoultry(this.peteEffects, this.world, TILE, view)
     drawPeace(this.peteEffects, this.world, TILE, view)
     this.crateSupply.draw(this.peteEffects, this.world, view, TILE, camera.zoom, useGameStore.getState().tool === null && !worldInputBlocked(useGameStore.getState()))

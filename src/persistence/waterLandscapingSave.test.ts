@@ -21,7 +21,7 @@ describe('edited water in existing save version 9', () => {
     if (belt.kind !== 'belt') throw Error('fixture')
     belt.item = 'copper'; belt.progress = .4
     const text = encodeSave(w, view, stamp), loaded = decodeSave(text).world
-    expect(SAVE_VERSION).toBe(18); expect(text).not.toContain('terrainRevision'); expect(terrainRevision(loaded)).toBe(0)
+    expect(SAVE_VERSION).toBe(19); expect(text).not.toContain('terrainRevision'); expect(terrainRevision(loaded)).toBe(0)
     expect(JSON.parse(encodeSave(loaded, view, stamp))).toEqual(JSON.parse(text))
     expect(loaded.water[205]).toBe(false)
     expect(shorelineCorners(loaded, 6, 6)).toEqual(shorelineCorners(w, 6, 6))

@@ -1,6 +1,6 @@
 import { CAMPFIRE_HAPPY_MS, COOKING_MS, finishCooking, reachableCampfire, refreshCooking } from './campfire'
 import { collectEgg, eggAt, EGG_COLLECT_MS, reachableEgg, refreshPoultry } from './poultry'
-import { advanceSecretProject, trySecretProject } from './secretProject'
+import { advanceSecretProject, trySecretProject, tryYard } from './secretProject'
 import { crateAtSpot, reachableCrateSpot, SUPPLY_INSPECTION_MS } from './supplyCrate'
 import { BOARDING_MS, moveRowboat, planRowboat, rowboatValid } from './rowboat'
 import type { RowboatTrip } from './rowboat'
@@ -196,7 +196,7 @@ export function advancePeace(world: World, delta: number): void {
     else if (s.activity === 'collectingEgg') { collectEgg(world); activity(world, 'homeward') }
     else if (s.activity === 'entering') activity(world, 'resting', 12000)
     else if (s.activity === 'resting') {
-      if (trySecretProject(world)) return
+      if (trySecretProject(world) || tryYard(world)) return
       const fire = reachableCampfire(world)
       if (fire !== null && random(world) < 1 / 3) { activity(world, 'campfireward', 0, fire); return }
       const egg = reachableEgg(world)
