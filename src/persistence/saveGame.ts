@@ -13,7 +13,7 @@ import { isSabotageable } from '../simulation/buildingCapabilities'
 import { SPRAY_MS, SLIP_MS, COMPLAIN_MS, WATER_FLEE_MS, WATER_COMPLAINTS } from '../simulation/sprinklers'
 import { allocatePower } from '../simulation/power'
 import { RESOURCES } from '../simulation/items'
-import { edgeTile, neighboringTiles } from '../simulation/navigation'
+import { edgeTile, neighboringTiles, walkableTile } from '../simulation/navigation'
 import { ARREST_MS, LEGACY_ARREST_MS, arrestDuration, POLICE_TILE_MS } from '../simulation/police'
 import type { PoliceCar } from '../simulation/police'
 import { PETE_FLEE_MS, PETE_WALK_MS } from '../simulation/pete'
@@ -23,7 +23,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 12
+export const SAVE_VERSION = 13
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -168,7 +168,7 @@ function validateLinks(world: World): void {
   if (p.mode === 'IMPRISONED') {
     if (car || p.x !== p.prison!.x || p.y !== p.prison!.y || p.tile !== p.prison!.y * SIZE + p.prison!.x || world.timeMs - p.imprisonedAtMs! >= 60000) v.invalid('pete', 'invalid prisoner position or timer')
   } else if (!custody) {
-    if (world.buildings[p.tile] || (p.next !== null && (world.buildings[p.next] || !neighboringTiles(p.tile).includes(p.next)))) v.invalid('pete', 'movement overlaps buildings or skips a tile')
+    if (!walkableTile(world, p.tile) || (p.next !== null && (!walkableTile(world, p.next) || !neighboringTiles(p.tile).includes(p.next)))) v.invalid('pete', 'movement overlaps buildings or skips a tile')
     const t = p.next === null ? 0 : p.travelMs / ((p.mode === 'FLEEING' || p.mode === 'WATER_FLEEING') ? PETE_FLEE_MS : PETE_WALK_MS)
     const x = p.tile % SIZE + ((p.next ?? p.tile) % SIZE - p.tile % SIZE) * t
     const y = Math.floor(p.tile / SIZE) + (Math.floor((p.next ?? p.tile) / SIZE) - Math.floor(p.tile / SIZE)) * t
@@ -176,7 +176,7 @@ function validateLinks(world: World): void {
   }
   if ((p.mode === 'ARRESTED' || p.mode === 'TRANSPORTED') && !car) v.invalid('police.car', 'missing custody transport')
   if (car) {
-    if (world.buildings[car.tile] || (car.next !== null && (world.buildings[car.next] || !neighboringTiles(car.tile).includes(car.next)))) v.invalid('car', 'invalid movement occupancy')
+    if (!walkableTile(world, car.tile) || (car.next !== null && (!walkableTile(world, car.next) || !neighboringTiles(car.tile).includes(car.next)))) v.invalid('car', 'invalid movement occupancy')
     if ((car.phase === 'ARRESTING' && p.mode !== 'ARRESTED') || (car.phase === 'TRANSPORTING' && p.mode !== 'TRANSPORTED') || (car.phase === 'RESPONDING' && custody) || (car.phase !== 'RESPONDING' && p.prison !== car.prison)) v.invalid('car', 'phase and Pete state disagree')
     if ((car.phase === 'ARRESTING' && car.next !== null) || (car.next === null && car.travelMs !== 0)) v.invalid('car', 'invalid phase movement')
     const t = car.next === null ? 0 : car.travelMs / POLICE_TILE_MS
@@ -189,7 +189,7 @@ export function decodeSave(text: string): LoadedGame {
   try { parsed = JSON.parse(text) } catch { throw new Error('Invalid save JSON. Choose a Mini-Factorio JSON save file.') }
   const root = v.object(parsed, 'save', ['format', 'version', 'savedAt', 'map', 'game', 'view'])
   if (root.format !== SAVE_FORMAT) throw new Error('This is not a Mini-Factorio save file.')
-  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== 11 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 and ${SAVE_VERSION}.`)
+  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== 11 && root.version !== 12 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 and ${SAVE_VERSION}.`)
   const version = root.version
   const savedAt = timestamp(root.savedAt), map = v.object(root.map, 'map', ['width', 'height'])
   if (map.width !== SIZE || map.height !== SIZE) throw new Error(`Unsupported map dimensions; this version requires ${SIZE}×${SIZE}.`)

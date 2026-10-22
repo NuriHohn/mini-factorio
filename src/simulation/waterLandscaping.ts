@@ -1,3 +1,4 @@
+import { footbridgeBanks } from './footbridge'
 import { dockAtSpot } from './fishingDock'
 import { refreshFishing } from './peace'
 import { brushTiles } from './nature'
@@ -20,6 +21,9 @@ export function waterProtection(world: World): WaterProtection {
   for (const gift of world.peace.gifts) reserved.add(gift.tile)
   for (const building of world.buildings) {
     if (building?.kind === 'prison') reserved.add(building.exit)
+    if (building?.kind === 'footbridge') {
+      for (const bank of footbridgeBanks(world, building.y * SIZE + building.x)) banks.add(bank)
+    }
     if (building?.kind !== 'belt' || !building.bridge) continue
     const d = offsets[building.direction]
     for (const sign of [-1, 1]) {
@@ -33,7 +37,7 @@ export function waterEditError(world: World, tile: number, mode: WaterBrush, pro
   if (!Number.isInteger(tile) || tile < 0 || tile >= SIZE * SIZE) return 'Choose a tile inside the world.'
   if (world.water[tile] === (mode === 'water')) return null
   const building = world.buildings[tile]
-  if (building) return building.kind === 'belt' && building.bridge ? 'Keep water beneath bridges. Remove the crossing first.' : 'Keep buildings and trees on dry land.'
+  if (building) return building.kind === 'footbridge' ? 'Keep water beneath footbridges. Remove the crossing first.' : building.kind === 'belt' && building.bridge ? 'Keep water beneath bridges. Remove the crossing first.' : 'Keep buildings and trees on dry land.'
   if (mode === 'land') return null
   const p = protection ?? waterProtection(world)
   if (p.banks.has(tile)) return 'Keep both bridge banks dry.'

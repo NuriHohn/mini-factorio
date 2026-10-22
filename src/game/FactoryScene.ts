@@ -1,3 +1,4 @@
+import { drawFootbridge } from './footbridgeVisuals'
 import { drawFishingDock } from './fishingDockVisuals'
 import { waterwheelRunning } from '../simulation/waterwheel'
 import { drawWaterwheel } from './waterwheelVisuals'
@@ -184,7 +185,7 @@ export class FactoryScene extends Phaser.Scene {
       }
       if (!pointer.leftButtonDown()) return
       const selected = useGameStore.getState().tool
-      if (selected === 'belt' || selected === 'powerPole') {
+      if (selected === 'footbridge' || selected === 'belt' || selected === 'powerPole') {
         const point = landscapeTile(pointer, this.cameras.main, TILE)
         const error = this.constructionDrag.begin(this.world, point, selected, useGameStore.getState().direction)
         useGameStore.setState(error ? { message: error } : { dragActive: true })
@@ -270,7 +271,7 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.setState({ dragActive: false })
       if (result) {
         if (!result.error && (result.placed > 0 || result.reversed)) useGameStore.getState().recordToolUse(tool)
-        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} rotated · ${result.placed} new · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : result.placed ? `${result.placed} ${tool === 'belt' ? 'belt tiles' : 'power poles'} built · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
+        useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} rotated · ${result.placed} new · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : result.placed ? `${result.placed} ${tool === 'footbridge' ? 'footbridge tiles' : tool === 'belt' ? 'belt tiles' : 'power poles'} built · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
       }
     })
     this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); this.cancelConstruction() })
@@ -297,10 +298,11 @@ export class FactoryScene extends Phaser.Scene {
   }
   private drawConstructionPlan(pointer: Phaser.Input.Pointer, plan: ConstructionPlan) {
     for (const cell of plan.cells) {
-      const color = cell.error ? 0xe7a08d : (plan.unaffordable && cell.bridge && !cell.reuse) ? 0xe6c487 : cell.reverse ? 0xe6c487 : cell.reuse ? 0xa4c9df : plan.detour ? 0x9acdcc : 0xb2d08a
+      const color = cell.error ? 0xe7a08d : (plan.unaffordable && (cell.bridge || plan.kind === 'footbridge') && !cell.reuse) ? 0xe6c487 : cell.reverse ? 0xe6c487 : cell.reuse ? 0xa4c9df : plan.detour ? 0x9acdcc : 0xb2d08a
       this.preview.fillStyle(color, .18).fillRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       this.preview.lineStyle(2, color).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
       if (cell.error) this.preview.lineBetween(cell.x * TILE + 6, cell.y * TILE + 6, cell.x * TILE + 26, cell.y * TILE + 26).lineBetween(cell.x * TILE + 26, cell.y * TILE + 6, cell.x * TILE + 6, cell.y * TILE + 26)
+      else if (plan.kind === 'footbridge') drawFootbridge(this.preview, { kind: 'footbridge', x: cell.x, y: cell.y, direction: cell.direction === 'east' ? 'east' : 'south' }, TILE)
       else if (plan.kind === 'belt') {
         if (cell.bridge) this.preview.lineStyle(2, 0xd1b88b, .85).strokeRect(cell.x * TILE + 4, cell.y * TILE + 4, TILE - 8, TILE - 8)
         this.arrow(cell.x * TILE, cell.y * TILE, cell.direction, color)
@@ -318,7 +320,7 @@ export class FactoryScene extends Phaser.Scene {
     }
     if (plan.beltSnap) this.preview.lineStyle(2, 0xa4c9df, .7).strokeCircle((plan.beltSnap.x + .5) * TILE, (plan.beltSnap.y + .5) * TILE, 11)
     const count = plan.cells.filter(c => !c.reuse).length, reversed = plan.cells.filter(c => c.reverse).length, reused = plan.cells.length - count - reversed
-    this.placementTooltip(pointer, `${plan.unaffordable ? '◇' : plan.error ? '×' : '✓'} ${plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? `new · ${reused} reused · ${reversed} rotated` : `new · ${reused} existing`}\nTotal cost: ${plan.wood ? `${plan.wood} Wood · You have ${this.world.nature.wood}` : 'Free'}${plan.cells.some(c => c.bridge) ? ` · ${plan.cells.filter(c => c.bridge && !c.reuse).length} new bridge segments` : ''}\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : plan.beltSnap ? 'Joining existing belt. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
+    this.placementTooltip(pointer, `${plan.unaffordable ? '◇' : plan.error ? '×' : '✓'} ${plan.kind === 'footbridge' ? 'Wooden footbridge' : plan.kind === 'belt' ? `Belts${plan.detour ? ' · Auto detour' : ''}` : 'Power connection'} · ${count} ${plan.kind === 'belt' ? `new · ${reused} reused · ${reversed} rotated` : `new · ${reused} existing`}\nTotal cost: ${plan.wood ? `${plan.wood} Wood · You have ${this.world.nature.wood}` : 'Free'}${plan.cells.some(c => c.bridge) ? ` · ${plan.cells.filter(c => c.bridge && !c.reuse).length} new bridge segments` : ''}\n${plan.error ?? `${plan.snapFrom ? 'Snapped to nearby existing pole. ' : plan.beltSnap ? 'Joining existing belt. ' : ''}${plan.kind === 'powerPole' ? 'Connection ready. ' : ''}Release to build. Escape or right-click to cancel.`}`)
   }
   private paintDrag(pointer: Phaser.Input.Pointer) {
     const state = useGameStore.getState(), mode = brushMode(state.tool)
@@ -539,7 +541,9 @@ export class FactoryScene extends Phaser.Scene {
       if (!building) continue
       this.drawnBuildings++
       const x = building.x * TILE, y = building.y * TILE
-      if (building.kind === 'treehouse') {
+      if (building.kind === 'footbridge') {
+        drawFootbridge(this.machines, building, TILE)
+      } else if (building.kind === 'treehouse') {
         drawTreehouse(this.machines, this.world, building, TILE)
       } else if (building.kind === 'tree') {
         drawTree(this.machines, this.world, building, TILE)
@@ -746,7 +750,7 @@ export class FactoryScene extends Phaser.Scene {
       const rotation = this.placementRotation.preview()
       const x = rotation?.x ?? Math.floor(p.x / TILE), y = rotation?.y ?? Math.floor(p.y / TILE)
       const direction = rotation?.direction ?? state.direction
-      if (state.tool === 'belt') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, 'belt', direction)); return }
+      if (state.tool === 'belt' || state.tool === 'footbridge') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, state.tool, direction)); return }
       if (natureTool(state.tool)) {
         const waterMode = brushMode(state.tool)
         if (waterMode === 'water' || waterMode === 'land') {
@@ -791,6 +795,7 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
       if (state.tool === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, SPRINKLER_RANGE * TILE)
       if (state.tool === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, RADAR_RANGE * TILE)
       const removalTarget = state.tool === 'remove' ? buildingAt(this.world, x, y) : null
+      if (removalTarget?.kind === 'footbridge') this.placementTooltip(pointer, removalError(this.world, x, y) ?? 'Remove entire wooden footbridge. No Wood refund.')
       if (removalTarget?.kind === 'belt' && removalTarget.bridge) this.placementTooltip(pointer, 'Remove entire bridge crossing. Items are lost; no Wood refund.')
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)
       if (state.tool === 'splitter') {

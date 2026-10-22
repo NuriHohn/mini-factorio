@@ -1,7 +1,7 @@
 import { BOARDING_MS, moveRowboat, planRowboat, rowboatValid } from './rowboat'
 import type { RowboatTrip } from './rowboat'
 import { dockAtSpot, FISHING_MS, reachableFishingSpot } from './fishingDock'
-import { neighboringTiles, reachableTiles, tilePath } from './navigation'
+import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navigation'
 import { PETE_COOLDOWN_MS, PETE_WALK_MS } from './pete'
 import { WARNING_MS } from './revenge'
 import { SIZE } from './world'
@@ -166,7 +166,7 @@ export function advancePeace(world: World, delta: number): void {
       else { delete s.boat; activity(world, 'homeward') }
     }
   } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward') {
-    if (p.next !== null && (world.water[p.next] || world.buildings[p.next])) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
+    if (p.next !== null && (!walkableTile(world, p.next))) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
     if (s.activity === 'entering') activity(world, 'resting', 12000)

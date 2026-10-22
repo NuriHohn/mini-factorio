@@ -5,10 +5,13 @@ export function neighboringTiles(tile: number): number[] {
   const x = tile % SIZE, y = Math.floor(tile / SIZE)
   return [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]].filter(([a, b]) => inside(a, b)).map(([a, b]) => b * SIZE + a)
 }
-export function reachableTiles(world: World, start: number): Map<number, number> {
+export function walkableTile(world: World, tile: number): boolean {
+  return tile >= 0 && tile < SIZE * SIZE && (world.water[tile] && world.buildings[tile]?.kind === 'footbridge' || (!world.water[tile] && !world.buildings[tile]))
+}
+export function reachableTiles(world: World, start: number, footbridges = true): Map<number, number> {
   const queue = [start], parents = new Map<number, number>([[start, -1]])
   for (let head = 0; head < queue.length; head++) for (const tile of neighboringTiles(queue[head])) {
-    if (!world.water[tile] && !world.buildings[tile] && !parents.has(tile)) { parents.set(tile, queue[head]); queue.push(tile) }
+    if ((footbridges ? walkableTile(world, tile) : !world.water[tile] && !world.buildings[tile]) && !parents.has(tile)) { parents.set(tile, queue[head]); queue.push(tile) }
   }
   return parents
 }

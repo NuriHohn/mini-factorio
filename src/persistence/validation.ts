@@ -79,12 +79,14 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 13 && kind === 'footbridge') invalid(path, 'footbridges require save version 13')
   if (version < 11 && kind === 'fishingDock') invalid(path, 'fishing docks require save version 11')
   if (version < 10 && kind === 'waterwheel') invalid(path, 'waterwheels require save version 10')
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    footbridge: ['direction'],
     fishingDock: ['direction'],
     waterwheel: ['direction', 'rotationMs'],
     treehouse: ['placedAtMs'],
@@ -102,6 +104,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'footbridge': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }
     case 'fishingDock': return { ...base, kind, direction: facing() }
     case 'waterwheel': {
       const rotationMs = count(r.rotationMs, `${path}.rotationMs`, Math.min(timeMs, WATERWHEEL_PERIOD_MS - 1))

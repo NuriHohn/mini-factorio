@@ -8,6 +8,7 @@ export const BUILD_TABS: readonly { id: BuildTab; label: string; icon: string }[
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec at full power · on ore', key: '1', icon: '⚙', code: 'Digit1', tab: 'factory' },
   { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜', code: 'Digit2', tab: 'logistics' },
+  { tool: 'footbridge', label: 'Wooden Footbridge', hint: 'Drag shore to shore · up to 5 water tiles · 3 Wood each · NPC crossing', key: 'Drag', icon: '≋', tab: 'logistics' },
   { tool: 'storage', label: 'Storage chest', hint: 'Stores every item type', key: '3', icon: '▣', code: 'Digit3', tab: 'logistics' },
   { tool: 'furnace', label: 'Furnace', hint: '1 ore → 1 plate · 2 sec at full power', key: '4', icon: '♨', code: 'Digit4', tab: 'factory' },
   { tool: 'waterwheel', label: 'Waterwheel Generator', hint: '50 kW · 10 Wood · face adjacent water', key: 'Click', icon: '☸', tab: 'power' },

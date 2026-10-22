@@ -1,7 +1,7 @@
 import { peaceful } from './peace'
 import { bossAlive, damageWalker, peteUnavailable, recordArrest } from './revenge'
 import { releaseWebTrap } from './webs'
-import { edgeTile, reachableTiles, tilePath } from './navigation'
+import { edgeTile, reachableTiles, tilePath, walkableTile } from './navigation'
 import { withinRange } from './power'
 import { placeBuilding, removeBuilding, SIZE } from './world'
 import type { Building, Position, Prison, World } from './world'
@@ -94,7 +94,7 @@ function dispatch(world: World): void {
 function releaseFromCustody(world: World, escaped: boolean): void {
   const pete = world.pete, prison = pete.prison, car = world.police.car
   let tile = pete.mode === 'IMPRISONED' && prison ? prison.exit : car?.tile ?? pete.tile
-  if (world.water[tile] || world.buildings[tile]) {
+  if (!walkableTile(world, tile)) {
     // Defensive fallback for stale state; supported construction keeps the exit reserved.
     const origin = tile
     const distance = (i: number) => Math.abs(i % SIZE - origin % SIZE) + Math.abs(Math.floor(i / SIZE) - Math.floor(origin / SIZE))
@@ -182,7 +182,7 @@ export function advancePolice(world: World, delta: number): void {
       car.next = car.path.shift() ?? null
       if (car.next === null) return
     }
-    if (world.water[car.next] || world.buildings[car.next]) { car.next = null; car.pathRevision = -1; continue }
+    if (!walkableTile(world, car.next)) { car.next = null; car.pathRevision = -1; continue }
     const spent = Math.min(POLICE_TILE_MS - car.travelMs, remaining)
     car.travelMs += spent; remaining -= spent
     const t = car.travelMs / POLICE_TILE_MS
