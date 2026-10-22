@@ -1,3 +1,4 @@
+import { drawPoultry } from './poultryVisuals'
 import { drawChickenCoop } from './chickenCoopVisuals'
 import { CrateSupplyAction } from './crateSupplyAction'
 import { drawPeteFence } from './secretProjectVisuals'
@@ -740,6 +741,7 @@ export class FactoryScene extends Phaser.Scene {
     this.webVisuals.draw(this.peteEffects, this.world, TILE, view)
     this.waterVisuals.draw(this.peteEffects, this.world, TILE, view)
     this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this, view)
+    drawPoultry(this.peteEffects, this.world, TILE, view)
     drawPeace(this.peteEffects, this.world, TILE, view)
     this.crateSupply.draw(this.peteEffects, this.world, view, TILE, camera.zoom, useGameStore.getState().tool === null && !worldInputBlocked(useGameStore.getState()))
     if (!peaceful(this.world) && (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')) drawPete(this.peteEffects, this.world, TILE, view)

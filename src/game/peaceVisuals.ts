@@ -1,3 +1,4 @@
+import { drawEggCollection } from './poultryVisuals'
 import { drawSecretProject } from './secretProjectVisuals'
 import { drawCrateInspection } from './supplyCrateVisuals'
 import { drawRowboat } from './rowboatVisuals'
@@ -73,6 +74,7 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       else if (dock) drawFishing(g, world, dock, tile, view)
       else drawPete(g, world, tile, view)
       drawCrateInspection(g, world, tile, view)
+      drawEggCollection(g, world, tile, view)
       if (s.activity === 'waving' && visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) {
         const x = (p.x + .5) * tile, y = (p.y + .5) * tile
         g.lineStyle(3, 0x91dd60).lineBetween(x + 7, y + 5, x + 14 + Math.sin((world.timeMs - s.sinceMs) / 400) * 2, y - 7)

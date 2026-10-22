@@ -1,3 +1,4 @@
+import { EGG_COLLECT_MS } from '../simulation/poultry'
 import { crateAtSpot, SUPPLY_INSPECTION_MS } from '../simulation/supplyCrate'
 import { restoreRowboat } from './rowboatValidation'
 import { BOARDING_MS } from '../simulation/rowboat'
@@ -18,7 +19,7 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
   const home = s.home === null ? null : v.tile(s.home, 'peace.home')
   const homes = world.buildings.filter(b => b?.kind === 'treehouse')
   if (homes.length !== (home === null ? 0 : 1) || (home !== null && world.buildings[home]?.kind !== 'treehouse')) v.invalid('peace.home', 'treehouse and peace state disagree')
-  const activity = v.choice(s.activity, 'peace.activity', PEACE_ACTIVITIES.slice(0, version >= 15 ? 12 : version >= 14 ? 11 : version >= 12 ? 9 : version >= 11 ? 8 : 6))
+  const activity = v.choice(s.activity, 'peace.activity', PEACE_ACTIVITIES.slice(0, version >= 17 ? 14 : version >= 15 ? 12 : version >= 14 ? 11 : version >= 12 ? 9 : version >= 11 ? 8 : 6))
   const sinceMs = clock(s.sinceMs, 'sinceMs', world.timeMs)
   const untilMs = clock(s.untilMs, 'untilMs', world.timeMs + (version >= 11 ? FISHING_MS : 12000))
   const destination = s.destination === null ? null : v.tile(s.destination, 'peace.destination')
@@ -50,10 +51,10 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
     if (reactionAtMs !== null && (world.timeMs - reactionAtMs >= 4000 || reactionAtMs !== sinceMs)) v.invalid('peace.reactionAtMs', 'expired reaction')
   } else {
     if (nextGiftAtMs <= world.timeMs || reactionAtMs !== null || p.mode !== 'WANDERING' || p.water || p.prison || p.pumpkin || p.webMs || p.trappedBy !== null || p.ignoredWebs.length || p.escape !== null || p.cryingMs || p.jailbreak || world.police.car || world.police.flash || world.police.retryAtMs !== 0 || r.boss || r.blast || !['idle', 'warning'].includes(r.stage)) v.invalid('peace', 'peace overlaps hostile or custody state')
-    const duration = activity === 'checkingCrate' ? SUPPLY_INSPECTION_MS : activity === 'boating' ? boat!.phase === 'rowing' ? 0 : BOARDING_MS : activity === 'fishing' ? FISHING_MS : activity === 'entering' ? 3000 : activity === 'resting' ? 12000 : activity === 'waving' ? 4000 : activity === 'flowers' ? 5000 : 0
+    const duration = activity === 'collectingEgg' ? EGG_COLLECT_MS : activity === 'checkingCrate' ? SUPPLY_INSPECTION_MS : activity === 'boating' ? boat!.phase === 'rowing' ? 0 : BOARDING_MS : activity === 'fishing' ? FISHING_MS : activity === 'entering' ? 3000 : activity === 'resting' ? 12000 : activity === 'waving' ? 4000 : activity === 'flowers' ? 5000 : 0
     // Waves after walks last five seconds; recovery waves last four.
     if (duration ? untilMs <= world.timeMs || (activity === 'waving' ? ![4000, 5000].includes(untilMs - sinceMs) : untilMs - sinceMs !== duration) : untilMs !== sinceMs) v.invalid('peace.activity', 'invalid activity clock')
-    if (!['homeward', 'walking', 'dockward', 'crateward', 'project'].includes(activity) && ((!['fishing', 'boating', 'checkingCrate'].includes(activity) && destination !== null) || p.next !== null || p.path.length || p.travelMs !== 0)) v.invalid('peace.activity', 'stationary activity contains movement')
+    if (!['homeward', 'walking', 'dockward', 'crateward', 'project', 'eggward'].includes(activity) && ((!['fishing', 'boating', 'checkingCrate', 'collectingEgg'].includes(activity) && destination !== null) || p.next !== null || p.path.length || p.travelMs !== 0)) v.invalid('peace.activity', 'stationary activity contains movement')
     if (['dockward', 'fishing', 'boating'].includes(activity) && (!dockAtSpot(world, destination) || (['fishing', 'boating'].includes(activity) && p.tile !== destination))) v.invalid('peace.destination', 'fishing requires a valid dock approach')
     if (['crateward', 'checkingCrate'].includes(activity) && (!crateAtSpot(world, destination) || (activity === 'checkingCrate' && p.tile !== destination))) v.invalid('peace.destination', 'supply visit requires a valid crate approach')
     if (['entering', 'resting'].includes(activity) && !neighboringTiles(home).includes(p.tile)) v.invalid('peace.activity', 'home activity is away from entrance')
