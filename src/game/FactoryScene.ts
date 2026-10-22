@@ -1,3 +1,4 @@
+import { ShoreVegetation } from './shoreVegetation'
 import { drawFootbridge } from './footbridgeVisuals'
 import { drawFishingDock } from './fishingDockVisuals'
 import { waterwheelRunning } from '../simulation/waterwheel'
@@ -61,6 +62,7 @@ const TILE = 32
 export class FactoryScene extends Phaser.Scene {
   private natureVisuals = new NatureVisuals()
   private landscapeWater = new LandscapeWater()
+  private shoreVegetation = new ShoreVegetation()
   private waterSurface!: Phaser.GameObjects.Graphics
   private constructionDrag = new ConstructionDrag()
   private placementRotation = new PlacementRotation()
@@ -534,6 +536,7 @@ export class FactoryScene extends Phaser.Scene {
     this.paintDrag(this.input.activePointer)
     this.terrain.update()
     this.landscapeWater.draw(this.waterSurface, this.world, view, TILE)
+    this.shoreVegetation.draw(this.waterSurface, this.world, view, TILE)
     this.natureVisuals.drawDecorations(this.landscape, this.world, TILE, view)
     this.drawnBuildings = 0
     for (let row = bounds.top; row <= bounds.bottom; row++) for (let column = bounds.left; column <= bounds.right; column++) {

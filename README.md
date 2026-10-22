@@ -72,3 +72,5 @@ Build a **Waterwheel Generator** from **Power** for **10 Wood** on land facing a
 Build a **Fishing Dock** from **Nature** for **8 Wood** on land facing water. Keep its rear land approach clear: peaceful Pete may visit for a quiet fishing pause, then return home. On suitable connected water he may also take a short rowboat outing and return. Neither activity produces items. Version 12 preserves visits and boat trips and still loads versions 1–11. See [Fishing Dock rules](docs/GAME_DESIGN.md#petes-fishing-dock).
 
 Use **Logistics → Wooden Footbridge** to drag across 1–5 water tiles between empty shores, costing 3 Wood per new deck. Pete and police can cross; remove only when the crossing is clear. See [footbridge rules](docs/GAME_DESIGN.md#wooden-footbridges).
+
+Empty shorelines also show decorative clustered reeds and cattails that adapt to landscaping and sway gently. See [shoreline vegetation](docs/GAME_DESIGN.md#shoreline-vegetation).
