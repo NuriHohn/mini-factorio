@@ -94,9 +94,9 @@ it.each(['dock', 'water', 'route', 'home'] as const)('safely interrupts a trip o
   expect(() => encodeSave(w, view)).not.toThrow()
   advanceWorld(w, 5000); expect(w.pete.mode).toBe('WANDERING')
 })
-it('cancels after atomic bridge construction intersects a remaining water route, before an immediate save', () => {
+it.each(['belt', 'footbridge'] as const)('cancels after atomic %s bridge construction intersects a remaining water route, before an immediate save', kind => {
   const w = boarding()
-  expect(commitConstruction(w, { x: 23, y: 21 }, { x: 23, y: 25 }, 'belt', 'south', true).error).toBeNull()
+  expect(commitConstruction(w, { x: 23, y: 21 }, { x: 23, y: 25 }, kind, 'south', true).error).toBeNull()
   expect(w.peace.boat).toBeUndefined()
   expect(w.peace.activity).toBe('homeward')
   expect(() => encodeSave(w, view)).not.toThrow()

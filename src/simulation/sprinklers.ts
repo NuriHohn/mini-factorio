@@ -1,6 +1,6 @@
 import { peaceful } from './peace'
 import { bossAlive, damageWalker, peteUnavailable } from './revenge'
-import { neighboringTiles, reachableTiles, tilePath } from './navigation'
+import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navigation'
 import { PETE_FLEE_MS, PETE_WALK_MS } from './pete'
 import { withinRange } from './power'
 import { SIZE } from './world'
@@ -88,7 +88,7 @@ function moveAway(world: World, delta: number): void {
       p.next = p.path.shift() ?? null
       if (p.next === null) return // Wait at the reachable destination; never enter web crying.
     }
-    if (world.water[p.next] || world.buildings[p.next] || !neighboringTiles(p.tile).includes(p.next)) {
+    if (!walkableTile(world, p.next) || !neighboringTiles(p.tile).includes(p.next)) {
       p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1
       continue
     }

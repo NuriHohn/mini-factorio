@@ -1,3 +1,4 @@
+import { footbridgeBank, footbridgeRemovalError, removeFootbridge } from './footbridge'
 import { dockAtSpot, FISHING_DOCK_WOOD } from './fishingDock'
 import { facesWater } from './waterTerrain'
 import { WATERWHEEL_WOOD, waterwheelWater } from './waterwheel'
@@ -29,7 +30,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
+export type BuildingKind = 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -71,6 +72,7 @@ export interface Inserter extends BuildingPosition {
   item: Item | null
   elapsedMs: number
 }
+export interface Footbridge extends BuildingPosition { kind: 'footbridge'; direction: 'east' | 'south' }
 export interface FishingDock extends BuildingPosition { kind: 'fishingDock'; direction: Direction }
 export interface Waterwheel extends BuildingPosition { kind: 'waterwheel'; direction: Direction; rotationMs: number }
 export interface Generator extends BuildingPosition { kind: 'generator' }
@@ -90,7 +92,7 @@ export interface Splitter extends BuildingPosition {
 }
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
-export type Building = FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export type Building = Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
 export interface World { peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
@@ -131,6 +133,7 @@ export function depositAt(world: World, x: number, y: number): Resource | null {
 }
 
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction, bridge = false): string | null {
+  if (kind === 'footbridge') return 'Drag a straight footbridge between two dry shores.'
   const technologyError = buildingTechnologyError(world.research, kind)
   if (technologyError) return technologyError
   if (kind === 'treehouse') {
@@ -142,6 +145,7 @@ export function placementError(world: World, x: number, y: number, kind: Buildin
   if (walkerOccupiesTile(world, y * SIZE + x)) return 'The walker is occupying this tile.'
   if (policeOccupiesTile(world, x, y)) return 'Keep the police route and prison exit clear.'
   if (kind === 'prison' && (!edgeTile(y * SIZE + x) || !neighboringTiles(y * SIZE + x).some(tile => !world.buildings[tile] && !world.water[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE))))) return 'Prisons need an edge tile and an empty exit.'
+  if (footbridgeBank(world, y * SIZE + x)) return 'Keep footbridge landings clear. Remove the footbridge first.'
   if (peteOccupiesTile(world, x, y)) return 'Pete is walking through this tile.'
   const existing = buildingAt(world, x, y)
   if (isWater(world, x, y) && !(kind === 'belt' && bridge)) return 'Water needs a complete belt bridge. Drag from land to land.'
@@ -164,6 +168,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   const previousDock = dockAtSpot(world, world.peace.destination)
   let building: Building
   switch (kind) {
+    case 'footbridge': return false
     case 'fishingDock': building = { kind, x, y, direction }; break
     case 'waterwheel': building = { kind, x, y, direction, rotationMs: 0 }; break
     case 'treehouse': building = { kind, x, y, placedAtMs: world.timeMs }; break
@@ -193,6 +198,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
 export function removalError(world: World, x: number, y: number): string | null {
   const building = buildingAt(world, x, y)
   if (!building) return 'Choose a building to remove.'
+  if (building.kind === 'footbridge') return footbridgeRemovalError(world, y * SIZE + x)
   if (building.kind === 'tree') return 'Use the Axe to chop trees. Demolition only removes factory buildings.'
   return null
 }
@@ -200,6 +206,7 @@ export function removeBuilding(world: World, x: number, y: number): boolean {
   if (removalError(world, x, y)) return false
   const previousDock = dockAtSpot(world, world.peace.destination)
   const removed = world.buildings[y * SIZE + x]
+  if (removed?.kind === 'footbridge') { removeFootbridge(world, y * SIZE + x); return true }
   if (removed?.kind === 'belt' && removed.bridge) {
     for (const i of bridgeCrossing(world, x, y, removed.direction) ?? [y * SIZE + x]) if (world.buildings[i]?.kind === 'belt') world.buildings[i] = null
     world.topologyRevision++

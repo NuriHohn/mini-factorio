@@ -1,3 +1,4 @@
+import { footbridgeBankError } from '../simulation/footbridge'
 import { commitConstruction, planConstruction } from '../simulation/construction'
 import type { ConstructionPlan, DragBuilding } from '../simulation/construction'
 import type { Direction, Position, World } from '../simulation/world'
@@ -7,7 +8,7 @@ export class ConstructionDrag {
   get active(): boolean { return this.gesture !== null }
   begin(world: World, point: Position, kind: DragBuilding, facing: Direction): string | null {
     this.cancel()
-    const error = planConstruction(world, point, point, kind, facing).error
+    const error = kind === 'footbridge' ? footbridgeBankError(world, point) : planConstruction(world, point, point, kind, facing).error
     if (error) return error
     this.gesture = { world, start: { ...point }, end: { ...point }, kind, facing, dragged: false }
     return null

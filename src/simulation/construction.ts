@@ -1,3 +1,4 @@
+import { commitFootbridge, planFootbridge } from './footbridge'
 import { FISHING_DOCK_WOOD } from './fishingDock'
 import { WATERWHEEL_WOOD } from './waterwheel'
 import { BRIDGE_WOOD } from './waterTerrain'
@@ -7,7 +8,7 @@ import { refreshFishing, TREEHOUSE_WOOD } from './peace'
 import { inside, opposite, placeBuilding, placementError, SIZE } from './world'
 import type { BuildingKind, Direction, Position, World } from './world'
 
-export type DragBuilding = 'belt' | 'powerPole'
+export type DragBuilding = 'footbridge' | 'belt' | 'powerPole'
 export interface ConstructionCell extends Position { direction: Direction; reuse: boolean; reverse?: boolean; bridge?: boolean; error: string | null }
 export interface ConstructionPlan { kind: DragBuilding; cells: ConstructionCell[]; error: string | null; detour?: boolean; snapFrom?: Position; beltSnap?: Position; wood?: number; unaffordable?: boolean }
 export interface PlacementInfo { state: 'valid' | 'invalid' | 'unaffordable'; error: string | null; wood: number; available: number }
@@ -24,6 +25,7 @@ export function planConstruction(world: World, start: Position, end: Position, k
     const reuse = kind === 'powerPole' && world.buildings[p.y * SIZE + p.x]?.kind === 'powerPole'
     return { ...p, direction: facing, reuse, error: reuse ? null : placementError(world, p.x, p.y, kind) }
   }
+  if (kind === 'footbridge') return planFootbridge(world, start, end)
   if (kind === 'belt') return planBelts(world, start, end, facing, dragged)
   const endpoints = [pointCell(start), pointCell(end)]
   const invalid = endpoints.find(c => c.error)?.error
@@ -33,6 +35,11 @@ export function planConstruction(world: World, start: Position, end: Position, k
   return { kind, cells: route.points.map(pointCell), error: null, snapFrom: route.snapped ? { ...end } : undefined }
 }
 export function commitConstruction(world: World, start: Position, end: Position, kind: DragBuilding, facing: Direction, dragged = false): { error: string | null; placed: number; reversed?: number; wood?: number } {
+  if (kind === 'footbridge') {
+    const result = commitFootbridge(world, start, end)
+    if (!result.error) refreshFishing(world)
+    return result
+  }
   const plan = planConstruction(world, start, end, kind, facing, dragged)
   if (plan.error) return { error: plan.error, placed: 0 }
   const created: number[] = [], revision = world.topologyRevision

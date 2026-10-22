@@ -2,6 +2,7 @@ import type { Inspection } from '../simulation/inspection'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { PLAYER_TOOLS } from '../state/toolMetadata'
 const descriptions: Record<Inspection['kind'], string> = {
+  footbridge: 'A wooden crossing for Pete and police. No items or electricity. Remove only when clear.',
   fishingDock: 'A quiet place for peaceful Pete to fish. No items are produced.',
   waterwheel: 'Makes electricity from adjacent water. Connect it to a pole.',
   miner: 'Takes ore from the ground.', belt: 'Carries items in the arrow’s direction.', storage: 'Keeps items until they are needed.',
