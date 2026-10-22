@@ -1,7 +1,7 @@
 import { DIRECTIONS, inside, offsets, SIZE } from './world'
 import type { FishingDock, World } from './world'
 import { facesWater } from './waterTerrain'
-import { reachableTiles, tilePath } from './navigation'
+import { peteReachableTiles as reachableTiles, tilePath } from './navigation'
 export const FISHING_DOCK_WOOD = 8
 export const FISHING_MS = 20000
 export function fishingSpot(world: World, dock: FishingDock): number | null {

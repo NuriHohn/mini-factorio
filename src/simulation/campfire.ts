@@ -1,4 +1,4 @@
-import { reachableTiles } from './navigation'
+import { peteReachableTiles as reachableTiles } from './navigation'
 import type { World } from './world'
 import { SIZE } from './world'
 export const COOKING_MS = 8000

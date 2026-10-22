@@ -82,6 +82,7 @@ describe('Pete’s enclosed yard', () => {
       advanceWorld(w, 50)
       for (const b of w.poultry!.birds) for (const i of [b.tile, b.next]) if (i !== null) { expect(yardInterior(y, i)).toBe(true); expect(w.water[i]).toBe(false); expect(w.buildings[i]).toBeNull() }
     }
+    until(w, () => w.poultry!.collected > eggs, 300000) // Gate building may occupy the first post-yard rest.
     expect(w.poultry!.birds).toHaveLength(5); expect(w.poultry!.collected).toBeGreaterThan(eggs)
     expect([...ground.keys()].every(i => yardInterior(y, i))).toBe(true)
   })

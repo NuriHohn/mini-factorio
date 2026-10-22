@@ -21,6 +21,10 @@ export function drawYardEntrance(g: Phaser.GameObjects.Graphics, world: World, t
   if (!visiblePoint(view, x, y, tile) || world.water[i] || world.buildings[i] || !yardBoundary(yard).includes(i)) return
   const horizontal = Math.floor(i / SIZE) === yard.top || Math.floor(i / SIZE) === yard.bottom
   g.fillStyle(0xa58c61, .25).fillRoundedRect(x - (horizontal ? 7 : 15), y - (horizontal ? 15 : 7), horizontal ? 14 : 30, horizontal ? 30 : 14, 4)
+  drawEntrancePosts(g, x, y, horizontal)
+}
+
+export function drawEntrancePosts(g: Phaser.GameObjects.Graphics, x: number, y: number, horizontal: boolean): void {
   for (const side of [-1, 1]) {
     const px = x + (horizontal ? side * 12 : 0), py = y + (horizontal ? 0 : side * 12)
     g.fillStyle(0xb88b58).fillRect(px - 2, py - 5, 4, 13).fillStyle(0xd4b080).fillTriangle(px - 3, py - 5, px, py - 9, px + 3, py - 5)

@@ -1,3 +1,4 @@
+import { GATE_HOLD_MS, GATE_OPEN_MS } from '../simulation/gardenGate'
 import { SUPPLY_CRATE_CAPACITY } from '../simulation/supplyCrate'
 import { WATERWHEEL_PERIOD_MS } from '../simulation/waterwheel'
 import { validateTree } from './natureValidation'
@@ -80,7 +81,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 20 && kind === 'peteGate') invalid(path, 'Pete gates require save version 20')
   if (version < 18 && kind === 'peteCampfire') invalid(path, 'Pete campfires require save version 18')
   if (version < 16 && kind === 'peteCoop') invalid(path, 'Pete coops require save version 16')
   if (version < 15 && kind === 'peteFence') invalid(path, 'Pete fences require save version 15')
@@ -91,6 +93,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    peteGate: ['direction', 'openMs', 'holdUntilMs'],
     peteCampfire: [],
     peteCoop: [],
     peteFence: ['direction'],
@@ -113,6 +116,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'peteGate': {
+      const openMs = count(r.openMs, `${path}.openMs`, GATE_OPEN_MS), holdUntilMs = count(r.holdUntilMs, `${path}.holdUntilMs`, timeMs + GATE_HOLD_MS)
+      if (openMs % 50 || holdUntilMs % 50 || (openMs > 0 && holdUntilMs === 0) || (openMs === GATE_OPEN_MS && holdUntilMs <= timeMs)) invalid(path, 'invalid gate animation clock')
+      return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const), openMs, holdUntilMs }
+    }
     case 'peteCampfire':
     case 'peteCoop': return { ...base, kind }
     case 'peteFence': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }

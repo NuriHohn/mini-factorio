@@ -18,7 +18,7 @@ export function restoreYard(value: unknown, world: World): Yard | null {
   const boundary = yardBoundary(yard), expected = boundary.filter(i => i !== entrance && !reused.includes(i))
   if (!tiles.length || new Set(reused).size !== reused.length || reused.some(i => !boundary.includes(i) || i === entrance || !world.project!.tiles.includes(i)) || !yardInterior(yard, home) || !yardInterior(yard, world.coopProject!.tiles[0]) || !boundary.includes(entrance) || !neighboringTiles(entrance).some(i => yardInterior(yard, i)) || tiles.length !== expected.length || tiles.some((i, n) => i !== expected[n]) || spots.some((i, n) => boundary.includes(i) || !neighboringTiles(tiles[n]).includes(i))) v.invalid('yard', 'invalid enclosure geometry, entrance or fence reuse')
   if (elapsedMs % 50 || (phase === 'collecting' ? built >= tiles.length || carried !== 0 || elapsedMs !== 0 : phase === 'building' ? built >= tiles.length || carried !== 2 || crate !== null : built !== tiles.length || carried !== 0 || elapsedMs !== 0 || crate !== null)) v.invalid('yard', 'invalid construction progress or Wood accounting')
-  if (world.water[entrance] || world.buildings[entrance]) v.invalid('yard.entrance', 'reserved entrance must stay open and dry')
+  if (world.water[entrance] || (world.buildings[entrance] && world.buildings[entrance]?.kind !== 'peteGate')) v.invalid('yard.entrance', 'reserved entrance must stay open and dry')
   if (crate !== null && world.buildings[crate]?.kind !== 'supplyCrate') v.invalid('yard.crate', 'missing supply crate')
   return yard
 }
