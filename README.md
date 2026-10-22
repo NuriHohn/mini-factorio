@@ -77,4 +77,4 @@ Empty shorelines also show decorative clustered reeds and cattails that adapt to
 
 Build **Pete’s Supply Crate** in **Nature** for **6 Wood**. Belts and inserters deliver up to **200 items total**; inspect the box for quantities. Peaceful Pete may visit; supplied Wood can fund his first secret project. See [supply crate rules](docs/GAME_DESIGN.md#petes-supply-crate).
 
-Inspect a Supply Crate and choose **Supply 6 Wood** to deposit existing forestry Wood. Peaceful Pete can autonomously collect it and gradually build one small fence near home. See [secret project rules](docs/GAME_DESIGN.md#petes-first-secret-project).
+Put away the active tool (Escape), then click the **Wood icon above a Supply Crate** to unload 6 existing forestry Wood with a short falling-plank animation. Peaceful Pete can autonomously collect it and gradually build one small fence near home. See [secret project rules](docs/GAME_DESIGN.md#petes-first-secret-project).

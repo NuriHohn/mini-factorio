@@ -5,7 +5,6 @@ import { createBareWorld } from '../simulation/testFixtures'
 import { placeBuilding } from '../simulation/world'
 import { supplyWood } from '../simulation/supplyCrate'
 import { advanceWorld } from '../simulation/step'
-import { useGameStore } from '../state/gameStore'
 import type { PeteFence } from '../simulation/world'
 function graphics() {
   const calls: [string, unknown[]][] = []
@@ -31,20 +30,5 @@ describe('secret project visuals and Wood intent', () => {
     drawSecretProject(g, w, 32); const pose = [...calls]
     expect(pose.length).toBeGreaterThan(0)
     calls.length = 0; drawSecretProject(g, w, 32); expect(calls).toEqual(pose); expect(w).toEqual(before)
-  })
-  it('applies a queued supply intent once, revalidates stock/capacity and clears it across selection', () => {
-    const initial = useGameStore.getState(), w = createBareWorld(() => .5); w.nature.wood = 30
-    placeBuilding(w, 20, 20, 'supplyCrate', 'east')
-    try {
-      const store = useGameStore.getState()
-      store.select(null); store.inspect(w, 20, 20); store.requestSupply(); store.requestSupply()
-      store.applySupply(w); store.applySupply(w)
-      expect(w.nature.wood).toBe(18)
-      store.requestSupply(); w.nature.wood = 0; store.applySupply(w)
-      expect(w.nature.wood).toBe(0)
-      const b = w.buildings[820]!
-      expect(b.kind === 'supplyCrate' && b.wood).toBe(6)
-      store.requestSupply(); store.select('belt'); expect(useGameStore.getState().supplyRequest).toBeNull()
-    } finally { useGameStore.setState(initial, true) }
   })
 })

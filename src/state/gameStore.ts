@@ -1,4 +1,3 @@
-import { supplyWood } from '../simulation/supplyCrate'
 import { toolHintId } from './toolHints'
 import type { HintId } from './toolHints'
 import type { UiPanel } from './uiMetadata'
@@ -65,9 +64,6 @@ interface State {
   saveFeedback: (message: string, error?: boolean) => void
   buildTab: BuildTab
   setBuildTab: (tab: BuildTab) => void
-  supplyRequest: number | null
-  requestSupply: () => void
-  applySupply: (world: World) => void
   releaseRequest: { index: number; imprisonedAtMs: number } | null
   requestRelease: () => void
   applyRelease: (world: World) => void
@@ -125,13 +121,6 @@ export const useGameStore = create<State>((set, get) => ({
     get().select(null)
     set({ buildTab: tab })
   },
-  supplyRequest: null,
-  requestSupply: () => set(state => state.supplyRequest === null && state.inspected !== null && state.inspection?.kind === 'supplyCrate' ? { supplyRequest: state.inspected } : state),
-  applySupply: world => {
-    const index = get().supplyRequest
-    if (index === null) return
-    set({ supplyRequest: null, message: supplyWood(world, index, 6) ? '6 Wood supplied to Pete’s crate.' : 'Wood supply changed or the crate is full. Nothing transferred.' })
-  },
   releaseRequest: null,
   requestRelease: () => set(state => state.inspected !== null && state.inspection?.kind === 'prison' && state.inspection.imprisonedAtMs !== null ? { releaseRequest: { index: state.inspected, imprisonedAtMs: state.inspection.imprisonedAtMs } } : state),
   applyRelease: world => {
@@ -152,7 +141,7 @@ export const useGameStore = create<State>((set, get) => ({
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, supplyRequest: null, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
     if (event.code === 'Escape' && get().dragActive) { set(state => ({ dragActive: false, dragCancelToken: state.dragCancelToken + 1 })); return }

@@ -9,13 +9,13 @@ import { SplitterInspector } from './SplitterInspector'
 import { CraftingInspector } from './CraftingInspector'
 import { ITEM_DEFINITIONS } from '../simulation/items'
 export function BuildingInspection() {
-  const { inspected, inspection, requestRecipe, requestRelease, requestSupply, wood } = useGameStore()
+  const { inspected, inspection, requestRecipe, requestRelease } = useGameStore()
   const panel = useRef<HTMLElement>(null)
   useEffect(() => { if (panel.current) panel.current.scrollTop = 0 }, [inspected])
   if (!inspection) return null
   const summary = inspectionSummary(inspection)
   return <aside ref={panel} className="building-inspection" aria-label="Selected building">
-    <button className="panel-dismiss" aria-label="Close building inspection" onClick={() => useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, supplyRequest: null, releaseRequest: null })}>×</button>
+    <button className="panel-dismiss" aria-label="Close building inspection" onClick={() => useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null })}>×</button>
     <section className="inspection" aria-label="Building inspection">
       <div className="inspection-summary">
         <h2><span aria-hidden="true">{summary.icon}</span> {summary.name}</h2>
@@ -24,14 +24,13 @@ export function BuildingInspection() {
         {inspection.kind === 'supplyCrate' && <>
           <InventoryView inventory={inspection.inventory} showAll />
           <div className="stats"><span>Supplied Wood</span><b>{inspection.wood}</b></div>
-          <button className="building" disabled={wood < 6 || Object.values(inspection.inventory).reduce((a, b) => a + b, inspection.wood) + 6 > inspection.capacity} onClick={requestSupply}>Supply 6 Wood</button>
         </>}
         {inspection.kind === 'belt' && <p>Output: {inspection.direction} · {inspection.item ? ITEM_DEFINITIONS[inspection.item].label : 'No item'}</p>}
         {inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}
       </div>
       <details className="inspection-technical" key={inspected}><summary>Details and settings</summary>
       {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
-      {inspection.kind === 'supplyCrate' ? <p className="inspection-note">6 Wood · {inspection.capacity} items total · No power. Input only; full crates stop incoming items. Pete may collect supplied Wood for his secret project. Other materials stay stored. Demolition discards contents; no Wood refund.</p> : inspection.kind === 'fishingDock' ? <>
+      {inspection.kind === 'supplyCrate' ? <p className="inspection-note">6 Wood · {inspection.capacity} items total · No power. Input only; full crates stop incoming items. Click the Wood icon above the crate to unload 6 Wood. Pete may collect supplied Wood for his secret project. Other materials stay stored. Demolition discards contents; no Wood refund.</p> : inspection.kind === 'fishingDock' ? <>
         <div className="stats"><span>Fishing side</span><b>{inspection.direction}</b></div>
         <p className="inspection-note">8 Wood · No electricity or item production. Keep the rear land approach clear. Pete visits only while peaceful.</p>
       </> : inspection.kind === 'treehouse' ? <>
