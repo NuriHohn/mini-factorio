@@ -133,10 +133,10 @@ describe('peaceful supply visits and persistence', () => {
     advanceWorld(w, 8765)
     for (const ms of [17, 2000, 103, 2645, 4000]) advanceWorld(loaded, ms)
     expect(JSON.parse(encode(loaded))).toEqual(JSON.parse(encode(w)))
-    expect(SAVE_VERSION).toBe(20)
+    expect(SAVE_VERSION).toBe(21)
   })
   it('accepts genuine prior-version saves and rejects malformed inventory or hidden new state', () => {
-    const legacy = JSON.parse(encode(world())); legacy.version = 13
+    const legacy = JSON.parse(encode(world())); legacy.version = 13; delete legacy.game.personality
     expect(JSON.parse(encode(decodeSave(JSON.stringify(legacy)).world))).toEqual(JSON.parse(encode(world())))
     const w = home(); visit(w)
     for (const mutate of [
@@ -147,7 +147,7 @@ describe('peaceful supply visits and persistence', () => {
       (d: SaveDocument) => { Reflect.deleteProperty((d.game.buildings[824] as SupplyCrate).inventory, 'iron') },
       (d: SaveDocument) => { d.game.buildings[824] = null },
       (d: SaveDocument) => { d.game.peace.untilMs++ },
-      (d: SaveDocument) => { Object.assign(d, { version: 13 }) },
+      (d: SaveDocument) => { Object.assign(d, { version: 13 }); Reflect.deleteProperty(d.game, 'personality') },
     ]) {
       const d = JSON.parse(encode(w)); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save')
     }

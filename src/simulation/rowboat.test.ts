@@ -124,7 +124,7 @@ it('loads legacy version-11 peaceful activity unchanged', () => {
   const w = boatWorld(1)
   for (let i = 0; i < 400 && w.peace.activity !== 'fishing'; i++) advanceWorld(w, 50)
   expect(w.peace.activity).toBe('fishing')
-  const legacy = JSON.parse(encodeSave(w, view)); legacy.version = 11
+  const legacy = JSON.parse(encodeSave(w, view)); legacy.version = 11; delete legacy.game.personality
   const loaded = decodeSave(JSON.stringify(legacy)).world
   expect(loaded.peace).toEqual(w.peace)
   advanceWorld(w, 30000); advanceWorld(loaded, 30000)
@@ -132,7 +132,7 @@ it('loads legacy version-11 peaceful activity unchanged', () => {
 })
 it.each(['old-version', 'missing-trip', 'wrong-dock', 'land', 'disconnected', 'oversized', 'clock', 'phase', 'hidden'] as const)('rejects malformed %s rowboat state', bad => {
   const w = boarding(), save = JSON.parse(encodeSave(w, view)), boat = save.game.peace.boat
-  if (bad === 'old-version') save.version = 11
+  if (bad === 'old-version') { save.version = 11; delete save.game.personality }
   if (bad === 'missing-trip') delete save.game.peace.boat
   if (bad === 'wrong-dock') boat.dock = 1
   if (bad === 'land') boat.tile = 1

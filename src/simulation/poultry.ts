@@ -1,3 +1,4 @@
+import { awardActivity, EGG_REWARD } from './personality'
 import { enclosedYard, yardInterior } from './yard'
 import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
 import { SIZE } from './world'
@@ -82,6 +83,7 @@ export function collectEgg(world: World): boolean {
   const s = world.poultry, egg = eggAt(world, world.peace.destination)
   if (!s || !egg || world.peace.home === null || world.peace.activity !== 'collectingEgg' || world.timeMs < world.peace.untilMs || world.pete.next !== null || world.pete.tile !== egg.tile || s.collected === Number.MAX_SAFE_INTEGER) return false
   s.eggs = s.eggs.filter(e => e.id !== egg.id); s.collected++
+  awardActivity(world.personality, EGG_REWARD)
   return true
 }
 function followStep(s: Poultry, b: Bird, ground: Map<number, number>): number | null {

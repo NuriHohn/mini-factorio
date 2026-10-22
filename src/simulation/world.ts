@@ -1,3 +1,5 @@
+import { createPersonality } from './personality'
+import type { Personality } from './personality'
 import type { Yard } from './yard'
 import { refreshCooking } from './campfire'
 import { refreshPoultry } from './poultry'
@@ -105,7 +107,7 @@ export interface Splitter extends BuildingPosition {
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
 export type Building = PeteGate | PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { personality: Personality; gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -134,7 +136,7 @@ export function createWorld(random = Math.random, options: { nature?: boolean; w
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  const world: World = { gateProject: null, yard: null, campfireProject: null, poultry: null, coopProject: null, project: null, peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), water: Array<boolean>(SIZE * SIZE).fill(false), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  const world: World = { personality: createPersonality(), gateProject: null, yard: null, campfireProject: null, poultry: null, coopProject: null, project: null, peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), water: Array<boolean>(SIZE * SIZE).fill(false), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
   const seed = Math.floor(random() * 4294967296)
   if (options.water !== false) generateWater(world, seed)
   if (options.nature !== false) generateNature(world, seed)

@@ -66,7 +66,7 @@ describe('Revenge versioned persistence', () => {
     world.research = createResearch(true)
     world.research.balanceUnits = '1234567890123'
     const legacy = snapshot(world)
-    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'water'); Reflect.deleteProperty(legacy.game, 'peace'); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge')
+    Object.assign(legacy, { version }); Reflect.deleteProperty(legacy.game, 'personality'); Reflect.deleteProperty(legacy.game, 'water'); Reflect.deleteProperty(legacy.game, 'peace'); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge')
     if (version < 5) Reflect.deleteProperty(legacy.game, 'research')
     if (version < 4) Reflect.deleteProperty(legacy.game, 'analytics')
     if (version < 3) {
@@ -84,7 +84,7 @@ describe('Revenge versioned persistence', () => {
   it('preserves a version-5 player’s partial research exactly instead of granting other technologies', () => {
     const world = createWorld(() => .5)
     world.research.unlocked.push('automation1'); world.research.balanceUnits = '901'
-    const legacy = snapshot(world); Object.assign(legacy, { version: 5 }); Reflect.deleteProperty(legacy.game, 'water'); Reflect.deleteProperty(legacy.game, 'peace'); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge')
+    const legacy = snapshot(world); Object.assign(legacy, { version: 5 }); Reflect.deleteProperty(legacy.game, 'personality'); Reflect.deleteProperty(legacy.game, 'water'); Reflect.deleteProperty(legacy.game, 'peace'); Reflect.deleteProperty(legacy.game, 'nature'); Reflect.deleteProperty(legacy.game, 'revenge')
     expect(decodeSave(JSON.stringify(legacy)).world.research).toEqual(world.research)
   })
   it.each([
@@ -111,7 +111,7 @@ describe('Revenge versioned persistence', () => {
     ['fractional cooldown boundary', (d: SaveDocument) => { d.game.revenge.playerCooldownMs = 1000; d.game.revenge.playerReadyAtMs = d.game.timeMs + 1 }],
     ['invented cooldown', (d: SaveDocument) => { d.game.revenge.playerCooldownMs = 700 }],
     ['missing research prerequisite', (d: SaveDocument) => { d.game.research.unlocked.push('revengeDefense2') }],
-    ['new technologies in old schema', (d: SaveDocument) => { Object.assign(d, { version: 5 }); Reflect.deleteProperty(d.game, 'water'); Reflect.deleteProperty(d.game, 'revenge'); d.game.research.unlocked.push('revengeDefense1') }],
+    ['new technologies in old schema', (d: SaveDocument) => { Object.assign(d, { version: 5 }); Reflect.deleteProperty(d.game, 'personality'); Reflect.deleteProperty(d.game, 'water'); Reflect.deleteProperty(d.game, 'revenge'); d.game.research.unlocked.push('revengeDefense1') }],
   ] as const)('rejects %s without altering a live encounter', (_name, mutate) => {
     const world = setup('hunting'), before = snapshot(world), bad = structuredClone(before)
     mutate(bad)

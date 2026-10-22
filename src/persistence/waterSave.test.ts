@@ -17,7 +17,7 @@ describe('version 9 terrain and bridge persistence', () => {
   it('round trips new generated terrain, nature and factory state exactly', () => {
     const w = createWorld(() => .42); advanceWorld(w, 675)
     const original = snapshot(w), restored = decodeSave(JSON.stringify(original)).world
-    expect(SAVE_VERSION).toBe(20); expect(restored.water.some(Boolean)).toBe(true)
+    expect(SAVE_VERSION).toBe(21); expect(restored.water.some(Boolean)).toBe(true)
     expect(snapshot(restored)).toEqual(original)
     advanceWorld(w, 1234); advanceWorld(restored, 1234)
     expect(snapshot(restored)).toEqual(snapshot(w))
@@ -25,7 +25,7 @@ describe('version 9 terrain and bridge persistence', () => {
   it('migrates a genuine version-8 factory without flooding or changing saved gameplay state', () => {
     const w = poweredWorld(() => .5)
     placeBuilding(w, 20, 20, 'miner', 'east'); advanceWorld(w, 1600)
-    const old = snapshot(w); Object.assign(old, { version: 8 }); Reflect.deleteProperty(old.game, 'water')
+    const old = snapshot(w); Object.assign(old, { version: 8 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game, 'water')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.water.every(v => !v)).toBe(true)
     expect(snapshot(restored)).toEqual(snapshot(w))
@@ -52,8 +52,8 @@ describe('version 9 terrain and bridge persistence', () => {
     ['bridge on land', (d: SaveDocument) => { Object.assign(d.game.buildings[409]!, { bridge: true }) }],
     ['decoration on water', (d: SaveDocument) => { d.game.nature.decorations[411] = 'flowers' }],
     ['water under Pete', (d: SaveDocument) => { d.game.water[d.game.pete.tile] = true }],
-    ['terrain hidden in old version', (d: SaveDocument) => { Object.assign(d, { version: 8 }) }],
-    ['bridge hidden in old version', (d: SaveDocument) => { Object.assign(d, { version: 8 }); Reflect.deleteProperty(d.game, 'water') }],
+    ['terrain hidden in old version', (d: SaveDocument) => { Object.assign(d, { version: 8 }); Reflect.deleteProperty(d.game, 'personality') }],
+    ['bridge hidden in old version', (d: SaveDocument) => { Object.assign(d, { version: 8 }); Reflect.deleteProperty(d.game, 'personality'); Reflect.deleteProperty(d.game, 'water') }],
   ])('strictly rejects %s without changing the source world', (_name, change) => {
     const w = bridgeWorld(), before = snapshot(w), malformed = structuredClone(before)
     change(malformed)

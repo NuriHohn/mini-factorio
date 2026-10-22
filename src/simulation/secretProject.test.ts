@@ -130,7 +130,7 @@ describe('Pete’s one autonomous fence project', () => {
   it('migrates version 14 with exact stocks and rejects malformed project and Wood state', () => {
     const w = setup(false); crate(w).inventory.ironGear = 7
     const old = snapshot(w)
-    Object.assign(old, { version: 14 }); Reflect.deleteProperty(old.game.buildings[824]!, 'wood')
+    Object.assign(old, { version: 14 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.buildings[824]!, 'wood')
     const loaded = decodeSave(JSON.stringify(old)).world
     expect(loaded.project).toBeNull(); expect(crate(loaded).wood).toBe(0)
     expect(crate(loaded).inventory).toEqual(crate(w).inventory)
@@ -143,7 +143,7 @@ describe('Pete’s one autonomous fence project', () => {
       (d: SaveDocument) => { d.game.project!.phase = 'complete' },
       (d: SaveDocument) => { (d.game.buildings[824] as SupplyCrate).wood = 201 },
       (d: SaveDocument) => { Reflect.deleteProperty(d.game, 'project') },
-      (d: SaveDocument) => { Object.assign(d, { version: 14 }) },
+      (d: SaveDocument) => { Object.assign(d, { version: 14 }); Reflect.deleteProperty(d.game, 'personality') },
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }
   })
 })
