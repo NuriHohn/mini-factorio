@@ -10,6 +10,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Sprint 15.6: Pete’s Fishing Dock | 8-Wood water-facing Nature dock, reachable peaceful visits and 20-second recreational fishing, quiet rod/line/ripples, safe demolition/water/approach recovery, existing inspection/rotation and strict version-11 continuation with version-1–10 compatibility |
 | Sprint 15.6.3: Revenge-O-Matic Combat Tuning | 750-ms movement, stable productive-machine pursuit with five-second inactivity recovery, deterministic no-target wandering, 4/3-second EMP cooldowns with splash-area recovery protection, subtle target outline and compatible saved target timing |
 | Sprint 15.7: Pete’s Rowboat | Occasional peaceful dock outings, bounded deterministic water routes and return, seated Pete/oars/ripples, safe dock/route/home interruptions, preserved fishing and strict version-12 mid-trip saves with version-1–11 compatibility |
+| Sprint 15.7.1: Revenge-O-Matic Power Generator Targeting | Operational conventional generators and waterwheels as lower-priority pursuit/EMP targets, production-first spawn components, existing target stability and recovery protection, unchanged combat timings and saves |
 | Initial mining and movement | Ore deposits, directional mining, WASD camera and zoom |
 | Conveyor belts and storage | Individual items, directional transport, automatic curves, typed chest counts, occupied-building removal |
 | Furnaces and smelting | Crafting jobs, iron plates, buffers, output reservations and inspection |

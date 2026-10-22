@@ -39,8 +39,8 @@ it.each([false, true])('keeps moving beside a blocked factory after the normal s
   expect(w.timeMs).toBe(95000)
   expect(w.revenge.stage).toBe('hunting')
   expect(moved).toBe(true)
-  expect(w.revenge).toMatchObject({ arrests: 3, threshold: 3, blast: null })
-  expect(w.buildings.every(b => !b?.sabotageUntilMs)).toBe(true)
+  expect(w.revenge).toMatchObject({ arrests: 3, threshold: 3 })
+  expect(w.buildings[741]?.sabotageUntilMs).toBeGreaterThan(0)
 })
 
 it('wanders without power rather than firing EMPs at idle machines', () => {
@@ -50,17 +50,17 @@ it('wanders without power rather than firing EMPs at idle machines', () => {
   expect(boss.tile).not.toBe(2)
   expect(w.revenge.blast).toBeNull()
 })
-it('acquires a newly productive furnace while wandering past an idle assembler', () => {
+it('retains its generator target when a newly productive furnace starts', () => {
   const w = populatedFactory(false), boss = w.revenge.boss!
   advanceWorld(w, 100)
-  expect(boss.target).toBeNull()
+  expect(boss.target).toBe(741)
   placeBuilding(w, 25, 24, 'furnace', 'east'); changeFurnaceRecipe(w, 25, 24, 'ironSmelting')
   const furnace = w.buildings[985] as CraftingMachine
   furnace.input.iron = 2
   placeBuilding(w, 25, 23, 'powerPole', 'east'); placeBuilding(w, 25, 22, 'generator', 'east')
   advanceWorld(w, 1500)
   expect(productiveTarget(w, 985)).toBe(true)
-  expect(boss.target).toBe(985)
+  expect(boss.target).toBe(741)
 })
 it('keeps actual full-tick movement identical at 30/60 FPS and after mid-pursuit save/load', () => {
   const w = populatedFactory(true), other = structuredClone(w)
