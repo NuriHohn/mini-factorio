@@ -50,7 +50,7 @@ export interface InserterInspection {
   target: BuildingKind | null
   electrical: ElectricalDetails
 }
-export type Inspection = { kind: 'supplyCrate'; inventory: Inventory; capacity: number; inspecting: boolean } | { kind: 'footbridge'; direction: Direction } | { kind: 'fishingDock'; direction: Direction; waterAvailable: boolean; accessible: boolean; fishing: boolean } | { kind: 'belt'; bridge?: boolean; direction: Direction; item: Item | null; progress: number } | { kind: 'treehouse'; activity: string; gifts: number } | { kind: 'tree'; species: TreeSpecies; stage: TreeStage; ageMs: number; wood: number; origin: 'natural' | 'manual' } | InserterInspection | { kind: 'splitter'; direction: Direction; inputDirection: Direction; outputDirections: [Direction, Direction]; ports: ReturnType<typeof splitterPorts>; input: SplitterPacket | null; outputs: [SplitterPacket | null, SplitterPacket | null]; nextOutput: 0 | 1; blocked: [boolean, boolean]; delivered: [number, number]; itemsPerSec: number }
+export type Inspection = { kind: 'peteFence'; direction: Direction } | { kind: 'supplyCrate'; wood: number; inventory: Inventory; capacity: number; inspecting: boolean } | { kind: 'footbridge'; direction: Direction } | { kind: 'fishingDock'; direction: Direction; waterAvailable: boolean; accessible: boolean; fishing: boolean } | { kind: 'belt'; bridge?: boolean; direction: Direction; item: Item | null; progress: number } | { kind: 'treehouse'; activity: string; gifts: number } | { kind: 'tree'; species: TreeSpecies; stage: TreeStage; ageMs: number; wood: number; origin: 'natural' | 'manual' } | InserterInspection | { kind: 'splitter'; direction: Direction; inputDirection: Direction; outputDirections: [Direction, Direction]; ports: ReturnType<typeof splitterPorts>; input: SplitterPacket | null; outputs: [SplitterPacket | null, SplitterPacket | null]; nextOutput: 0 | 1; blocked: [boolean, boolean]; delivered: [number, number]; itemsPerSec: number }
   | { kind: 'prison'; occupied: boolean; elapsedMs: number; remainingMs: number; imprisonedAtMs: number | null; exit: Position }
   | { kind: 'sprinkler'; radius: number; status: ReturnType<typeof sprinklerState>; cooldownMs: number; sprayProgress: number; sprays: number; electrical: ElectricalDetails }
   | { kind: 'radar'; radius: number; active: boolean; operation: string; prison: Position | null; electrical: ElectricalDetails } | { kind: 'storage'; inventory: Inventory }
@@ -100,10 +100,11 @@ export function worldStats(world: World): WorldStats {
 }
 export function inspectBuilding(world: World, index: number | null): Inspection | null {
   const building = index === null ? null : world.buildings[index]
-  if (building?.kind === 'supplyCrate') return { kind: 'supplyCrate', inventory: { ...building.inventory }, capacity: SUPPLY_CRATE_CAPACITY, inspecting: inspectingCrate(world, building) }
+  if (building?.kind === 'supplyCrate') return { kind: 'supplyCrate', wood: building.wood, inventory: { ...building.inventory }, capacity: SUPPLY_CRATE_CAPACITY, inspecting: inspectingCrate(world, building) }
   if (building?.kind === 'storage') return { kind: 'storage', inventory: { ...building.inventory } }
   if (!building || index === null) return null
   if (building.kind === 'belt') return { kind: 'belt', ...(building.bridge ? { bridge: true } : {}), direction: building.direction, item: building.item, progress: building.progress }
+  if (building.kind === 'peteFence') return { kind: 'peteFence', direction: building.direction }
   if (building.kind === 'footbridge') return { kind: 'footbridge', direction: building.direction }
   if (building.kind === 'fishingDock') return { kind: 'fishingDock', direction: building.direction, waterAvailable: facesWater(world, building, building.direction), accessible: fishingSpot(world, building) !== null, fishing: world.peace.activity === 'fishing' && dockAtSpot(world, world.peace.destination) === building }
   if (building.kind === 'treehouse') return { kind: 'treehouse', activity: world.peace.activity, gifts: world.peace.gifts.length }

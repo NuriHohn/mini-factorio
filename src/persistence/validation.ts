@@ -80,7 +80,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 15 && kind === 'peteFence') invalid(path, 'Pete fences require save version 15')
   if (version < 14 && kind === 'supplyCrate') invalid(path, 'supply crates require save version 14')
   if (version < 13 && kind === 'footbridge') invalid(path, 'footbridges require save version 13')
   if (version < 11 && kind === 'fishingDock') invalid(path, 'fishing docks require save version 11')
@@ -88,7 +89,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
-    supplyCrate: ['inventory'],
+    peteFence: ['direction'],
+    supplyCrate: ['inventory', ...(version >= 15 ? ['wood'] : [])],
     footbridge: ['direction'],
     fishingDock: ['direction'],
     waterwheel: ['direction', 'rotationMs'],
@@ -107,6 +109,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'peteFence': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }
     case 'footbridge': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }
     case 'fishingDock': return { ...base, kind, direction: facing() }
     case 'waterwheel': {
@@ -133,8 +136,9 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     }
     case 'supplyCrate': {
       const contents = inventory(r.inventory, `${path}.inventory`)
-      if (inventoryTotal(contents) > SUPPLY_CRATE_CAPACITY) invalid(`${path}.inventory`, 'supply crate capacity exceeded')
-      return { ...base, kind, inventory: contents }
+      const wood = version >= 15 ? count(r.wood, `${path}.wood`, SUPPLY_CRATE_CAPACITY) : 0
+      if (inventoryTotal(contents) + wood > SUPPLY_CRATE_CAPACITY) invalid(`${path}.inventory`, 'supply crate capacity exceeded')
+      return { ...base, kind, inventory: contents, wood }
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }

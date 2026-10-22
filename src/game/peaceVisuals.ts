@@ -1,3 +1,4 @@
+import { drawSecretProject } from './secretProjectVisuals'
 import { drawCrateInspection } from './supplyCrateVisuals'
 import { drawRowboat } from './rowboatVisuals'
 import { dockAtSpot } from '../simulation/fishingDock'
@@ -91,4 +92,5 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       g.strokeEllipse(x - 3, y - 8, 7, 5).strokeEllipse(x + 3, y - 8, 7, 5)
     }
   }
+  drawSecretProject(g, world, tile, view)
 }

@@ -18,7 +18,7 @@ function receiver(world: World, source: Building, direction: Direction): Buildin
 export function canReceive(target: Building, item: Item, travel: Direction, reserved: Readonly<Partial<Inventory>> = {}, recipeId: RecipeId | null = target.kind === 'furnace' ? incomingRecipe(target, item) : target.kind === 'assembler' ? target.recipeId : null): boolean {
   switch (target.kind) {
     case 'splitter': return travel === target.direction && target.input === null && inventoryTotal(reserved) === 0
-    case 'supplyCrate': return inventoryTotal(target.inventory) + inventoryTotal(reserved) < SUPPLY_CRATE_CAPACITY
+    case 'supplyCrate': return inventoryTotal(target.inventory) + target.wood + inventoryTotal(reserved) < SUPPLY_CRATE_CAPACITY
     case 'storage': return true
     case 'belt': return !target.item && inventoryTotal(reserved) === 0 && (target.bridge ? target.direction === travel : target.direction !== opposite(travel))
     case 'assembler': return target.direction !== opposite(travel)

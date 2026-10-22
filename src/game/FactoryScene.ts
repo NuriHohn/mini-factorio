@@ -1,3 +1,4 @@
+import { drawPeteFence } from './secretProjectVisuals'
 import { drawSupplyCrate } from './supplyCrateVisuals'
 import { ShoreVegetation } from './shoreVegetation'
 import { drawFootbridge } from './footbridgeVisuals'
@@ -96,7 +97,7 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
+    useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, supplyRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
@@ -348,7 +349,7 @@ export class FactoryScene extends Phaser.Scene {
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ tool: null, buildTab: 'factory', inspected: null, inspection: null, recipeRequest: null, supplyRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -493,6 +494,7 @@ export class FactoryScene extends Phaser.Scene {
     }
     useGameStore.getState().applyResearch(this.world)
     useGameStore.getState().applyRelease(this.world)
+    useGameStore.getState().applySupply(this.world)
     const request = useGameStore.getState().recipeRequest
     if (request) {
       const position = tilePosition(request.index)
@@ -555,6 +557,8 @@ export class FactoryScene extends Phaser.Scene {
         drawSprinkler(this.machines, this.world, building, TILE)
       } else if (building.kind === 'radar' || building.kind === 'prison') {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'peteFence') {
+        drawPeteFence(this.machines, building, TILE)
       } else if (building.kind === 'supplyCrate') {
         drawSupplyCrate(this.machines, building, TILE)
       } else if (building.kind === 'storage') {

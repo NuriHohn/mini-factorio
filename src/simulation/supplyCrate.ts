@@ -1,3 +1,4 @@
+import { inventoryTotal } from './items'
 import { neighboringTiles, reachableTiles, tilePath } from './navigation'
 import type { SupplyCrate, World } from './world'
 export const SUPPLY_CRATE_WOOD = 6
@@ -20,4 +21,11 @@ export function reachableCrateSpot(world: World): number | null {
 }
 export function inspectingCrate(world: World, crate: SupplyCrate): boolean {
   return world.peace.activity === 'checkingCrate' && crateAtSpot(world, world.peace.destination) === crate
+}
+
+export function supplyWood(world: World, index: number, amount: number): boolean {
+  const crate = world.buildings[index]
+  if (crate?.kind !== 'supplyCrate' || !Number.isSafeInteger(amount) || amount <= 0 || amount > world.nature.wood || inventoryTotal(crate.inventory) + crate.wood + amount > SUPPLY_CRATE_CAPACITY) return false
+  world.nature.wood -= amount; crate.wood += amount
+  return true
 }
