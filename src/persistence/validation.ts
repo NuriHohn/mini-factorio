@@ -80,7 +80,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 16 && kind === 'peteCoop') invalid(path, 'Pete coops require save version 16')
   if (version < 15 && kind === 'peteFence') invalid(path, 'Pete fences require save version 15')
   if (version < 14 && kind === 'supplyCrate') invalid(path, 'supply crates require save version 14')
   if (version < 13 && kind === 'footbridge') invalid(path, 'footbridges require save version 13')
@@ -89,6 +90,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    peteCoop: [],
     peteFence: ['direction'],
     supplyCrate: ['inventory', ...(version >= 15 ? ['wood'] : [])],
     footbridge: ['direction'],
@@ -109,6 +111,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'peteCoop': return { ...base, kind }
     case 'peteFence': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }
     case 'footbridge': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }
     case 'fishingDock': return { ...base, kind, direction: facing() }

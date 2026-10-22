@@ -1,3 +1,4 @@
+import { drawChickenCoop } from './chickenCoopVisuals'
 import { CrateSupplyAction } from './crateSupplyAction'
 import { drawPeteFence } from './secretProjectVisuals'
 import { drawSupplyCrate } from './supplyCrateVisuals'
@@ -567,6 +568,8 @@ export class FactoryScene extends Phaser.Scene {
         drawSprinkler(this.machines, this.world, building, TILE)
       } else if (building.kind === 'radar' || building.kind === 'prison') {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'peteCoop') {
+        drawChickenCoop(this.machines, building, TILE)
       } else if (building.kind === 'peteFence') {
         drawPeteFence(this.machines, building, TILE)
       } else if (building.kind === 'supplyCrate') {
