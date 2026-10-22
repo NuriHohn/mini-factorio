@@ -2,6 +2,7 @@ import type { Inspection } from '../simulation/inspection'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { PLAYER_TOOLS } from '../state/toolMetadata'
 const descriptions: Record<Inspection['kind'], string> = {
+  peteCampfire: 'Pete’s cozy campfire. He cooks collected eggs here while peaceful; no factory production.',
   peteCoop: 'Pete’s cozy wooden chicken coop. A home for peaceful chickens and chicks. Eggs stay outside factory inventories.',
   peteFence: 'Pete built this wooden fence as his first secret project.',
   supplyCrate: 'Receives materials for Pete. Belts and inserters can deliver; Pete may collect supplied Wood for his secret project.',
@@ -16,10 +17,11 @@ const descriptions: Record<Inspection['kind'], string> = {
 }
 export function inspectionSummary(i: Inspection) {
   const metadata = PLAYER_TOOLS.find(t => t.tool === i.kind)
-  const name = i.kind === 'peteCoop' ? 'Pete’s Chicken Coop' : i.kind === 'peteFence' ? 'Pete’s wooden fence' : i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
+  const name = i.kind === 'peteCampfire' ? 'Pete’s Campfire' : i.kind === 'peteCoop' ? 'Pete’s Chicken Coop' : i.kind === 'peteFence' ? 'Pete’s wooden fence' : i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
   let state = 'Ready.'
   if ('electrical' in i && i.electrical.state === 'sabotaged') state = 'Temporarily disabled.'
-  else if (i.kind === 'peteCoop') state = `${i.collected} eggs collected · ${i.eggs} waiting.`
+  else if (i.kind === 'peteCampfire') state = i.cooking ? 'Pete is frying an egg.' : 'Fire is warm · waiting for Pete.'
+  else if (i.kind === 'peteCoop') state = `${i.collected} eggs collected · ${i.eggs} waiting.${i.eaten ? ` ${i.collected - i.eaten} available · ${i.eaten} eaten.` : ''}`
   else if (i.kind === 'supplyCrate') state = `${ITEMS.reduce((n, item) => n + i.inventory[item], i.wood)} / ${i.capacity} items${i.inspecting ? ' · Pete is inspecting.' : '.'}`
   else if (i.kind === 'fishingDock') state = !i.waterAvailable ? 'Needs water on the fishing side.' : !i.accessible ? 'Keep the land approach behind the dock clear.' : i.fishing ? 'Pete is fishing.' : 'Ready for peaceful Pete.'
   else if (i.kind === 'waterwheel' && !i.waterAvailable) state = 'Needs water on the facing side.'

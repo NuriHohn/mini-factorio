@@ -1,3 +1,4 @@
+import { drawCooking } from './campfireVisuals'
 import { drawEggCollection } from './poultryVisuals'
 import { drawSecretProject } from './secretProjectVisuals'
 import { drawCrateInspection } from './supplyCrateVisuals'
@@ -70,7 +71,8 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       }
     } else {
       const dock = s.activity === 'fishing' ? dockAtSpot(world, s.destination) : null
-      if (s.activity === 'boating') drawRowboat(g, world, tile, view)
+      if (s.activity === 'cooking' || s.activity === 'campfireHappy') drawCooking(g, world, tile, view)
+      else if (s.activity === 'boating') drawRowboat(g, world, tile, view)
       else if (dock) drawFishing(g, world, dock, tile, view)
       else drawPete(g, world, tile, view)
       drawCrateInspection(g, world, tile, view)

@@ -24,6 +24,7 @@ export interface Poultry {
   eggs: Egg[]
   nextEggAtMs: number
   nextEggId: number
+  eaten: number
   collected: number
   seed: number
 }
@@ -92,7 +93,7 @@ function followStep(s: Poultry, b: Bird, ground: Map<number, number>): number | 
 export function advancePoultry(world: World, delta: number): void {
   if (!world.poultry && world.coopProject?.phase === 'complete') {
     const coop = world.coopProject.tiles[0]
-    if (world.buildings[coop]?.kind === 'peteCoop') world.poultry = { coop, populatedAtMs: world.timeMs, chicksAtMs: world.timeMs + CHICK_DELAY_MS, chicksSpawned: false, birds: [0, 1, 2].map(id => bird(id, world.timeMs)), eggs: [], nextEggAtMs: world.timeMs + 45000, nextEggId: 1, collected: 0, seed: (coop ^ 0x63686963) >>> 0 }
+    if (world.buildings[coop]?.kind === 'peteCoop') world.poultry = { coop, populatedAtMs: world.timeMs, chicksAtMs: world.timeMs + CHICK_DELAY_MS, chicksSpawned: false, birds: [0, 1, 2].map(id => bird(id, world.timeMs)), eggs: [], nextEggAtMs: world.timeMs + 45000, nextEggId: 1, collected: 0, eaten: 0, seed: (coop ^ 0x63686963) >>> 0 }
   }
   const s = world.poultry
   if (!s) return

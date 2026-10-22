@@ -1,17 +1,18 @@
-import { COOP_BUILD_MS, COOP_WOOD, currentProject, FENCE_SEGMENT_MS, PROJECT_WOOD } from '../simulation/secretProject'
+import { CAMPFIRE_BUILD_MS, CAMPFIRE_WOOD, COOP_BUILD_MS, COOP_WOOD, currentProject, FENCE_SEGMENT_MS, PROJECT_WOOD } from '../simulation/secretProject'
 import type { SecretProject } from '../simulation/secretProject'
 import { neighboringTiles } from '../simulation/navigation'
 import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import * as v from './validation'
-export function restoreProject(value: unknown, world: World, coop = false): SecretProject | null {
-  const buildingKind = coop ? 'peteCoop' : 'peteFence', parts = coop ? 1 : 3, wood = coop ? COOP_WOOD : PROJECT_WOOD, duration = coop ? COOP_BUILD_MS : FENCE_SEGMENT_MS
+export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire'): SecretProject | null {
+  const coop = kind !== undefined, fire = kind === 'campfire'
+  const buildingKind = fire ? 'peteCampfire' : coop ? 'peteCoop' : 'peteFence', parts = coop ? 1 : 3, wood = fire ? CAMPFIRE_WOOD : coop ? COOP_WOOD : PROJECT_WOOD, duration = fire ? CAMPFIRE_BUILD_MS : coop ? COOP_BUILD_MS : FENCE_SEGMENT_MS
   if (value === undefined) {
     if (world.buildings.some(b => b?.kind === buildingKind)) v.invalid('project', 'missing project state')
     return null
   }
-  const r = v.object(value, coop ? 'game.coopProject' : 'game.project', ['home', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs', ...(coop ? ['kind'] : [])])
-  if (coop && (r.kind !== 'coop' || world.project?.phase !== 'complete')) v.invalid('coopProject', 'coop requires a completed fence project')
+  const r = v.object(value, fire ? 'game.campfireProject' : coop ? 'game.coopProject' : 'game.project', ['home', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs', ...(coop ? ['kind'] : [])])
+  if (coop && (r.kind !== kind || (fire ? world.coopProject : world.project)?.phase !== 'complete')) v.invalid(fire ? 'campfireProject' : 'coopProject', 'missing completed prerequisite project')
   const home = v.tile(r.home, 'project.home'), direction = v.choice(r.direction, 'project.direction', ['east', 'south'] as const)
   const tiles = v.array(r.tiles, 'project.tiles', parts).map((n, i) => v.tile(n, `project.tiles[${i}]`))
   const spots = v.array(r.spots, 'project.spots', parts).map((n, i) => v.tile(n, `project.spots[${i}]`))
@@ -27,7 +28,7 @@ export function restoreProject(value: unknown, world: World, coop = false): Secr
     const b = world.buildings[i]
     if (b?.kind === buildingKind && (!tiles.slice(0, built).includes(i) || (b.kind === 'peteFence' && b.direction !== direction))) v.invalid('project', 'structure disagrees with completed work')
   }
-  return { ...(coop ? { kind: 'coop' as const } : {}), home, direction, tiles, spots, phase, crate, built, carried, elapsedMs }
+  return { ...(coop ? { kind } : {}), home, direction, tiles, spots, phase, crate, built, carried, elapsedMs }
 }
 
 export function validateProjectActivity(world: World): void {

@@ -59,7 +59,8 @@ describe('Pete’s chicken coop follow-up project', () => {
     expect(w.nature.wood).toBe(wood)
     const loaded = load(w), tile = p.tiles[0]
     supplyWood(loaded, 824, 10); advanceWorld(loaded, 60000)
-    expect(coops(loaded)).toHaveLength(1); expect(crate(loaded).wood).toBe(12)
+    expect(coops(loaded)).toHaveLength(1); expect(crate(loaded).wood).toBe(7) // Five Wood funds the new campfire, never a duplicate coop.
+    expect(loaded.campfireProject?.phase).toBe('complete')
     removeBuilding(loaded, tile % SIZE, Math.floor(tile / SIZE)); advanceWorld(loaded, 60000)
     expect(coops(loaded)).toHaveLength(0); expect(loaded.coopProject?.phase).toBe('complete')
   })
