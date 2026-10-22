@@ -12,6 +12,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 | Sprint 15.7: Pete’s Rowboat | Occasional peaceful dock outings, bounded deterministic water routes and return, seated Pete/oars/ripples, safe dock/route/home interruptions, preserved fishing and strict version-12 mid-trip saves with version-1–11 compatibility |
 | Sprint 15.7.1: Revenge-O-Matic Power Generator Targeting | Operational conventional generators and waterwheels as lower-priority pursuit/EMP targets, production-first spawn components, existing target stability and recovery protection, unchanged combat timings and saves |
 | Sprint 15.8: Wooden Footbridges | Separate straight shore-to-shore 1–5-water-tile crossings at 3 Wood per deck, atomic drag previews, Pete/police navigation, protected landings and occupied-removal guard, whole-crossing demolition and strict version-13 saves with version-1–12 compatibility |
+| Sprint 15.9: Shoreline Vegetation | Deterministic irregular reed/cattail clusters, gentle selected simulation-time sway, terrain/topology cache invalidation, viewport culling and clearance around structures/bridges; decorative only, unchanged version-13 saves |
 | Initial mining and movement | Ore deposits, directional mining, WASD camera and zoom |
 | Conveyor belts and storage | Individual items, directional transport, automatic curves, typed chest counts, occupied-building removal |
 | Furnaces and smelting | Crafting jobs, iron plates, buffers, output reservations and inspection |

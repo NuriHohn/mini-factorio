@@ -46,10 +46,7 @@ export function drawWaterTile(g: Phaser.GameObjects.Graphics, world: World, x: n
     g.save().translateCanvas(px + (east ? tile : 0), py + (south ? tile : 0)).scaleCanvas(east ? -1 : 1, south ? -1 : 1)
     g.beginPath().arc(radius, radius, radius, Math.PI, Math.PI * 1.5).strokePath().restore()
   }
-  if (mask && seed % 7 === 0) {
-    const xx = px + (mask & 8 ? 4 : mask & 2 ? tile - 4 : 12), yy = py + (mask & 1 ? 5 : tile - 5)
-    g.lineStyle(1, 0xabc08a, .75).lineBetween(xx, yy + 3, xx - 2, yy - 4).lineBetween(xx + 3, yy + 3, xx + 4, yy - 5)
-  } else if (!mask && seed % 17 === 0) g.fillStyle(0x83a878, .7).fillEllipse(px + 20, py + 19, 7, 4)
+  if (!mask && seed % 17 === 0) g.fillStyle(0x83a878, .7).fillEllipse(px + 20, py + 19, 7, 4)
 }
 export class LandscapeWater {
   private world: World | null = null
