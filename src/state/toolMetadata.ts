@@ -24,6 +24,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'lightningBeam', label: 'Lightning Beam', hint: 'Click walker · 30 HP · shared 2 s cooldown', key: 'Click', icon: 'ϟ', tab: 'pete' },
   { tool: 'splitter', label: 'Splitter', hint: 'Rear input → front / left · no power', key: '0', icon: '⑂', code: 'Digit0', tab: 'logistics' },
   { tool: 'fishingDock', label: 'Fishing Dock', hint: '8 Wood · face adjacent water · peaceful Pete visits', key: 'Click', icon: '⚓', tab: 'nature' },
+  { tool: 'supplyCrate', label: 'Pete’s Supply Crate', hint: '6 Wood · holds 200 items · belt/inserter input · peaceful Pete visits', key: 'Click', icon: '▤', tab: 'nature' },
   { tool: 'treehouse', label: 'Pete’s Treehouse', hint: '20 Wood · one home · makes Pete peaceful · no power', key: 'Click', icon: '⌂', tab: 'nature' },
   { tool: 'plantOak', label: 'Plant Oak', hint: 'Free sapling · young at 2 min · mature at 5 min', key: 'Click', icon: '♣', tab: 'nature' },
   { tool: 'plantPine', label: 'Plant Pine', hint: 'Free sapling · trees occupy one tile', key: 'Click', icon: '♠', tab: 'nature' },

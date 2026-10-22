@@ -1,3 +1,4 @@
+import { SUPPLY_CRATE_WOOD } from './supplyCrate'
 import { commitFootbridge, planFootbridge } from './footbridge'
 import { FISHING_DOCK_WOOD } from './fishingDock'
 import { WATERWHEEL_WOOD } from './waterwheel'
@@ -13,7 +14,7 @@ export interface ConstructionCell extends Position { direction: Direction; reuse
 export interface ConstructionPlan { kind: DragBuilding; cells: ConstructionCell[]; error: string | null; detour?: boolean; snapFrom?: Position; beltSnap?: Position; wood?: number; unaffordable?: boolean }
 export interface PlacementInfo { state: 'valid' | 'invalid' | 'unaffordable'; error: string | null; wood: number; available: number }
 export function placementInfo(world: World, point: Position, kind: BuildingKind, direction: Direction = 'east'): PlacementInfo {
-  const wood = kind === 'treehouse' ? TREEHOUSE_WOOD : kind === 'waterwheel' ? WATERWHEEL_WOOD : kind === 'fishingDock' ? FISHING_DOCK_WOOD : 0
+  const wood = kind === 'supplyCrate' ? SUPPLY_CRATE_WOOD : kind === 'treehouse' ? TREEHOUSE_WOOD : kind === 'waterwheel' ? WATERWHEEL_WOOD : kind === 'fishingDock' ? FISHING_DOCK_WOOD : 0
   // Check geometry independently of funding, without changing any live state.
   const candidate = wood > world.nature.wood ? { ...world, nature: { ...world.nature, wood } } : world
   const error = placementError(candidate, point.x, point.y, kind, kind === 'waterwheel' || kind === 'fishingDock' ? direction : undefined)

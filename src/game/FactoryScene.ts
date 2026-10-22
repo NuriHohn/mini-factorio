@@ -1,3 +1,4 @@
+import { drawSupplyCrate } from './supplyCrateVisuals'
 import { ShoreVegetation } from './shoreVegetation'
 import { drawFootbridge } from './footbridgeVisuals'
 import { drawFishingDock } from './fishingDockVisuals'
@@ -246,7 +247,7 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.getState().recordToolUse(tool)
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'treehouse' ? wasBoss ? 'A home for Pete! The walker sighs, powers down, and Pete moves in. ♥' : 'Welcome home, Pete! Peace begins · -20 Wood. ♥' : wasHome ? 'Pete looks confused… back to mischief. Revenge preserved; no Wood refund.' : tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'treehouse' ? wasBoss ? 'A home for Pete! The walker sighs, powers down, and Pete moves in. ♥' : 'Welcome home, Pete! Peace begins · -20 Wood. ♥' : wasHome ? 'Pete looks confused… back to mischief. Revenge preserved; no Wood refund.' : tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'supplyCrate' ? 'Pete’s Supply Crate' : tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (this.constructionDrag.active) this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
@@ -554,6 +555,8 @@ export class FactoryScene extends Phaser.Scene {
         drawSprinkler(this.machines, this.world, building, TILE)
       } else if (building.kind === 'radar' || building.kind === 'prison') {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'supplyCrate') {
+        drawSupplyCrate(this.machines, building, TILE)
       } else if (building.kind === 'storage') {
         this.machines.fillStyle(0x392d20).fillRoundedRect(x + 2, y + 2, 28, 28, 3)
         this.machines.lineStyle(2, 0xb68b50).strokeRect(x + 5, y + 5, 22, 22)
