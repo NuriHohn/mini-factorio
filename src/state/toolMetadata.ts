@@ -1,7 +1,7 @@
 import type { NatureTool } from './natureTools'
 import type { BuildingKind } from '../simulation/world'
 export type BuildTab = 'factory' | 'logistics' | 'power' | 'nature' | 'pete'
-export type ToolKind = Exclude<BuildingKind, 'prison' | 'tree' | 'peteFence' | 'peteCoop'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam'
+export type ToolKind = Exclude<BuildingKind, 'prison' | 'tree' | 'peteFence' | 'peteCoop' | 'peteCampfire'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam'
 export type Tool = ToolKind | null
 export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code?: string; tab: BuildTab }
 export const BUILD_TABS: readonly { id: BuildTab; label: string; icon: string }[] = [{ id: 'factory', label: 'Factory', icon: '⚙' }, { id: 'logistics', label: 'Logistics', icon: '➜' }, { id: 'power', label: 'Power', icon: 'ϟ' }, { id: 'nature', label: 'Nature', icon: '♣' }, { id: 'pete', label: 'Special', icon: '✳' }]

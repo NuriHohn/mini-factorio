@@ -1,3 +1,4 @@
+import { drawCampfire, drawCampfireEffects } from './campfireVisuals'
 import { drawPoultry } from './poultryVisuals'
 import { drawChickenCoop } from './chickenCoopVisuals'
 import { CrateSupplyAction } from './crateSupplyAction'
@@ -569,6 +570,8 @@ export class FactoryScene extends Phaser.Scene {
         drawSprinkler(this.machines, this.world, building, TILE)
       } else if (building.kind === 'radar' || building.kind === 'prison') {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
+      } else if (building.kind === 'peteCampfire') {
+        drawCampfire(this.machines, building, TILE)
       } else if (building.kind === 'peteCoop') {
         drawChickenCoop(this.machines, building, TILE)
       } else if (building.kind === 'peteFence') {
@@ -741,6 +744,7 @@ export class FactoryScene extends Phaser.Scene {
     this.webVisuals.draw(this.peteEffects, this.world, TILE, view)
     this.waterVisuals.draw(this.peteEffects, this.world, TILE, view)
     this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this, view)
+    drawCampfireEffects(this.peteEffects, this.world, TILE, view)
     drawPoultry(this.peteEffects, this.world, TILE, view)
     drawPeace(this.peteEffects, this.world, TILE, view)
     this.crateSupply.draw(this.peteEffects, this.world, view, TILE, camera.zoom, useGameStore.getState().tool === null && !worldInputBlocked(useGameStore.getState()))

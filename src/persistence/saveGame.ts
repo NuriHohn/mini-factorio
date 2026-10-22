@@ -1,3 +1,4 @@
+import { validateCooking } from './campfireValidation'
 import { restorePoultry } from './poultryValidation'
 import { restoreProject, validateProjectActivity } from './projectValidation'
 import { restoreWater, validateTerrain } from './terrainValidation'
@@ -25,7 +26,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 17
+export const SAVE_VERSION = 18
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -36,7 +37,7 @@ export interface SaveDocument {
   version: typeof SAVE_VERSION
   savedAt: string
   map: { width: number; height: number }
-  game: Omit<World, 'pete' | 'police' | 'power' | 'nature' | 'project' | 'coopProject' | 'poultry'> & { poultry?: NonNullable<World['poultry']>; project?: NonNullable<World['project']>; coopProject?: NonNullable<World['coopProject']> } & { nature: NatureData; pete: PeteData; police: PoliceData }
+  game: Omit<World, 'pete' | 'police' | 'power' | 'nature' | 'project' | 'coopProject' | 'poultry' | 'campfireProject'> & { campfireProject?: NonNullable<World['campfireProject']>; poultry?: NonNullable<World['poultry']>; project?: NonNullable<World['project']>; coopProject?: NonNullable<World['coopProject']> } & { nature: NatureData; pete: PeteData; police: PoliceData }
   view: ViewState
 }
 function restoreResearch(value: unknown, version: number): ResearchState {
@@ -191,11 +192,11 @@ export function decodeSave(text: string): LoadedGame {
   try { parsed = JSON.parse(text) } catch { throw new Error('Invalid save JSON. Choose a Mini-Factorio JSON save file.') }
   const root = v.object(parsed, 'save', ['format', 'version', 'savedAt', 'map', 'game', 'view'])
   if (root.format !== SAVE_FORMAT) throw new Error('This is not a Mini-Factorio save file.')
-  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== 11 && root.version !== 12 && root.version !== 13 && root.version !== 14 && root.version !== 15 && root.version !== 16 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 and ${SAVE_VERSION}.`)
+  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== 11 && root.version !== 12 && root.version !== 13 && root.version !== 14 && root.version !== 15 && root.version !== 16 && root.version !== 17 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 and ${SAVE_VERSION}.`)
   const version = root.version
   const savedAt = timestamp(root.savedAt), map = v.object(root.map, 'map', ['width', 'height'])
   if (map.width !== SIZE || map.height !== SIZE) throw new Error(`Unsupported map dimensions; this version requires ${SIZE}×${SIZE}.`)
-  const data = v.object(root.game, 'game', ['timeMs', 'remainder', 'topologyRevision', 'tiles', 'buildings', 'mined', 'produced', 'pete', 'police', ...(root.version >= 3 ? ['webs'] : []), ...(root.version >= 4 ? ['analytics'] : []), ...(root.version >= 5 ? ['research'] : []), ...(root.version >= 6 ? ['revenge'] : []), ...(root.version >= 7 ? ['nature'] : []), ...(root.version >= 8 ? ['peace'] : []), ...(root.version >= 9 ? ['water'] : [])], version >= 17 ? ['project', 'coopProject', 'poultry'] : version >= 16 ? ['project', 'coopProject'] : version >= 15 ? ['project'] : [])
+  const data = v.object(root.game, 'game', ['timeMs', 'remainder', 'topologyRevision', 'tiles', 'buildings', 'mined', 'produced', 'pete', 'police', ...(root.version >= 3 ? ['webs'] : []), ...(root.version >= 4 ? ['analytics'] : []), ...(root.version >= 5 ? ['research'] : []), ...(root.version >= 6 ? ['revenge'] : []), ...(root.version >= 7 ? ['nature'] : []), ...(root.version >= 8 ? ['peace'] : []), ...(root.version >= 9 ? ['water'] : [])], version >= 18 ? ['project', 'coopProject', 'poultry', 'campfireProject'] : version >= 17 ? ['project', 'coopProject', 'poultry'] : version >= 16 ? ['project', 'coopProject'] : version >= 15 ? ['project'] : [])
   const timeMs = v.count(data.timeMs, 'game.timeMs')
   if (timeMs % 50 !== 0) v.invalid('game.timeMs', 'expected a 50 ms simulation boundary')
   const tiles = v.array(data.tiles, 'game.tiles', SIZE * SIZE).map((r, i) => r === null ? null : v.choice(r, `tiles[${i}]`, RESOURCES))
@@ -206,7 +207,7 @@ export function decodeSave(text: string): LoadedGame {
     return building
   })
   // Reconstruct into a detached candidate. No live world or storage is touched.
-  const world = { poultry: null, coopProject: null, project: null, water: version >= 9 ? restoreWater(data.water) : Array<boolean>(SIZE * SIZE).fill(false), peace: createPeace(), nature: version >= 7 ? restoreNature(data.nature, buildings) : createNature(), revenge: createRevenge(), research: root.version >= 5 ? restoreResearch(data.research, root.version) : createResearch(true), analytics: createAnalytics(timeMs), webs: root.version >= 3 ? restoreWebs(data.webs, timeMs) : createWebs(), timeMs, remainder: v.number(data.remainder, 'game.remainder', 0, 49.999999999), topologyRevision: v.count(data.topologyRevision, 'game.topologyRevision'), tiles, buildings, mined: v.inventory(data.mined, 'game.mined'), produced: v.inventory(data.produced, 'game.produced'), power: null } as World
+  const world = { campfireProject: null, poultry: null, coopProject: null, project: null, water: version >= 9 ? restoreWater(data.water) : Array<boolean>(SIZE * SIZE).fill(false), peace: createPeace(), nature: version >= 7 ? restoreNature(data.nature, buildings) : createNature(), revenge: createRevenge(), research: root.version >= 5 ? restoreResearch(data.research, root.version) : createResearch(true), analytics: createAnalytics(timeMs), webs: root.version >= 3 ? restoreWebs(data.webs, timeMs) : createWebs(), timeMs, remainder: v.number(data.remainder, 'game.remainder', 0, 49.999999999), topologyRevision: v.count(data.topologyRevision, 'game.topologyRevision'), tiles, buildings, mined: v.inventory(data.mined, 'game.mined'), produced: v.inventory(data.produced, 'game.produced'), power: null } as World
   world.pete = restorePete(data.pete, world, root.version)
   world.police = restorePolice(data.police, world, root.version)
   if (root.version < 4) {
@@ -220,9 +221,11 @@ export function decodeSave(text: string): LoadedGame {
   if (version >= 6) world.revenge = restoreRevenge(data.revenge, world)
   if (version >= 8) world.peace = restorePeace(data.peace, world, version)
   world.project = restoreProject(data.project, world)
-  world.coopProject = restoreProject(data.coopProject, world, true)
+  world.coopProject = restoreProject(data.coopProject, world, 'coop')
+  world.campfireProject = restoreProject(data.campfireProject, world, 'campfire')
   validateProjectActivity(world)
-  world.poultry = restorePoultry(data.poultry, world)
+  world.poultry = restorePoultry(data.poultry, world, version)
+  validateCooking(world)
   refreshNatureSchedule(world)
   validateLinks(world)
   validateTerrain(world)
@@ -241,7 +244,7 @@ export function encodeSave(world: World, view: ViewState, savedAt = new Date().t
   const shot = world.pete.pumpkin
   const document: SaveDocument = {
     format: SAVE_FORMAT, version: SAVE_VERSION, savedAt, map: { width: SIZE, height: SIZE }, view: { ...view },
-    game: { ...(world.poultry ? { poultry: world.poultry } : {}), ...(world.coopProject ? { coopProject: world.coopProject } : {}), ...(world.project ? { project: world.project } : {}), water: world.water, peace: world.peace, nature: { wood: world.nature.wood, seed: world.nature.seed, decorations: world.nature.decorations }, revenge: world.revenge, research: world.research, analytics: world.analytics, webs: world.webs, timeMs: world.timeMs, remainder: world.remainder, topologyRevision: world.topologyRevision, tiles: world.tiles, buildings: world.buildings, mined: world.mined, produced: world.produced,
+    game: { ...(world.campfireProject ? { campfireProject: world.campfireProject } : {}), ...(world.poultry ? { poultry: world.poultry } : {}), ...(world.coopProject ? { coopProject: world.coopProject } : {}), ...(world.project ? { project: world.project } : {}), water: world.water, peace: world.peace, nature: { wood: world.nature.wood, seed: world.nature.seed, decorations: world.nature.decorations }, revenge: world.revenge, research: world.research, analytics: world.analytics, webs: world.webs, timeMs: world.timeMs, remainder: world.remainder, topologyRevision: world.topologyRevision, tiles: world.tiles, buildings: world.buildings, mined: world.mined, produced: world.produced,
       pete: { ...world.pete, prison: prisonId(world.pete.prison), pumpkin: shot && world.buildings[shot.index] === shot.target ? { ...shot, target: shot.index } : null },
       police: { car: world.police.car ? { ...world.police.car, prison: prisonId(world.police.car.prison)! } : null, flash: world.police.flash, retryAtMs: world.police.retryAtMs },
     },

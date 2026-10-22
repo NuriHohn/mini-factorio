@@ -2,13 +2,15 @@ import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navi
 import { footbridgeBank } from './footbridge'
 import { PETE_WALK_MS } from './pete'
 import { inside, SIZE } from './world'
-import type { PeteCoop, PeteFence, World } from './world'
+import type { PeteCampfire, PeteCoop, PeteFence, World } from './world'
 export const PROJECT_WOOD = 6
 export const FENCE_SEGMENT_MS = 4000
 export const COOP_WOOD = 10
 export const COOP_BUILD_MS = 12000
+export const CAMPFIRE_WOOD = 5
+export const CAMPFIRE_BUILD_MS = 6000
 export interface SecretProject {
-  kind?: 'coop'
+  kind?: 'coop' | 'campfire'
   home: number
   direction: 'east' | 'south'
   tiles: number[]
@@ -20,13 +22,14 @@ export interface SecretProject {
   elapsedMs: number
 }
 export function currentProject(world: World): SecretProject | null {
-  return world.project?.phase === 'complete' ? world.coopProject : world.project
+  if (world.project?.phase !== 'complete') return world.project
+  return world.coopProject?.phase === 'complete' ? world.campfireProject : world.coopProject
 }
-export function projectWood(project: SecretProject | null): number { return project?.kind === 'coop' ? COOP_WOOD : PROJECT_WOOD }
-export function projectBuildMs(project: SecretProject): number { return project.kind === 'coop' ? COOP_BUILD_MS : FENCE_SEGMENT_MS }
-function projectBuilding(project: SecretProject, i: number): PeteCoop | PeteFence {
+export function projectWood(project: SecretProject | null): number { return project?.kind === 'campfire' ? CAMPFIRE_WOOD : project?.kind === 'coop' ? COOP_WOOD : PROJECT_WOOD }
+export function projectBuildMs(project: SecretProject): number { return project.kind === 'campfire' ? CAMPFIRE_BUILD_MS : project.kind === 'coop' ? COOP_BUILD_MS : FENCE_SEGMENT_MS }
+function projectBuilding(project: SecretProject, i: number): PeteCampfire | PeteCoop | PeteFence {
   const position = { x: i % SIZE, y: Math.floor(i / SIZE) }
-  return project.kind === 'coop' ? { ...position, kind: 'peteCoop' } : { ...position, kind: 'peteFence', direction: project.direction }
+  return project.kind === 'campfire' ? { ...position, kind: 'peteCampfire' } : project.kind === 'coop' ? { ...position, kind: 'peteCoop' } : { ...position, kind: 'peteFence', direction: project.direction }
 }
 function navigationWorld(world: World, project = currentProject(world)): World {
   if (!project) return world
@@ -49,12 +52,12 @@ export function projectSiteClear(world: World, project: SecretProject): boolean 
   const after = reachableTiles({ ...world, buildings }, world.pete.tile)
   return project.spots.slice(project.built).every(i => after.has(i)) && [...before.keys()].every(i => remaining.includes(i) || after.has(i))
 }
-function layout(world: World, coop: boolean): SecretProject | null {
+function layout(world: World, kind: SecretProject['kind']): SecretProject | null {
   const home = world.peace.home!, x = home % SIZE, y = Math.floor(home / SIZE)
   for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-    const cells = (coop ? [0] : [-1, 0, 1]).map(n => ({ x: x + dx * 3 + (dy ? n : 0), y: y + dy * 3 + (dx ? n : 0) }))
+    const cells = (kind ? [0] : [-1, 0, 1]).map(n => ({ x: x + dx * 3 + (dy ? n : 0), y: y + dy * 3 + (dx ? n : 0) }))
     if (cells.some(p => !inside(p.x, p.y))) continue
-    const project: SecretProject = { ...(coop ? { kind: 'coop' as const } : {}), home, direction: dy ? 'east' : 'south', tiles: cells.map(p => p.y * SIZE + p.x), spots: cells.map(p => (p.y - dy) * SIZE + p.x - dx), phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
+    const project: SecretProject = { ...(kind ? { kind } : {}), home, direction: dy ? 'east' : 'south', tiles: cells.map(p => p.y * SIZE + p.x), spots: cells.map(p => (p.y - dy) * SIZE + p.x - dx), phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
     if (projectSiteClear(world, project) && source(world, project)) return project
   }
   return null
@@ -65,21 +68,22 @@ function stop(world: World): void {
   Object.assign(world.peace, { activity: 'homeward', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
 }
 export function refreshProject(world: World): void {
-  for (const project of [world.project, world.coopProject]) if (project && project.crate !== null && world.buildings[project.crate]?.kind !== 'supplyCrate') {
+  for (const project of [world.project, world.coopProject, world.campfireProject]) if (project && project.crate !== null && world.buildings[project.crate]?.kind !== 'supplyCrate') {
     project.crate = null
     if (world.peace.activity === 'project' && currentProject(world) === project) stop(world)
   }
 }
 export function trySecretProject(world: World): boolean {
   if (world.peace.home === null || world.police.car || world.revenge.boss || world.pete.mode !== 'WANDERING') return false
-  const coop = world.project?.phase === 'complete'
+  const kind = world.coopProject?.phase === 'complete' ? 'campfire' : world.project?.phase === 'complete' ? 'coop' : undefined
   let project = currentProject(world)
   if (project?.phase === 'complete') return false
   if (!project) {
-    if (!source(world, null, coop ? COOP_WOOD : PROJECT_WOOD)) return false
-    const plan = layout(world, coop)
+    if (!source(world, null, kind === 'campfire' ? CAMPFIRE_WOOD : kind === 'coop' ? COOP_WOOD : PROJECT_WOOD)) return false
+    const plan = layout(world, kind)
     if (!plan) return false
-    if (coop) world.coopProject = plan
+    if (kind === 'campfire') world.campfireProject = plan
+    else if (kind === 'coop') world.coopProject = plan
     else world.project = plan
     project = plan
   }

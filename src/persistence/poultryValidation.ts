@@ -3,12 +3,12 @@ import type { Bird, Poultry } from '../simulation/poultry'
 import { neighboringTiles } from '../simulation/navigation'
 import type { World } from '../simulation/world'
 import * as v from './validation'
-export function restorePoultry(value: unknown, world: World): Poultry | null {
+export function restorePoultry(value: unknown, world: World, version: number): Poultry | null {
   if (value === undefined) {
     if (['eggward', 'collectingEgg'].includes(world.peace.activity)) v.invalid('poultry', 'missing egg collection state')
     return null
   }
-  const r = v.object(value, 'game.poultry', ['coop', 'populatedAtMs', 'chicksAtMs', 'chicksSpawned', 'birds', 'eggs', 'nextEggAtMs', 'nextEggId', 'collected', 'seed'])
+  const r = v.object(value, 'game.poultry', ['coop', 'populatedAtMs', 'chicksAtMs', 'chicksSpawned', 'birds', 'eggs', 'nextEggAtMs', 'nextEggId', 'collected', 'seed', ...(version >= 18 ? ['eaten'] : [])])
   const clock = (n: unknown, path: string, max: number) => { const t = v.count(n, path, max); if (t % 50) v.invalid(path, 'expected fixed-step clock'); return t }
   const coop = v.tile(r.coop, 'poultry.coop'), populatedAtMs = clock(r.populatedAtMs, 'poultry.populatedAtMs', world.timeMs)
   if (world.coopProject?.phase !== 'complete' || world.coopProject.tiles[0] !== coop) v.invalid('poultry.coop', 'population requires a completed coop project')
@@ -31,7 +31,8 @@ export function restorePoultry(value: unknown, world: World): Poultry | null {
     seen.add(tile); lastId = id
     return { id, tile, laidAtMs, laidBy }
   })
-  const state: Poultry = { coop, populatedAtMs, chicksAtMs, chicksSpawned, birds, eggs, nextEggAtMs: clock(r.nextEggAtMs, 'poultry.nextEggAtMs', world.timeMs + 65000), nextEggId, collected: v.count(r.collected, 'poultry.collected'), seed: v.count(r.seed, 'poultry.seed', 0xffffffff) }
+  const collected = v.count(r.collected, 'poultry.collected'), eaten = version >= 18 ? v.count(r.eaten, 'poultry.eaten', collected) : 0
+  const state: Poultry = { eaten, collected, coop, populatedAtMs, chicksAtMs, chicksSpawned, birds, eggs, nextEggAtMs: clock(r.nextEggAtMs, 'poultry.nextEggAtMs', world.timeMs + 65000), nextEggId, seed: v.count(r.seed, 'poultry.seed', 0xffffffff) }
   if (state.collected + eggs.length > nextEggId - 1 || state.nextEggAtMs < populatedAtMs + 45000) v.invalid('poultry', 'invalid egg accounting or schedule')
   const candidate = { ...world, poultry: state }, active = poultryActive(candidate), ground = active ? poultryGround(candidate, coop) : new Map<number, number>()
   if (active && ((!chicksSpawned && world.timeMs >= chicksAtMs) || state.nextEggAtMs <= world.timeMs)) v.invalid('poultry', 'expired active schedule')

@@ -1,3 +1,4 @@
+import { drawCampfire } from './campfireVisuals'
 import { drawChickenCoop } from './chickenCoopVisuals'
 import type Phaser from 'phaser'
 import type { PeteFence, World } from '../simulation/world'
@@ -23,7 +24,8 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
   if (project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
     const progress = project.elapsedMs / projectBuildMs(project)
-    if (project.kind === 'coop') drawChickenCoop(g, { kind: 'peteCoop', x, y }, tile, progress)
+    if (project.kind === 'campfire') drawCampfire(g, { kind: 'peteCampfire', x, y }, tile, progress)
+    else if (project.kind === 'coop') drawChickenCoop(g, { kind: 'peteCoop', x, y }, tile, progress)
     else drawPeteFence(g, { kind: 'peteFence', x, y, direction: project.direction }, tile, progress)
   }
   if (world.peace.activity !== 'project' || !project.carried || !visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, tile)) return
