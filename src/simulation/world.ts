@@ -1,3 +1,4 @@
+import type { Yard } from './yard'
 import { refreshCooking } from './campfire'
 import { refreshPoultry } from './poultry'
 import type { Poultry } from './poultry'
@@ -103,7 +104,7 @@ export interface Splitter extends BuildingPosition {
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
 export type Building = PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -132,7 +133,7 @@ export function createWorld(random = Math.random, options: { nature?: boolean; w
       if (dx * dx + dy * dy <= 5) tiles[(cy + dy) * SIZE + cx + dx] = resource
     }
   }
-  const world: World = { campfireProject: null, poultry: null, coopProject: null, project: null, peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), water: Array<boolean>(SIZE * SIZE).fill(false), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
+  const world: World = { yard: null, campfireProject: null, poultry: null, coopProject: null, project: null, peace: createPeace(), nature: createNature(), revenge: createRevenge(), research: createResearch(), analytics: createAnalytics(), webs: createWebs(), timeMs: 0, pete: createPete(), police: createPolice(), water: Array<boolean>(SIZE * SIZE).fill(false), tiles, buildings: Array.from({ length: SIZE * SIZE }, () => null), mined: emptyInventory(), produced: emptyInventory(), remainder: 0, topologyRevision: 0, power: null }
   const seed = Math.floor(random() * 4294967296)
   if (options.water !== false) generateWater(world, seed)
   if (options.nature !== false) generateNature(world, seed)
@@ -143,6 +144,7 @@ export function depositAt(world: World, x: number, y: number): Resource | null {
 }
 
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction, bridge = false): string | null {
+  if (world.yard?.entrance === y * SIZE + x) return 'Keep Pete’s reserved yard entrance clear.'
   if (kind === 'peteCampfire' || kind === 'peteFence' || kind === 'peteCoop') return 'Only Pete builds this secret project.'
   if (kind === 'footbridge') return 'Drag a straight footbridge between two dry shores.'
   const technologyError = buildingTechnologyError(world.research, kind)
