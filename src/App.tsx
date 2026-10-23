@@ -1,3 +1,5 @@
+import { TouchControls } from './game/TouchControls'
+import { SimulationSpeed } from './game/SimulationSpeed'
 import { RevengeHUD } from './game/RevengeHUD'
 import { ResearchPanel } from './game/ResearchPanel'
 import { AnalyticsPanel } from './game/AnalyticsPanel'
@@ -10,9 +12,9 @@ import { StatusMessage } from './game/StatusMessage'
 import { useGameStore } from './state/gameStore'
 import { hasTechnology } from './simulation/research'
 export default function App() {
-  const { uiPanel, togglePanel, powerOverlay, togglePowerOverlay, analyticsOpen, toggleAnalytics, research } = useGameStore()
+  const { uiPanel, togglePanel, powerOverlay, togglePowerOverlay, analyticsOpen, toggleAnalytics, research, touchActive, touchToolsOpen } = useGameStore()
   const analyticsUnlocked = hasTechnology(research, 'analytics1')
-  return <div className="app-shell">
+  return <div className={`app-shell${touchActive ? ' touch-mode' : ''}${touchActive && !touchToolsOpen ? ' touch-tools-closed' : ''}`}>
     <header className="game-header">
       <div className="game-brand"><span className="brand-mark" aria-hidden="true">M</span><h1>MINI FACTORIO</h1></div>
       <ConstructionResources />
@@ -27,7 +29,7 @@ export default function App() {
     </header>
     <main>
       <section className="world-panel" aria-label="Factory world">
-        <div className="world-heading"><RevengeHUD /></div>
+        <TouchControls /><div className="world-heading"><SimulationSpeed /><RevengeHUD /></div>
         <div className="world-stage"><GameCanvas /><BuildingInspection /><UtilityPanels /><AnalyticsPanel /></div>
         <StatusMessage />
       </section>

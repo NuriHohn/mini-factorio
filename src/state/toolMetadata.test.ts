@@ -8,7 +8,7 @@ describe('categorized build menu', () => {
   it('defaults to Factory and categorizes every existing player tool exactly once', () => {
     expect(useGameStore.getState().buildTab).toBe('factory')
     expect(new Set(PLAYER_TOOLS.map(t => t.tool)).size).toBe(PLAYER_TOOLS.length)
-    expect(PLAYER_TOOLS.filter(t => t.tab === 'pete').map(t => t.tool)).toEqual(['radar', 'spiderWeb', 'sprinkler', 'flySwatter', 'drill', 'lightningBeam', 'remove'])
+    expect(PLAYER_TOOLS.filter(t => t.tab === 'pete').map(t => t.tool)).toEqual(['playfulSpray', 'radar', 'spiderWeb', 'sprinkler', 'flySwatter', 'drill', 'lightningBeam', 'remove'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'factory').map(t => t.tool)).toEqual(['miner', 'furnace', 'assembler'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'logistics').map(t => t.tool)).toEqual(['belt', 'footbridge', 'storage', 'inserter', 'splitter'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'power').map(t => t.tool)).toEqual(['waterwheel', 'generator', 'powerPole'])

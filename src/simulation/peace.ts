@@ -1,3 +1,5 @@
+import { beginLeisureWork, finishLeisure, leisureDecision, leisureSpot, refreshLeisure } from './peteLeisure'
+import { coverSpot, COVER_MS } from './coopCover'
 import { pressReady, pressSpot, refreshPress, finishPress, PRESS_ACTIVITY_MS } from './gearPress'
 import { experimentSpot, refreshExperiment, finishExperiment, EXPERIMENT_ACTIVITY_MS } from './experiment'
 import { hasVeranda, VERANDA_REST_MS } from './veranda'
@@ -22,7 +24,7 @@ export const GIFT_MIN_MS = 900000
 export const GIFT_MAX_MS = 1500000
 export const PROJECT_CHECK_MS = 5000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest', 'experimentward', 'experimenting', 'pressward', 'pressing'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest', 'experimentward', 'experimenting', 'pressward', 'pressing', 'coverward', 'covering', 'uncoverward', 'uncovering', 'treasureward', 'pickingTreasure', 'treasureHomeward', 'storingTreasure', 'flightward', 'flying', 'crashRest'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
@@ -100,7 +102,15 @@ function plan(world: World): void {
   const p = world.pete, s = world.peace, parents = reachableTiles(world, p.tile)
   const local = localTiles(world, parents)
   const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i))
-  if (s.activity === 'pressward') {
+  if (s.activity === 'treasureward' || s.activity === 'treasureHomeward' || s.activity === 'flightward') {
+    const target = s.activity === 'treasureward' ? world.leisure?.pending?.tile ?? null : leisureSpot(world, s.activity === 'flightward' ? 'flightpad' : 'treasure')
+    if (target === null || !parents.has(target)) { if (world.leisure) world.leisure.pending = null; activity(world, 'homeward'); plan(world); return }
+    s.destination = target
+  } else if (s.activity === 'coverward' || s.activity === 'uncoverward') {
+    const spot = coverSpot(world)
+    if (spot === null) { if (world.poultry) delete world.poultry.cover; activity(world, 'homeward'); plan(world); return }
+    s.destination = spot
+  } else if (s.activity === 'pressward') {
     if (!pressReady(world) || pressSpot(world) !== s.destination) { activity(world, 'homeward'); plan(world); return }
   } else if (s.activity === 'experimentward') {
     if (experimentSpot(world) !== s.destination) { activity(world, 'homeward'); plan(world); return }
@@ -131,7 +141,10 @@ function move(world: World, delta: number): void {
       if (p.pathRevision !== world.topologyRevision || world.peace.destination === null) plan(world)
       p.next = p.path.shift() ?? null
       if (p.next === null) {
-        if (world.peace.activity === 'pressward') activity(world, 'pressing', PRESS_ACTIVITY_MS, world.peace.destination)
+        const leisure = beginLeisureWork(world)
+        if (leisure) activity(world, leisure.activity, leisure.duration, leisure.activity === 'flying' ? null : world.peace.destination)
+        else if (world.peace.activity === 'coverward' || world.peace.activity === 'uncoverward') activity(world, world.peace.activity === 'coverward' ? 'covering' : 'uncovering', COVER_MS, world.peace.destination)
+        else if (world.peace.activity === 'pressward') activity(world, 'pressing', PRESS_ACTIVITY_MS, world.peace.destination)
         else if (world.peace.activity === 'experimentward') activity(world, 'experimenting', EXPERIMENT_ACTIVITY_MS, world.peace.destination)
         else if (world.peace.activity === 'workshopward') activity(world, 'hammering', WORKSHOP_ACTIVITY_MS, world.peace.destination)
         else if (world.peace.activity === 'gardenward') activity(world, 'gardening', TEND_MS, world.peace.destination)
@@ -144,7 +157,14 @@ function move(world: World, delta: number): void {
           else activity(world, 'fishing', FISHING_MS, world.peace.destination)
         }
         else if (world.peace.activity === 'homeward') {
-          if (neighboringTiles(world.peace.home!).includes(p.tile)) activity(world, 'entering', 3000)
+          if (neighboringTiles(world.peace.home!).includes(p.tile)) {
+            const flock = world.poultry, spot = flock ? coverSpot(world) : null
+            if (flock && !flock.cover && spot !== null) {
+              flock.cover = { stage: random(world) < .4 ? 'covering' : 'skipped', atMs: world.timeMs }
+              if (flock.cover.stage === 'covering') activity(world, 'coverward', 0, spot)
+              else activity(world, 'entering', 3000)
+            } else activity(world, 'entering', 3000)
+          }
           else activity(world, 'waving', 4000) // Enclosed home: wait, then retry after obstacles change.
         } else activity(world, random(world) < .5 ? 'flowers' : 'waving', 5000)
         return
@@ -197,7 +217,10 @@ function tryConstruction(world: World): boolean {
   return trySecretProject(world)
 }
 function nextActivity(world: World): void {
+  if (world.leisure?.carried) { const visit = leisureDecision(world); if (visit) { activity(world, visit.activity, 0, visit.destination); return } }
   if (tryConstruction(world)) return
+  const leisure = leisureDecision(world)
+  if (leisure) { activity(world, leisure.activity, 0, leisure.destination); return }
   if (random(world) < .2) { activity(world, 'homeward'); return }
   const press = pressReady(world) ? pressSpot(world) : null
   if (press !== null && random(world) < .25) { activity(world, 'pressward', 0, press); return }
@@ -225,6 +248,7 @@ export function advancePeace(world: World, delta: number): void {
   if (s.shutdown && world.timeMs - s.shutdown.atMs >= 6000) s.shutdown = null
   if (s.reactionAtMs !== null && world.timeMs - s.reactionAtMs >= 4000) s.reactionAtMs = null
   if (!peaceful(world)) return
+  refreshLeisure(world)
   refreshFishing(world)
   refreshGardening(world)
   refreshWorkshop(world)
@@ -240,8 +264,10 @@ export function advancePeace(world: World, delta: number): void {
     if (project?.phase === 'complete') { s.nextProjectCheckAtMs = world.timeMs; nextActivity(world) }
     return
   }
+  if (['coverward', 'covering', 'uncoverward', 'uncovering'].includes(s.activity) && coverSpot(world) === null) { if (world.poultry) delete world.poultry.cover; activity(world, 'homeward'); return }
+  if (world.poultry?.cover?.stage === 'skipped' && !['homeward', 'entering', 'resting', 'verandaRest'].includes(s.activity)) delete world.poultry.cover
   // Only pre-empt cosmetic work at a stationary tile; committed activities finish normally.
-  if (p.next === null && ['homeward', 'walking', 'resting', 'verandaRest', 'waving', 'flowers'].includes(s.activity) && tryConstruction(world)) return
+  if (world.poultry?.cover?.stage !== 'covered' && p.next === null && ['homeward', 'walking', 'resting', 'verandaRest', 'waving', 'flowers'].includes(s.activity) && tryConstruction(world)) return
   if (s.activity === 'boating' && s.boat) {
     const boat = s.boat
     if (boat.phase === 'rowing') {
@@ -250,18 +276,30 @@ export function advancePeace(world: World, delta: number): void {
       if (boat.phase === 'boarding') { boat.phase = 'rowing'; activity(world, 'boating', 0, s.destination) }
       else { delete s.boat; nextActivity(world) }
     }
-  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward' || s.activity === 'workshopward' || s.activity === 'experimentward' || s.activity === 'pressward') {
+  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward' || s.activity === 'workshopward' || s.activity === 'experimentward' || s.activity === 'pressward' || s.activity === 'coverward' || s.activity === 'uncoverward' || s.activity === 'treasureward' || s.activity === 'treasureHomeward' || s.activity === 'flightward') {
     if (p.next !== null && (!walkableTile(world, p.next))) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
-    if (s.activity === 'pressing') { finishPress(world); nextActivity(world) }
+    if (['pickingTreasure', 'storingTreasure', 'flying', 'crashRest'].includes(s.activity)) {
+      const next = finishLeisure(world)
+      if (next) activity(world, next.activity, next.duration, next.destination)
+      else nextActivity(world)
+    } else if (s.activity === 'covering') {
+      if (world.poultry?.cover) { world.poultry.cover.stage = 'covered'; world.poultry.cover.atMs = world.timeMs }
+      activity(world, 'homeward')
+    } else if (s.activity === 'uncovering') {
+      if (world.poultry) delete world.poultry.cover
+      nextActivity(world)
+    } else if (s.activity === 'pressing') { finishPress(world); nextActivity(world) }
     else if (s.activity === 'experimenting') { finishExperiment(world); nextActivity(world) }
     else if (s.activity === 'hammering') { finishWorkshop(world); nextActivity(world) }
     else if (s.activity === 'cooking') { if (finishCooking(world)) activity(world, 'campfireHappy', CAMPFIRE_HAPPY_MS); else activity(world, 'homeward') }
     else if (s.activity === 'collectingEgg') { collectEgg(world); nextActivity(world) }
     else if (s.activity === 'entering') activity(world, hasVeranda(world) && random(world) < .25 ? 'verandaRest' : 'resting', VERANDA_REST_MS)
     else if (s.activity === 'resting' || s.activity === 'verandaRest') {
-      nextActivity(world)
+      const spot = world.poultry?.cover?.stage === 'covered' ? coverSpot(world) : null
+      if (spot !== null && world.poultry?.cover) { world.poultry.cover.stage = 'uncovering'; world.poultry.cover.atMs = world.timeMs; activity(world, 'uncoverward', 0, spot) }
+      else { if (world.poultry) delete world.poultry.cover; nextActivity(world) }
     }
     else nextActivity(world)
   }

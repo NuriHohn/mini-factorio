@@ -93,6 +93,7 @@ describe('Pete’s autonomous garden gate', () => {
     const s = sides(w), outsideCrate = s.outside - SIZE
     expect(placeBuilding(w, outsideCrate % SIZE, Math.floor(outsideCrate / SIZE), 'supplyCrate', 'east')).toBe(true)
     supplyWood(w, outsideCrate, 3)
+    chooseProject(w, 'gate')
     until(w, () => w.gateProject?.phase === 'complete')
     expect((w.buildings[outsideCrate] as SupplyCrate).wood).toBe(0); expect(crate(w).wood).toBe(0)
     expect(w.gateProject?.carried).toBe(0)

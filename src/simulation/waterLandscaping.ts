@@ -17,6 +17,7 @@ export interface WaterProtection { reserved: Set<number>; banks: Set<number> }
 // One bounded reservation scan per brush/preview, never one scan per brush tile.
 export function waterProtection(world: World): WaterProtection {
   const reserved = new Set<number>(), banks = new Set<number>()
+  if (world.chickenRun) reserved.add(world.chickenRun.entrance)
   if (world.yard) reserved.add(world.yard.entrance)
   const actors = [world.pete, ...(world.police.car ? [world.police.car] : []), ...(world.revenge.boss ? [world.revenge.boss] : [])]
   for (const actor of actors) {

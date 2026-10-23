@@ -28,6 +28,7 @@ export function HelpContents() {
       <h3>☰ Keep your factory</h3><p>Open Menu to save or load. Autosave keeps a separate copy every two minutes of play. Export a file for a backup. Loading is always your choice.</p>
     </div> : <div id="help-controls" role="tabpanel" aria-labelledby="help-controls-tab">
       <p className="inspection-note">Click a group below the world, then choose a tool. Click the active tool again to put it away. Right-click cancels a drag first, then puts away the selected tool.</p>
+      <p>Touch: drag to pan, pinch to zoom, tap to inspect. With a tool selected, tap a target (two endpoints for routes), then Confirm or Cancel. Tools hides the toolbar on small screens. Playful spray is in Special and needs a ready powered sprinkler nearby.</p>
       <dl className="controls-list">{CONTROL_ROWS.map(row => <div key={row.keys}><dt><kbd>{row.keys}</kbd></dt><dd>{row.action}</dd></div>)}</dl>
       <p className="inspection-note">Close an open menu with its button, Close or Escape. The world keeps running while menus are open; game shortcuts wait until you close them.</p>
     </div>}

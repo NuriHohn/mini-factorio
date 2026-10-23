@@ -16,6 +16,7 @@ export function GameCanvas() {
       type: Phaser.AUTO, parent: host.current, backgroundColor: '#243c2c', pixelArt: true,
       scale: { mode: Phaser.Scale.RESIZE, width: host.current.clientWidth, height: host.current.clientHeight },
       scene: FactoryScene,
+      input: { touch: false },
       fps: { smoothStep: false },
       callbacks: { postBoot: game => {
         const step = game.step.bind(game)

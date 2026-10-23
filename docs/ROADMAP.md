@@ -128,20 +128,28 @@ Garden care grows bounded Eco-only feed. Pete physically carries a portion from 
 
 Eco Pete selects nearby fully grown trees, chops them, physically returns three Wood to a supply crate and earns XP only on delivery. Interrupted work/carrying and full-crate recovery persist; returned Wood supports normal reforestation and the other Eco projects.
 
-## Next priority: Sprint 16.20.1 — Unblock complete-yard construction (planned)
 
-Player testing reports that complete enclosure is too easily blocked. Current yard validation rejects the whole remaining plan when any remaining fence cell or work approach is obstructed; moving actors and their reserved paths also count as obstacles. Partially built yards retain their layout. These source findings guide reproduction and are not yet a verified diagnosis of the player's exact save.
+## Sprints 16.20.1–16.23 — Yard recovery, fences and chicken life (completed)
 
-Reproduce the stalled partial-yard case first, then allow reachable, safe sections to progress while a different section is temporarily blocked. Re-evaluate work approaches and suitable entrance positions, distinguish temporary actor occupancy from permanent obstacles, and retry without losing existing rails, carried/paid materials or earned progress. Preserve a usable entrance and access to home, coop, supplies and existing workplaces; never close an occupied route unsafely. Explain the actual remaining blocker and its position in Pete's inspection. Recovery must not duplicate costs or completion XP.
+- **16.20.1:** expanded entrance/layout choices, safe per-section validation, reordered unfinished sections with saved partial hammer work, preserved paid/hammer progress and explicit obstruction position. The immediate section stays out of pickup routes; access to structures is protected.
+- **16.20.2:** fence posts remain upright in both ground directions instead of rotating into a railway-like silhouette; corners and openings retain their joins.
+- **16.21:** a separate Eco-only paid outdoor run reuses suitable rails, contains the flock when intact and retains bedtime/egg behaviour. People can step over its new low rails. Coop inspection shows progress.
+- **16.22:** occasional physical coop-cover visits before rest and removal after waking, with saved decisions/travel/work and harmless decorative protection.
+- **16.23:** Pause/×1/×2/×4 controls accelerate the entire fixed-step simulation while keeping camera/input and graphics frame-rate preferences independent.
 
-Acceptance includes one blocked section in an otherwise buildable partial yard, Pete crossing a future section, temporary actor reservations, later trees/buildings, obstacle removal, full enclosure with safe access, and deterministic Save & Load during recovery. Schedule this repair before the later ideas below; no gameplay change is implemented by this planning entry.
+## Sprints 16.24–16.28 — Collecting, flight and mobile access
 
-## Later player ideas — proposed, not implemented
+- **16.24 completed:** harmless manual powered sprinkler targeting and cosmetic wet reactions.
+- **16.25 completed:** Inventor level-2 treasure chest, five decorative keepsakes, nearby physical pickup/carry/deposit and inspectable collection.
+- **16.26 completed:** Inventor level-4 flight workshop/backpack, practice XP and early harmless crash landings.
+- **16.27 completed:** Inventor level-5 scenic flights; no cargo, search or production advantages.
+- **16.28 browser controls and public hosting completed:** additive pan/pinch/tap controls, explicit touch build confirmation, narrow-screen panels/toolbar, relative-path production bundle and validated build/deploy workflow. The repository is public and [GitHub Pages serves the playable game](https://nurihohn.github.io/mini-factorio/). Portable saves use existing export/import, without automatic sync.
 
-- **Playful sprinkler use:** let the player spray chickens, peaceful Pete and any other target in range. Wetting Pete or chickens is harmless; other targets only show the water-jet animation. No damage, resource loss or negative gameplay consequences. Define manual targeting alongside existing sprinkler behaviour without degrading PC controls.
-- **Occasional coop cover / marten protection:** sometimes Pete stretches a tarpaulin over the coop before bed and removes it after getting up. Coordinate this with chicken bedtime and saved continuation. This idea does not yet introduce martens, attacks or animal harm; frequency, costs and any protection effect need a later specification.
-- **Flying Pete:** reserve a late Inventor-path milestone for actual flight. The player recalls discussing this earlier, but the accessible excerpts of “Mini-Factorio Sprint 15.7.1” and “Projektideen fürs Vibe Coding”, and the attached handover, did not establish an earlier level or design. Exact unlock, flight device, movement/landing rules and costs remain open; existing outfits do not implement flight.
-- **Pete's treasure chest:** Pete can build his own chest and collect treasures in it. Define treasure sources, presentation, capacity and development-path ownership before implementation; keep it distinct from the player's factory storage and Pete's supply crates.
-- **Simulation speed:** add normal, ×2 and ×4 speed so production, transport, Pete, chickens, growth and other simulation timers advance together. Preserve pause, deterministic fixed-step simulation and Save & Load; camera and interface input remain normally responsive. Rendering frame-rate preferences stay independent.
+Mobile follow-up targets **iPhone and iPad first**, with an installable offline experience and local saves; the distribution/install method and real-device Safari acceptance remain to be specified. PC controls must remain intact.
 
-All future Pete project inputs must obey the [exclusive material families](GAME_DESIGN.md); assign each new resource/item to exactly one path and keep each project's costs inside its own family. Sprint numbers and ordering for these later ideas remain open. Existing mobile-control and away-from-home testing proposals remain separately tracked in [planning PR #75](https://github.com/NuriHohn/mini-factorio/pull/75); mobile controls must supplement and preserve PC operation.
+Authoritative mechanics and costs: [Game design](GAME_DESIGN.md#treasures-and-flight). Hosting setup: [Development](DEVELOPMENT.md#portable-browser-build-and-hosting). Further mobile ergonomics and real-device acceptance remain follow-ups; PC controls must remain intact.
+
+
+The original mobile planning in [PR #75](https://github.com/NuriHohn/mini-factorio/pull/75) is fulfilled by the browser controls and hosted access above. Its additive-PC-control requirement remains in force; real iPhone/iPad acceptance and installable offline play remain follow-ups.
+
+The yard-recovery and Pete ideas originally recorded in [PR #80](https://github.com/NuriHohn/mini-factorio/pull/80) are implemented in Sprints 16.20.1–16.27 above. Flight uses the agreed Inventor level-4 practices and level-5 scenic loops; coop cover remains harmless decoration, with no marten attacks. All new project inputs continue to obey the [exclusive material families](GAME_DESIGN.md).
