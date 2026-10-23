@@ -1,3 +1,4 @@
+import { drawExperimentActivity } from './experimentVisuals'
 import { drawVeranda, drawVerandaRest } from './verandaVisuals'
 import { drawWorkshopActivity } from './workshopVisuals'
 import { drawGardenTending } from './ecoVisuals'
@@ -104,4 +105,5 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
   drawSecretProject(g, world, tile, view)
   drawGardenTending(g, world, tile, view)
   drawWorkshopActivity(g, world, tile, view)
+  drawExperimentActivity(g, world, tile, view)
 }

@@ -81,7 +81,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 27 && kind === 'peteExperiment') invalid(path, 'Pete experiment tables require save version 27')
   if (version < 24 && kind === 'peteWorkshop') invalid(path, 'Pete workshops require save version 24')
   if (version < 23 && kind === 'peteGarden') invalid(path, 'Pete gardens require save version 23')
   if (version < 20 && kind === 'peteGate') invalid(path, 'Pete gates require save version 20')
@@ -95,6 +96,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    peteExperiment: [],
     peteWorkshop: [],
     peteGarden: [],
     peteGate: ['direction', 'openMs', 'holdUntilMs'],
@@ -125,6 +127,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       if (openMs % 50 || holdUntilMs % 50 || (openMs > 0 && holdUntilMs === 0) || (openMs === GATE_OPEN_MS && holdUntilMs <= timeMs)) invalid(path, 'invalid gate animation clock')
       return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const), openMs, holdUntilMs }
     }
+    case 'peteExperiment':
     case 'peteWorkshop':
     case 'peteGarden':
     case 'peteCampfire':
