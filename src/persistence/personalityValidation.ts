@@ -1,3 +1,4 @@
+import { gardenCareXp } from './ecoValidation'
 import { completedProjects, createPersonality, INFLUENCE_LIMIT, levelForXp, PERSONALITY_PATHS, PROJECT_REWARD_IDS, PROJECT_REWARDS } from '../simulation/personality'
 import type { Personality } from '../simulation/personality'
 import type { World } from '../simulation/world'
@@ -16,7 +17,7 @@ export function restorePersonality(value: unknown, world: World): Personality {
   const completed = completedProjects(world)
   if (new Set(state.rewardedProjects).size !== state.rewardedProjects.length || completed.length !== state.rewardedProjects.length || completed.some(id => !state.rewardedProjects.includes(id))) v.invalid('personality.rewardedProjects', 'rewards must match completed projects exactly once')
   for (const path of PERSONALITY_PATHS) {
-    const projectXp = state.rewardedProjects.reduce((sum, id) => sum + (PROJECT_REWARDS[id].path === path ? PROJECT_REWARDS[id].xp : 0), 0)
+    const projectXp = state.rewardedProjects.reduce((sum, id) => sum + (PROJECT_REWARDS[id].path === path ? PROJECT_REWARDS[id].xp : 0), 0) + (path === 'eco' ? gardenCareXp(world) : 0)
     if (state.paths[path].xp < projectXp) v.invalid(`personality.paths.${path}.xp`, 'missing completed project XP')
   }
   return state

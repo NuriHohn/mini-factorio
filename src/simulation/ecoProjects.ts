@@ -7,6 +7,7 @@ import type { World } from './world'
 export const PLANT_COOLDOWN_MS = 120000
 export const TEND_COOLDOWN_MS = 60000
 export const TEND_MS = 4000
+export const CARE_XP = 4
 const distance = (a: number, b: number) => Math.max(Math.abs(a % SIZE - b % SIZE), Math.abs(Math.floor(a / SIZE) - Math.floor(b / SIZE)))
 export function plantingSite(world: World, tile: number): boolean {
   const x = tile % SIZE, y = Math.floor(tile / SIZE)
@@ -46,4 +47,10 @@ export function refreshGardening(world: World): void {
   const p = world.pete
   Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE), path: [], pathRevision: -1 })
   Object.assign(world.peace, { activity: 'homeward', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
+}
+
+export function planGardenCare(world: World): SecretProject | null {
+  const garden = world.gardenProject, spot = gardenSpot(world)
+  if (!garden || spot === null || world.peace.home === null) return null
+  return { kind: 'care', completedCycles: world.careProject?.completedCycles ?? 0, home: garden.home, direction: garden.direction, tiles: [...garden.tiles], spots: [spot], phase: 'collecting', built: 0, carried: 0, elapsedMs: 0, crate: null }
 }

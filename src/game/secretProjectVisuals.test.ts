@@ -31,4 +31,22 @@ describe('secret project visuals and Wood intent', () => {
     expect(pose.length).toBeGreaterThan(0)
     calls.length = 0; drawSecretProject(g, w, 32); expect(calls).toEqual(pose); expect(w).toEqual(before)
   })
+  it('draws paid mulch instead of construction, with read-only paused and culled effects', () => {
+    const w = createBareWorld(() => .5)
+    w.buildings[700] = { kind: 'peteGarden', x: 20, y: 17 }
+    w.careProject = { kind: 'care', completedCycles: 0, selected: true, home: 820, direction: 'east', tiles: [700], spots: [740], phase: 'building', crate: null, built: 0, carried: 2, elapsedMs: 500 }
+    Object.assign(w.pete, { tile: 740, x: 20, y: 18, next: null })
+    w.peace.activity = 'project'
+    const before = structuredClone(w), { g, calls } = graphics()
+    drawSecretProject(g, w, 32)
+    expect(calls.filter(c => c[0] === 'fillCircle')).toHaveLength(4)
+    expect(calls.some(c => c[0] === 'rotateCanvas')).toBe(false)
+    const pose = [...calls]; calls.length = 0
+    drawSecretProject(g, w, 32); expect(calls).toEqual(pose)
+    calls.length = 0; drawSecretProject(g, w, 32, { x: 3000, y: 3000, width: 50, height: 50 })
+    expect(calls).toEqual([]); expect(w).toEqual(before)
+    w.buildings[700] = null; w.peace.activity = 'homeward'
+    drawSecretProject(g, w, 32); expect(calls).toEqual([])
+  })
+
 })

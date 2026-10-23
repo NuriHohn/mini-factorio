@@ -159,7 +159,7 @@ describe('power construction, cache and persistence safety', () => {
     drag.begin(w, p(5, 10), 'powerPole', 'east'); expect(drag.finish(createBareWorld(() => .5))).toBeNull()
     commitConstruction(w, p(5, 10), p(23, 10), 'powerPole', 'east')
     const text = encodeSave(w, view), restored = decodeSave(text).world
-    expect(JSON.parse(text).version).toBe(30)
+    expect(JSON.parse(text).version).toBe(31)
     expect(restored.buildings).toEqual(w.buildings)
     expect(allocatePower(restored).poleConnections).toEqual(allocatePower(w).poleConnections)
     advanceWorld(w, 550); advanceWorld(restored, 550)
