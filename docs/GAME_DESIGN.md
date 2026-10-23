@@ -672,3 +672,9 @@ After building a garden, Eco level 2 Pete can select repeatable **Garden care (m
 Paid care retains Wood and work through blocked approaches, home loss and Save & Load. A missing garden pauses work without XP or another debit. Supply consideration is read-only; incomplete or split stocks do not qualify. The saved completed-cycle count preserves cumulative Wood use and once-per-completion XP across repeated care and reloads. Save version **31** adds this optional project and strictly validates its garden link, materials, work, count, XP and deadline; versions 1–30 remain loadable.
 
 See [garden care in progress](images/pete-garden-care.png) and [completed care with XP](images/pete-garden-care-complete.png).
+
+### Project priorities and reliable yard planning (Sprint 16.18)
+
+Selection uses a bounded priority weight: up to three funded material sets multiplied by priority 1–4, derived from total construction cost plus completion XP (one tier per ten units, capped at four). Yard cost counts remaining rails. Paid work receives priority four and an existing usable commitment is retained. Every feasible small project has positive weight, so stockpiled Wood cannot make cheap repetition overwhelm larger projects. Candidate stock-set counts remain diagnostic; only the final priority weight drives the single persisted random draw.
+
+Yards now support up to 14 tiles of width/height between boundary coordinates, matching radius-six coop/campfire layouts. Unpaid, unstarted blocked yard plans can be replaced; paid or partially built work is retained. The Pete panel explains the initial three rails, prerequisites, progress, reuse and blocked/missing perimeter. Version 32 permits the expanded geometry; older save schemas retain their ten-tile bounds.

@@ -7,7 +7,7 @@ import { CARE_XP, gardenSpot, planGardenCare, nearbyPlanting, planPlanting, plan
 import { plantTree } from './nature'
 import { PETE_PROJECTS, projectUnlocked } from './projectRegistry'
 import type { ProjectDefinition, ProjectMaterial } from './projectRegistry'
-import { awardActivity, rewardProject } from './personality'
+import { awardActivity, PROJECT_REWARDS, rewardProject } from './personality'
 import { gateSiteClear, planGate, preparePeteGate } from './gardenGate'
 import type { Yard } from './yard'
 import { planYard, yardDirection, yardNavigation, yardSiteClear } from './yard'
@@ -154,7 +154,13 @@ export function projectPlansConflict(world: World, project: SecretProject, ignor
 function projectWeight(world: World, project: SecretProject, definition: ProjectDefinition, ignored?: SecretProject): number {
   return (project.kind !== 'plant' || project.phase !== 'collecting' || nearbyPlanting(project)) && projectUnlocked(world, definition) && !projectPlansConflict(world, project, ignored) && projectSiteClear(world, project) ? availableMaterials(world, project, definition) : 0
 }
-export function projectCandidates(world: World, blocked: string[] = []): { definition: ProjectDefinition; project: SecretProject; weight: number }[] {
+export function projectPriority(definition: ProjectDefinition, project: SecretProject): number {
+  if (project.phase === 'building') return 4
+  const cost = definition.id === 'yard' ? (project.tiles.length - project.built) * 2 : Object.values(definition.resources).reduce((sum, amount) => sum + amount, 0)
+  const xp = definition.id === 'gardenCare' ? CARE_XP : definition.id === 'reforestation' ? 5 : PROJECT_REWARDS[definition.id].xp
+  return 1 + Math.min(3, Math.floor((cost + xp) / 10))
+}
+export function projectCandidates(world: World, blocked: string[] = []): { definition: ProjectDefinition; project: SecretProject; weight: number; priorityWeight: number }[] {
   if (world.peace.home === null || world.police.car || world.revenge.boss || world.pete.mode !== 'WANDERING') return []
   return PETE_PROJECTS.flatMap(definition => {
     if (!projectUnlocked(world, definition)) return []
@@ -163,10 +169,11 @@ export function projectCandidates(world: World, blocked: string[] = []): { defin
     let project = saved?.phase !== 'complete' && saved ? saved : definition.id === 'coop' || definition.id === 'campfire' ? followUpLayout(world, definition.id) : definition.id === 'gardenCare' ? planGardenCare(world) : definition.id === 'veranda' ? planVeranda(world) : definition.id === 'reforestation' ? planPlanting(world) : definition.id === 'garden' ? layout(world, 'garden') : definition.id === 'yard' ? planYard(world) : definition.id === 'gate' ? planGate(world) : layout(world, definition.id === 'fence' ? undefined : definition.id)
     if (saved?.phase === 'collecting' && (definition.id === 'coop' || definition.id === 'campfire') && (!project || !projectSiteClear(world, project) || projectPlansConflict(world, project))) project = followUpLayout(world, definition.id, saved)
     if (saved?.phase === 'collecting' && definition.id === 'reforestation' && (!nearbyPlanting(saved) || !projectSiteClear(world, saved))) project = planPlanting(world)
+    if (definition.id === 'yard' && saved?.built === 0 && saved.phase === 'collecting' && !yardSiteClear(world, worldYard(saved))) project = planYard(world)
     if (!project) { blocked.push(definition.id); return [] }
     const weight = projectWeight(world, project, definition, saved ?? undefined)
     if (!weight) blocked.push(definition.id)
-    return weight ? [{ definition, project, weight }] : []
+    return weight ? [{ definition, project, weight, priorityWeight: projectPriority(definition, project) * Math.min(3, weight) }] : []
   })
 }
 export function trySecretProject(world: World): boolean {
@@ -184,8 +191,8 @@ export function trySecretProject(world: World): boolean {
     // Reuse the persisted peaceful LCG, consuming exactly one draw per new decision.
     const peace = world.peace
     peace.seed = (Math.imul(1664525, peace.seed) + 1013904223) >>> 0
-    let roll = peace.seed / 4294967296 * candidates.reduce((sum, c) => sum + c.weight, 0)
-    const chosen = candidates.find(c => { roll -= c.weight; return roll < 0 })!
+    let roll = peace.seed / 4294967296 * candidates.reduce((sum, c) => sum + c.priorityWeight, 0)
+    const chosen = candidates.find(c => { roll -= c.priorityWeight; return roll < 0 })!
     project = chosen.project
     if (chosen.definition.state === 'yard') world.yard = worldYard(project)
     else world[chosen.definition.state] = project

@@ -111,3 +111,7 @@ New planting stays 4–6 tiles from home and prefers shortest reachable walks be
 After the garden, Eco Pete can repeatedly mulch using 2 supplied Wood for 4 Eco XP after four seconds of work, with a 60-second cooldown and exact saved continuation.
 
 Next proposed work: larger-project priorities and yard recovery, followed by chicken bedtime/feeding and mature-tree harvesting. These are not implemented by Sprints 16.15–16.17.1.
+
+## Sprint 16.18 — Project priorities and yard planning (completed)
+
+Bounded cost/XP priorities favour substantial projects while retaining small-project chances. Radius-six property layouts fit a bounded expanded yard; the inspector explains starter rails, prerequisites and progress. Paid work remains preserved.
