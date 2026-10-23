@@ -75,7 +75,7 @@ describe('progressive Pete outfits', () => {
     expect(b.calls).toEqual(a.calls)
   })
 
-  it.each(PERSONALITY_PATHS.filter(path => path !== 'eco' && path !== 'craftsman'))('keeps %s unchanged even with legendary Eco progress', path => {
+  it.each(PERSONALITY_PATHS.filter(path => path === 'industrial'))('keeps %s unchanged even with legendary Eco progress', path => {
     const w = createBareWorld(() => .5), original = graphics(), other = graphics()
     drawPete(original.g, w, 32)
     w.personality.paths.eco.level = 5
@@ -115,7 +115,7 @@ describe('progressive Pete outfits', () => {
     }
   })
 
-  it.each(['eco', 'craftsman'] as const)('follows the moving %s pose/bob without modifying authoritative world state', path => {
+  it.each(['eco', 'craftsman', 'inventor'] as const)('follows the moving %s pose/bob without modifying authoritative world state', path => {
     const w = createBareWorld(() => .5), { g, calls } = graphics()
     awardActivity(w.personality, { path, xp: 450 })
     w.pete.next = w.pete.tile + 1
@@ -125,7 +125,8 @@ describe('progressive Pete outfits', () => {
     drawPete(g, w, 32)
     const x = (w.pete.x + .5) * 32, y = (w.pete.y + .5) * 32 + Math.sin(1) * 1.5
     if (path === 'eco') expect(calls).toContainEqual({ method: 'fillTriangle', args: [x - 7, y + 3, x + 7, y + 3, x, y + 8] })
-    else expect(calls).toContainEqual({ method: 'fillRoundedRect', args: [x - 8, y + 6, 16, 3, 1] })
+    else if (path === 'craftsman') expect(calls).toContainEqual({ method: 'fillRoundedRect', args: [x - 8, y + 6, 16, 3, 1] })
+    if (path === 'inventor') expect(calls).toContainEqual({ method: 'fillEllipse', args: [x - 4, y - 10, 6, 5] })
     expect(w).toEqual(before)
   })
 })

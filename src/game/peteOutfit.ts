@@ -7,7 +7,7 @@ export interface PeteOutfit { path: PersonalityPath; level: OutfitLevel }
 // Derived every draw: dominance changes and restored saves need no outfit state.
 export function peteOutfit(personality: Personality): PeteOutfit {
   const path = personality.dominant
-  const level = path === 'eco' || path === 'craftsman' ? Math.max(1, Math.min(5, personality.paths[path].level)) as OutfitLevel : 1
+  const level = path !== 'industrial' ? Math.max(1, Math.min(5, personality.paths[path].level)) as OutfitLevel : 1
   return { path, level }
 }
 
@@ -16,6 +16,10 @@ export function peteOutfit(personality: Personality): PeteOutfit {
 export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, selection: PeteOutfit, x: number, y: number, layer: 'back' | 'front'): void {
   const outfit = selection.level
   if (outfit === 1) return
+  if (selection.path === 'inventor') {
+    drawInventorOutfit(g, outfit, x, y, layer)
+    return
+  }
   if (selection.path === 'craftsman') {
     if (layer === 'front') drawCraftsmanOutfit(g, outfit, x, y)
     return
@@ -56,6 +60,49 @@ export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, selection: PeteOu
     for (const dx of [-7, -3, 1, 5]) {
       g.fillStyle(dx % 3 ? 0x719e4b : 0x9cbd64).fillTriangle(x + dx - 2, y - 22, x + dx, y - 29, x + dx + 4, y - 23)
     }
+  }
+}
+
+function drawInventorOutfit(g: Phaser.GameObjects.Graphics, level: OutfitLevel, x: number, y: number, layer: 'back' | 'front'): void {
+  const legendary = level === 5
+  if (layer === 'back') {
+    if (level >= 4) {
+      g.fillStyle(0x354f60).fillRoundedRect(x - 12, y - 1, 24, 13, 3)
+      g.lineStyle(1, 0xba794b).strokeRoundedRect(x - 12, y - 1, 24, 13, 3)
+      // Visible side gears belong to the backpack, without motors or gameplay state.
+      for (const side of [-1, 1]) {
+        g.fillStyle(0xba794b).fillCircle(x + side * 12, y + 5, 4)
+        g.fillRect(x + side * 12 - 1, y, 2, 10).fillRect(x + side * 12 - 5, y + 4, 10, 2)
+        g.fillStyle(0x354f60).fillCircle(x + side * 12, y + 5, 2)
+      }
+      if (legendary) {
+        g.lineStyle(2, 0xe4bc72).lineBetween(x - 9, y, x - 12, y - 15).lineBetween(x + 9, y, x + 12, y - 15)
+        g.fillStyle(0x83dae0).fillCircle(x - 12, y - 16, 2).fillCircle(x + 12, y - 16, 2)
+        g.fillStyle(0x83dae0, .12).fillCircle(x - 12, y - 16, 4).fillCircle(x + 12, y - 16, 4)
+      }
+    }
+    return
+  }
+  if (level >= 3) {
+    g.lineStyle(2, 0x765541).lineBetween(x - 6, y + 3, x - 4, y + 10).lineBetween(x + 6, y + 3, x + 4, y + 10)
+    g.fillStyle(0x765541).fillRect(x - 8, y + 7, 16, 3)
+    // A pocket screwdriver and copper spanner sit below the exposed face.
+    g.lineStyle(2, 0xba794b).lineBetween(x + 7, y + 4, x + 7, y + 12)
+    g.lineStyle(1, 0xb9d8d5).lineBetween(x - 6, y + 5, x - 6, y + 12)
+    g.fillStyle(0x8cc6ce).fillRect(x - 7, y + 8, 3, 3)
+    g.lineStyle(1, 0xba794b).strokeCircle(x + 7, y + 3, 2)
+  }
+  // Forehead goggles keep both expressive eyes and the pumpkin brim visible.
+  g.lineStyle(2, 0x765541).lineBetween(x - 9, y - 10, x + 9, y - 10)
+  for (const side of [-1, 1]) {
+    g.fillStyle(0xb9e1df, .85).fillEllipse(x + side * 4, y - 10, 6, 5)
+    g.lineStyle(1, legendary ? 0xe4bc72 : level >= 3 ? 0xba794b : 0x8c9d99).strokeEllipse(x + side * 4, y - 10, 6, 5)
+    g.fillStyle(0xedffef).fillRect(x + side * 4 - 1, y - 12, 1, 2)
+  }
+  if (legendary) {
+    g.fillStyle(0xe4bc72).fillCircle(x, y + 8, 2)
+    g.fillStyle(0x83dae0).fillCircle(x, y + 8, 1)
+    g.lineStyle(1, 0xe4bc72).lineBetween(x - 7, y + 12, x + 7, y + 12)
   }
 }
 

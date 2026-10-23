@@ -531,7 +531,7 @@ Save version **20** persists the optional gate project, pickup/carried Wood, con
 
 ## Pete’s personality and XP
 
-Pete has four independent paths: **Eco, Craftsman, Inventor and Industrial**. Each begins at level 1 with 0 XP. Cumulative thresholds for levels 1–5 are **0, 20, 80, 200 and 450 XP**. XP continues accumulating at level 5 (bounded by the safe integer limit). There are no production bonuses or outfits. Eco level 2 unlocks the decorative activities described under [Gardening and reforestation](#eco-level-2-gardening-and-reforestation). Dominant personality does not change eligibility.
+Pete has four independent paths: **Eco, Craftsman, Inventor and Industrial**. Each begins at level 1 with 0 XP. Cumulative thresholds for levels 1–5 are **0, 20, 80, 200 and 450 XP**. XP continues accumulating at level 5 (bounded by the safe integer limit). There are no production bonuses; cosmetic outfits follow the dominant path as described below. Eco level 2 unlocks the decorative activities described under [Gardening and reforestation](#eco-level-2-gardening-and-reforestation). Dominant personality does not change eligibility.
 
 Eco activities award XP as follows:
 
@@ -556,7 +556,9 @@ When Eco is dominant, Pete's existing level also selects his outfit: level 1 is 
 
 When Craftsman is dominant, its own existing level selects a separate cumulative outfit: level 1 is exactly original Pete; level 2 adds a small tool belt; level 3 adds a leather apron and secured hammer; level 4 reinforces the apron with trim, pockets and small tools; level 5 adds a richly detailed dark leather apron, warm brass accents and a distinctive masterwork hammer. All tools are cosmetic and grant no bonuses. See the [Craftsman tier comparison](images/craftsman-pete-outfits.png).
 
-Both outfits follow normal movement, reactions and the seated boat pose; tiny house-window, police-passenger and walker-cockpit portraits keep their simplified faces. Inventor and Industrial use the original appearance regardless of earned Eco or Craftsman levels. Changes and loaded saves update immediately from existing progression, without outfit unlocks or changes to XP, activities, save format or balance.
+When Inventor is dominant, its own level selects cumulative accessories: level 1 stays original; level 2 adds small forehead safety goggles; level 3 upgrades to copper goggles and pocket tools; level 4 adds a technical backpack with side gears; level 5 adds brass detailing, cyan antenna tips and a small glowing belt ornament. These are cosmetic, with no powered equipment or gameplay effect. See the [Inventor tier comparison](images/inventor-pete-outfits.png).
+
+All three outfits follow normal movement, reactions and the seated boat pose; tiny house-window, police-passenger and walker-cockpit portraits keep their simplified faces. Industrial uses the original appearance regardless of other path levels. Changes and loaded saves update immediately from existing progression, without outfit unlocks or changes to XP, activities, save format or balance.
 
 
 ## Pete’s autonomous project selection
