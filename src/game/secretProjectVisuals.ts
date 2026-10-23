@@ -27,7 +27,7 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   const project = currentProject(world), p = world.pete
   if (!project || project.phase === 'complete') return
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
-  if (project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
+  if (project.kind !== 'veranda' && project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
     const progress = project.elapsedMs / projectBuildMs(project)
     if (project.kind === 'workshop') drawWorkshop(g, { kind: 'peteWorkshop', x, y }, tile, progress)
     else if (project.kind === 'garden') drawVegetableGarden(g, { kind: 'peteGarden', x, y }, tile, progress)
