@@ -111,3 +111,7 @@ New planting stays 4–6 tiles from home and prefers shortest reachable walks be
 After the garden, Eco Pete can repeatedly mulch using 2 supplied Wood for 4 Eco XP after four seconds of work, with a 60-second cooldown and exact saved continuation.
 
 Next proposed work: larger-project priorities and yard recovery, followed by chicken bedtime/feeding and mature-tree harvesting. These are not implemented by Sprints 16.15–16.17.1.
+
+## Proposed — Playtesting away from the desktop
+
+User-requested follow-up: provide a hosted test version with a stable link that can be opened on a phone while away from the home WLAN, without requiring the development PC to stay on. Review touch controls and small-screen layout for practical mobile playtesting. Clarify save export/import or cross-device continuation before promising shared progress; current saves remain browser-local. Hosting and mobile controls are not implemented yet. The immediate WLAN preview is only a local playtest, not this hosted feature.
