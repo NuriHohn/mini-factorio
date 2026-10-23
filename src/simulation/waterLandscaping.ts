@@ -1,3 +1,4 @@
+import { refreshPress } from './gearPress'
 import { refreshExperiment } from './experiment'
 import { refreshWorkshop } from './workshop'
 import { refreshGardening } from './ecoProjects'
@@ -80,7 +81,7 @@ export function paintWater(world: World, from: Position, to: Position, mode: Wat
     if (decorationChanged) world.nature.decorationRevision++
     invalidateTerrain(world, changed)
     refreshPoultry(world)
-    refreshCooking(world); refreshGardening(world); refreshWorkshop(world); refreshExperiment(world)
+    refreshCooking(world); refreshGardening(world); refreshWorkshop(world); refreshExperiment(world); refreshPress(world)
   }
   return changed.length
 }

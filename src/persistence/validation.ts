@@ -1,3 +1,4 @@
+import { PRESS_INPUT_CAPACITY, PRESS_OUTPUT_CAPACITY } from '../simulation/gearPress'
 import { GATE_HOLD_MS, GATE_OPEN_MS } from '../simulation/gardenGate'
 import { SUPPLY_CRATE_CAPACITY } from '../simulation/supplyCrate'
 import { WATERWHEEL_PERIOD_MS } from '../simulation/waterwheel'
@@ -81,7 +82,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 28 && kind === 'petePress') invalid(path, 'Pete gear presses require save version 28')
   if (version < 27 && kind === 'peteExperiment') invalid(path, 'Pete experiment tables require save version 27')
   if (version < 24 && kind === 'peteWorkshop') invalid(path, 'Pete workshops require save version 24')
   if (version < 23 && kind === 'peteGarden') invalid(path, 'Pete gardens require save version 23')
@@ -96,6 +98,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    petePress: ['plates', 'gears'],
     peteExperiment: [],
     peteWorkshop: [],
     peteGarden: [],
@@ -127,6 +130,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       if (openMs % 50 || holdUntilMs % 50 || (openMs > 0 && holdUntilMs === 0) || (openMs === GATE_OPEN_MS && holdUntilMs <= timeMs)) invalid(path, 'invalid gate animation clock')
       return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const), openMs, holdUntilMs }
     }
+    case 'petePress': return { ...base, kind, plates: count(r.plates, `${path}.plates`, PRESS_INPUT_CAPACITY), gears: count(r.gears, `${path}.gears`, PRESS_OUTPUT_CAPACITY) }
     case 'peteExperiment':
     case 'peteWorkshop':
     case 'peteGarden':

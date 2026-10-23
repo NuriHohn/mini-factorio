@@ -1,3 +1,4 @@
+import { pressReady, pressSpot, refreshPress, finishPress, PRESS_ACTIVITY_MS } from './gearPress'
 import { experimentSpot, refreshExperiment, finishExperiment, EXPERIMENT_ACTIVITY_MS } from './experiment'
 import { hasVeranda, VERANDA_REST_MS } from './veranda'
 import { workshopSpot, refreshWorkshop, finishWorkshop, WORKSHOP_ACTIVITY_MS } from './workshop'
@@ -21,7 +22,7 @@ export const GIFT_MIN_MS = 900000
 export const GIFT_MAX_MS = 1500000
 export const PROJECT_CHECK_MS = 5000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest', 'experimentward', 'experimenting'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest', 'experimentward', 'experimenting', 'pressward', 'pressing'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
@@ -99,7 +100,9 @@ function plan(world: World): void {
   const p = world.pete, s = world.peace, parents = reachableTiles(world, p.tile)
   const local = localTiles(world, parents)
   const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i))
-  if (s.activity === 'experimentward') {
+  if (s.activity === 'pressward') {
+    if (!pressReady(world) || pressSpot(world) !== s.destination) { activity(world, 'homeward'); plan(world); return }
+  } else if (s.activity === 'experimentward') {
     if (experimentSpot(world) !== s.destination) { activity(world, 'homeward'); plan(world); return }
   } else if (s.activity === 'workshopward') {
     if (workshopSpot(world) !== s.destination) { activity(world, 'homeward'); plan(world); return }
@@ -128,7 +131,8 @@ function move(world: World, delta: number): void {
       if (p.pathRevision !== world.topologyRevision || world.peace.destination === null) plan(world)
       p.next = p.path.shift() ?? null
       if (p.next === null) {
-        if (world.peace.activity === 'experimentward') activity(world, 'experimenting', EXPERIMENT_ACTIVITY_MS, world.peace.destination)
+        if (world.peace.activity === 'pressward') activity(world, 'pressing', PRESS_ACTIVITY_MS, world.peace.destination)
+        else if (world.peace.activity === 'experimentward') activity(world, 'experimenting', EXPERIMENT_ACTIVITY_MS, world.peace.destination)
         else if (world.peace.activity === 'workshopward') activity(world, 'hammering', WORKSHOP_ACTIVITY_MS, world.peace.destination)
         else if (world.peace.activity === 'gardenward') activity(world, 'gardening', TEND_MS, world.peace.destination)
         else if (world.peace.activity === 'campfireward') activity(world, 'cooking', COOKING_MS, world.peace.destination)
@@ -195,6 +199,8 @@ function tryConstruction(world: World): boolean {
 function nextActivity(world: World): void {
   if (tryConstruction(world)) return
   if (random(world) < .2) { activity(world, 'homeward'); return }
+  const press = pressReady(world) ? pressSpot(world) : null
+  if (press !== null && random(world) < .25) { activity(world, 'pressward', 0, press); return }
   const experiment = experimentSpot(world)
   if (experiment !== null && world.timeMs >= world.experimentProject!.readyAtMs! && random(world) < .25) { activity(world, 'experimentward', 0, experiment); return }
   const workshop = workshopSpot(world)
@@ -223,6 +229,7 @@ export function advancePeace(world: World, delta: number): void {
   refreshGardening(world)
   refreshWorkshop(world)
   refreshExperiment(world)
+  refreshPress(world)
   refreshSupplyVisit(world)
   refreshPoultry(world)
   refreshCooking(world)
@@ -243,11 +250,12 @@ export function advancePeace(world: World, delta: number): void {
       if (boat.phase === 'boarding') { boat.phase = 'rowing'; activity(world, 'boating', 0, s.destination) }
       else { delete s.boat; nextActivity(world) }
     }
-  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward' || s.activity === 'workshopward' || s.activity === 'experimentward') {
+  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward' || s.activity === 'workshopward' || s.activity === 'experimentward' || s.activity === 'pressward') {
     if (p.next !== null && (!walkableTile(world, p.next))) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
-    if (s.activity === 'experimenting') { finishExperiment(world); nextActivity(world) }
+    if (s.activity === 'pressing') { finishPress(world); nextActivity(world) }
+    else if (s.activity === 'experimenting') { finishExperiment(world); nextActivity(world) }
     else if (s.activity === 'hammering') { finishWorkshop(world); nextActivity(world) }
     else if (s.activity === 'cooking') { if (finishCooking(world)) activity(world, 'campfireHappy', CAMPFIRE_HAPPY_MS); else activity(world, 'homeward') }
     else if (s.activity === 'collectingEgg') { collectEgg(world); nextActivity(world) }
