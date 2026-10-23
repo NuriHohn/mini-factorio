@@ -531,3 +531,7 @@ Version 31 permits only the optional care record; `ecoValidation.restoreGardenCa
 ### Bounded project priorities and expanded yards (Sprint 16.18)
 
 `secretProject.projectPriority` derives capped cost/XP tiers; candidates expose both funded-set `weight` and final `priorityWeight`. The chooser uses only the latter, retains its single peaceful LCG draw and never preempts valid paid work. `yard.YARD_MAX_SPAN` matches the expanded follow-up placement envelope. Unstarted unpaid layouts may recover via replanning; authoritative paid progress is never discarded. `yardSummary` supplies detached inspector context. Version 32 expands strict yard bounds/maximum segment count while preserving old schemas and selected-work migrations.
+
+### Shared chicken bedtime (Sprint 16.19)
+
+`poultryBedtime` derives rest from Pete entering/resting with a standing home. `advancePoultry` reuses the coop-ground BFS parents, finishes in-flight steps, then routes birds to existing exits and holds inside clocks while bedtime lasts. No extra bird mode, random stream, save field or wall-clock timer is added. `drawPoultry` renders a culled simulation-time Z only when all birds are inside; inspection publishes inside counts and bedtime.

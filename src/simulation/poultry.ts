@@ -30,6 +30,7 @@ export interface Poultry {
   collected: number
   seed: number
 }
+export function poultryBedtime(world: World): boolean { return world.peace.home !== null && ['entering', 'resting'].includes(world.peace.activity) }
 export function poultryActive(world: World): boolean {
   const s = world.poultry
   return !!s && world.coopProject?.phase === 'complete' && world.coopProject.tiles[0] === s.coop && world.buildings[s.coop]?.kind === 'peteCoop'
@@ -104,11 +105,21 @@ export function advancePoultry(world: World, delta: number): void {
   refreshPoultry(world)
   if (!poultryActive(world)) return
   if (!s.chicksSpawned && world.timeMs >= s.chicksAtMs) { s.chicksSpawned = true; s.birds.push(bird(3, world.timeMs), bird(4, world.timeMs)) }
+  const bedtime = poultryBedtime(world)
   const ground = poultryGround(world, s.coop), exits = neighboringTiles(s.coop).filter(i => ground.has(i))
   for (const b of s.birds) {
     if (b.mode === 'walking') {
       b.travelMs += delta
       if (b.travelMs >= birdStepMs(b)) Object.assign(b, { tile: b.next, next: null, travelMs: 0, mode: 'pecking', untilMs: world.timeMs + 1000 + Math.floor(random(s) * 61) * 50 })
+      continue
+    }
+    if (bedtime) {
+      if (b.tile === null || exits.includes(b.tile)) { Object.assign(b, { mode: 'inside', tile: null, next: null, travelMs: 0, untilMs: world.timeMs + 1000 }); continue }
+      b.next = ground.get(b.tile) ?? null
+      if (b.next !== null) {
+        if (b.next % SIZE !== b.tile % SIZE) b.facing = b.next % SIZE > b.tile % SIZE ? 'east' : 'west'
+        Object.assign(b, { mode: 'walking', travelMs: 0, untilMs: 0 })
+      } else b.untilMs = world.timeMs + 1000
       continue
     }
     if (world.timeMs < b.untilMs) continue
@@ -130,7 +141,7 @@ export function advancePoultry(world: World, delta: number): void {
     b.mode = 'walking'; b.travelMs = 0; b.untilMs = 0
   }
   if (world.timeMs >= s.nextEggAtMs) {
-    const layers = s.birds.filter(b => b.kind === 'adult' && b.mode === 'pecking' && b.tile !== null && !s.eggs.some(e => e.tile === b.tile))
+    const layers = s.birds.filter(b => !bedtime && b.kind === 'adult' && b.mode === 'pecking' && b.tile !== null && !s.eggs.some(e => e.tile === b.tile))
     if (s.eggs.length < MAX_EGGS && layers.length && s.nextEggId < Number.MAX_SAFE_INTEGER) {
       const layer = layers[Math.floor(random(s) * layers.length)]
       s.eggs.push({ id: s.nextEggId++, tile: layer.tile!, laidAtMs: world.timeMs, laidBy: layer.id })

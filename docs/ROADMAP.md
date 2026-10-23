@@ -115,3 +115,7 @@ Next proposed work: larger-project priorities and yard recovery, followed by chi
 ## Sprint 16.18 — Project priorities and yard planning (completed)
 
 Bounded cost/XP priorities favour substantial projects while retaining small-project chances. Radius-six property layouts fit a bounded expanded yard; the inspector explains starter rails, prerequisites and progress. Paid work remains preserved.
+
+## Sprint 16.19 — Chicken bedtime (completed)
+
+Chickens and chicks return to the coop when Pete enters/sleeps, stay inside during his rest and resume afterward, with visible/inspectable bedtime and exact saved continuation.
