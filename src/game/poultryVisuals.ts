@@ -1,5 +1,5 @@
 import type Phaser from 'phaser'
-import { birdStepMs, EGG_COLLECT_MS, eggAt, poultryActive } from '../simulation/poultry'
+import { birdStepMs, EGG_COLLECT_MS, eggAt, poultryActive, poultryBedtime } from '../simulation/poultry'
 import type { Bird } from '../simulation/poultry'
 import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
@@ -30,6 +30,10 @@ export function drawBird(g: Phaser.GameObjects.Graphics, b: Bird, timeMs: number
 export function drawPoultry(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
   if (!poultryActive(world)) return
   const s = world.poultry!
+  if (poultryBedtime(world) && s.birds.every(b => b.tile === null)) {
+    const x = (s.coop % SIZE + .7) * tile, y = (Math.floor(s.coop / SIZE) - .2) * tile - Math.sin(world.timeMs / 900) * 2
+    if (visiblePoint(view, x, y, tile)) g.lineStyle(1.5, 0xe9db9e, .8).lineBetween(x, y, x + 5, y).lineBetween(x + 5, y, x, y + 5).lineBetween(x, y + 5, x + 5, y + 5)
+  }
   for (const egg of s.eggs) {
     if (!eggAt(world, egg.tile)) continue
     const x = (egg.tile % SIZE + .5) * tile + 5, y = (Math.floor(egg.tile / SIZE) + .5) * tile + 5

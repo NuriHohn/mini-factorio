@@ -98,3 +98,5 @@ Put away tools with Escape and click Pete to inspect his current activity, curre
 At Eco level 2, a completed garden enables repeatable mulching: Pete collects **2 supplied Wood**, works for **4 seconds**, earns **4 Eco XP** on completion and waits **60 seconds** before the next care project. His inspector shows the requirement and cooldown.
 
 Pete favours larger, rewarding projects while keeping small-project chances. His inspector explains that the first three rails precede the enclosed yard, then shows yard prerequisites and construction progress.
+
+Chickens and chicks return to their coop when Pete goes inside to sleep, stay there during his rest and come out again afterward. Inspect the coop to see how many are inside.

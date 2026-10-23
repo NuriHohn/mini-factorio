@@ -22,7 +22,7 @@ describe('cozy staged chicken coop visuals', () => {
     calls.length = 0; drawChickenCoop(g, coop, 32, .8); expect(calls.some(c => c[0] === 'fillTriangle')).toBe(true)
     const roof = calls.length; calls.length = 0; drawChickenCoop(g, coop, 32); expect(calls.length).toBeGreaterThan(roof)
     expect(PLAYER_TOOLS.some(t => t.tool === ('peteCoop' as string))).toBe(false)
-    expect(inspectionSummary({ kind: 'peteCoop', eaten: 0, collected: 0, eggs: 0, adults: 0, chicks: 0 })).toMatchObject({ name: 'Pete’s Chicken Coop', state: '0 eggs collected · 0 waiting.' })
+    expect(inspectionSummary({ kind: 'peteCoop', inside: 0, bedtime: false, eaten: 0, collected: 0, eggs: 0, adults: 0, chicks: 0 })).toMatchObject({ name: 'Pete’s Chicken Coop', state: '0 eggs collected · 0 waiting.' })
   })
   it('uses the shared hammer pose and saved simulation progress, with culling and no gameplay mutation', () => {
     const w = createBareWorld(() => .5); w.nature.wood = 80

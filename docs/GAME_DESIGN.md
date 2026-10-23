@@ -678,3 +678,9 @@ See [garden care in progress](images/pete-garden-care.png) and [completed care w
 Selection uses a bounded priority weight: up to three funded material sets multiplied by priority 1–4, derived from total construction cost plus completion XP (one tier per ten units, capped at four). Yard cost counts remaining rails. Paid work receives priority four and an existing usable commitment is retained. Every feasible small project has positive weight, so stockpiled Wood cannot make cheap repetition overwhelm larger projects. Candidate stock-set counts remain diagnostic; only the final priority weight drives the single persisted random draw.
 
 Yards now support up to 14 tiles of width/height between boundary coordinates, matching radius-six coop/campfire layouts. Unpaid, unstarted blocked yard plans can be replaced; paid or partially built work is retained. The Pete panel explains the initial three rails, prerequisites, progress, reuse and blocked/missing perimeter. Version 32 permits the expanded geometry; older save schemas retain their ten-tile bounds.
+
+### Chicken bedtime (Sprint 16.19)
+
+When peaceful Pete enters his treehouse or sleeps, chickens and chicks finish any current walking step and take existing dry coop-ground routes back inside. Pecking pauses immediately; birds already inside stay there. They resume ordinary routines after Pete wakes. Veranda rests are not sleep. No eggs are laid during bedtime; existing eggs, collection totals and chick schedules remain. Blocked/flooded ground and coop/home removal retain existing safe recovery. The inspector shows the number inside and bedtime, and a small Z marks an occupied sleeping coop. Existing bird phases/clocks persist without a new save field.
+
+See the [shared bedtime preview](images/chicken-bedtime.png).
