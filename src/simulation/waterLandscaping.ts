@@ -1,3 +1,4 @@
+import { refreshWorkshop } from './workshop'
 import { refreshGardening } from './ecoProjects'
 import { refreshCooking } from './campfire'
 import { refreshPoultry } from './poultry'
@@ -78,7 +79,7 @@ export function paintWater(world: World, from: Position, to: Position, mode: Wat
     if (decorationChanged) world.nature.decorationRevision++
     invalidateTerrain(world, changed)
     refreshPoultry(world)
-    refreshCooking(world); refreshGardening(world)
+    refreshCooking(world); refreshGardening(world); refreshWorkshop(world)
   }
   return changed.length
 }

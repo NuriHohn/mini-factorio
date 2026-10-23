@@ -1,3 +1,4 @@
+import { drawWorkshop } from './workshopVisuals'
 import { drawVegetableGarden, drawPlanting } from './ecoVisuals'
 import { drawGardenGate } from './gardenGateVisuals'
 import { drawYardCorner, yardCorner } from './yardVisuals'
@@ -28,7 +29,8 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
   if (project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
     const progress = project.elapsedMs / projectBuildMs(project)
-    if (project.kind === 'garden') drawVegetableGarden(g, { kind: 'peteGarden', x, y }, tile, progress)
+    if (project.kind === 'workshop') drawWorkshop(g, { kind: 'peteWorkshop', x, y }, tile, progress)
+    else if (project.kind === 'garden') drawVegetableGarden(g, { kind: 'peteGarden', x, y }, tile, progress)
     else if (project.kind === 'plant') drawPlanting(g, x, y, tile, progress)
     else if (project.kind === 'gate') drawGardenGate(g, { kind: 'peteGate', x, y, direction: project.direction, openMs: 0, holdUntilMs: 0 }, tile, progress)
     else if (project.kind === 'campfire') drawCampfire(g, { kind: 'peteCampfire', x, y }, tile, progress)
