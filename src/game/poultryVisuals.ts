@@ -30,6 +30,16 @@ export function drawBird(g: Phaser.GameObjects.Graphics, b: Bird, timeMs: number
 export function drawPoultry(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
   if (!poultryActive(world)) return
   const s = world.poultry!
+  if (s.cover && s.cover.stage !== 'skipped') {
+    const x = (s.coop % SIZE + .5) * tile, y = (Math.floor(s.coop / SIZE) + .5) * tile
+    if (visiblePoint(view, x, y, tile * 2)) {
+      const working = ['covering', 'uncovering'].includes(world.peace.activity)
+      const progress = working ? Math.min(1, (world.timeMs - world.peace.sinceMs) / 2000) : s.cover.stage === 'covering' ? 0 : 1
+      const width = 34 * (s.cover.stage === 'uncovering' && working ? 1 - progress : progress)
+      g.fillStyle(0x456d82, .95).fillTriangle(x - width / 2, y - 7, x, y - 21, x + width / 2, y - 7)
+      g.lineStyle(1, 0xa8bcb4).lineBetween(x - width / 2, y - 7, x + width / 2, y - 7)
+    }
+  }
   if (poultryBedtime(world) && s.birds.every(b => b.tile === null)) {
     const x = (s.coop % SIZE + .7) * tile, y = (Math.floor(s.coop / SIZE) - .2) * tile - Math.sin(world.timeMs / 900) * 2
     if (visiblePoint(view, x, y, tile)) g.lineStyle(1.5, 0xe9db9e, .8).lineBetween(x, y, x + 5, y).lineBetween(x + 5, y, x, y + 5).lineBetween(x, y + 5, x + 5, y + 5)

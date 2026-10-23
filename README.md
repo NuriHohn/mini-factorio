@@ -46,7 +46,7 @@ The bottom build toolbar starts on **Factory**, alongside **Logistics**, **Power
 
 Open **Menu (☰)** for Save & Load and a confirmed New game. **Help (?)** separates How to Play from Controls. **Overview** contains detailed stock and power values; the header shows construction Wood. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import file validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export a JSON file before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
 
-Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-34 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–33 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
+Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-36 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–35 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
 
 ## Pete’s Revenge
 
@@ -104,3 +104,6 @@ Chickens and chicks return to their coop when Pete goes inside to sleep, stay th
 Garden care grows one Eco-only chicken-feed portion (up to four stored at the garden). Pete carries one to the coop, feeds for four seconds and earns 2 Eco XP, with three minutes between meals.
 
 At Eco level 2, Pete can fell nearby fully grown trees and carry **3 Wood** to a Supply Crate after six seconds of chopping. Delivery earns **3 Eco XP**, with two minutes between harvests. Young trees remain untouched; returned Wood can fund reforestation and other Eco projects.
+
+
+Use Pause/×1/×2/×4 above the world to control the whole game's pace. After his gate, Eco level 2 Pete can build a separate chicken outdoor run, and sometimes covers the coop before resting and removes the cover afterward. See [outdoor run](docs/GAME_DESIGN.md#chicken-outdoor-run-sprint-1621), [coop cover](docs/GAME_DESIGN.md#occasional-coop-cover-sprint-1622) and [game speed](docs/GAME_DESIGN.md#game-speed-sprint-1623).

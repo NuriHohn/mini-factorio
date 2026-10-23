@@ -1,3 +1,4 @@
+import { simulationDelta, useSimulationSpeed } from '../state/simulationSpeed'
 import { drawGearPress } from './gearPressVisuals'
 import { drawExperimentTable } from './experimentVisuals'
 import { drawWorkshop } from './workshopVisuals'
@@ -530,7 +531,7 @@ export class FactoryScene extends Phaser.Scene {
     const before = this.world.timeMs
     const diagnostics = useGraphicsSettings.getState().diagnostics
     const tickStart = diagnostics ? performance.now() : 0
-    if (!loading && !skip) advanceWorld(this.world, delta)
+    if (!loading && !skip) advanceWorld(this.world, simulationDelta(delta, useSimulationSpeed.getState().speed))
     if (diagnostics && this.world.timeMs > before) this.tickCostMs = (performance.now() - tickStart) / ((this.world.timeMs - before) / 50)
     const autosave = this.saves.tick(document.hidden ? 0 : this.world.timeMs - before, this.world, this.viewState(), !loading && !skip)
     if (autosave) useGameStore.setState({ saveStatus: autosave })
@@ -592,8 +593,9 @@ export class FactoryScene extends Phaser.Scene {
       } else if (building.kind === 'peteCoop') {
         drawChickenCoop(this.machines, building, TILE)
       } else if (building.kind === 'peteFence') {
-        if (this.world.yard && yardCorner(this.world.yard, building.y * SIZE + building.x)) drawYardCorner(this.machines, building, this.world.yard, TILE)
-        else drawPeteFence(this.machines, building, TILE)
+        if (this.world.chickenRun && this.world.chickenRun.tiles.includes(building.y * SIZE + building.x) && yardCorner(this.world.chickenRun, building.y * SIZE + building.x)) drawYardCorner(this.machines, building, this.world.chickenRun, TILE)
+        else if (this.world.yard && yardCorner(this.world.yard, building.y * SIZE + building.x)) drawYardCorner(this.machines, building, this.world.yard, TILE)
+        else drawPeteFence(this.machines, building, TILE, 1, this.world.chickenRun?.tiles.includes(building.y * SIZE + building.x) ?? false)
       } else if (building.kind === 'supplyCrate') {
         drawSupplyCrate(this.machines, building, TILE)
       } else if (building.kind === 'storage') {

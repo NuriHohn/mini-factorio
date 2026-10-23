@@ -14,11 +14,14 @@ function graphics() {
 describe('secret project visuals and Wood intent', () => {
   it.each(['east', 'south'] as const)('draws %s fence construction stages with a balanced graphics stack', direction => {
     const { g, calls } = graphics(), fence: PeteFence = { kind: 'peteFence', x: 10, y: 10, direction }
-    drawPeteFence(g, fence, 32, .2); const posts = calls.filter(c => c[0] === 'fillRect').length
-    calls.length = 0; drawPeteFence(g, fence, 32, .5); expect(calls.filter(c => c[0] === 'fillRect').length).toBeGreaterThan(posts)
+    drawPeteFence(g, fence, 32, .2); const posts = calls.filter(c => c[0] === 'lineBetween').length
+    calls.length = 0; drawPeteFence(g, fence, 32, .5); expect(calls.filter(c => c[0] === 'lineBetween').length).toBeGreaterThan(posts)
     calls.length = 0; drawPeteFence(g, fence, 32)
-    expect(calls.filter(c => c[0] === 'save')).toHaveLength(1); expect(calls.filter(c => c[0] === 'restore')).toHaveLength(1)
-    if (direction === 'south') expect(calls.some(c => c[0] === 'rotateCanvas')).toBe(true)
+    expect(calls.filter(c => c[0] === 'save')).toHaveLength(0); expect(calls.filter(c => c[0] === 'restore')).toHaveLength(0)
+    expect(calls.some(c => c[0] === 'rotateCanvas')).toBe(false)
+    const uprights = calls.filter(c => c[0] === 'fillRect')
+    expect(uprights).toHaveLength(2)
+    expect(uprights.every(([, args]) => args[2] === 4 && args[3] === 20)).toBe(true)
   })
   it('culls offscreen effects, freezes the hammer pose with simulation time and never mutates state', () => {
     const w = createBareWorld(() => .5); w.nature.wood = 100

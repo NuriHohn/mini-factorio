@@ -18,6 +18,7 @@ export const PROJECT_REWARDS = {
   fence: { path: 'eco', xp: 5 },
   coop: { path: 'eco', xp: 10 },
   campfire: { path: 'eco', xp: 5 },
+  run: { path: 'eco', xp: 15 },
   yard: { path: 'eco', xp: 10 },
   gate: { path: 'eco', xp: 5 },
 } as const satisfies Record<string, XpReward>
@@ -49,7 +50,7 @@ export function rewardProject(state: Personality, id: ProjectReward): boolean {
   return true
 }
 export function completedProjects(world: World): ProjectReward[] {
-  return PROJECT_REWARD_IDS.filter(id => ({ press: world.pressProject, experiment: world.experimentProject, veranda: world.verandaProject, workshop: world.workshopProject, garden: world.gardenProject, fence: world.project, coop: world.coopProject, campfire: world.campfireProject, yard: world.yard, gate: world.gateProject })[id]?.phase === 'complete')
+  return PROJECT_REWARD_IDS.filter(id => ({ run: world.chickenRun, press: world.pressProject, experiment: world.experimentProject, veranda: world.verandaProject, workshop: world.workshopProject, garden: world.gardenProject, fence: world.project, coop: world.coopProject, campfire: world.campfireProject, yard: world.yard, gate: world.gateProject })[id]?.phase === 'complete')
 }
 export function migratePersonality(world: World): Personality {
   const state = createPersonality()

@@ -5,7 +5,7 @@ export type ProjectMaterial = Item | 'wood' | 'chickenFeed'
 export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
 export interface ProjectDefinition {
   id: ProjectReward | 'reforestation' | 'gardenCare' | 'feeding' | 'harvesting'
-  state: 'harvestProject' | 'feedingProject' | 'careProject' | 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'
+  state: 'chickenRun' | 'harvestProject' | 'feedingProject' | 'careProject' | 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'
   path: PersonalityPath
   minimumLevel: number
   primaryMaterial?: ProjectMaterial
@@ -19,6 +19,7 @@ export const PETE_PROJECTS: readonly ProjectDefinition[] = [
   { id: 'coop', state: 'coopProject', path: 'eco', minimumLevel: 1, resources: { wood: 10 }, repeatable: false, prerequisites: ['fence'] },
   { id: 'campfire', state: 'campfireProject', path: 'eco', minimumLevel: 1, resources: { wood: 5 }, repeatable: false, prerequisites: ['fence'] },
   { id: 'yard', state: 'yard', path: 'eco', minimumLevel: 1, resources: { wood: 2 }, repeatable: false, prerequisites: ['fence', 'coop', 'campfire'] },
+  { id: 'run', state: 'chickenRun', path: 'eco', minimumLevel: 2, resources: { wood: 2 }, repeatable: false, prerequisites: ['gate'] },
   { id: 'gate', state: 'gateProject', path: 'eco', minimumLevel: 1, resources: { wood: 3 }, repeatable: false, prerequisites: ['yard'] },
   { id: 'garden', state: 'gardenProject', path: 'eco', minimumLevel: 2, resources: { wood: 12 }, repeatable: false, prerequisites: [] },
   { id: 'reforestation', state: 'plantProject', path: 'eco', minimumLevel: 2, resources: { wood: 2 }, repeatable: true, prerequisites: [] },
