@@ -2,6 +2,12 @@
 
 A browser factory game built with React 19, TypeScript, Phaser 3, Zustand, Tailwind CSS 4 and Vite. Mine iron and copper, smelt plates, and assemble gears, cables and circuits through powered production chains. Graphics are procedural; gameplay requires no external API or AI service.
 
+## Play online
+
+Open [Mini-Factorio](https://nurihohn.github.io/mini-factorio/) on PC, iPhone or iPad. GitHub Pages serves the game files; the simulation runs in your browser without a backend or a running home PC. The repository is public.
+
+Saves belong to each browser/site: export from the local game and import on the online page to transfer a factory. No automatic synchronization or guaranteed offline installation is implemented.
+
 ## Start locally
 
 ```sh
@@ -113,4 +119,4 @@ Use Pause/×1/×2/×4 above the world to control the whole game's pace. After hi
 
 Inventor Pete can build a [treasure chest and flight workshop](docs/GAME_DESIGN.md#treasures-and-flight), bring nearby keepsakes home, practise with harmless crash landings at level 4 and enjoy scenic flights at level 5. Special → Playful spray lets a powered sprinkler harmlessly wet Pete, chickens or any target in range.
 
-On touch devices, drag to pan, pinch to zoom and tap to inspect. To build, tap a target and use Confirm/Cancel; routing tools use two endpoints. Tools collapses the toolbar. Mouse/keyboard controls remain available. [Hosting and portable saves](docs/DEVELOPMENT.md#portable-browser-build-and-hosting) describe playing away from home; hosting activation is still pending for the private repository.
+On touch devices, drag to pan, pinch to zoom and tap to inspect. To build, tap a target and use Confirm/Cancel; routing tools use two endpoints. Tools collapses the toolbar. Mouse/keyboard controls remain available. [Hosting and portable saves](docs/DEVELOPMENT.md#portable-browser-build-and-hosting) describe playing away from home; the public GitHub Pages site is enabled.

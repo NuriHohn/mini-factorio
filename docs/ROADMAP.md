@@ -143,6 +143,8 @@ Eco Pete selects nearby fully grown trees, chops them, physically returns three 
 - **16.25 completed:** Inventor level-2 treasure chest, five decorative keepsakes, nearby physical pickup/carry/deposit and inspectable collection.
 - **16.26 completed:** Inventor level-4 flight workshop/backpack, practice XP and early harmless crash landings.
 - **16.27 completed:** Inventor level-5 scenic flights; no cargo, search or production advantages.
-- **16.28 controls/build preparation completed; hosting activation pending:** additive pan/pinch/tap controls, explicit touch build confirmation, narrow-screen panels/toolbar, relative-path production bundle and validated downloadable build workflow. GitHub Pages is unavailable on the current private-repository plan; activating external hosting or choosing a compatible plan is still needed for an away-from-home URL. No repository visibility or billing changes have been made. Portable saves use existing export/import, without automatic sync.
+- **16.28 browser controls and public hosting completed:** additive pan/pinch/tap controls, explicit touch build confirmation, narrow-screen panels/toolbar, relative-path production bundle and validated build/deploy workflow. The repository is public and [GitHub Pages serves the playable game](https://nurihohn.github.io/mini-factorio/). Portable saves use existing export/import, without automatic sync.
+
+Mobile follow-up targets **iPhone and iPad first**, with an installable offline experience and local saves; the distribution/install method and real-device Safari acceptance remain to be specified. PC controls must remain intact.
 
 Authoritative mechanics and costs: [Game design](GAME_DESIGN.md#treasures-and-flight). Hosting setup: [Development](DEVELOPMENT.md#portable-browser-build-and-hosting). Further mobile ergonomics and real-device acceptance remain follow-ups; PC controls must remain intact.
