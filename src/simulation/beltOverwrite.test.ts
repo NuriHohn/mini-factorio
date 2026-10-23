@@ -99,7 +99,7 @@ describe('axis-aware single belt overwrite', () => {
     commitConstruction(w, p(10, 10), p(10, 10), 'belt', 'west')
     expect(b).toMatchObject({ entry: 'north', progress: .4, item: 'iron', direction: 'west' })
     const text = encodeSave(w, view), restored = decodeSave(text).world
-    expect(JSON.parse(text).version).toBe(36)
+    expect(JSON.parse(text).version).toBe(37)
     advanceWorld(w, 300); advanceWorld(restored, 300)
     expect(restored.buildings).toEqual(w.buildings)
     expect(w.buildings[409]).toMatchObject({ inventory: { iron: 1 } })

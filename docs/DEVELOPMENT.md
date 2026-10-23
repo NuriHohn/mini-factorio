@@ -235,3 +235,14 @@ Browser acceptance: inspect both fence axes/corners/openings at normal/reduced z
 
 
 Final Sprints 16.20.1–16.23 validation: **1,481 tests in 119 files**, lint and production build passed. Browser review exercised the actual speed buttons, frozen pause with normal keyboard construction/inspection, completed run/coop inspection, night cover with all five birds inside, morning removal, exact mid-removal save/load, normal/reduced zoom and both graphics modes. The final page had no browser errors; the temporary harness was removed. The existing Vite large-bundle warning remains. [Reviewed cover/run view](images/coop-cover-and-run.png).
+
+
+## Portable browser build and hosting
+
+The relative Vite base lets `dist/` run at a host root or project subpath. Serve it over HTTP(S), not by opening the HTML through `file://`. `.github/workflows/pages.yml` validates main pushes (lint/full tests/build) and uploads `playable-game`. Deploy that artifact to an approved static host; it has no backend, account system or cloud save service. Export/import transfers saves between browser origins/devices; local slots remain separate.
+
+Optional GitHub Pages deployment uses `configure-pages`, `upload-pages-artifact` and `deploy-pages`. First enable Pages with GitHub Actions as its source, then set the repository Actions variable `ENABLE_PAGES=true`. Keep that variable absent/false until hosting is available; ordinary build/artifact validation still runs. On 2026-10-23 the repository settings explicitly required an upgrade or a public repository before enabling Pages. No hosting subscription, repository visibility change or public playable URL is included. The workflow deliberately does not attempt administrative enablement with a privileged token.
+
+Sprints 16.24–16.28 regressions cover paid copper/cable/circuit pickup and completion, physical treasure carry/deposit, interruptions, early practice crashes and recovery, scenic-flight unlock/cancellation, mid-work save continuation, legacy version-36 loading and malformed paid payloads/flight clocks, harmless spray power/range/cooldown/expiry and touch tap/pan/pinch/cancel. Browser checks cover collection inspection, flight/crash rendering, exact scene save round trips, touch preview/rotation/confirmation and narrow-screen layout. Synthetic touch events and a 390-pixel iframe exercise the DOM input/layout paths; they do not replace testing Safari/Android on physical hardware.
+
+Final local validation: **1,491 tests in 122 files**, lint and production build passed. Browser acceptance also confirmed the actual playful-spray toolbar action, mouse/keyboard storage placement, belt drag and Escape/inspection, plus a 390-pixel touch layout. No browser errors were reported. Temporary review fixtures were removed. The existing Vite large-bundle warning remains; real-phone Safari/Android testing and hosted URL activation remain outstanding.

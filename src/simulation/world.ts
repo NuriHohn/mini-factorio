@@ -1,3 +1,6 @@
+import type { PeteLeisure } from './peteLeisure'
+import { refreshLeisure } from './peteLeisure'
+import type { PlayfulSpray } from './playfulSpray'
 import { refreshPress } from './gearPress'
 import { refreshExperiment } from './experiment'
 import { refreshWorkshop } from './workshop'
@@ -43,7 +46,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'petePress' | 'peteExperiment' | 'peteWorkshop' | 'peteGarden' | 'peteGate' | 'peteCampfire' | 'peteCoop' | 'peteFence' | 'supplyCrate' | 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
+export type BuildingKind = 'peteTreasure' | 'peteFlightpad' | 'petePress' | 'peteExperiment' | 'peteWorkshop' | 'peteGarden' | 'peteGate' | 'peteCampfire' | 'peteCoop' | 'peteFence' | 'supplyCrate' | 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -87,6 +90,8 @@ export interface Inserter extends BuildingPosition {
 }
 export interface PeteGate extends BuildingPosition { kind: 'peteGate'; direction: 'east' | 'south'; openMs: number; holdUntilMs: number }
 export interface PetePress extends BuildingPosition { kind: 'petePress'; plates: number; gears: number }
+export interface PeteTreasure extends BuildingPosition { kind: 'peteTreasure' }
+export interface PeteFlightpad extends BuildingPosition { kind: 'peteFlightpad' }
 export interface PeteExperiment extends BuildingPosition { kind: 'peteExperiment' }
 export interface PeteWorkshop extends BuildingPosition { kind: 'peteWorkshop' }
 export interface PeteGarden extends BuildingPosition { kind: 'peteGarden'; feed?: number }
@@ -114,8 +119,8 @@ export interface Splitter extends BuildingPosition {
 }
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
-export type Building = PetePress | PeteExperiment | PeteWorkshop | PeteGarden | PeteGate | PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { chickenRun?: Yard; harvestProject?: SecretProject; feedingProject?: SecretProject; careProject?: SecretProject; pressProject?: SecretProject; experimentProject?: SecretProject; verandaProject?: SecretProject; workshopProject?: SecretProject; gardenProject?: SecretProject; plantProject?: SecretProject; personality: Personality; gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export type Building = PeteTreasure | PeteFlightpad | PetePress | PeteExperiment | PeteWorkshop | PeteGarden | PeteGate | PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export interface World { treasureProject?: SecretProject; flightProject?: SecretProject; leisure?: PeteLeisure; playfulSpray?: PlayfulSpray; chickenRun?: Yard; harvestProject?: SecretProject; feedingProject?: SecretProject; careProject?: SecretProject; pressProject?: SecretProject; experimentProject?: SecretProject; verandaProject?: SecretProject; workshopProject?: SecretProject; gardenProject?: SecretProject; plantProject?: SecretProject; personality: Personality; gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -157,7 +162,7 @@ export function depositAt(world: World, x: number, y: number): Resource | null {
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction, bridge = false): string | null {
   if (world.chickenRun?.entrance === y * SIZE + x) return 'Keep Pete’s chicken-run entrance clear.'
   if (world.yard?.entrance === y * SIZE + x) return 'Keep Pete’s reserved yard entrance clear.'
-  if (kind === 'petePress' || kind === 'peteExperiment' || kind === 'peteWorkshop' || kind === 'peteGarden' || kind === 'peteGate' || kind === 'peteCampfire' || kind === 'peteFence' || kind === 'peteCoop') return 'Only Pete builds this secret project.'
+  if (kind === 'peteTreasure' || kind === 'peteFlightpad' || kind === 'petePress' || kind === 'peteExperiment' || kind === 'peteWorkshop' || kind === 'peteGarden' || kind === 'peteGate' || kind === 'peteCampfire' || kind === 'peteFence' || kind === 'peteCoop') return 'Only Pete builds this secret project.'
   if (kind === 'footbridge') return 'Drag a straight footbridge between two dry shores.'
   const technologyError = buildingTechnologyError(world.research, kind)
   if (technologyError) return technologyError
@@ -194,6 +199,8 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   const previousDock = dockAtSpot(world, world.peace.destination)
   let building: Building
   switch (kind) {
+    case 'peteTreasure':
+    case 'peteFlightpad':
     case 'petePress':
     case 'peteExperiment':
     case 'peteWorkshop':
@@ -231,6 +238,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   refreshSupplyVisit(world)
   refreshProject(world)
   refreshPoultry(world)
+  refreshLeisure(world)
   refreshCooking(world); refreshGardening(world); refreshWorkshop(world); refreshExperiment(world); refreshPress(world)
   if (building.kind === 'tree') world.nature.nextAttemptAtMs = Math.min(world.nature.nextAttemptAtMs ?? Infinity, building.nextReproductionAtMs)
   return true
@@ -261,6 +269,7 @@ export function removeBuilding(world: World, x: number, y: number): boolean {
   refreshSupplyVisit(world)
   refreshProject(world)
   refreshPoultry(world)
+  refreshLeisure(world)
   refreshCooking(world); refreshGardening(world); refreshWorkshop(world); refreshExperiment(world); refreshPress(world)
   world.topologyRevision++
   return true

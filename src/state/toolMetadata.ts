@@ -1,11 +1,12 @@
 import type { NatureTool } from './natureTools'
 import type { BuildingKind } from '../simulation/world'
 export type BuildTab = 'factory' | 'logistics' | 'power' | 'nature' | 'pete'
-export type ToolKind = Exclude<BuildingKind, 'prison' | 'tree' | 'peteFence' | 'peteCoop' | 'peteCampfire' | 'peteGate'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam'
+export type ToolKind = Exclude<BuildingKind, 'peteTreasure' | 'peteFlightpad' | 'prison' | 'tree' | 'peteFence' | 'peteCoop' | 'peteCampfire' | 'peteGate'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam' | 'playfulSpray'
 export type Tool = ToolKind | null
 export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code?: string; tab: BuildTab }
 export const BUILD_TABS: readonly { id: BuildTab; label: string; icon: string }[] = [{ id: 'factory', label: 'Factory', icon: '⚙' }, { id: 'logistics', label: 'Logistics', icon: '➜' }, { id: 'power', label: 'Power', icon: 'ϟ' }, { id: 'nature', label: 'Nature', icon: '♣' }, { id: 'pete', label: 'Special', icon: '✳' }]
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
+  { tool: 'playfulSpray', label: 'Playful spray', hint: 'Click any target within 3 tiles of a ready powered sprinkler · harmless', key: 'Click', icon: '💦', tab: 'pete' },
   { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec at full power · on ore', key: '1', icon: '⚙', code: 'Digit1', tab: 'factory' },
   { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜', code: 'Digit2', tab: 'logistics' },
   { tool: 'footbridge', label: 'Wooden Footbridge', hint: 'Drag shore to shore · up to 5 water tiles · 3 Wood each · NPC crossing', key: 'Drag', icon: '≋', tab: 'logistics' },
