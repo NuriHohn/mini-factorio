@@ -1,3 +1,4 @@
+import { drawGearPress } from './gearPressVisuals'
 import { drawExperimentTable } from './experimentVisuals'
 import { drawWorkshop } from './workshopVisuals'
 import { drawVegetableGarden, drawPlanting } from './ecoVisuals'
@@ -30,7 +31,8 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
   if (project.kind !== 'veranda' && project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
     const progress = project.elapsedMs / projectBuildMs(project)
-    if (project.kind === 'experiment') drawExperimentTable(g, { kind: 'peteExperiment', x, y }, tile, progress)
+    if (project.kind === 'press') drawGearPress(g, { kind: 'petePress', plates: 0, gears: 0, x, y }, tile, progress)
+    else if (project.kind === 'experiment') drawExperimentTable(g, { kind: 'peteExperiment', x, y }, tile, progress)
     else if (project.kind === 'workshop') drawWorkshop(g, { kind: 'peteWorkshop', x, y }, tile, progress)
     else if (project.kind === 'garden') drawVegetableGarden(g, { kind: 'peteGarden', x, y }, tile, progress)
     else if (project.kind === 'plant') drawPlanting(g, x, y, tile, progress)

@@ -1,3 +1,4 @@
+import { drawPressActivity } from './gearPressVisuals'
 import { drawExperimentActivity } from './experimentVisuals'
 import { drawVeranda, drawVerandaRest } from './verandaVisuals'
 import { drawWorkshopActivity } from './workshopVisuals'
@@ -106,4 +107,5 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
   drawGardenTending(g, world, tile, view)
   drawWorkshopActivity(g, world, tile, view)
   drawExperimentActivity(g, world, tile, view)
+  drawPressActivity(g, world, tile, view)
 }

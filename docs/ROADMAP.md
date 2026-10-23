@@ -6,6 +6,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Milestone | Delivered |
 | --- | --- |
+| Sprint 16.14: Industrial Pete Level 1 — Gear Press | Once-only 4-Wood/12-plate/4-gear construction, completion XP, manually operated 2-plate-to-1-gear production with bounded logistics buffers, one-minute cooldown and version-28 continuation |
 | Sprint 16.13: Inventor Pete Level 1 — Experiment Table | Autonomous copper-weighted table at 4 Wood/8 copper plates/2 iron gears and 12 seconds, once-only 10 Inventor XP, five-second experiments for 1 XP with a 60-second cooldown, protected approaches and version-27 persistence |
 | Sprint 16.12.3: Progressive Industrial-Pete outfits | Existing dominant Industrial level selects cumulative work gloves, overalls/hard hat, reinforced workwear and legendary navy/gold magnate details; all four outfit paths complete, unchanged progression/saves |
 | Sprint 16.12.2: Progressive Inventor-Pete outfits | Existing dominant Inventor level selects cumulative forehead goggles, copper tools, technical backpack/gears and legendary brass/cyan details; preserved Eco/Craftsman outfits and unchanged progression/saves |
@@ -70,7 +71,6 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Proposal | Intended scope / prerequisite |
 | --- | --- |
-| Pete: first Industrial project | One small production installation; exact outputs, material costs and sprint scope to be agreed |
 | Pete: higher-level evolution | Separately scoped Eco/Craftsman projects, animal keeping/orchard/horse/forestry, bicycle/glider/teleporters and minifactory/steam car; later active dominance bonuses and permanent mastery unlocks, all planned only |
 | Water & Industry (future scope, unassigned sprint) | Future extension: separately scoped water-related industry; no pumps, fluids or new water-powered machines are implemented in Sprint 15.0 |
 | Pete’s Cozy Home (future scope, unassigned sprint) | Future gates, treehouse decorations and further fence layouts beyond the single automatic Sprint 16.1 project; these extensions are not implemented |

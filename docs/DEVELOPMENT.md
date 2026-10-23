@@ -224,3 +224,6 @@ Final Sprint 15.2 validation: **1,044 tests in 66 files**, TypeScript, lint and 
 
 
 Sprint 16.13 coverage in `simulation/experiment.test.ts` checks copper-based selection, all-three-material atomic pickups, inaccessible/split/insufficient stock, paid construction and home/site interruptions, completion-only XP, repeat activities/cooldown, protected yard approaches, version-26 migration and strict version-27 continuation/validation. `game/experimentVisuals.test.ts` checks staged geometry, simulation-time pulse, culling and observational rendering. Browser acceptance covers construction/experiments at normal/reduced zoom, inspection and save/load without factory output.
+
+
+Sprint 16.14 coverage in `simulation/gearPress.test.ts` verifies weighted/atomic construction, paid interruption and no rebuilding, exact completion-only 2:1 production/analytics/XP, cooldowns and full buffers, home interruption, pause/partition/save-load continuation, concurrent belt input reservations, contested powered inserter output and in-flight gear preservation, approach protection, inspection, version-27 migration and strict malformed-save rejection. `game/gearPressVisuals.test.ts` covers staged geometry, culling, pause and observational animation. Browser checks cover construction, stocking, pressing, output collection, inspection and save/load at normal/reduced zoom.

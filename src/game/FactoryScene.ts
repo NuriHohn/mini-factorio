@@ -1,3 +1,4 @@
+import { drawGearPress } from './gearPressVisuals'
 import { drawExperimentTable } from './experimentVisuals'
 import { drawWorkshop } from './workshopVisuals'
 import { drawVegetableGarden } from './ecoVisuals'
@@ -577,6 +578,8 @@ export class FactoryScene extends Phaser.Scene {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
       } else if (building.kind === 'peteGate') {
         drawGardenGate(this.machines, building, TILE)
+      } else if (building.kind === 'petePress') {
+        drawGearPress(this.machines, building, TILE)
       } else if (building.kind === 'peteExperiment') {
         drawExperimentTable(this.machines, building, TILE)
       } else if (building.kind === 'peteWorkshop') {

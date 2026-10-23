@@ -28,6 +28,7 @@ function sourceCount(source: Building, inserter: Inserter, item: Item, requireRe
       const packet = source.outputs[output]
       return packet?.item === item && (!requireReady || packet.progress >= 1 - 1e-8) ? 1 : 0
     }
+    case 'petePress': return item === 'ironGear' ? source.gears : 0
     case 'storage': return source.inventory[item]
     case 'belt': return source.item === item && (!requireReady || source.progress >= 1 - 1e-8) ? 1 : 0
     case 'miner': return source.direction === inserter.direction && source.item === item ? 1 : 0
@@ -91,6 +92,7 @@ function pickup(world: World, inserter: Inserter, frame: InserterFrame): void {
       source.delivered[output]++
       break
     }
+    case 'petePress': source.gears--; break
     case 'storage': source.inventory[item]--; break
     case 'furnace':
     case 'assembler': source.output[item]--; break
