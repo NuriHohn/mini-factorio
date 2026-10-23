@@ -110,7 +110,7 @@ New planting stays 4–6 tiles from home and prefers shortest reachable walks be
 
 After the garden, Eco Pete can repeatedly mulch using 2 supplied Wood for 4 Eco XP after four seconds of work, with a 60-second cooldown and exact saved continuation.
 
-Next proposed work: larger-project priorities and yard recovery, followed by chicken bedtime/feeding and mature-tree harvesting. These are not implemented by Sprints 16.15–16.17.1.
+The follow-up priorities, expanded yard planning, chicken bedtime/feeding and mature-tree harvesting are completed in Sprints 16.18–16.20 below.
 
 ## Sprint 16.18 — Project priorities and yard planning (completed)
 
@@ -123,3 +123,7 @@ Chickens and chicks return to the coop when Pete enters/sleeps, stay inside duri
 ## Sprint 16.19.1 — Chicken feeding (completed)
 
 Garden care grows bounded Eco-only feed. Pete physically carries a portion from garden to coop, earns completion-only XP and waits three minutes before feeding again. Source, carrying, work and progress persist.
+
+## Sprint 16.20 — Mature-tree forestry (completed)
+
+Eco Pete selects nearby fully grown trees, chops them, physically returns three Wood to a supply crate and earns XP only on delivery. Interrupted work/carrying and full-crate recovery persist; returned Wood supports normal reforestation and the other Eco projects.
