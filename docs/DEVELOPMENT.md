@@ -239,6 +239,8 @@ Final Sprints 16.20.1–16.23 validation: **1,481 tests in 119 files**, lint and
 
 ## Portable browser build and hosting
 
+The hosted runner uses two test workers and a 60-second per-test runner allowance: the unchanged workshop/yard integration test exceeded 15 seconds on GitHub while the local suite passed. Assertions and committed test deadlines are unchanged.
+
 The relative Vite base lets `dist/` run at a host root or project subpath. Serve it over HTTP(S), not by opening the HTML through `file://`. `.github/workflows/pages.yml` validates main pushes (lint/full tests/build) and uploads `playable-game`. Deploy that artifact to an approved static host; it has no backend, account system or cloud save service. Export/import transfers saves between browser origins/devices; local slots remain separate.
 
 Optional GitHub Pages deployment uses `configure-pages`, `upload-pages-artifact` and `deploy-pages`. First enable Pages with GitHub Actions as its source, then set the repository Actions variable `ENABLE_PAGES=true`. Keep that variable absent/false until hosting is available; ordinary build/artifact validation still runs. On 2026-10-23 the repository settings explicitly required an upgrade or a public repository before enabling Pages. No hosting subscription, repository visibility change or public playable URL is included. The workflow deliberately does not attempt administrative enablement with a privileged token.
