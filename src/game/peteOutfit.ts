@@ -7,15 +7,19 @@ export interface PeteOutfit { path: PersonalityPath; level: OutfitLevel }
 // Derived every draw: dominance changes and restored saves need no outfit state.
 export function peteOutfit(personality: Personality): PeteOutfit {
   const path = personality.dominant
-  const level = path !== 'industrial' ? Math.max(1, Math.min(5, personality.paths[path].level)) as OutfitLevel : 1
+  const level = Math.max(1, Math.min(5, personality.paths[path].level)) as OutfitLevel
   return { path, level }
 }
 
 // Coordinates share the original standing pose origin (face at y - 4).
 // Two immediate-mode passes keep cape/glow behind Pete and clothing below his face.
-export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, selection: PeteOutfit, x: number, y: number, layer: 'back' | 'front'): void {
+export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, selection: PeteOutfit, x: number, y: number, layer: 'back' | 'front', hands?: readonly { x: number; y: number }[]): void {
   const outfit = selection.level
   if (outfit === 1) return
+  if (selection.path === 'industrial') {
+    if (layer === 'front') drawIndustrialOutfit(g, outfit, x, y, hands)
+    return
+  }
   if (selection.path === 'inventor') {
     drawInventorOutfit(g, outfit, x, y, layer)
     return
@@ -60,6 +64,41 @@ export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, selection: PeteOu
     for (const dx of [-7, -3, 1, 5]) {
       g.fillStyle(dx % 3 ? 0x719e4b : 0x9cbd64).fillTriangle(x + dx - 2, y - 22, x + dx, y - 29, x + dx + 4, y - 23)
     }
+  }
+}
+
+function drawIndustrialOutfit(g: Phaser.GameObjects.Graphics, level: OutfitLevel, x: number, y: number, hands?: readonly { x: number; y: number }[]): void {
+  const reinforced = level >= 4, legendary = level === 5
+  if (level >= 3) {
+    // Bib and straps stay below the mouth; helmet leaves the pumpkin brim exposed.
+    g.fillStyle(legendary ? 0x243e59 : 0x416f98).fillRoundedRect(x - 7, y + 4, 14, 9, 2)
+    g.lineStyle(2, 0x7099b4).lineBetween(x - 5, y + 3, x - 4, y + 8).lineBetween(x + 5, y + 3, x + 4, y + 8)
+    g.fillStyle(0xc4d2d4).fillCircle(x - 4, y + 7, .8).fillCircle(x + 4, y + 7, .8)
+    g.fillStyle(0x284963).fillRect(x - 3, y + 8, 6, 3)
+    g.fillStyle(legendary ? 0xf0c66d : 0xe3af43).fillEllipse(x, y - 14, 25, 4)
+    g.fillStyle(legendary ? 0xf0c66d : 0xf0c85b).fillRoundedRect(x - 8, y - 22, 16, 8, 5)
+    g.lineStyle(2, legendary ? 0xffe5a0 : 0xffdf83).lineBetween(x, y - 21, x, y - 15)
+    if (reinforced) {
+      g.lineStyle(1, legendary ? 0xf0c66d : 0x9fb2bd).strokeRoundedRect(x - 7, y + 4, 14, 9, 2)
+      g.fillStyle(0x253b4c).fillRect(x - 7, y + 10, 4, 3).fillRect(x + 3, y + 10, 4, 3)
+      g.fillStyle(0xe6bd5e).fillRect(x - 7, y + 5, 3, 2).fillRect(x + 4, y + 5, 3, 2)
+      g.fillStyle(0x99acb6).fillRoundedRect(x - 11, y + 2, 4, 4, 1).fillRoundedRect(x + 7, y + 2, 4, 4, 1)
+    }
+    if (legendary) {
+      // Gold-edged coat tails and a factory badge distinguish the magnate tier.
+      g.fillStyle(0x243e59).fillTriangle(x - 7, y + 4, x - 11, y + 13, x - 6, y + 12).fillTriangle(x + 7, y + 4, x + 11, y + 13, x + 6, y + 12)
+      g.lineStyle(1, 0xf0c66d).lineBetween(x - 7, y + 4, x - 10, y + 12).lineBetween(x + 7, y + 4, x + 10, y + 12)
+      g.fillStyle(0x243e59).fillRoundedRect(x - 3, y - 20, 6, 5, 1)
+      g.fillStyle(0xffe5a0).fillRect(x - 2, y - 17, 4, 1).fillRect(x - 2, y - 19, 1, 3).fillRect(x + 1, y - 18, 1, 2)
+      g.fillStyle(0xf0c66d).fillCircle(x, y + 8, 1.5)
+      g.lineStyle(1, 0xf0c66d).lineBetween(x, y + 9, x + 4, y + 10)
+    }
+  }
+  // Reaction and rowing renderers supply their hand endpoints in this pass's coordinates.
+  for (const hand of hands ?? [{ x: x - 10, y: y + 8 }, { x: x + 10, y: y + 8 }]) {
+    g.fillStyle(0xc89656).fillRoundedRect(hand.x - 2, hand.y - 2, 4, 5, 1)
+    g.fillStyle(legendary ? 0xf0c66d : 0x71543a).fillRect(hand.x - 2, hand.y - 3, 4, 2)
+    if (reinforced) g.fillStyle(0x99acb6).fillRect(hand.x - 1, hand.y, 2, 2)
   }
 }
 

@@ -46,7 +46,10 @@ export function drawRowboat(g: Phaser.GameObjects.Graphics, world: World, tile: 
     g.lineStyle(2, 0x91dd60).lineBetween(x - 3, y - 1, x - 9, y + stroke * 2).lineBetween(x + 3, y - 1, x + 9, y - stroke * 2)
     if (outfit.level > 1) {
       g.save().translateCanvas(x, y - 5).scaleCanvas(.65, .65)
-      drawPeteOutfit(g, outfit, 0, 0, 'front')
+      drawPeteOutfit(g, outfit, 0, 0, 'front', [
+        { x: -9 / .65, y: (5 + stroke * 2) / .65 },
+        { x: 9 / .65, y: (5 - stroke * 2) / .65 },
+      ])
       g.restore()
     }
   } else {
