@@ -53,7 +53,7 @@ describe('Pete’s one autonomous fence project', () => {
     for (const spot of w.project!.spots) expect(reachable.has(spot)).toBe(true)
     expect(reachable.has(19 * SIZE + 20)).toBe(true)
     supplyWood(w, 824, 6); advanceWorld(w, 180000)
-    expect(fences(w)).toHaveLength(3); expect(crate(w).wood).toBe(6)
+    expect(fences(w)).toHaveLength(3); expect(crate(w).wood).toBe(1) // The independently eligible campfire uses five Wood.
     removeBuilding(w, tiles[0] % SIZE, Math.floor(tiles[0] / SIZE)); advanceWorld(w, 30000)
     expect(fences(w)).toHaveLength(2); expect(w.project!.phase).toBe('complete')
   })
