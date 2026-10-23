@@ -1,3 +1,4 @@
+import { drawPeteOutfit, peteOutfit } from './peteOutfit'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
@@ -72,6 +73,8 @@ export function drawWetPete(g: Phaser.GameObjects.Graphics, world: World, tile: 
   const bob = running && p.next !== null ? Math.sin(world.timeMs / 45) * 3 : 0
   const hx = x + (slip ? Math.sin(t * Math.PI / 2) * 8 : 0), hy = y - 5 + (slip ? t * 10 : bob)
   g.fillStyle(0x101811, .4).fillEllipse(x, y + 11, 24, 8)
+  const outfit = peteOutfit(world.personality)
+  drawPeteOutfit(g, outfit, hx, hy + 4, 'back')
   g.fillStyle(0x523a28).fillEllipse(x, y + 6, slip ? 20 : 14, slip ? 10 : 14)
   g.fillStyle(0x253125).fillEllipse(x - 5, y + 13 - (slip ? t * 12 : bob), 8, 4).fillEllipse(x + 5, y + 13 + (slip ? -t * 12 : bob), 8, 4)
   g.lineStyle(3, 0x91dd60).lineBetween(x - 5, y + 4, x - 17, y - 3 - Math.sin(world.timeMs / 70) * 4).lineBetween(x + 5, y + 4, x + 17, y - 3 + Math.sin(world.timeMs / 70) * 4)
@@ -83,6 +86,7 @@ export function drawWetPete(g: Phaser.GameObjects.Graphics, world: World, tile: 
   g.fillStyle(0x17251b).fillCircle(hx - 4, hy, 1.5).fillCircle(hx + 4, hy, 1.5)
   g.lineStyle(2, 0x36582a).lineBetween(hx - 8, hy - 5, hx - 2, hy - 3).lineBetween(hx + 2, hy - 3, hx + 8, hy - 5)
   g.lineStyle(2, 0x36582a).strokeEllipse(hx, hy + 6, 7, running ? 6 : 3)
+  drawPeteOutfit(g, outfit, hx, hy + 4, 'front')
   for (let i = 0; i < 4; i++) {
     const fall = (world.timeMs / 500 + i / 4) % 1
     g.fillStyle(0x7fe5ff, .9).fillEllipse(hx - 8 + i * 5, hy + fall * 13, 2, 4)

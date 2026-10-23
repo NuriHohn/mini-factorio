@@ -552,6 +552,8 @@ Dominant personality starts as Eco. Each successful rewarded activity reduces al
 
 The existing treehouse inspector shows the current personality, all four levels, cumulative XP and progress toward each next level. This overview is read-only and does not affect Pete’s routines.
 
+When Eco is dominant, Pete's existing level also selects his outfit: level 1 is his original appearance; level 2 adds a small green neckerchief; level 3 adds a straw hat and green vest; level 4 adds a leafy cape and flowers; level 5 adds a leaf crown and a faint nature glow while keeping the earlier accessories and pumpkin brim. Clothing follows his normal movement, reactions and seated boat pose; tiny house-window, police-passenger and walker-cockpit portraits keep their simplified faces. Other dominant personalities use the original appearance, even with earned Eco levels. Changes and loaded saves update immediately from existing progression, without outfit unlocks or changes to XP, activities or balance. See the [tier comparison](images/eco-pete-outfits.png).
+
 
 ## Pete’s autonomous project selection
 

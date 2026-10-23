@@ -1,3 +1,4 @@
+import { drawPeteOutfit, peteOutfit } from './peteOutfit'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import { arrestVisual } from './arrestVisuals'
@@ -36,6 +37,8 @@ export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: num
   const x = (position.x + .5) * tile, y = (position.y + .5) * tile
   const bob = crying ? Math.sin(world.timeMs / 110) : pete.next !== null ? Math.sin(world.timeMs / (pete.mode === 'FLEEING' ? 55 : 95)) * 1.5 : 0
   g.fillStyle(0x101811, .4).fillEllipse(x, y + 10, 21, 8)
+  const outfit = peteOutfit(world.personality)
+  drawPeteOutfit(g, outfit, x, y + bob, 'back')
   g.fillStyle(0x523a28).fillEllipse(x, y + 6 + bob, 14, 14)
   g.fillStyle(0x253125).fillEllipse(x - 5, y + 12 + bob, 7, 4).fillEllipse(x + 5, y + 12 - bob, 7, 4)
   g.fillStyle(0x73c947).fillTriangle(x - 6, y - 8 + bob, x - 15, y - 8 + bob, x - 8, y + 1 + bob)
@@ -46,6 +49,7 @@ export function drawPete(g: Phaser.GameObjects.Graphics, world: World, tile: num
   g.fillStyle(0xfff2b6).fillCircle(x - 4, y - 4 + bob, 3).fillCircle(x + 4, y - 4 + bob, 3)
   g.fillStyle(0x17251b).fillCircle(x - 4, y - 4 + bob, 1.5).fillCircle(x + 4, y - 4 + bob, 1.5)
   g.lineStyle(1.5, 0x3e682d).lineBetween(x - 3, y + 2 + bob, x + 3, y + (crying ? 0 : 2) + bob)
+  drawPeteOutfit(g, outfit, x, y + bob, 'front')
   if (pete.mode === 'IMPRISONED') {
     g.lineStyle(2, 0x334520).lineBetween(x - 7, y - 9, x - 2, y - 6).lineBetween(x + 2, y - 6, x + 7, y - 9)
     const grimace = Math.sin(world.timeMs / 200) * 2
