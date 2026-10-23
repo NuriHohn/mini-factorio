@@ -122,7 +122,7 @@ describe('smart belt routing', () => {
     if (first.kind !== 'belt') throw Error('fixture')
     first.item = 'iron'
     const text = encodeSave(w, view), restored = decodeSave(text).world
-    expect(JSON.parse(text).version).toBe(29)
+    expect(JSON.parse(text).version).toBe(30)
     advanceWorld(w, 4500); advanceWorld(restored, 4500)
     expect(restored.buildings).toEqual(w.buildings)
     expect(w.buildings.filter(b => b?.kind === 'storage')).toEqual([expect.objectContaining({ inventory: expect.objectContaining({ iron: 1 }) })])

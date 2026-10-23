@@ -44,7 +44,7 @@ function choose(w: World) {
   expect(trySecretProject(w)).toBe(true); expect(currentProject(w)).toBe(w.pressProject)
 }
 function built() { const w = world(); fund(w); choose(w); until(w, () => w.pressProject?.phase === 'complete'); return w }
-function feed(w: World, n = 2) { for (let i = 0; i < n; i++) expect(deliverItem(gearPress(w)!, 'ironPlate', 'east')).toBe(true) }
+function feed(w: World, n = 1) { for (let i = 0; i < n; i++) expect(deliverItem(gearPress(w)!, 'ironGear', 'east')).toBe(true) }
 function working() { const w = built(); feed(w); until(w, () => w.peace.activity === 'pressing'); return w }
 
 describe('Industrial level one gear press', () => {
@@ -94,45 +94,45 @@ describe('Industrial level one gear press', () => {
     expect(restored.personality.paths.industrial.xp).toBe(10)
   })
 
-  it('converts exactly two plates into one gear only at completion and records production, consumption and XP once', () => {
+  it('recycles exactly one gear into one plate only at completion and records production, consumption and XP once', () => {
     const w = working(), press = gearPress(w)!, xp = w.personality.paths.industrial.xp
     expect(w.peace.untilMs - w.peace.sinceMs).toBe(PRESS_ACTIVITY_MS)
     expect(pressSpot(w)).toBe(w.pete.tile); expect(finishPress(w)).toBe(false)
     const restored = load(w), left = w.peace.untilMs - w.timeMs
-    advanceWorld(w, left - 50); expect(press).toMatchObject({ plates: 2, gears: 0 }); expect(w.produced.ironGear).toBe(0)
+    advanceWorld(w, left - 50); expect(press).toMatchObject({ gears: 1, plates: 0 }); expect(w.produced.ironPlate).toBe(0)
     advanceWorld(w, 50); advanceWorld(restored, left)
     expect(snapshot(restored)).toEqual(snapshot(w))
-    expect(press).toMatchObject({ plates: 0, gears: 1 }); expect(w.produced.ironGear).toBe(1)
+    expect(press).toMatchObject({ gears: 0, plates: 1 }); expect(w.produced.ironPlate).toBe(1)
     expect(w.personality.paths.industrial.xp).toBe(xp + 1)
-    expect(w.analytics.samples.at(-1)).toMatchObject({ produced: { ironGear: 1 }, consumed: { ironPlate: 2 } })
+    expect(w.analytics.samples.at(-1)).toMatchObject({ produced: { ironPlate: 1 }, consumed: { ironGear: 1 } })
     expect(finishPress(w)).toBe(false)
     expect(w.pressProject!.readyAtMs).toBe(w.timeMs + PRESS_COOLDOWN_MS)
     feed(w, 4); advanceWorld(w, PRESS_COOLDOWN_MS - 50)
-    expect(press.gears).toBe(1); expect(w.personality.paths.industrial.xp).toBe(xp + 1)
-    until(w, () => press.gears === 2)
-    expect(press.plates + press.gears * 2).toBe(6)
+    expect(press.plates).toBe(1); expect(w.personality.paths.industrial.xp).toBe(xp + 1)
+    until(w, () => press.plates === 2)
+    expect(press.gears + press.plates).toBe(5)
   })
 
   it('waits without spending input or awarding XP when empty or output-full, and resumes after collection', () => {
     const w = built(), press = gearPress(w)!
     advanceWorld(w, 90000); expect(w.personality.paths.industrial.xp).toBe(10)
-    feed(w, 4); press.gears = 4
+    feed(w, 4); press.plates = 4
     expect(pressReady(w)).toBe(false); advanceWorld(w, 90000)
-    expect(press).toMatchObject({ plates: 4, gears: 4 }); expect(w.produced.ironGear).toBe(0)
-    press.gears--; until(w, () => press.gears === 4)
-    expect(press.plates).toBe(2); expect(w.produced.ironGear).toBe(1)
+    expect(press).toMatchObject({ gears: 4, plates: 4 }); expect(w.produced.ironPlate).toBe(0)
+    press.plates--; until(w, () => press.plates === 4)
+    expect(press.gears).toBe(3); expect(w.produced.ironPlate).toBe(1)
     expect(w.personality.paths.industrial.xp).toBe(11)
   })
 
-  it('keeps all plates through home removal and cancels work without output or XP', () => {
+  it('keeps all gears through home removal and cancels work without output or XP', () => {
     const w = working(); advanceWorld(w, 2000); removeBuilding(w, 20, 20)
     const restored = load(w)
     advanceWorld(restored, 10000)
-    expect(gearPress(restored)).toMatchObject({ plates: 2, gears: 0 })
-    expect(restored.personality.paths.industrial.xp).toBe(10); expect(restored.produced.ironGear).toBe(0)
+    expect(gearPress(restored)).toMatchObject({ gears: 1, plates: 0 })
+    expect(restored.personality.paths.industrial.xp).toBe(10); expect(restored.produced.ironPlate).toBe(0)
     placeBuilding(restored, 20, 20, 'treehouse', 'east')
-    until(restored, () => gearPress(restored)!.gears === 1)
-    expect(gearPress(restored)!.plates).toBe(0)
+    until(restored, () => gearPress(restored)!.plates === 1)
+    expect(gearPress(restored)!.gears).toBe(0)
   })
 
   it('preserves exact partitioned timing and fractional remainder across mid-work saves and pause', () => {
@@ -144,25 +144,25 @@ describe('Industrial level one gear press', () => {
     expect(snapshot(restored)).toEqual(snapshot(w))
   })
 
-  it('accepts only plates within the four-slot input limit, including simultaneous belt reservations', () => {
+  it('accepts only gears within the four-slot input limit, including simultaneous belt reservations', () => {
     const w = built(), press = gearPress(w)!, x = press.x, y = press.y
     expect(deliverItem(press, 'iron', 'east')).toBe(false)
-    expect(deliverItem(press, 'ironGear', 'east')).toBe(false)
-    feed(w, 3); expect(canReceive(press, 'ironPlate', 'east', { ironPlate: 1 })).toBe(false)
+    expect(deliverItem(press, 'ironPlate', 'east')).toBe(false)
+    feed(w, 3); expect(canReceive(press, 'ironGear', 'east', { ironGear: 1 })).toBe(false)
     for (const [dx, dy, direction] of [[-1, 0, 'east'], [1, 0, 'west']] as const) {
       expect(placeBuilding(w, x + dx, y + dy, 'belt', direction)).toBe(true)
-      Object.assign(w.buildings[(y + dy) * SIZE + x + dx]!, { item: 'ironPlate', progress: 1 })
+      Object.assign(w.buildings[(y + dy) * SIZE + x + dx]!, { item: 'ironGear', progress: 1 })
     }
     advanceTransport(w, 50)
-    expect(press.plates).toBe(4)
+    expect(press.gears).toBe(4)
     const belts = [w.buildings[y * SIZE + x - 1], w.buildings[y * SIZE + x + 1]] as Belt[]
-    expect(belts.filter(b => b.item === 'ironPlate')).toHaveLength(1)
-    expect(deliverItem(press, 'ironPlate', 'south')).toBe(false)
+    expect(belts.filter(b => b.item === 'ironGear')).toHaveLength(1)
+    expect(deliverItem(press, 'ironGear', 'south')).toBe(false)
   })
 
-  it('lets powered inserters extract only gears and conserves one contested output across two arms', () => {
+  it('lets powered inserters extract only plates and conserves one contested output across two arms', () => {
     const w = built(), press = gearPress(w)!, x = press.x, y = press.y
-    press.plates = 2; press.gears = 1
+    press.gears = 2; press.plates = 1
     for (const [dx, direction] of [[-1, 'west'], [1, 'east']] as const) {
       expect(placeBuilding(w, x + dx, y, 'inserter', direction)).toBe(true)
       expect(placeBuilding(w, x + dx * 2, y, 'storage', direction)).toBe(true)
@@ -171,14 +171,14 @@ describe('Industrial level one gear press', () => {
     expect(placeBuilding(w, x, y - 2, 'generator', 'east')).toBe(true)
     const frame = createInserterFrame(w); allocatePower(w, frame); advanceInserters(w, 50, frame)
     const arms = [w.buildings[y * SIZE + x - 1], w.buildings[y * SIZE + x + 1]] as Inserter[]
-    expect(arms.filter(a => a.item === 'ironGear')).toHaveLength(1)
-    expect(press).toMatchObject({ plates: 2, gears: 0 })
+    expect(arms.filter(a => a.item === 'ironPlate')).toHaveLength(1)
+    expect(press).toMatchObject({ gears: 2, plates: 0 })
     const inFlight = load(w)
     for (const candidate of [w, inFlight]) advanceWorld(candidate, INSERTER_SWING_MS)
     expect(snapshot(inFlight)).toEqual(snapshot(w))
     const chests = [w.buildings[y * SIZE + x - 2], w.buildings[y * SIZE + x + 2]] as Storage[]
-    expect(chests.reduce((n, c) => n + c.inventory.ironGear, 0)).toBe(1)
-    expect(chests.reduce((n, c) => n + c.inventory.ironPlate, 0)).toBe(0)
+    expect(chests.reduce((n, c) => n + c.inventory.ironPlate, 0)).toBe(1)
+    expect(chests.reduce((n, c) => n + c.inventory.ironGear, 0)).toBe(0)
   })
 
   it('protects the work approach from later yard layouts and exposes useful inspection states', () => {
@@ -189,9 +189,21 @@ describe('Industrial level one gear press', () => {
     const revised = planYard(w)
     expect(revised === null || !yardBoundary(revised).includes(approach)).toBe(true)
     const press = gearPress(w)!
-    expect(inspectionSummary(inspectBuilding(w, w.pressProject!.tiles[0])!).state).toContain('Needs 2 iron plates')
-    press.gears = 4
+    expect(inspectionSummary(inspectBuilding(w, w.pressProject!.tiles[0])!).state).toContain('Needs 1 iron gear')
+    press.plates = 4
     expect(inspectionSummary(inspectBuilding(w, w.pressProject!.tiles[0])!).state).toContain('Output full')
+  })
+
+  it('preserves legacy buffers and cancels an unpaid old forward batch without output or XP', () => {
+    const w = working(), doc = snapshot(w), index = w.pressProject!.tiles[0]
+    Object.assign(doc, { version: 29 })
+    Object.assign(doc.game.buildings[index]!, { plates: 2, gears: 1 })
+    const restored = decodeSave(JSON.stringify(doc)).world
+    expect(gearPress(restored)).toMatchObject({ plates: 2, gears: 1 })
+    expect(restored.peace.activity).toBe('homeward')
+    expect(restored.personality).toEqual(w.personality)
+    expect(restored.produced).toEqual(w.produced)
+    expect(() => load(restored)).not.toThrow()
   })
 
   it('migrates version 27 and rejects orphan presses, forged buffers, paid balances and activity clocks', () => {
@@ -203,7 +215,7 @@ describe('Industrial level one gear press', () => {
       (d: SaveDocument) => { d.game.pressProject!.carriedIron = 12 },
       (d: SaveDocument) => { (d.game.buildings[d.game.pressProject!.tiles[0]] as PetePress).plates = 5 },
       (d: SaveDocument) => { (d.game.buildings[d.game.pressProject!.tiles[0]] as PetePress).gears = 5 },
-      (d: SaveDocument) => { (d.game.buildings[d.game.pressProject!.tiles[0]] as PetePress).plates = 0 },
+      (d: SaveDocument) => { (d.game.buildings[d.game.pressProject!.tiles[0]] as PetePress).gears = 0 },
       (d: SaveDocument) => { d.game.peace.untilMs += 50 },
       (d: SaveDocument) => { Object.assign(d, { version: 27 }) },
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }

@@ -509,3 +509,7 @@ Version **28** adds the optional project, strict press kind/buffers and appended
 ### Exclusive project materials (Sprint 16.15)
 
 `projectRegistry.MATERIAL_PATH` exhaustively assigns every Item and Wood to one personality path. The registry owns new construction costs; `secretProject.projectResources` also resolves explicitly marked paid legacy work. Save version 29 validates old version-specific balances before marking building-phase technical projects `legacyMaterials: true`; unpaid and completed records use current rules on subsequent saves. The marker is only accepted on paid work and is removed at completion. Cable carrying is explicit and atomic with copper pickup. Rendering uses the building phase rather than Wood to show metal-only construction.
+
+### Recycling press (Sprint 16.15.1)
+
+`gearPress.ts` commits one gear to one plate; transport reserves only gear input, inserters expose only plate output, and analytics records the exact consumption/production. Buffer field identities remain stable. Save version 30 validates legacy forward readiness with the old recipe before cancelling its still-unpaid visit; inventories, produced counters and XP are unchanged during migration. Current visits retain exact timing.
