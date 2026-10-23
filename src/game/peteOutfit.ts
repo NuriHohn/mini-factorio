@@ -1,17 +1,25 @@
 import type Phaser from 'phaser'
-import type { Personality } from '../simulation/personality'
+import type { Personality, PersonalityPath } from '../simulation/personality'
 
-export type PeteOutfit = 1 | 2 | 3 | 4 | 5
+type OutfitLevel = 1 | 2 | 3 | 4 | 5
+export interface PeteOutfit { path: PersonalityPath; level: OutfitLevel }
 
 // Derived every draw: dominance changes and restored saves need no outfit state.
 export function peteOutfit(personality: Personality): PeteOutfit {
-  return personality.dominant === 'eco' ? Math.max(1, Math.min(5, personality.paths.eco.level)) as PeteOutfit : 1
+  const path = personality.dominant
+  const level = path === 'eco' || path === 'craftsman' ? Math.max(1, Math.min(5, personality.paths[path].level)) as OutfitLevel : 1
+  return { path, level }
 }
 
 // Coordinates share the original standing pose origin (face at y - 4).
 // Two immediate-mode passes keep cape/glow behind Pete and clothing below his face.
-export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, outfit: PeteOutfit, x: number, y: number, layer: 'back' | 'front'): void {
+export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, selection: PeteOutfit, x: number, y: number, layer: 'back' | 'front'): void {
+  const outfit = selection.level
   if (outfit === 1) return
+  if (selection.path === 'craftsman') {
+    if (layer === 'front') drawCraftsmanOutfit(g, outfit, x, y)
+    return
+  }
   if (layer === 'back') {
     if (outfit === 5) {
       g.fillStyle(0xbce58b, .09).fillEllipse(x, y - 3, 34, 41)
@@ -47,6 +55,41 @@ export function drawPeteOutfit(g: Phaser.GameObjects.Graphics, outfit: PeteOutfi
     g.lineStyle(2, 0x476d37).lineBetween(x - 8, y - 22, x + 8, y - 22)
     for (const dx of [-7, -3, 1, 5]) {
       g.fillStyle(dx % 3 ? 0x719e4b : 0x9cbd64).fillTriangle(x + dx - 2, y - 22, x + dx, y - 29, x + dx + 4, y - 23)
+    }
+  }
+}
+
+function drawCraftsmanOutfit(g: Phaser.GameObjects.Graphics, level: OutfitLevel, x: number, y: number): void {
+  const master = level >= 4, legendary = level === 5
+  if (level >= 3) {
+    // The bib starts below the mouth; ears, pumpkin brim and feet stay exposed.
+    g.lineStyle(2, 0x9b754e).lineBetween(x - 5, y + 3, x - 4, y + 8).lineBetween(x + 5, y + 3, x + 4, y + 8)
+    g.fillStyle(legendary ? 0x623d32 : 0x9c6844).fillRoundedRect(x - 7, y + 4, 14, 9, 2)
+    if (master) {
+      g.lineStyle(1, legendary ? 0xe6bd68 : 0xc49a67).strokeRoundedRect(x - 7, y + 4, 14, 9, 2)
+      g.fillStyle(0x583e31).fillRect(x - 5, y + 9, 4, 3).fillRect(x + 1, y + 9, 4, 3)
+      // A short chisel and awl, held upright in the apron pockets.
+      g.fillStyle(0xa8b4ab).fillRect(x - 4, y + 7, 1, 3).fillRect(x + 3, y + 6, 1, 4)
+      g.fillStyle(0xd5ab69).fillRect(x + 2, y + 5, 3, 2)
+    }
+    if (legendary) {
+      g.fillStyle(0xe6bd68).fillCircle(x - 5, y + 5, 1).fillCircle(x + 5, y + 5, 1)
+      g.lineStyle(1, 0xe6bd68).lineBetween(x - 2, y + 5, x, y + 7).lineBetween(x, y + 7, x + 2, y + 5)
+    }
+  }
+  g.fillStyle(0x513a2b).fillRoundedRect(x - 8, y + 6, 16, 3, 1)
+  g.fillStyle(legendary ? 0xe6bd68 : 0xc4a16a).fillRect(x - 2, y + 6, 4, 3)
+  g.fillStyle(0x513a2b).fillRect(x - 1, y + 7, 2, 1)
+  if (level === 2) g.fillStyle(0x9c6844).fillRect(x - 6, y + 8, 4, 3)
+  if (level >= 3) {
+    // Secured at the hip, never swung or used as a gameplay tool.
+    g.lineStyle(2, 0xc39359).lineBetween(x + 9, y + 4, x + 9, y + 12)
+    g.fillStyle(legendary ? 0xe6bd68 : 0xa8b4ab).fillRoundedRect(x + 5, y + 2, legendary ? 10 : 8, 4, 1)
+    g.fillStyle(0x513a2b).fillRect(x + 8, y + 7, 3, 2)
+    if (legendary) {
+      g.fillStyle(0x536c6b).fillRect(x + 7, y + 3, 6, 2)
+      g.fillStyle(0xffdc8b).fillRect(x + 9, y + 3, 2, 2)
+      g.fillStyle(0xe6bd68).fillRect(x + 8, y + 11, 3, 2)
     }
   }
 }
