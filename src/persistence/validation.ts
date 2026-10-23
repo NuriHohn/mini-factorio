@@ -1,3 +1,4 @@
+import { DEVELOPMENT_KINDS } from '../simulation/peteDevelopments'
 import { PRESS_INPUT_CAPACITY, PRESS_OUTPUT_CAPACITY } from '../simulation/gearPress'
 import { GATE_HOLD_MS, GATE_OPEN_MS } from '../simulation/gardenGate'
 import { SUPPLY_CRATE_CAPACITY } from '../simulation/supplyCrate'
@@ -82,7 +83,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 38 && kind === 'peteDevelopment') invalid(path, 'development requires version 38')
   if (version < 37 && (kind === 'peteTreasure' || kind === 'peteFlightpad')) invalid(path, 'Inventor leisure structures require save version 37')
   if (version < 28 && kind === 'petePress') invalid(path, 'Pete gear presses require save version 28')
   if (version < 27 && kind === 'peteExperiment') invalid(path, 'Pete experiment tables require save version 27')
@@ -99,6 +101,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    peteDevelopment: ['development', 'gears', 'modules', 'fruit', 'readyAtMs'],
     peteTreasure: [],
     peteFlightpad: [],
     petePress: ['plates', 'gears'],
@@ -132,6 +135,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       const openMs = count(r.openMs, `${path}.openMs`, GATE_OPEN_MS), holdUntilMs = count(r.holdUntilMs, `${path}.holdUntilMs`, timeMs + GATE_HOLD_MS)
       if (openMs % 50 || holdUntilMs % 50 || (openMs > 0 && holdUntilMs === 0) || (openMs === GATE_OPEN_MS && holdUntilMs <= timeMs)) invalid(path, 'invalid gate animation clock')
       return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const), openMs, holdUntilMs }
+    }
+    case 'peteDevelopment': {
+      const development = choice(r.development, path, DEVELOPMENT_KINDS), gears = count(r.gears, path, 4), modules = count(r.modules, path, 4), fruit = count(r.fruit, path, 6), readyAtMs = count(r.readyAtMs, path, timeMs)
+      if ((development !== 'mechanic' && (gears || modules)) || (development !== 'orchard' && fruit) || readyAtMs !== 0) invalid(path, 'incompatible development stock')
+      return { ...base, kind, development, gears, modules, fruit, readyAtMs }
     }
     case 'petePress': return { ...base, kind, plates: count(r.plates, `${path}.plates`, PRESS_INPUT_CAPACITY), gears: count(r.gears, `${path}.gears`, PRESS_OUTPUT_CAPACITY) }
     case 'peteGarden': return { ...base, kind, feed: version >= 33 ? count(r.feed, `${path}.feed`, 4) : 0 }

@@ -12,6 +12,7 @@ export const ITEM_DEFINITIONS = {
   ironGear: { id: 'ironGear', label: 'Iron gear', category: 'component', visual: { shape: 'gear', color: 0xb8cbd2, highlight: 0xe6eff1, accent: 0x829da8, shade: 0x526a76 } },
   copperCable: { id: 'copperCable', label: 'Copper cable', category: 'component', visual: { shape: 'cable', color: 0xf3a35b, highlight: 0xffd392, accent: 0xdb843d, shade: 0x884521 } },
   electronicCircuit: { id: 'electronicCircuit', label: 'Electronic circuit', category: 'component', visual: { shape: 'circuit', color: 0x4dac72, highlight: 0xf8d575, accent: 0x81d5a0, shade: 0x205239 } },
+  mechanicModule: { id: 'mechanicModule', label: 'Mechanic module', category: 'component', visual: { shape: 'gear', color: 0xbca65e, highlight: 0xf2dc92, accent: 0x897039, shade: 0x514831 } },
 } as const satisfies Record<string, ItemDefinition>
 export type Item = keyof typeof ITEM_DEFINITIONS
 export type Resource = { [I in Item]: typeof ITEM_DEFINITIONS[I]['category'] extends 'ore' ? I : never }[Item]

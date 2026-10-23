@@ -177,10 +177,10 @@ describe('Inventor level one experiment', () => {
     const restored = load(w), remaining = w.peace.untilMs - w.timeMs
     advanceWorld(w, remaining - 50); expect(w.personality.paths.inventor.xp).toBe(10)
     advanceWorld(w, 50); advanceWorld(restored, remaining)
-    expect(snapshot(restored)).toEqual(snapshot(w)); expect(w.personality.paths.inventor.xp).toBe(11)
+    expect(snapshot(restored)).toEqual(snapshot(w)); expect(w.personality.paths.inventor.xp).toBe(13)
     expect(finishExperiment(w)).toBe(false); expect(w.experimentProject!.readyAtMs).toBe(w.timeMs + EXPERIMENT_COOLDOWN_MS)
-    advanceWorld(w, EXPERIMENT_COOLDOWN_MS - 50); expect(w.personality.paths.inventor.xp).toBe(11)
-    until(w, () => w.personality.paths.inventor.xp === 12)
+    advanceWorld(w, EXPERIMENT_COOLDOWN_MS - 50); expect(w.personality.paths.inventor.xp).toBe(13)
+    until(w, () => w.personality.paths.inventor.xp === 16)
     until(w, () => w.peace.activity === 'experimenting')
     const xp = w.personality.paths.inventor.xp, tile = w.experimentProject!.tiles[0]
     removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE)); expect(w.peace.activity).toBe('homeward')

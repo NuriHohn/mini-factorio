@@ -34,7 +34,7 @@ export function finishPress(world: World): boolean {
   world.produced.ironPlate++
   recordProduction(world, { ironPlate: 1 }, { ironGear: PRESS_GEARS })
   project.readyAtMs = world.timeMs + PRESS_COOLDOWN_MS
-  awardActivity(world.personality, { path: 'industrial', xp: 1 })
+  awardActivity(world.personality, { path: 'industrial', xp: 3 })
   return true
 }
 export function refreshPress(world: World): void {

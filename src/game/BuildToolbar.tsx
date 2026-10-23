@@ -5,12 +5,13 @@ import { buildingTechnologyError } from '../simulation/research'
 import { useGameStore } from '../state/gameStore'
 import { BUILD_TABS, PLAYER_TOOLS, toolMetadata } from '../state/toolMetadata'
 export function BuildToolbar() {
-  const { hintUses, peaceful, revenge, simulationTime, research, brushSize, setBrushSize, wood, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
+  const { touchActive, hintUses, peaceful, revenge, simulationTime, research, brushSize, setBrushSize, wood, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
   const error = (id: typeof PLAYER_TOOLS[number]['tool']) => buildingTechnologyError(research, id) ?? (id === 'treehouse' ? peaceful ? 'Only one treehouse · Pete already has a home.' : wood < 20 ? `20 Wood required · ${wood} available` : null : null)
   const hint = toolHintId(tool)
   const selected = tool ? toolMetadata(tool) : null
   return <section className="construction-toolbar" aria-label="Build toolbar">
     <div className="toolbar-top">
+      {touchActive && <button className="save-action" aria-label="Close tools" onClick={() => useGameStore.setState({ touchToolsOpen: false })}>×</button>}
       <div className="build-tabs" role="tablist" aria-label="Building categories">{BUILD_TABS.map(tab => <button key={tab.id} className="build-tab" role="tab" id={`tab-${tab.id}`} aria-controls="build-panel" aria-selected={buildTab === tab.id} tabIndex={buildTab === tab.id ? 0 : -1} onClick={() => setBuildTab(tab.id)} onKeyDown={event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
         event.preventDefault()

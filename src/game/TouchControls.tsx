@@ -1,9 +1,14 @@
 import { useGameStore } from '../state/gameStore'
 export function TouchControls() {
-  const { touchActive, touchToolsOpen, touchPlacement, direction, rotate } = useGameStore()
+  const { touchActive, touchToolsOpen, touchPlacement, touchAnchor, rotate, select } = useGameStore()
   if (!touchActive) return null
-  return <div className="touch-controls" role="group" aria-label="Touch controls">
-    <button className="save-action" aria-expanded={touchToolsOpen} onClick={() => useGameStore.setState({ touchToolsOpen: !touchToolsOpen })}>Tools</button>
-    {touchPlacement ? <><span>Target: {touchPlacement.end.x}, {touchPlacement.end.y}</span><button className="save-action" onClick={rotate}>Rotate · {direction}</button><button className="save-action" onClick={() => useGameStore.setState({ touchRequest: 'confirm' })}>Confirm</button><button className="save-action" onClick={() => useGameStore.setState({ touchRequest: 'cancel' })}>Cancel</button></> : <span>Drag to move · pinch to zoom · tap to inspect or choose a build target.</span>}
-  </div>
+  return <>
+    <div className="touch-controls" role="group" aria-label="Touch controls">
+      <button className="save-action" aria-expanded={touchToolsOpen} onClick={() => useGameStore.setState({ touchToolsOpen: !touchToolsOpen })}>Tools</button>
+      <button className="save-action" onClick={() => select(null)}>Inspect</button>
+    </div>
+    {touchPlacement && <div className="touch-target-actions" style={{ left: `${Math.min(60, touchAnchor.x)}%`, top: `${Math.max(0, Math.min(75, touchAnchor.y - 12))}%` }}>
+      <span>Tap target again to build</span><button className="save-action" aria-label="Rotate touch target" onClick={rotate}>↻</button><button className="save-action" aria-label="Cancel touch target" onClick={() => useGameStore.setState({ touchRequest: 'cancel' })}>×</button>
+    </div>}
+  </>
 }

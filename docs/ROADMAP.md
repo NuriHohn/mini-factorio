@@ -153,3 +153,21 @@ Authoritative mechanics and costs: [Game design](GAME_DESIGN.md#treasures-and-fl
 The original mobile planning in [PR #75](https://github.com/NuriHohn/mini-factorio/pull/75) is fulfilled by the browser controls and hosted access above. Its additive-PC-control requirement remains in force; real iPhone/iPad acceptance and installable offline play remain follow-ups.
 
 The yard-recovery and Pete ideas originally recorded in [PR #80](https://github.com/NuriHohn/mini-factorio/pull/80) are implemented in Sprints 16.20.1–16.27 above. Flight uses the agreed Inventor level-4 practices and level-5 scenic loops; coop cover remains harmless decoration, with no marten attacks. All new project inputs continue to obey the [exclusive material families](GAME_DESIGN.md).
+
+
+## Sprints 16.28.1–16.37 — Touch polish and higher developments
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.28.1 | Collapsed floating touch tools, same-target tap confirmation, compact phone header/world, contextual rotate/cancel and bottom-sheet inspection; PC controls retained |
+| 16.29 | Faster completion-only workshop/experiment/recycling progression and unlocked-first wishes with actual requirements |
+| 16.30 | Eco-3 paid orchard construction, visible trees and tending |
+| 16.31 | Physical fruit pickup/carry/storage and campfire cooking with bounded Eco stock |
+| 16.32 | Craftsman-3 bicycle, mounting, physical safe round trips and parking |
+| 16.33 | Carrying priority, bounded activity scheduling, saved work/ride interruptions and touch/desktop regression review |
+| 16.34 | Industrial-2 gear-paid mechanic workshop and staged construction |
+| 16.35 | Gear-to-module production, bounded factory transport and paid decorative hoist |
+| 16.36 | Eco-4 paid nursery seedlings, nearby planting and compatibility with mature-tree forestry |
+| 16.37 | Craftsman-4 staged treehouse annex and resting visits |
+
+Costs, durations and rewards are owned by [Game design](GAME_DESIGN.md#higher-pete-developments). **16.38 remains proposed:** installable, reliably offline iPhone/iPad play; no service worker, native packaging or automatic save synchronization is included here. Physical iPhone/iPad acceptance remains necessary beyond automated browser input/layout checks.

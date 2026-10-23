@@ -103,12 +103,12 @@ describe('Industrial level one gear press', () => {
     advanceWorld(w, 50); advanceWorld(restored, left)
     expect(snapshot(restored)).toEqual(snapshot(w))
     expect(press).toMatchObject({ gears: 0, plates: 1 }); expect(w.produced.ironPlate).toBe(1)
-    expect(w.personality.paths.industrial.xp).toBe(xp + 1)
+    expect(w.personality.paths.industrial.xp).toBe(xp + 3)
     expect(w.analytics.samples.at(-1)).toMatchObject({ produced: { ironPlate: 1 }, consumed: { ironGear: 1 } })
     expect(finishPress(w)).toBe(false)
     expect(w.pressProject!.readyAtMs).toBe(w.timeMs + PRESS_COOLDOWN_MS)
     feed(w, 4); advanceWorld(w, PRESS_COOLDOWN_MS - 50)
-    expect(press.plates).toBe(1); expect(w.personality.paths.industrial.xp).toBe(xp + 1)
+    expect(press.plates).toBe(1); expect(w.personality.paths.industrial.xp).toBe(xp + 3)
     until(w, () => press.plates === 2)
     expect(press.gears + press.plates).toBe(5)
   })
@@ -121,7 +121,7 @@ describe('Industrial level one gear press', () => {
     expect(press).toMatchObject({ gears: 4, plates: 4 }); expect(w.produced.ironPlate).toBe(0)
     press.plates--; until(w, () => press.plates === 4)
     expect(press.gears).toBe(3); expect(w.produced.ironPlate).toBe(1)
-    expect(w.personality.paths.industrial.xp).toBe(11)
+    expect(w.personality.paths.industrial.xp).toBe(13)
   })
 
   it('keeps all gears through home removal and cancels work without output or XP', () => {

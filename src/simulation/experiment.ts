@@ -14,7 +14,7 @@ export function finishExperiment(world: World): boolean {
   const project = world.experimentProject, peace = world.peace
   if (!project || peace.home === null || peace.activity !== 'experimenting' || world.timeMs < peace.untilMs || world.timeMs < project.readyAtMs! || world.pete.next !== null || experimentSpot(world) !== world.pete.tile || peace.destination !== world.pete.tile) return false
   project.readyAtMs = world.timeMs + EXPERIMENT_COOLDOWN_MS
-  awardActivity(world.personality, { path: 'inventor', xp: 1 })
+  awardActivity(world.personality, { path: 'inventor', xp: 3 })
   return true
 }
 export function refreshExperiment(world: World): void {
