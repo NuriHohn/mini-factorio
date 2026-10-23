@@ -8,14 +8,14 @@ import { neighboringTiles } from '../simulation/navigation'
 import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import * as v from './validation'
-export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire' | 'garden' | 'workshop' | 'experiment' | 'press', version = 28): SecretProject | null {
+export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire' | 'garden' | 'workshop' | 'experiment' | 'press', version = 29): SecretProject | null {
   const coop = kind !== undefined, fire = kind === 'campfire', garden = kind === 'garden', workshop = kind === 'workshop', experiment = kind === 'experiment', press = kind === 'press', technical = workshop || experiment || press
-  const buildingKind = press ? 'petePress' : experiment ? 'peteExperiment' : workshop ? 'peteWorkshop' : garden ? 'peteGarden' : fire ? 'peteCampfire' : coop ? 'peteCoop' : 'peteFence', parts = coop ? 1 : 3, wood = technical ? 4 : garden ? 12 : fire ? CAMPFIRE_WOOD : coop ? COOP_WOOD : PROJECT_WOOD, duration = press ? PRESS_BUILD_MS : technical ? WORKSHOP_BUILD_MS : garden ? 12000 : fire ? CAMPFIRE_BUILD_MS : coop ? COOP_BUILD_MS : FENCE_SEGMENT_MS
+  const buildingKind = press ? 'petePress' : experiment ? 'peteExperiment' : workshop ? 'peteWorkshop' : garden ? 'peteGarden' : fire ? 'peteCampfire' : coop ? 'peteCoop' : 'peteFence', parts = coop ? 1 : 3, wood = technical ? (version < 29 || (value as Record<string, unknown>)?.legacyMaterials === true ? 4 : 0) : garden ? 12 : fire ? CAMPFIRE_WOOD : coop ? COOP_WOOD : PROJECT_WOOD, duration = press ? PRESS_BUILD_MS : technical ? WORKSHOP_BUILD_MS : garden ? 12000 : fire ? CAMPFIRE_BUILD_MS : coop ? COOP_BUILD_MS : FENCE_SEGMENT_MS
   if (value === undefined) {
     if (world.buildings.some(b => b?.kind === buildingKind)) v.invalid('project', 'missing project state')
     return null
   }
-  const r = v.object(value, press ? 'game.pressProject' : experiment ? 'game.experimentProject' : workshop ? 'game.workshopProject' : garden ? 'game.gardenProject' : fire ? 'game.campfireProject' : coop ? 'game.coopProject' : 'game.project', ['home', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs', ...(coop ? ['kind'] : []), ...(workshop || press ? ['carriedIron'] : []), ...(press ? ['carriedGears'] : []), ...(experiment ? ['carriedCopper', 'carriedGears'] : [])], version >= 22 ? ['selected', ...(garden || technical ? ['readyAtMs'] : [])] : [])
+  const r = v.object(value, press ? 'game.pressProject' : experiment ? 'game.experimentProject' : workshop ? 'game.workshopProject' : garden ? 'game.gardenProject' : fire ? 'game.campfireProject' : coop ? 'game.coopProject' : 'game.project', ['home', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs', ...(coop ? ['kind'] : []), ...(workshop || press ? ['carriedIron'] : []), ...(press ? ['carriedGears'] : []), ...(experiment ? ['carriedCopper', 'carriedGears', ...(version >= 29 ? ['carriedCable'] : [])] : [])], version >= 22 ? ['selected', ...(technical && version >= 29 ? ['legacyMaterials'] : []), ...(garden || technical ? ['readyAtMs'] : [])] : [])
   if (coop && (r.kind !== kind || (!garden && !technical && (fire && version < 22 ? world.coopProject : world.project)?.phase !== 'complete'))) v.invalid(fire ? 'campfireProject' : 'coopProject', 'missing completed prerequisite project')
   const home = v.tile(r.home, 'project.home'), direction = v.choice(r.direction, 'project.direction', ['east', 'south'] as const)
   const tiles = v.array(r.tiles, 'project.tiles', parts).map((n, i) => v.tile(n, `project.tiles[${i}]`))
@@ -34,13 +34,19 @@ export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'ca
     const b = world.buildings[i]
     if (coop && b?.kind === buildingKind && (!tiles.slice(0, built).includes(i) || (b.kind === 'peteFence' && b.direction !== direction))) v.invalid('project', 'structure disagrees with completed work')
   }
-  const carriedIron = workshop || press ? v.count(r.carriedIron, 'project.carriedIron', press ? 12 : 8) : undefined
-  if ((workshop || press) && carriedIron !== (phase === 'building' ? press ? 12 : 8 : 0)) v.invalid('workshopProject.carriedIron', 'invalid iron accounting')
+  const legacy = version < 29 || r.legacyMaterials === true
+  if (r.legacyMaterials !== undefined && (r.legacyMaterials !== true || phase !== 'building')) v.invalid('project.legacyMaterials', 'only paid legacy work may retain old materials')
+  const ironCost = legacy ? press ? 12 : 8 : press ? 0 : 12
+  const gearCost = legacy ? press ? 4 : 2 : press ? 10 : 0
+  const carriedCable = experiment && version >= 29 ? v.count(r.carriedCable, 'project.carriedCable', 4) : undefined
+  if (experiment && (carriedCable ?? 0) !== (phase === 'building' && !legacy ? 4 : 0)) v.invalid('project.carriedCable', 'invalid cable accounting')
+  const carriedIron = workshop || press ? v.count(r.carriedIron, 'project.carriedIron', ironCost) : undefined
+  if ((workshop || press) && carriedIron !== (phase === 'building' ? ironCost : 0)) v.invalid('workshopProject.carriedIron', 'invalid iron accounting')
   const carriedCopper = experiment ? v.count(r.carriedCopper, 'experimentProject.carriedCopper', 8) : undefined
-  const carriedGears = experiment || press ? v.count(r.carriedGears, 'project.carriedGears', press ? 4 : 2) : undefined
-  if (experiment && (carriedCopper !== (phase === 'building' ? 8 : 0) || carriedGears !== (phase === 'building' ? 2 : 0))) v.invalid('experimentProject', 'invalid copper or gear accounting')
-  if (press && carriedGears !== (phase === 'building' ? 4 : 0)) v.invalid('pressProject', 'invalid gear accounting')
-  return { ...(press ? { carriedGears } : {}), ...(experiment ? { carriedCopper, carriedGears } : {}), ...(workshop || press ? { carriedIron } : {}), ...(garden || technical ? restoreEcoDeadline(r, world, press ? PRESS_COOLDOWN_MS : technical ? WORKSHOP_COOLDOWN_MS : TEND_COOLDOWN_MS) : {}), ...restoreProjectSelection(r), ...(coop ? { kind } : {}), home, direction, tiles, spots, phase, crate, built, carried, elapsedMs }
+  const carriedGears = experiment || press ? v.count(r.carriedGears, 'project.carriedGears', gearCost) : undefined
+  if (experiment && (carriedCopper !== (phase === 'building' ? 8 : 0) || carriedGears !== (phase === 'building' ? gearCost : 0))) v.invalid('experimentProject', 'invalid copper or gear accounting')
+  if (press && carriedGears !== (phase === 'building' ? gearCost : 0)) v.invalid('pressProject', 'invalid gear accounting')
+  return { ...(technical && legacy && phase === 'building' ? { legacyMaterials: true as const } : {}), ...(experiment ? { carriedCable: carriedCable ?? 0 } : {}), ...(press ? { carriedGears } : {}), ...(experiment ? { carriedCopper, carriedGears } : {}), ...(workshop || press ? { carriedIron } : {}), ...(garden || technical ? restoreEcoDeadline(r, world, press ? PRESS_COOLDOWN_MS : technical ? WORKSHOP_COOLDOWN_MS : TEND_COOLDOWN_MS) : {}), ...restoreProjectSelection(r), ...(coop ? { kind } : {}), home, direction, tiles, spots, phase, crate, built, carried, elapsedMs }
 }
 
 export function validateProjectActivity(world: World): void {

@@ -22,10 +22,10 @@ function world() {
   placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east')
   return w
 }
-function fund(w: World, wood = 4, copper = 8, tile = 824, gears = copper ? 2 : 0) {
+function fund(w: World, wood = 0, copper = 8, tile = 824, gears = copper ? 4 : 0) {
   if (wood) expect(supplyWood(w, tile, wood)).toBe(true)
   for (let i = 0; i < copper; i++) expect(deliverItem(crate(w, tile), 'copperPlate', 'east')).toBe(true)
-  for (let i = 0; i < gears; i++) expect(deliverItem(crate(w, tile), 'ironGear', 'east')).toBe(true)
+  for (let i = 0; i < gears; i++) expect(deliverItem(crate(w, tile), 'copperCable', 'east')).toBe(true)
 }
 function until(w: World, ready: () => boolean, limit = 500000) {
   for (let t = 0; t < limit && !ready(); t += 50) advanceWorld(w, 50)
@@ -43,7 +43,7 @@ function choose(w: World) {
 function built() { const w = world(); fund(w); choose(w); until(w, () => w.experimentProject?.phase === 'complete'); return w }
 describe('Inventor level one experiment', () => {
   it('requires all three materials in one reachable crate and never partially debits missing gears', () => {
-    const w = world(); fund(w, 4, 8, 824, 1)
+    const w = world(); fund(w, 0, 8, 824, 3)
     const before = snapshot(w)
     expect(projectCandidates(w).some(c => c.definition.id === 'experiment')).toBe(false)
     expect(snapshot(w)).toEqual(before)
@@ -51,14 +51,14 @@ describe('Inventor level one experiment', () => {
     expect(projectCandidates(w).some(c => c.definition.id === 'experiment')).toBe(false)
     fund(w, 0, 0, 824, 1); choose(w)
     until(w, () => w.experimentProject?.crate === 824 && w.pete.next !== null)
-    crate(w).inventory.ironGear--
+    crate(w).inventory.copperCable--
     advanceWorld(w, 50)
-    expect(crate(w).wood).toBe(4); expect(crate(w).inventory.copperPlate).toBe(8); expect(crate(w).inventory.ironGear).toBe(1)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(8); expect(crate(w).inventory.copperCable).toBe(3)
     expect(w.experimentProject).toMatchObject({ phase: 'collecting', carried: 0, carriedCopper: 0, carriedGears: 0 })
     expect(() => load(w)).not.toThrow()
     fund(w, 0, 0, 824, 1); until(w, () => w.experimentProject?.phase === 'building')
-    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(0); expect(crate(w).inventory.ironGear).toBe(0)
-    expect(w.experimentProject?.carriedGears).toBe(2)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(0); expect(crate(w).inventory.copperCable).toBe(0)
+    expect(w.experimentProject?.carriedCable).toBe(4)
   })
 
   it('keeps paid stock through home removal and cancels experiments without XP on a blocked approach', () => {
@@ -66,7 +66,7 @@ describe('Inventor level one experiment', () => {
     until(w, () => (w.experimentProject?.elapsedMs ?? 0) >= 500)
     removeBuilding(w, 20, 20)
     const restored = load(w)
-    expect(restored.experimentProject).toMatchObject({ phase: 'building', carried: 4, carriedCopper: 8, carriedGears: 2 })
+    expect(restored.experimentProject).toMatchObject({ phase: 'building', carried: 0, carriedCopper: 8, carriedCable: 4, carriedGears: 0 })
     placeBuilding(restored, 20, 20, 'treehouse', 'east')
     until(restored, () => restored.peace.activity === 'experimentward' && restored.pete.tile !== restored.experimentProject!.spots[0] && restored.pete.next !== restored.experimentProject!.spots[0])
     const xp = restored.personality.paths.inventor.xp, spot = restored.experimentProject!.spots[0]
@@ -94,7 +94,7 @@ describe('Inventor level one experiment', () => {
   })
   it('is available independently of dominant personality and responds to copper without changing Eco weights', () => {
     const w = world(), definition = PETE_PROJECTS.find(p => p.id === 'experiment')!
-    expect(definition).toMatchObject({ path: 'inventor', minimumLevel: 1, primaryMaterial: 'copperPlate', resources: { wood: 4, copperPlate: 8, ironGear: 2 }, repeatable: false })
+    expect(definition).toMatchObject({ path: 'inventor', minimumLevel: 1, primaryMaterial: 'copperPlate', resources: { copperPlate: 8, copperCable: 4 }, repeatable: false })
     expect(projectUnlocked(w, definition)).toBe(true)
     awardActivity(w.personality, { path: 'industrial', xp: 450 })
     expect(w.personality.dominant).toBe('industrial'); fund(w, 8, 8)
@@ -107,7 +107,7 @@ describe('Inventor level one experiment', () => {
     expect(projectCandidates(w).find(c => c.definition.id === 'fence')?.weight).toBe(1)
   })
   it('requires both materials together and never treats ore or inaccessible stock as plates', () => {
-    for (const [wood, plates] of [[3, 8], [4, 7]]) {
+    for (const [wood, plates] of [[0, 7], [4, 7]]) {
       const w = world(); fund(w, wood, plates)
       expect(projectCandidates(w).some(c => c.definition.id === 'experiment')).toBe(false)
       expect(crate(w).wood).toBe(wood); expect(crate(w).inventory.copperPlate).toBe(plates)
@@ -115,7 +115,7 @@ describe('Inventor level one experiment', () => {
     const w = world(); fund(w, 4, 0)
     for (let i = 0; i < 8; i++) deliverItem(crate(w), 'copper', 'east')
     expect(projectCandidates(w).some(c => c.definition.id === 'experiment')).toBe(false)
-    placeBuilding(w, 10, 10, 'supplyCrate', 'east'); fund(w, 0, 8, 410)
+    placeBuilding(w, 10, 10, 'supplyCrate', 'east'); fund(w, 0, 7, 410)
     expect(projectCandidates(w).some(c => c.definition.id === 'experiment')).toBe(false)
     fund(w, 4, 0, 410)
     for (const [x, y] of [[9, 10], [11, 10], [10, 9], [10, 11]]) placeBuilding(w, x, y, 'storage', 'east')
@@ -123,7 +123,7 @@ describe('Inventor level one experiment', () => {
   })
   it('selects a fully funded reachable source rather than a closer wood-only crate', () => {
     const w = world(); fund(w, 4, 0)
-    placeBuilding(w, 30, 20, 'supplyCrate', 'east'); fund(w, 4, 8, 830)
+    placeBuilding(w, 30, 20, 'supplyCrate', 'east'); fund(w, 0, 8, 830)
     choose(w); until(w, () => w.experimentProject?.crate === 830)
     expect(crate(w, 830).inventory.copperPlate).toBe(8)
     const restored = load(w); until(restored, () => restored.experimentProject?.phase === 'building')
@@ -134,7 +134,7 @@ describe('Inventor level one experiment', () => {
     until(w, () => w.experimentProject?.crate === 824 && w.pete.next !== null)
     crate(w).inventory.copperPlate-- // Model contention before the committed pickup arrives.
     advanceWorld(w, 50)
-    expect(crate(w).wood).toBe(4); expect(crate(w).inventory.copperPlate).toBe(7)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(7)
     expect(w.experimentProject).toMatchObject({ phase: 'collecting', carried: 0, carriedCopper: 0 })
     expect(w.personality.paths.inventor.xp).toBe(0); expect(() => load(w)).not.toThrow()
     fund(w, 0, 1); until(w, () => w.experimentProject?.phase === 'building')
@@ -142,10 +142,10 @@ describe('Inventor level one experiment', () => {
   })
   it('atomically collects four Wood, eight copper plates and two gears, builds gradually and awards ten Inventor XP once', () => {
     const w = world(); fund(w); const eco = structuredClone(w.personality.paths.eco); choose(w)
-    expect(crate(w).wood).toBe(4); expect(crate(w).inventory.copperPlate).toBe(8)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(8)
     until(w, () => (w.experimentProject?.elapsedMs ?? 0) >= 500)
     const project = w.experimentProject!, tile = project.tiles[0]
-    expect(project).toMatchObject({ carried: 4, carriedCopper: 8, carriedGears: 2 }); expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(0)
+    expect(project).toMatchObject({ carried: 0, carriedCopper: 8, carriedCable: 4, carriedGears: 0 }); expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(0)
     expect(w.personality.paths.inventor.xp).toBe(0); expect(w.buildings[tile]).toBeNull()
     const restored = load(w), remaining = 12000 - project.elapsedMs
     advanceWorld(w, remaining - 50); expect(w.buildings[tile]).toBeNull()
@@ -157,7 +157,7 @@ describe('Inventor level one experiment', () => {
     expect(placeBuilding(w, 10, 10, 'peteExperiment', 'east')).toBe(false)
     removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE)); fund(w); advanceWorld(w, 90000)
     expect(w.buildings.filter(b => b?.kind === 'peteExperiment')).toHaveLength(0)
-    expect(crate(w).wood).toBe(4); expect(crate(w).inventory.copperPlate).toBe(8); expect(w.personality.paths.inventor.xp).toBe(10)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.copperPlate).toBe(8); expect(w.personality.paths.inventor.xp).toBe(10)
   })
   it('retains both carried materials and work across blocking, interruption and Save/Load', () => {
     const w = world(); fund(w); choose(w); until(w, () => (w.experimentProject?.elapsedMs ?? 0) >= 500)
