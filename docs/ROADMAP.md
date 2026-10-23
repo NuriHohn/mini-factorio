@@ -148,3 +148,6 @@ Eco Pete selects nearby fully grown trees, chops them, physically returns three 
 Mobile follow-up targets **iPhone and iPad first**, with an installable offline experience and local saves; the distribution/install method and real-device Safari acceptance remain to be specified. PC controls must remain intact.
 
 Authoritative mechanics and costs: [Game design](GAME_DESIGN.md#treasures-and-flight). Hosting setup: [Development](DEVELOPMENT.md#portable-browser-build-and-hosting). Further mobile ergonomics and real-device acceptance remain follow-ups; PC controls must remain intact.
+
+
+The original mobile planning in [PR #75](https://github.com/NuriHohn/mini-factorio/pull/75) is fulfilled by the browser controls and hosted access above. Its additive-PC-control requirement remains in force; real iPhone/iPad acceptance and installable offline play remain follow-ups.
