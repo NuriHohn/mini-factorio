@@ -7,14 +7,14 @@ import { crateAtSpot, SUPPLY_INSPECTION_MS } from '../simulation/supplyCrate'
 import { restoreRowboat } from './rowboatValidation'
 import { BOARDING_MS } from '../simulation/rowboat'
 import { dockAtSpot, FISHING_MS } from '../simulation/fishingDock'
-import { createPeace, GIFT_MIN_MS, GIFT_MAX_MS, MAX_GIFTS, PEACE_ACTIVITIES } from '../simulation/peace'
+import { createPeace, PROJECT_CHECK_MS, GIFT_MAX_MS, MAX_GIFTS, PEACE_ACTIVITIES } from '../simulation/peace'
 import type { PeaceState } from '../simulation/peace'
 import { neighboringTiles } from '../simulation/navigation'
 import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restorePeace(value: unknown, world: World, version: number): PeaceState {
-  const s = v.object(value, 'game.peace', ['home', 'activity', 'sinceMs', 'untilMs', 'destination', 'nextGiftAtMs', 'nextId', 'seed', 'gifts', 'shutdown', 'reactionAtMs'], version >= 12 ? ['boat'] : [])
+  const s = v.object(value, 'game.peace', ['home', 'activity', 'sinceMs', 'untilMs', 'destination', 'nextGiftAtMs', 'nextId', 'seed', 'gifts', 'shutdown', 'reactionAtMs', ...(version >= 26 ? ['nextProjectCheckAtMs'] : [])], version >= 12 ? ['boat'] : [])
   const clock = (value: unknown, name: string, max: number) => {
     const n = v.count(value, `peace.${name}`, max)
     if (n % 50) v.invalid(`peace.${name}`, 'expected fixed-step clock')
@@ -29,7 +29,8 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
   const destination = s.destination === null ? null : v.tile(s.destination, 'peace.destination')
   const boat = Object.hasOwn(s, 'boat') ? restoreRowboat(s.boat, world, destination, sinceMs, untilMs) : undefined
   if ((activity === 'boating') !== !!boat) v.invalid('peace.boat', 'boat and activity disagree')
-  const nextGiftAtMs = clock(s.nextGiftAtMs, 'nextGiftAtMs', world.timeMs + GIFT_MAX_MS)
+  const nextProjectCheckAtMs = version >= 26 ? clock(s.nextProjectCheckAtMs, 'nextProjectCheckAtMs', world.timeMs + PROJECT_CHECK_MS) : 0
+  const nextGiftAtMs = clock(s.nextGiftAtMs, 'nextGiftAtMs', world.timeMs + (version >= 26 ? GIFT_MAX_MS : 600000))
   const nextId = v.number(s.nextId, 'peace.nextId', 1, Number.MAX_SAFE_INTEGER, true)
   let previous = 0
   const occupied = new Set<number>()
@@ -51,7 +52,7 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
   const reactionAtMs = s.reactionAtMs === null ? null : clock(s.reactionAtMs, 'reactionAtMs', world.timeMs)
   const p = world.pete, r = world.revenge
   if (home === null) {
-    if (activity !== 'homeward' || destination !== null || nextGiftAtMs !== 0 || gifts.length || shutdown || untilMs !== sinceMs) v.invalid('peace', 'conflict contains peaceful activity')
+    if (nextProjectCheckAtMs !== 0 || activity !== 'homeward' || destination !== null || nextGiftAtMs !== 0 || gifts.length || shutdown || untilMs !== sinceMs) v.invalid('peace', 'conflict contains peaceful activity')
     if (reactionAtMs !== null && (world.timeMs - reactionAtMs >= 4000 || reactionAtMs !== sinceMs)) v.invalid('peace.reactionAtMs', 'expired reaction')
   } else {
     if (nextGiftAtMs <= world.timeMs || reactionAtMs !== null || p.mode !== 'WANDERING' || p.water || p.prison || p.pumpkin || p.webMs || p.trappedBy !== null || p.ignoredWebs.length || p.escape !== null || p.cryingMs || p.jailbreak || world.police.car || world.police.flash || world.police.retryAtMs !== 0 || r.boss || r.blast || !['idle', 'warning'].includes(r.stage)) v.invalid('peace', 'peace overlaps hostile or custody state')
@@ -62,8 +63,9 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
     if (['dockward', 'fishing', 'boating'].includes(activity) && (!dockAtSpot(world, destination) || (['fishing', 'boating'].includes(activity) && p.tile !== destination))) v.invalid('peace.destination', 'fishing requires a valid dock approach')
     if (['crateward', 'checkingCrate'].includes(activity) && (!crateAtSpot(world, destination) || (activity === 'checkingCrate' && p.tile !== destination))) v.invalid('peace.destination', 'supply visit requires a valid crate approach')
     if (['entering', 'resting', 'verandaRest'].includes(activity) && !neighboringTiles(home).includes(p.tile)) v.invalid('peace.activity', 'home activity is away from entrance')
+    // A pending legacy 5–10-minute deadline remains valid after resaving as version 26.
     const house = world.buildings[home]!
-    if (house.kind === 'treehouse' && (sinceMs < house.placedAtMs || nextGiftAtMs < house.placedAtMs + GIFT_MIN_MS || gifts.some(g => g.atMs < house.placedAtMs || nextGiftAtMs < g.atMs + GIFT_MIN_MS) || (shutdown && shutdown.atMs !== house.placedAtMs))) v.invalid('peace', 'activity predates home')
+    if (house.kind === 'treehouse' && (sinceMs < house.placedAtMs || nextGiftAtMs < house.placedAtMs + 300000 || gifts.some(g => g.atMs < house.placedAtMs || nextGiftAtMs < g.atMs + 300000) || (shutdown && shutdown.atMs !== house.placedAtMs))) v.invalid('peace', 'activity predates home')
   }
-  return { ...createPeace(), ...(boat ? { boat } : {}), home, activity, sinceMs, untilMs, destination, nextGiftAtMs, nextId, seed: v.count(s.seed, 'peace.seed', 0xffffffff), gifts, shutdown, reactionAtMs }
+  return { ...createPeace(), ...(boat ? { boat } : {}), home, activity, sinceMs, untilMs, destination, nextProjectCheckAtMs, nextGiftAtMs, nextId, seed: v.count(s.seed, 'peace.seed', 0xffffffff), gifts, shutdown, reactionAtMs }
 }

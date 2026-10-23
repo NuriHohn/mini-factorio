@@ -74,13 +74,10 @@ describe('Pete’s chicken coop follow-up project', () => {
   it('waits for safe space, rejects water/buildings/fences/paths, and resumes blocked work without re-collecting', () => {
     const w = fenced()
     for (const i of [823, 940, 817]) placeBuilding(w, i % SIZE, Math.floor(i / SIZE), 'storage', 'east')
-    supplyWood(w, 824, 10); advanceWorld(w, 50000)
-    expect(w.coopProject).toBeNull(); expect(crate(w).wood).toBe(10)
-    removeBuilding(w, 23, 20)
-    until(w, () => chooseCoop(w))
+    supplyWood(w, 824, 10); expect(chooseCoop(w)).toBe(true)
     until(w, () => w.coopProject?.phase === 'building')
     const p = w.coopProject!, tile = p.tiles[0]
-    expect(tile).toBe(823); expect(projectSiteClear(w, p)).toBe(true)
+    expect([700, 823, 940, 817]).not.toContain(tile); expect(projectSiteClear(w, p)).toBe(true)
     w.water[tile] = true; expect(projectSiteClear(w, p)).toBe(false); w.water[tile] = false
     w.pete.path.push(tile); expect(projectSiteClear(w, p)).toBe(false); w.pete.path = []
     expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'belt', 'east')).toBe(true)
@@ -110,7 +107,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     expect(w.coopProject?.carried).toBe(0)
   })
   it('round-trips collection, carrying, hammering and completion without debit replay or timing drift', () => {
-    const w = fenced(); supplyWood(w, 824, 12)
+    const w = fenced(); supplyWood(w, 824, 12); expect(chooseCoop(w)).toBe(true)
     for (const ready of [() => w.coopProject?.phase === 'collecting', () => w.coopProject?.phase === 'building', () => (w.coopProject?.elapsedMs ?? 0) >= 4000, () => w.coopProject?.phase === 'complete']) {
       until(w, ready)
       const loaded = load(w); expect(snapshot(loaded)).toEqual(snapshot(w))
@@ -124,16 +121,26 @@ describe('Pete’s chicken coop follow-up project', () => {
     until(w, () => (w.project?.elapsedMs ?? 0) >= 500)
     for (const complete of [false, true]) {
       if (complete) until(w, () => w.project?.phase === 'complete')
-      const old = snapshot(w); Object.assign(old, { version: 15 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.project!, 'selected')
+      w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+      const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 15 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.project!, 'selected')
+      if (complete) {
+        Reflect.deleteProperty(old.game, 'coopProject'); Reflect.deleteProperty(old.game, 'campfireProject')
+        Object.assign(old.game.peace, { activity: 'homeward', destination: null, sinceMs: w.timeMs, untilMs: w.timeMs })
+      }
       const loaded = decodeSave(JSON.stringify(old)).world
       expect(loaded.project).toEqual(w.project); expect(loaded.coopProject).toBeNull()
       expect(crate(loaded).wood).toBe(crate(w).wood)
+      if (loaded.project?.phase !== 'complete') {
+        until(loaded, () => loaded.project!.built === 2 && loaded.project!.elapsedMs === 3950)
+        loaded.peace.seed = 0; advanceWorld(loaded, 50)
+      }
+      expect(chooseCoop(loaded)).toBe(true)
       until(loaded, () => loaded.coopProject?.phase === 'complete')
       expect(crate(loaded).wood).toBe(0)
     }
   })
   it('validates prerequisites, accounting, geometry and ownership strictly and offers no player placement or production', () => {
-    const w = fenced(); supplyWood(w, 824, 10)
+    const w = fenced(); supplyWood(w, 824, 10); expect(chooseCoop(w)).toBe(true)
     until(w, () => (w.coopProject?.elapsedMs ?? 0) >= 500)
     for (const mutate of [
       (d: SaveDocument) => { Reflect.deleteProperty(d.game, 'project') },

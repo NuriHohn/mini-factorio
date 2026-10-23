@@ -1,13 +1,13 @@
 import { WORKSHOP_BUILD_MS, WORKSHOP_COOLDOWN_MS } from '../simulation/workshop'
 import { TEND_COOLDOWN_MS } from '../simulation/ecoProjects'
 import { PETE_PROJECTS } from '../simulation/projectRegistry'
-import { CAMPFIRE_BUILD_MS, CAMPFIRE_WOOD, COOP_BUILD_MS, COOP_WOOD, currentProject, FENCE_SEGMENT_MS, PROJECT_WOOD } from '../simulation/secretProject'
+import { CAMPFIRE_BUILD_MS, CAMPFIRE_WOOD, COOP_BUILD_MS, COOP_WOOD, currentProject, FENCE_SEGMENT_MS, PROJECT_WOOD, PROJECT_SITE_RADIUS } from '../simulation/secretProject'
 import type { SecretProject } from '../simulation/secretProject'
 import { neighboringTiles } from '../simulation/navigation'
 import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import * as v from './validation'
-export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire' | 'garden' | 'workshop', version = 24): SecretProject | null {
+export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire' | 'garden' | 'workshop', version = 26): SecretProject | null {
   const coop = kind !== undefined, fire = kind === 'campfire', garden = kind === 'garden', workshop = kind === 'workshop'
   const buildingKind = workshop ? 'peteWorkshop' : garden ? 'peteGarden' : fire ? 'peteCampfire' : coop ? 'peteCoop' : 'peteFence', parts = coop ? 1 : 3, wood = workshop ? 4 : garden ? 12 : fire ? CAMPFIRE_WOOD : coop ? COOP_WOOD : PROJECT_WOOD, duration = workshop ? WORKSHOP_BUILD_MS : garden ? 12000 : fire ? CAMPFIRE_BUILD_MS : coop ? COOP_BUILD_MS : FENCE_SEGMENT_MS
   if (value === undefined) {
@@ -21,7 +21,9 @@ export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'ca
   const spots = v.array(r.spots, 'project.spots', parts).map((n, i) => v.tile(n, `project.spots[${i}]`))
   const cx = tiles[coop ? 0 : 1] % SIZE, cy = Math.floor(tiles[coop ? 0 : 1] / SIZE), hx = home % SIZE, hy = Math.floor(home / SIZE)
   const dx = Math.sign(cx - hx), dy = Math.sign(cy - hy), step = direction === 'east' ? 1 : SIZE
-  if ((direction === 'east' ? cx !== hx || (garden || workshop ? Math.abs(cy - hy) < 2 || Math.abs(cy - hy) > (workshop ? 6 : 5) : Math.abs(cy - hy) !== 3) : cy !== hy || (garden || workshop ? Math.abs(cx - hx) < 2 || Math.abs(cx - hx) > (workshop ? 6 : 5) : Math.abs(cx - hx) !== 3)) || tiles.some((n, i) => n !== tiles[coop ? 0 : 1] + (i - (parts - 1) / 2) * step || !neighboringTiles(n).includes(spots[i]) || spots[i] !== n - dy * SIZE - dx) || new Set(tiles).size !== parts || (direction === 'east' && tiles.some(n => Math.floor(n / SIZE) !== cy))) v.invalid('project.tiles', 'invalid compact project geometry')
+  const expanded = version >= 26 && (kind === 'coop' || kind === 'campfire')
+  const invalidGeometry = expanded ? Math.max(Math.abs(cx - hx), Math.abs(cy - hy)) < 2 || Math.max(Math.abs(cx - hx), Math.abs(cy - hy)) > PROJECT_SITE_RADIUS || !neighboringTiles(tiles[0]).includes(spots[0]) : (direction === 'east' ? cx !== hx || (garden || workshop ? Math.abs(cy - hy) < 2 || Math.abs(cy - hy) > (workshop ? 6 : 5) : Math.abs(cy - hy) !== 3) : cy !== hy || (garden || workshop ? Math.abs(cx - hx) < 2 || Math.abs(cx - hx) > (workshop ? 6 : 5) : Math.abs(cx - hx) !== 3)) || tiles.some((n, i) => n !== tiles[coop ? 0 : 1] + (i - (parts - 1) / 2) * step || !neighboringTiles(n).includes(spots[i]) || spots[i] !== n - dy * SIZE - dx) || new Set(tiles).size !== parts || (direction === 'east' && tiles.some(n => Math.floor(n / SIZE) !== cy))
+  if (invalidGeometry) v.invalid('project.tiles', 'invalid compact project geometry')
   const phase = v.choice(r.phase, 'project.phase', ['collecting', 'building', 'complete'] as const)
   const built = v.count(r.built, 'project.built', parts), carried = v.count(r.carried, 'project.carried', wood)
   const elapsedMs = v.count(r.elapsedMs, 'project.elapsedMs', duration - 50), crate = r.crate === null ? null : v.tile(r.crate, 'project.crate')

@@ -31,7 +31,8 @@ describe('coop chickens, eggs and chicks', () => {
     const w = world(); expect(w.poultry?.birds).toHaveLength(3)
     expect(w.poultry?.birds.every(b => b.kind === 'adult' && b.mode === 'inside')).toBe(true)
     expect(w.buildings[824]).toMatchObject({ wood: 0 })
-    const legacy = snapshot(w); Object.assign(legacy, { version: 16 }); Reflect.deleteProperty(legacy.game, 'personality'); Reflect.deleteProperty(legacy.game, 'poultry'); Reflect.deleteProperty(legacy.game, 'campfireProject')
+    w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const legacy = snapshot(w); Reflect.deleteProperty(legacy.game.peace, 'nextProjectCheckAtMs'); Object.assign(legacy, { version: 16 }); Reflect.deleteProperty(legacy.game, 'personality'); Reflect.deleteProperty(legacy.game, 'poultry'); Reflect.deleteProperty(legacy.game, 'campfireProject')
     const restored = decodeSave(JSON.stringify(legacy)).world
     expect(restored.poultry).toBeNull(); expect(restored.coopProject).toEqual(w.coopProject)
     advanceWorld(restored, 50); expect(restored.poultry?.birds).toHaveLength(3)

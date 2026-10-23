@@ -54,9 +54,9 @@ it('occasionally boards, rows smoothly on water and returns to the dock before r
   }
   expect(phases).toEqual(new Set(['rowing', 'landing']))
   expect(visited.size).toBeGreaterThan(3)
-  expect(w.peace.boat).toBeUndefined(); expect(w.peace.activity).toBe('homeward')
+  expect(w.peace.boat).toBeUndefined(); expect(w.peace.activity).toBe('walking')
   expect({ wood: w.nature.wood, mined: w.mined, produced: w.produced }).toEqual(economy)
-  advanceWorld(w, 5000); expect(['entering', 'resting']).toContain(w.peace.activity)
+  advanceWorld(w, 5000); expect(['walking', 'waving', 'flowers']).toContain(w.peace.activity)
 })
 it('keeps fishing as an alternative instead of launching at every eligible visit', () => {
   const w = boatWorld(1)
@@ -71,7 +71,8 @@ it('skips tiny/disconnected water without consuming another routine choice', () 
   expect(planRowboat(w, w.buildings[940] as FishingDock)).toBeNull()
   for (let i = 0; i < 400 && w.peace.activity !== 'fishing'; i++) advanceWorld(w, 50)
   expect(w.peace.activity).toBe('fishing')
-  expect(w.peace.seed).toBe((Math.imul(1664525, 8) + 1013904223) >>> 0)
+  const afterRestChoice = (Math.imul(1664525, 8) + 1013904223) >>> 0
+  expect(w.peace.seed).toBe((Math.imul(1664525, afterRestChoice) + 1013904223) >>> 0) // Fishing choice only; no boat draw.
 })
 it('keeps a map-edge water route in bounds and never connects across row wrapping', () => {
   const w = createBareWorld(() => .5)
@@ -124,7 +125,8 @@ it('loads legacy version-11 peaceful activity unchanged', () => {
   const w = boatWorld(1)
   for (let i = 0; i < 400 && w.peace.activity !== 'fishing'; i++) advanceWorld(w, 50)
   expect(w.peace.activity).toBe('fishing')
-  const legacy = JSON.parse(encodeSave(w, view)); legacy.version = 11; delete legacy.game.personality
+  w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+  const legacy = JSON.parse(encodeSave(w, view)); legacy.version = 11; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
   const loaded = decodeSave(JSON.stringify(legacy)).world
   expect(loaded.peace).toEqual(w.peace)
   advanceWorld(w, 30000); advanceWorld(loaded, 30000)

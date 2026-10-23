@@ -4,7 +4,7 @@ import { gardenSpot, refreshGardening, TEND_MS, TEND_COOLDOWN_MS } from './ecoPr
 import { preparePeteGate } from './gardenGate'
 import { CAMPFIRE_HAPPY_MS, COOKING_MS, finishCooking, reachableCampfire, refreshCooking } from './campfire'
 import { collectEgg, eggAt, EGG_COLLECT_MS, reachableEgg, refreshPoultry } from './poultry'
-import { advanceSecretProject, trySecretProject } from './secretProject'
+import { advanceSecretProject, currentProject, trySecretProject } from './secretProject'
 import { crateAtSpot, reachableCrateSpot, SUPPLY_INSPECTION_MS } from './supplyCrate'
 import { BOARDING_MS, moveRowboat, planRowboat, rowboatValid } from './rowboat'
 import type { RowboatTrip } from './rowboat'
@@ -16,8 +16,9 @@ import { SIZE } from './world'
 import type { FishingDock, Position, World } from './world'
 
 export const TREEHOUSE_WOOD = 20
-export const GIFT_MIN_MS = 300000
-export const GIFT_MAX_MS = 600000
+export const GIFT_MIN_MS = 900000
+export const GIFT_MAX_MS = 1500000
+export const PROJECT_CHECK_MS = 5000
 export const MAX_GIFTS = 3
 export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
@@ -29,6 +30,7 @@ export interface PeaceState {
   sinceMs: number
   untilMs: number
   destination: number | null
+  nextProjectCheckAtMs: number
   nextGiftAtMs: number
   nextId: number
   seed: number
@@ -37,7 +39,7 @@ export interface PeaceState {
   reactionAtMs: number | null
 }
 export function createPeace(): PeaceState {
-  return { home: null, activity: 'homeward', sinceMs: 0, untilMs: 0, destination: null, nextGiftAtMs: 0, nextId: 1, seed: 0x686f6d65, gifts: [], shutdown: null, reactionAtMs: null }
+  return { home: null, activity: 'homeward', sinceMs: 0, untilMs: 0, destination: null, nextProjectCheckAtMs: 0, nextGiftAtMs: 0, nextId: 1, seed: 0x686f6d65, gifts: [], shutdown: null, reactionAtMs: null }
 }
 export function peaceful(world: World): boolean { return world.peace.home !== null }
 function random(world: World): number {
@@ -67,6 +69,7 @@ export function beginPeace(world: World, home: number): void {
   if (peaceful(world) || world.buildings[home]?.kind !== 'treehouse') return
   const r = world.revenge
   world.peace.home = home
+  world.peace.nextProjectCheckAtMs = 0
   if (r.boss) {
     world.peace.shutdown = { position: { x: r.boss.x, y: r.boss.y }, atMs: world.timeMs }
     world.pete.tile = r.boss.tile // Emerge from the walker, not Pete's frozen pre-flight tile.
@@ -82,7 +85,7 @@ export function beginPeace(world: World, home: number): void {
 export function endPeace(world: World): void {
   if (!peaceful(world)) return
   delete world.peace.boat
-  Object.assign(world.peace, { home: null, gifts: [], nextGiftAtMs: 0, shutdown: null, reactionAtMs: world.timeMs })
+  Object.assign(world.peace, { home: null, gifts: [], nextProjectCheckAtMs: 0, nextGiftAtMs: 0, shutdown: null, reactionAtMs: world.timeMs })
   resetPete(world)
   activity(world, 'homeward')
   if (world.revenge.stage === 'warning') world.revenge.untilMs = world.timeMs + WARNING_MS
@@ -180,6 +183,31 @@ export function refreshSupplyVisit(world: World): void {
   Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
   activity(world, 'homeward')
 }
+function tryConstruction(world: World): boolean {
+  if (world.timeMs < world.peace.nextProjectCheckAtMs) return false
+  world.peace.nextProjectCheckAtMs = world.timeMs + PROJECT_CHECK_MS
+  return trySecretProject(world)
+}
+function nextActivity(world: World): void {
+  if (tryConstruction(world)) return
+  if (random(world) < .2) { activity(world, 'homeward'); return }
+  const workshop = workshopSpot(world)
+  if (workshop !== null && world.timeMs >= world.workshopProject!.readyAtMs! && random(world) < .25) { activity(world, 'workshopward', 0, workshop); return }
+  const garden = gardenSpot(world)
+  if (garden !== null && world.timeMs >= (world.gardenProject?.readyAtMs ?? 0) && random(world) < .25) { world.gardenProject!.readyAtMs = world.timeMs + TEND_COOLDOWN_MS; activity(world, 'gardenward', 0, garden); return }
+  const fire = reachableCampfire(world)
+  if (fire !== null && random(world) < 1 / 3) { activity(world, 'campfireward', 0, fire); return }
+  const egg = reachableEgg(world)
+  if (egg !== null && random(world) < .5) { activity(world, 'eggward', 0, egg); return }
+  const p = world.pete
+  const spot = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableFishingSpot(world) : null
+  if (spot !== null && random(world) < .5) activity(world, 'dockward', 0, spot)
+  else {
+    const crate = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableCrateSpot(world) : null
+    if (crate !== null && random(world) < 1 / 3) activity(world, 'crateward', 0, crate)
+    else activity(world, 'walking')
+  }
+}
 export function advancePeace(world: World, delta: number): void {
   const s = world.peace, p = world.pete
   if (s.shutdown && world.timeMs - s.shutdown.atMs >= 6000) s.shutdown = null
@@ -192,41 +220,33 @@ export function advancePeace(world: World, delta: number): void {
   refreshPoultry(world)
   refreshCooking(world)
   if (world.timeMs >= s.nextGiftAtMs) { spawnGift(world); scheduleGift(world) }
-  if (s.activity === 'project') { advanceSecretProject(world, delta); return }
+  if (s.activity === 'project') {
+    const project = currentProject(world)
+    advanceSecretProject(world, delta)
+    if (project?.phase === 'complete') { s.nextProjectCheckAtMs = world.timeMs; nextActivity(world) }
+    return
+  }
+  // Only pre-empt cosmetic work at a stationary tile; committed activities finish normally.
+  if (p.next === null && ['homeward', 'walking', 'resting', 'verandaRest', 'waving', 'flowers'].includes(s.activity) && tryConstruction(world)) return
   if (s.activity === 'boating' && s.boat) {
     const boat = s.boat
     if (boat.phase === 'rowing') {
       if (moveRowboat(boat, delta)) { boat.phase = 'landing'; activity(world, 'boating', BOARDING_MS, s.destination) }
     } else if (world.timeMs >= s.untilMs) {
       if (boat.phase === 'boarding') { boat.phase = 'rowing'; activity(world, 'boating', 0, s.destination) }
-      else { delete s.boat; activity(world, 'homeward') }
+      else { delete s.boat; nextActivity(world) }
     }
   } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward' || s.activity === 'workshopward') {
     if (p.next !== null && (!walkableTile(world, p.next))) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
-    if (s.activity === 'hammering') { finishWorkshop(world); activity(world, 'homeward') }
+    if (s.activity === 'hammering') { finishWorkshop(world); nextActivity(world) }
     else if (s.activity === 'cooking') { if (finishCooking(world)) activity(world, 'campfireHappy', CAMPFIRE_HAPPY_MS); else activity(world, 'homeward') }
-    else if (s.activity === 'collectingEgg') { collectEgg(world); activity(world, 'homeward') }
+    else if (s.activity === 'collectingEgg') { collectEgg(world); nextActivity(world) }
     else if (s.activity === 'entering') activity(world, hasVeranda(world) && random(world) < .25 ? 'verandaRest' : 'resting', VERANDA_REST_MS)
     else if (s.activity === 'resting' || s.activity === 'verandaRest') {
-      if (trySecretProject(world)) return
-      const workshop = workshopSpot(world)
-      if (workshop !== null && world.timeMs >= world.workshopProject!.readyAtMs! && random(world) < .25) { activity(world, 'workshopward', 0, workshop); return }
-      const garden = gardenSpot(world)
-      if (garden !== null && world.timeMs >= (world.gardenProject?.readyAtMs ?? 0) && random(world) < .25) { world.gardenProject!.readyAtMs = world.timeMs + TEND_COOLDOWN_MS; activity(world, 'gardenward', 0, garden); return }
-      const fire = reachableCampfire(world)
-      if (fire !== null && random(world) < 1 / 3) { activity(world, 'campfireward', 0, fire); return }
-      const egg = reachableEgg(world)
-      if (egg !== null && random(world) < .5) { activity(world, 'eggward', 0, egg); return }
-      const spot = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableFishingSpot(world) : null
-      if (spot !== null && random(world) < .5) activity(world, 'dockward', 0, spot)
-      else {
-        const crate = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableCrateSpot(world) : null
-        if (crate !== null && random(world) < 1 / 3) activity(world, 'crateward', 0, crate)
-        else activity(world, 'walking')
-      }
+      nextActivity(world)
     }
-    else activity(world, 'homeward')
+    else nextActivity(world)
   }
 }

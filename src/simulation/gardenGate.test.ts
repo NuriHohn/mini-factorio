@@ -1,3 +1,5 @@
+import { currentProject, projectCandidates, trySecretProject } from './secretProject'
+import { planYard } from './yard'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createBareWorld, ecoProjectWood } from './testFixtures'
 import { placeBuilding, placementError, removeBuilding, SIZE } from './world'
@@ -21,13 +23,24 @@ beforeAll(() => {
   template = createBareWorld(() => .5); template.nature.wood = 500
   placeBuilding(template, 20, 20, 'treehouse', 'east'); placeBuilding(template, 24, 20, 'supplyCrate', 'east'); supplyWood(template, 824, 21)
   until(template, () => template.campfireProject?.phase === 'complete')
-  supplyWood(template, 824, 100); until(template, () => template.yard?.phase === 'complete')
-  // The yard's exact cost is covered separately; keep this fixture unfunded for gate decisions.
-  const stock = template.buildings[824] as SupplyCrate; stock.wood = 0
+  supplyWood(template, 824, planYard(template)!.tiles.length * 2)
+  chooseProject(template, 'yard'); until(template, () => template.yard?.phase === 'complete')
+  expect((template.buildings[824] as SupplyCrate).wood).toBe(0)
 })
+// Select the project under test without assuming a particular weighted RNG history.
+function chooseProject(w: World, id: string): void {
+  const cs = projectCandidates(w), index = cs.findIndex(c => c.definition.id === id)
+  expect(index).toBeGreaterThanOrEqual(0)
+  const total = cs.reduce((sum, c) => sum + c.weight, 0), low = cs.slice(0, index).reduce((sum, c) => sum + c.weight, 0) / total, high = low + cs[index].weight / total
+  for (let seed = 0; seed < 100000; seed++) {
+    const r = ((Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296
+    if (r >= low && r < high) { w.peace.seed = seed; break }
+  }
+  expect(trySecretProject(w)).toBe(true); expect(currentProject(w)).toBe(w[cs[index].definition.state])
+}
 const world = () => structuredClone(template)
 const crate = (w: World) => w.buildings[824] as SupplyCrate
-function gate() { const w = world(); supplyWood(w, 824, 3); until(w, () => w.gateProject?.phase === 'complete'); return w }
+function gate() { const w = world(); supplyWood(w, 824, 3); chooseProject(w, 'gate'); until(w, () => w.gateProject?.phase === 'complete'); return w }
 function route(w: World, target: number): void {
   const p = w.pete
   Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
@@ -97,7 +110,7 @@ describe('Pete’s autonomous garden gate', () => {
     expect(w.poultry!.birds).toHaveLength(5)
   })
   it('retains carried Wood across blocked construction, missing source and peace interruptions', () => {
-    const w = world(); supplyWood(w, 824, 3); until(w, () => w.gateProject?.phase === 'building')
+    const w = world(); supplyWood(w, 824, 3); chooseProject(w, 'gate'); until(w, () => w.gateProject?.phase === 'building')
     const p = w.gateProject!, spot = p.spots[0]
     // If already at work, interrupt via home; otherwise temporarily block the approach.
     if (w.pete.tile !== spot && w.pete.next !== spot) {
@@ -140,8 +153,9 @@ describe('Pete’s autonomous garden gate', () => {
     expect(() => load(w)).not.toThrow()
   })
   it('migrates version-19 yard/flock state exactly and rejects malformed gate state or clocks', () => {
-    const legacy = world(), old = snapshot(legacy); Object.assign(old, { version: 19 }); Reflect.deleteProperty(old.game, 'personality')
-    Reflect.deleteProperty(old.game, 'plantProject')
+    const legacy = world(); legacy.peace.nextGiftAtMs = Math.min(legacy.peace.nextGiftAtMs, legacy.timeMs + 600000)
+    const old = snapshot(legacy); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 19 }); Reflect.deleteProperty(old.game, 'personality')
+    for (const state of ['gateProject', 'gardenProject', 'plantProject']) Reflect.deleteProperty(old.game, state)
     const loaded = decodeSave(JSON.stringify(old)).world
     expect(loaded.gateProject).toBeNull(); expect(loaded.yard).toEqual(legacy.yard); expect(loaded.poultry).toEqual(legacy.poultry)
     const w = gate(), entry = w.yard!.entrance

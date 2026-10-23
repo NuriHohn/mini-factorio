@@ -1,3 +1,4 @@
+import { constructionHint } from '../simulation/secretProject'
 import { toolHintId } from './toolHints'
 import type { HintId } from './toolHints'
 import type { UiPanel } from './uiMetadata'
@@ -37,6 +38,7 @@ interface State {
   togglePanel: (panel: UiPanel) => void
   closePanel: () => void
   peaceful: boolean
+  peteConstructionHint: string
   peaceActivity: string
   gifts: number
   wood: number
@@ -95,7 +97,7 @@ export const useGameStore = create<State>((set, get) => ({
   uiPanel: null,
   togglePanel: panel => set(state => ({ uiPanel: state.uiPanel === panel ? null : panel, researchOpen: false, analyticsOpen: false })),
   closePanel: () => set({ uiPanel: null }),
-  peaceful: false, peaceActivity: 'homeward', gifts: 0, wood: 0, brushSize: 3,
+  peaceful: false, peteConstructionHint: '', peaceActivity: 'homeward', gifts: 0, wood: 0, brushSize: 3,
   setBrushSize: size => { if ([1, 3, 5].includes(size)) set({ brushSize: size }) },
   revenge: createRevenge(), simulationTime: 0,
   research: createResearch(), researchRate: 0, researchOpen: false, researchRequest: null, researchFeedback: '',
@@ -169,6 +171,7 @@ export const useGameStore = create<State>((set, get) => ({
   }),
   rotate: () => set(state => ({ direction: rotate(state.direction) })),
   publish: world => set(state => {
+    const peteConstructionHint = constructionHint(world)
     const revenge = structuredClone(world.revenge)
     const research = { ...world.research, unlocked: [...world.research.unlocked] }
     const rate = researchRate(world)
@@ -178,7 +181,7 @@ export const useGameStore = create<State>((set, get) => ({
     const inspection = inspectBuilding(world, state.inspected)
     const inspected = inspection ? state.inspected : null
     // Publish value snapshots only when summaries change, never live world objects.
-    if (peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
+    if (peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
+    return { peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
   }),
 }))

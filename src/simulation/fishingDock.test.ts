@@ -60,8 +60,8 @@ it('visits a reachable dock, fishes on a reserved land approach, then leaves wit
   expect(dockAtSpot(w, w.peace.destination)).toBe(w.buildings[940])
   expect(inspectBuilding(w, 940)).toMatchObject({ kind: 'fishingDock', direction: 'east', fishing: true })
   advanceWorld(w, FISHING_MS - 50); expect(w.peace.activity).toBe('fishing')
-  advanceWorld(w, 50); expect(w.peace.activity).toBe('homeward')
-  advanceWorld(w, 5000); expect(['entering', 'resting']).toContain(w.peace.activity)
+  advanceWorld(w, 50); expect(w.peace.activity).toBe('walking')
+  advanceWorld(w, 5000); expect(['walking', 'waving', 'flowers']).toContain(w.peace.activity)
   expect(w.peace.destination).toBeNull()
   expect(inspectBuilding(w, 940)).toMatchObject({ fishing: false })
   expect({ wood: w.nature.wood, mined: w.mined, produced: w.produced }).toEqual(economy)
@@ -70,7 +70,7 @@ it('skips unreachable docks without consuming fishing RNG and can visit after a 
   const w = fixture()
   for (const y of [22, 24]) placeBuilding(w, 19, y, 'storage', 'east')
   expect(reachableFishingSpot(w)).toBeNull()
-  advanceWorld(w, 12000); expect(w.peace.activity).toBe('walking'); expect(w.peace.seed).toBe(1)
+  advanceWorld(w, 12000); expect(w.peace.activity).toBe('walking'); expect(w.peace.seed).toBe((Math.imul(1664525, 1) + 1013904223) >>> 0) // Rest choice only; no fishing draw.
   for (const y of [22, 24]) removeBuilding(w, 19, y)
   expect(reachableFishingSpot(w)).toBe(939)
 })
@@ -119,7 +119,8 @@ it.each(['dockward', 'fishing'] as const)('restores %s mid-activity deterministi
 })
 it('keeps no-dock peaceful routines and version-10 saves unchanged', () => {
   const w = fixture(); removeBuilding(w, 20, 23)
-  const original = snapshot(w); original.version = 10; delete original.game.personality
+  w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+  const original = snapshot(w); original.version = 10; delete original.game.personality; delete original.game.peace.nextProjectCheckAtMs
   const loaded = decodeSave(JSON.stringify(original)).world
   expect(snapshot(loaded)).toEqual(snapshot(w))
   for (let i = 0; i < 10; i++) { advanceWorld(w, 5000); advanceWorld(loaded, 5000) }

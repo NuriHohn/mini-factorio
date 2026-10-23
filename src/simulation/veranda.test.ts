@@ -150,7 +150,8 @@ describe('Craftsman level two treehouse veranda', () => {
   })
   it('migrates version 24 workshop saves exactly and rejects malformed upgrade progress and rewards', () => {
     const w = world(0); fund(w, 4, 8); choose(w, 'workshop'); until(w, () => w.workshopProject?.phase === 'complete')
-    const old = snapshot(w); Object.assign(old, { version: 24 })
+    w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 24 })
     expect(snapshot(decodeSave(JSON.stringify(old)).world)).toEqual(snapshot(w))
     const active = building()
     for (const mutate of [

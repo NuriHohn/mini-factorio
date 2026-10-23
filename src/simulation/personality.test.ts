@@ -96,7 +96,8 @@ describe('actual activity rewards and persistence', () => {
     advanceWorld(w, 2000); expect(w.personality.paths.eco.xp).toBe(xp)
   })
   it('migrates completed projects once from version 20, without retroactive egg XP or changing gameplay', () => {
-    const w = structuredClone(template), old = snapshot(w)
+    const w = structuredClone(template); w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs')
     Object.assign(old, { version: 20 }); Reflect.deleteProperty(old.game, 'personality')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.personality.paths.eco).toMatchObject({ xp: 20, level: 2 })

@@ -70,7 +70,9 @@ describe('data-driven autonomous project selection', () => {
     for (const [x, y] of [[9, 10], [11, 10], [10, 9], [10, 11]]) placeBuilding(w, x, y, 'storage', 'east')
     expect(projectCandidates(w).map(c => c.weight)).toEqual([2, 4])
     w.water[823] = true; w.water[940] = true; w.water[817] = true
-    expect(projectCandidates(w)).toEqual([])
+    const alternatives = projectCandidates(w)
+    expect(alternatives.map(c => c.definition.id)).toEqual(['coop', 'campfire'])
+    for (const c of alternatives) expect([823, 940, 817]).not.toContain(c.project.tiles[0])
   })
   it('uses weighted intervals to choose either follow-up, allowing campfire before coop', () => {
     for (const id of ['coop', 'campfire']) {
@@ -82,7 +84,7 @@ describe('data-driven autonomous project selection', () => {
       expect(trySecretProject(w)).toBe(true); expect(currentProject(w)).toBe(project); expect(w.peace.seed).toBe(seed)
       until(w, () => project.phase === 'complete')
       expect(w.personality.rewardedProjects.filter(reward => reward === id)).toHaveLength(1)
-      if (id === 'campfire') expect(w.coopProject).toBeNull()
+      if (id === 'campfire') expect(w.coopProject?.phase).not.toBe('complete')
       expect(() => load(w)).not.toThrow()
     }
   })
@@ -133,7 +135,8 @@ describe('data-driven autonomous project selection', () => {
   it('migrates a version-21 active project without redrawing, spending or losing its pickup', () => {
     const w = structuredClone(template); supplyWood(w, 824, 15); choose(w, 'coop')
     until(w, () => w.coopProject?.crate === 824 && w.pete.next !== null)
-    const old = snapshot(w); Object.assign(old, { version: 21 }); Reflect.deleteProperty(old.game.coopProject!, 'selected')
+    w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 21 }); Reflect.deleteProperty(old.game.coopProject!, 'selected')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(currentProject(restored)).toBe(restored.coopProject); expect(snapshot(restored)).toEqual(snapshot(w))
     advanceWorld(w, 5000); advanceWorld(restored, 5000); expect(snapshot(restored)).toEqual(snapshot(w))
