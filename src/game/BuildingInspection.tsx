@@ -1,3 +1,4 @@
+import { PeteInspection } from './PeteInspection'
 import { PersonalityOverview } from './PersonalityOverview'
 import { RecipeAmounts } from './InventoryView'
 import { inspectionSummary } from './inspectionSummary'
@@ -10,9 +11,10 @@ import { SplitterInspector } from './SplitterInspector'
 import { CraftingInspector } from './CraftingInspector'
 import { ITEM_DEFINITIONS } from '../simulation/items'
 export function BuildingInspection() {
-  const { inspected, inspection, requestRecipe, requestRelease } = useGameStore()
+  const { peteInspection, inspected, inspection, requestRecipe, requestRelease } = useGameStore()
   const panel = useRef<HTMLElement>(null)
   useEffect(() => { if (panel.current) panel.current.scrollTop = 0 }, [inspected])
+  if (peteInspection) return <PeteInspection status={peteInspection} />
   if (!inspection) return null
   const summary = inspectionSummary(inspection)
   return <aside ref={panel} className="building-inspection" aria-label="Selected building">
