@@ -513,3 +513,7 @@ Version **28** adds the optional project, strict press kind/buffers and appended
 ### Recycling press (Sprint 16.15.1)
 
 `gearPress.ts` commits one gear to one plate; transport reserves only gear input, inserters expose only plate output, and analytics records the exact consumption/production. Buffer field identities remain stable. Save version 30 validates legacy forward readiness with the old recipe before cancelling its still-unpaid visit; inventories, produced counters and XP are unchanged during migration. Current visits retain exact timing.
+
+### Pete inspection (Sprint 16.16)
+
+`simulation/peteStatus.ts` derives detached status from the shared registry, feasible candidates and existing site/navigation checks. It has no authoritative state or selection writes. Zustand owns the optional presentation snapshot and refreshes it only while inspected through the existing publish cadence. `FactoryScene` handles the ordinary Pete hit before building/gift inspection; explicit tools retain priority. `PeteInspection.tsx` shares the inspector shell and personality view. Scene create/restore and existing tool/inspection cancellation clear the transient panel. No save schema change.

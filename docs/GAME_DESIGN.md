@@ -658,3 +658,9 @@ Every supplied material belongs to exactly one development path: Wood → Eco; i
 ### Industrial recycling (Sprint 16.15.1)
 
 The press now accepts up to four iron gears and returns one iron plate per gear after five seconds of Pete’s work. Its output holds four plates, extracted only by inserters. Completion grants one Industrial XP and a 60-second cooldown; interruption spends nothing. Existing factory gears still cost two plates, so recycling loses material rather than creating a loop. Version 30 retains both legacy buffers exactly and safely cancels validated old forward-processing visits without XP or production.
+
+### Inspecting Pete (Sprint 16.16)
+
+With no tool selected, click Pete’s normal hit area to open his live status. It shows his current activity, any selected project, a possible next wish and all unfinished project requirements. Wishes prefer feasible projects and then the dominant path, without changing the existing project chooser. Missing quantities refer to the best single reachable supply crate; materials split across crates do not qualify. The panel distinguishes path levels, prerequisites, cooldowns, inaccessible funding, unsafe sites and retained paid work. Closing, Escape, selecting another tool/building or loading a world clears the view. Web/combat tools retain their behavior. Inspection grants no XP, spends nothing and consumes no RNG.
+
+See the [Pete inspection preview](images/pete-inspection.png).

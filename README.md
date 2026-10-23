@@ -92,3 +92,5 @@ At **Craftsman level 2**, Pete can autonomously add a permanent veranda to his t
 At **Inventor level 1**, Pete can autonomously build an **Experiment Table** using **8 copper plates and 4 copper cables** from one Supply Crate. Finished experiments earn Inventor XP without producing items or requiring power. See [Experiment table](docs/GAME_DESIGN.md#inventor-level-1-petes-experiment-table).
 
 At **Industrial level 1**, Pete can build a **Recycling Press** for **10 supplied iron gears**. Feed iron gears by belt/inserter; Pete recycles 1 gear into 1 plate, and inserters collect its output. See [Gear press](docs/GAME_DESIGN.md#industrial-level-1-petes-gear-press).
+
+Put away tools with Escape and click Pete to inspect his current activity, current project, possible next wish, and concrete resource/access/site requirements. The panel updates while open and does not issue commands.
