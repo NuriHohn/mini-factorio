@@ -7,22 +7,22 @@ import { neighboringTiles } from '../simulation/navigation'
 import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import * as v from './validation'
-export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire' | 'garden' | 'workshop', version = 26): SecretProject | null {
-  const coop = kind !== undefined, fire = kind === 'campfire', garden = kind === 'garden', workshop = kind === 'workshop'
-  const buildingKind = workshop ? 'peteWorkshop' : garden ? 'peteGarden' : fire ? 'peteCampfire' : coop ? 'peteCoop' : 'peteFence', parts = coop ? 1 : 3, wood = workshop ? 4 : garden ? 12 : fire ? CAMPFIRE_WOOD : coop ? COOP_WOOD : PROJECT_WOOD, duration = workshop ? WORKSHOP_BUILD_MS : garden ? 12000 : fire ? CAMPFIRE_BUILD_MS : coop ? COOP_BUILD_MS : FENCE_SEGMENT_MS
+export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire' | 'garden' | 'workshop' | 'experiment', version = 27): SecretProject | null {
+  const coop = kind !== undefined, fire = kind === 'campfire', garden = kind === 'garden', workshop = kind === 'workshop', experiment = kind === 'experiment', technical = workshop || experiment
+  const buildingKind = experiment ? 'peteExperiment' : workshop ? 'peteWorkshop' : garden ? 'peteGarden' : fire ? 'peteCampfire' : coop ? 'peteCoop' : 'peteFence', parts = coop ? 1 : 3, wood = technical ? 4 : garden ? 12 : fire ? CAMPFIRE_WOOD : coop ? COOP_WOOD : PROJECT_WOOD, duration = technical ? WORKSHOP_BUILD_MS : garden ? 12000 : fire ? CAMPFIRE_BUILD_MS : coop ? COOP_BUILD_MS : FENCE_SEGMENT_MS
   if (value === undefined) {
     if (world.buildings.some(b => b?.kind === buildingKind)) v.invalid('project', 'missing project state')
     return null
   }
-  const r = v.object(value, workshop ? 'game.workshopProject' : garden ? 'game.gardenProject' : fire ? 'game.campfireProject' : coop ? 'game.coopProject' : 'game.project', ['home', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs', ...(coop ? ['kind'] : []), ...(workshop ? ['carriedIron'] : [])], version >= 22 ? ['selected', ...(garden || workshop ? ['readyAtMs'] : [])] : [])
-  if (coop && (r.kind !== kind || (!garden && !workshop && (fire && version < 22 ? world.coopProject : world.project)?.phase !== 'complete'))) v.invalid(fire ? 'campfireProject' : 'coopProject', 'missing completed prerequisite project')
+  const r = v.object(value, experiment ? 'game.experimentProject' : workshop ? 'game.workshopProject' : garden ? 'game.gardenProject' : fire ? 'game.campfireProject' : coop ? 'game.coopProject' : 'game.project', ['home', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs', ...(coop ? ['kind'] : []), ...(workshop ? ['carriedIron'] : []), ...(experiment ? ['carriedCopper', 'carriedGears'] : [])], version >= 22 ? ['selected', ...(garden || technical ? ['readyAtMs'] : [])] : [])
+  if (coop && (r.kind !== kind || (!garden && !technical && (fire && version < 22 ? world.coopProject : world.project)?.phase !== 'complete'))) v.invalid(fire ? 'campfireProject' : 'coopProject', 'missing completed prerequisite project')
   const home = v.tile(r.home, 'project.home'), direction = v.choice(r.direction, 'project.direction', ['east', 'south'] as const)
   const tiles = v.array(r.tiles, 'project.tiles', parts).map((n, i) => v.tile(n, `project.tiles[${i}]`))
   const spots = v.array(r.spots, 'project.spots', parts).map((n, i) => v.tile(n, `project.spots[${i}]`))
   const cx = tiles[coop ? 0 : 1] % SIZE, cy = Math.floor(tiles[coop ? 0 : 1] / SIZE), hx = home % SIZE, hy = Math.floor(home / SIZE)
   const dx = Math.sign(cx - hx), dy = Math.sign(cy - hy), step = direction === 'east' ? 1 : SIZE
   const expanded = version >= 26 && (kind === 'coop' || kind === 'campfire')
-  const invalidGeometry = expanded ? Math.max(Math.abs(cx - hx), Math.abs(cy - hy)) < 2 || Math.max(Math.abs(cx - hx), Math.abs(cy - hy)) > PROJECT_SITE_RADIUS || !neighboringTiles(tiles[0]).includes(spots[0]) : (direction === 'east' ? cx !== hx || (garden || workshop ? Math.abs(cy - hy) < 2 || Math.abs(cy - hy) > (workshop ? 6 : 5) : Math.abs(cy - hy) !== 3) : cy !== hy || (garden || workshop ? Math.abs(cx - hx) < 2 || Math.abs(cx - hx) > (workshop ? 6 : 5) : Math.abs(cx - hx) !== 3)) || tiles.some((n, i) => n !== tiles[coop ? 0 : 1] + (i - (parts - 1) / 2) * step || !neighboringTiles(n).includes(spots[i]) || spots[i] !== n - dy * SIZE - dx) || new Set(tiles).size !== parts || (direction === 'east' && tiles.some(n => Math.floor(n / SIZE) !== cy))
+  const invalidGeometry = expanded ? Math.max(Math.abs(cx - hx), Math.abs(cy - hy)) < 2 || Math.max(Math.abs(cx - hx), Math.abs(cy - hy)) > PROJECT_SITE_RADIUS || !neighboringTiles(tiles[0]).includes(spots[0]) : (direction === 'east' ? cx !== hx || (garden || technical ? Math.abs(cy - hy) < 2 || Math.abs(cy - hy) > (technical ? 6 : 5) : Math.abs(cy - hy) !== 3) : cy !== hy || (garden || technical ? Math.abs(cx - hx) < 2 || Math.abs(cx - hx) > (technical ? 6 : 5) : Math.abs(cx - hx) !== 3)) || tiles.some((n, i) => n !== tiles[coop ? 0 : 1] + (i - (parts - 1) / 2) * step || !neighboringTiles(n).includes(spots[i]) || spots[i] !== n - dy * SIZE - dx) || new Set(tiles).size !== parts || (direction === 'east' && tiles.some(n => Math.floor(n / SIZE) !== cy))
   if (invalidGeometry) v.invalid('project.tiles', 'invalid compact project geometry')
   const phase = v.choice(r.phase, 'project.phase', ['collecting', 'building', 'complete'] as const)
   const built = v.count(r.built, 'project.built', parts), carried = v.count(r.carried, 'project.carried', wood)
@@ -35,7 +35,10 @@ export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'ca
   }
   const carriedIron = workshop ? v.count(r.carriedIron, 'workshopProject.carriedIron', 8) : undefined
   if (workshop && carriedIron !== (phase === 'building' ? 8 : 0)) v.invalid('workshopProject.carriedIron', 'invalid iron accounting')
-  return { ...(workshop ? { carriedIron } : {}), ...(garden || workshop ? restoreEcoDeadline(r, world, workshop ? WORKSHOP_COOLDOWN_MS : TEND_COOLDOWN_MS) : {}), ...restoreProjectSelection(r), ...(coop ? { kind } : {}), home, direction, tiles, spots, phase, crate, built, carried, elapsedMs }
+  const carriedCopper = experiment ? v.count(r.carriedCopper, 'experimentProject.carriedCopper', 8) : undefined
+  const carriedGears = experiment ? v.count(r.carriedGears, 'experimentProject.carriedGears', 2) : undefined
+  if (experiment && (carriedCopper !== (phase === 'building' ? 8 : 0) || carriedGears !== (phase === 'building' ? 2 : 0))) v.invalid('experimentProject', 'invalid copper or gear accounting')
+  return { ...(experiment ? { carriedCopper, carriedGears } : {}), ...(workshop ? { carriedIron } : {}), ...(garden || technical ? restoreEcoDeadline(r, world, technical ? WORKSHOP_COOLDOWN_MS : TEND_COOLDOWN_MS) : {}), ...restoreProjectSelection(r), ...(coop ? { kind } : {}), home, direction, tiles, spots, phase, crate, built, carried, elapsedMs }
 }
 
 export function validateProjectActivity(world: World): void {
