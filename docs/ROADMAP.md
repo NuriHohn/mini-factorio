@@ -105,3 +105,9 @@ Current activity/project, a nonbinding next wish and concrete project requiremen
 ## Sprint 16.17 — Nearby reforestation (completed)
 
 New planting stays 4–6 tiles from home and prefers shortest reachable walks before forest edges. Paid legacy work remains intact.
+
+## Sprint 16.17.1 — Repeatable garden care (completed)
+
+After the garden, Eco Pete can repeatedly mulch using 2 supplied Wood for 4 Eco XP after four seconds of work, with a 60-second cooldown and exact saved continuation.
+
+Next proposed work: larger-project priorities and yard recovery, followed by chicken bedtime/feeding and mature-tree harvesting. These are not implemented by Sprints 16.15–16.17.1.

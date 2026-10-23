@@ -6,7 +6,7 @@ const descriptions: Record<Inspection['kind'], string> = {
   petePress: 'Pete recycles 1 iron gear into 1 iron plate by hand. Feed gears with belts or inserters; collect plates with an inserter. No electricity needed for the press.',
   peteExperiment: 'Pete’s copper-and-gear experiment table. Completed experiments earn Inventor XP; no production or power needed.',
   peteWorkshop: 'Pete’s wooden-and-metal workshop. Decorative hammering earns Craftsman XP; no production.',
-  peteGarden: 'Pete’s vegetable garden. Decorative plants, tended while peaceful; no crops or inventory.',
+  peteGarden: 'Pete’s vegetable garden. Mulching uses 2 supplied Wood and earns 4 Eco XP after four seconds, with a 60-second cooldown. Watering is decorative; no crops.',
   peteGate: 'Pete’s wooden garden gate. Opens automatically for Pete; chickens stay in the yard.',
   peteCampfire: 'Pete’s cozy campfire. He cooks collected eggs here while peaceful; no factory production.',
   peteCoop: 'Pete’s cozy wooden chicken coop. A home for peaceful chickens and chicks. Eggs stay outside factory inventories.',

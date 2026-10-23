@@ -4,8 +4,8 @@ import type { World } from './world'
 export type ProjectMaterial = Item | 'wood'
 export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
 export interface ProjectDefinition {
-  id: ProjectReward | 'reforestation'
-  state: 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'
+  id: ProjectReward | 'reforestation' | 'gardenCare'
+  state: 'careProject' | 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'
   path: PersonalityPath
   minimumLevel: number
   primaryMaterial?: ProjectMaterial
@@ -26,9 +26,10 @@ export const PETE_PROJECTS: readonly ProjectDefinition[] = [
   { id: 'veranda', state: 'verandaProject', path: 'craftsman', minimumLevel: 2, resources: { ironPlate: 20 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: [] },
   { id: 'experiment', state: 'experimentProject', path: 'inventor', minimumLevel: 1, resources: { copperPlate: 8, copperCable: 4 }, primaryMaterial: 'copperPlate', repeatable: false, prerequisites: [] },
   { id: 'press', state: 'pressProject', path: 'industrial', minimumLevel: 1, resources: { ironGear: 10 }, primaryMaterial: 'ironGear', repeatable: false, prerequisites: [] },
+  { id: 'gardenCare', state: 'careProject', path: 'eco', minimumLevel: 2, resources: { wood: 2 }, repeatable: true, prerequisites: ['garden'] },
 ]
 export function projectUnlocked(world: World, definition: ProjectDefinition): boolean {
-  return (definition.id !== 'reforestation' || (world.plantProject?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= definition.minimumLevel && definition.prerequisites.every(id => {
+  return (!definition.repeatable || (world[definition.state]?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= definition.minimumLevel && definition.prerequisites.every(id => {
     const prerequisite = PETE_PROJECTS.find(p => p.id === id)!
     return world[prerequisite.state]?.phase === 'complete'
   }) && (definition.repeatable || world[definition.state]?.phase !== 'complete')

@@ -521,3 +521,9 @@ Version **28** adds the optional project, strict press kind/buffers and appended
 ### Nearby reforestation (Sprint 16.17)
 
 `ecoProjects.planPlanting` enumerates only radius 4–6 sites and their reachable adjacent approaches, ranks by actual BFS path length, then forest edge/home distance/stable tile order. All existing density, factory, terrain and final connectivity checks remain. `nearbyPlanting` makes unpaid distant plans ineligible and the shared candidate planner replaces them without charging. Paid plans bypass the new radius policy and retain the previous strict 4–10 persistence bounds. No save schema change or new RNG.
+
+### Paid garden care (Sprint 16.17.1)
+
+`World.careProject` reuses the selected project workflow with `kind: care`, the existing garden tile/approach, Wood pickup and fixed-step work. It bypasses hypothetical building replacement and topology changes. `planGardenCare` carries the cumulative completed-cycle count into the next record; only final completion increments it and grants `CARE_XP`. Free watering keeps its original cosmetic activity. Shared project effects draw a mulch sack and simulation-time particles.
+
+Version 31 permits only the optional care record; `ecoValidation.restoreGardenCare` checks exact garden geometry/link, phase-specific Wood, bounded cycles/work, selection and cooldown. Personality restoration includes completed-care XP in its minimum earned balance. Earlier schemas reject the new record and retain their original state. Test conservation helpers count all completed and currently carried care Wood. No additional activity ID, RNG stream, item, building or timer loop is introduced.

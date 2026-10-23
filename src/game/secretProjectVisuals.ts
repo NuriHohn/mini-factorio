@@ -29,7 +29,7 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   const project = currentProject(world), p = world.pete
   if (!project || project.phase === 'complete') return
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
-  if (project.kind !== 'veranda' && project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
+  if (project.kind !== 'veranda' && project.kind !== 'care' && project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
     const progress = project.elapsedMs / projectBuildMs(project)
     if (project.kind === 'press') drawGearPress(g, { kind: 'petePress', plates: 0, gears: 0, x, y }, tile, progress)
     else if (project.kind === 'experiment') drawExperimentTable(g, { kind: 'peteExperiment', x, y }, tile, progress)
@@ -44,7 +44,14 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   }
   if (world.peace.activity !== 'project' || project.phase !== 'building' || !visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, tile)) return
   const px = (p.x + .5) * tile, py = (p.y + .5) * tile
-  if (p.tile === project.spots[project.built] && p.next === null) {
+  if (p.tile === project.spots[project.built] && p.next === null && project.kind === 'care') {
+    const dx = Math.sign((x + .5) * tile - px), dy = Math.sign((y + .5) * tile - py)
+    g.fillStyle(0xb98a53).fillRoundedRect(px + dx * 9 - 4, py + dy * 7, 9, 8, 2)
+    for (let n = 0; n < 4; n++) {
+      const t = (world.timeMs / 700 + n / 4) % 1
+      g.fillStyle(0x9a7046, 1 - t).fillCircle(px + dx * (12 + t * 12) + n - 2, py + dy * (8 + t * 14) + t * 5, 1.5)
+    }
+  } else if (p.tile === project.spots[project.built] && p.next === null) {
     const swing = Math.sin(world.timeMs / 230) * .6
     g.lineStyle(3, 0x91dd60).lineBetween(px + 6, py + 4, px + 12, py - 4)
     g.save().translateCanvas(px + 12, py - 4).rotateCanvas(swing)

@@ -1,4 +1,4 @@
-import { PLANT_COOLDOWN_MS, TEND_MS, gardenSpot } from '../simulation/ecoProjects'
+import { CARE_XP, PLANT_COOLDOWN_MS, TEND_COOLDOWN_MS, TEND_MS, gardenSpot } from '../simulation/ecoProjects'
 import type { SecretProject } from '../simulation/secretProject'
 import { neighboringTiles } from '../simulation/navigation'
 import { SIZE } from '../simulation/world'
@@ -23,3 +23,17 @@ export function validateGardening(world: World): void {
   if (!['gardenward', 'gardening'].includes(world.peace.activity)) return
   if (world.peace.home === null || gardenSpot(world) !== world.peace.destination || (world.peace.activity === 'gardening' && (world.pete.next !== null || world.pete.tile !== world.peace.destination || world.peace.untilMs - world.peace.sinceMs !== TEND_MS))) v.invalid('garden', 'invalid tending activity')
 }
+
+export function restoreGardenCare(value: unknown, world: World): SecretProject {
+  const r = v.object(value, 'game.careProject', ['kind', 'home', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs', 'completedCycles'], ['selected', 'readyAtMs'])
+  if (r.kind !== 'care') v.invalid('careProject.kind', 'expected garden care')
+  const home = v.tile(r.home, 'careProject.home'), direction = v.choice(r.direction, 'careProject.direction', ['east', 'south'] as const)
+  const tiles = v.array(r.tiles, 'careProject.tiles', 1).map(i => v.tile(i, 'careProject.tile')), spots = v.array(r.spots, 'careProject.spots', 1).map(i => v.tile(i, 'careProject.spot'))
+  const garden = world.gardenProject
+  if (garden?.phase !== 'complete' || home !== garden.home || direction !== garden.direction || tiles[0] !== garden.tiles[0] || spots[0] !== garden.spots[0]) v.invalid('careProject', 'care must reference the completed garden')
+  const phase = v.choice(r.phase, 'careProject.phase', ['collecting', 'building', 'complete'] as const), built = v.count(r.built, 'careProject.built', 1), carried = v.count(r.carried, 'careProject.carried', 2), elapsedMs = v.count(r.elapsedMs, 'careProject.elapsedMs', TEND_MS - 50)
+  const crate = r.crate === null ? null : v.tile(r.crate, 'careProject.crate'), completedCycles = v.count(r.completedCycles, 'careProject.completedCycles', Math.floor(world.timeMs / TEND_MS))
+  if (built !== (phase === 'complete' ? 1 : 0) || carried !== (phase === 'building' ? 2 : 0) || elapsedMs % 50 || (phase !== 'building' && elapsedMs !== 0) || (phase !== 'collecting' && crate !== null) || (crate !== null && world.buildings[crate]?.kind !== 'supplyCrate') || (phase === 'complete' && completedCycles < 1)) v.invalid('careProject', 'invalid Wood accounting, cycles or work progress')
+  return { kind: 'care', home, direction, tiles, spots, phase, built, carried, elapsedMs, crate, completedCycles, ...restoreProjectSelection(r), ...restoreEcoDeadline(r, world, TEND_COOLDOWN_MS) }
+}
+export function gardenCareXp(world: World): number { return (world.careProject?.completedCycles ?? 0) * CARE_XP }
