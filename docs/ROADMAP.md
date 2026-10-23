@@ -151,3 +151,5 @@ Authoritative mechanics and costs: [Game design](GAME_DESIGN.md#treasures-and-fl
 
 
 The original mobile planning in [PR #75](https://github.com/NuriHohn/mini-factorio/pull/75) is fulfilled by the browser controls and hosted access above. Its additive-PC-control requirement remains in force; real iPhone/iPad acceptance and installable offline play remain follow-ups.
+
+The yard-recovery and Pete ideas originally recorded in [PR #80](https://github.com/NuriHohn/mini-factorio/pull/80) are implemented in Sprints 16.20.1–16.27 above. Flight uses the agreed Inventor level-4 practices and level-5 scenic loops; coop cover remains harmless decoration, with no marten attacks. All new project inputs continue to obey the [exclusive material families](GAME_DESIGN.md).
