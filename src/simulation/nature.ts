@@ -46,13 +46,13 @@ export function plantTree(world: World, x: number, y: number, species: TreeSpeci
   tree.species = species
   return true
 }
-export function chopTree(world: World, x: number, y: number): { tree: Tree; wood: number } | null {
+export function chopTree(world: World, x: number, y: number, collectGlobal = true): { tree: Tree; wood: number } | null {
   if (!inside(x, y)) return null
   const tree = world.buildings[y * SIZE + x]
   if (tree?.kind !== 'tree') return null
   const wood = treeWood(world, tree)
-  if (!Number.isSafeInteger(world.nature.wood + wood)) return null
-  world.nature.wood += wood
+  if (collectGlobal && !Number.isSafeInteger(world.nature.wood + wood)) return null
+  if (collectGlobal) world.nature.wood += wood
   world.buildings[y * SIZE + x] = null
   world.topologyRevision++
   refreshNatureSchedule(world)

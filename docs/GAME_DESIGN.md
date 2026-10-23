@@ -692,3 +692,13 @@ Completed garden care now also grows **one portion of chicken feed**, stored at 
 At Eco level 2, with completed garden and coop, Pete can select feeding as a repeatable project. He walks to the garden, collects exactly one portion, carries it to a reachable spot beside the coop and feeds for **four seconds**. Completion grants **2 Eco XP** and starts a **180-second feeding interval**. Feed/work survive interruption; removed or blocked structures pause safely. Feeding adds no starvation, death, egg-production buff or industrial item loop. Garden/coop inspection shows available feed and the next meal interval. Version 33 strictly preserves garden stock, carried feed, cycle count and feeding clocks; earlier saves remain loadable.
 
 See the [feeding and enclosed-yard preview](images/chicken-feeding.png).
+
+### Mature-tree forestry (Sprint 16.20)
+
+At Eco level 2, Pete can harvest an ordinary **fully grown tree within six tiles of home**. He prefers the shortest reachable work approach, respects pending project reservations and needs a reachable Supply Crate with **three free slots** before committing. Saplings and young trees are never selected, and saved species/origin/birth identity prevents cutting a replacement tree.
+
+Pete walks to the tree and chops for **six active seconds**, then carries **three Wood** to a supply crate. The player’s global Wood stock is unchanged. Only successful delivery grants **3 Eco XP** and begins a **120-second cooldown**. Full, removed or unreachable crates leave the carried Wood intact; home/work interruptions preserve progress. A removed/replaced unharvested target can be replanned without losing items. Existing player axe behavior is unchanged.
+
+Delivered Wood can fund reforestation (2 Wood per sapling), garden care and other Eco projects through normal project selection. Newly planted trees still take five minutes to mature; there is no instant regrowth or offline catch-up. Version **34** preserves target identity, work, carried Wood, destination, harvest counts and cooldown with strict validation. Previous versions start without a forestry task.
+
+See [Wood carried after felling](images/pete-forestry.png) and [delivery followed by reforestation](images/pete-forestry-delivered.png).

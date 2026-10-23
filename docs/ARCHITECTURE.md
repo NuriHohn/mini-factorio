@@ -539,3 +539,9 @@ Version 31 permits only the optional care record; `ecoValidation.restoreGardenCa
 ### Garden-to-coop feeding (Sprint 16.19.1)
 
 `feeding.ts` owns bounded garden feed stock, reachable coop approaches and four-second/three-minute feeding values. `chickenFeed` extends the project-material family map as an Eco-only non-factory resource. Shared projects special-case physical garden pickup and existing-coop work without replacing structures or changing topology. Garden care grows one capped portion only on completion. The selected feeding record carries one portion and cumulative completions; personality validation includes its earned XP. Version 33 adds optional feeding state and garden stock with strict phase/link/deadline validation, migrating old gardens to zero. No factory Item/recipe or Poultry schema changes.
+
+### Pete forestry and Wood return (Sprint 16.20)
+
+`forestry.ts` owns mature local target selection, identity/reachability checks and bounded crate delivery destinations. `harvestProject` reuses selected projects and movement: building phase chops, collecting phase carries three harvested Wood to a crate, complete records delivery. `nature.chopTree` optionally returns its yield to the caller rather than global Wood; player calls keep the default global collection. Exact capacity is rechecked before delivery and rewards commit only there. No standing tree is overwritten or regrown on load.
+
+Version 34 validates local geometry, mature target birth/species/origin, phase-specific Wood/work, destination, cumulative deliveries/manual-origin cuts and deadline. Manual-cut accounting includes undelivered harvests so treeless-fixture conservation checks retain planting costs; completed deliveries account for returned Wood. Personality minimum XP includes delivered forestry rewards. Shared graphics distinguish axe work from carried Wood and remain culled/read-only.

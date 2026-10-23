@@ -1,3 +1,4 @@
+import { woodDestination } from './forestry'
 import { feedGarden } from './feeding'
 import { gardenSpot } from './ecoProjects'
 import { yardSummary } from './yard'
@@ -9,7 +10,7 @@ import { PETE_PROJECTS } from './projectRegistry'
 import type { ProjectMaterial } from './projectRegistry'
 import { currentProject, projectCandidates, projectPlansConflict, projectSiteClear } from './secretProject'
 import type { SupplyCrate, World } from './world'
-export const PROJECT_NAMES: Record<string, string> = { feeding: 'Feed the chickens', gardenCare: 'Garden care (mulching)', fence: 'Fence', coop: 'Chicken coop', campfire: 'Campfire', yard: 'Enclosed yard', gate: 'Garden gate', garden: 'Vegetable garden', reforestation: 'Tree planting', workshop: 'Workshop', veranda: 'Treehouse veranda', experiment: 'Experiment table', press: 'Recycling press' }
+export const PROJECT_NAMES: Record<string, string> = { harvesting: 'Harvest a mature tree', feeding: 'Feed the chickens', gardenCare: 'Garden care (mulching)', fence: 'Fence', coop: 'Chicken coop', campfire: 'Campfire', yard: 'Enclosed yard', gate: 'Garden gate', garden: 'Vegetable garden', reforestation: 'Tree planting', workshop: 'Workshop', veranda: 'Treehouse veranda', experiment: 'Experiment table', press: 'Recycling press' }
 const ACTIVITY_NAMES: Record<World['peace']['activity'], string> = { homeward: 'Going home', entering: 'Heading inside', resting: 'Sleeping', walking: 'Taking a walk', waving: 'Waving', flowers: 'Enjoying flowers', dockward: 'Walking to the dock', fishing: 'Fishing', boating: 'Taking a boat trip', crateward: 'Walking to the supply crate', checkingCrate: 'Checking supplies', project: 'Working on a project', eggward: 'Going to collect an egg', collectingEgg: 'Collecting an egg', campfireward: 'Walking to the campfire', cooking: 'Cooking eggs', campfireHappy: 'Enjoying a meal', gardenward: 'Walking to the garden', gardening: 'Watering the garden', workshopward: 'Walking to the workshop', hammering: 'Working at the anvil', verandaRest: 'Resting on the veranda', experimentward: 'Walking to the experiment table', experimenting: 'Trying an experiment', pressward: 'Walking to the recycling press', pressing: 'Recycling a gear' }
 export interface ProjectStatus { id: string; name: string; reason: string; ready: boolean }
 export interface PeteStatus { yard: string; activity: string; current: string | null; wish: ProjectStatus | null; projects: ProjectStatus[]; personality: Personality }
@@ -29,6 +30,7 @@ export function peteStatus(world: World): PeteStatus {
     else if (definition.prerequisites.some(id => world[PETE_PROJECTS.find(p => p.id === id)!.state]?.phase !== 'complete')) reason = `First I need: ${definition.prerequisites.filter(id => world[PETE_PROJECTS.find(p => p.id === id)!.state]?.phase !== 'complete').map(id => PROJECT_NAMES[id]).join(', ')}.`
     else if (definition.repeatable && (saved?.readyAtMs ?? 0) > world.timeMs) reason = `I can do this again in ${Math.ceil((saved!.readyAtMs! - world.timeMs) / 1000)} seconds.`
     else if (saved?.phase === 'building') reason = projectSiteClear(world, saved) && !projectPlansConflict(world, saved) ? 'Materials already collected. I can continue this work.' : 'Materials already collected, but my work site or approach is blocked.'
+    else if (definition.id === 'harvesting' && !candidate) reason = saved?.carried ? 'I am carrying 3 harvested Wood. I need a reachable supply crate with three free slots.' : !woodDestination(world) ? 'I need a reachable supply crate with three free slots for harvested Wood.' : 'I need a fully grown tree within six tiles of home and a clear work approach.'
     else if (definition.id === 'feeding' && !candidate) reason = !feedGarden(world) ? 'I need my standing garden to harvest chicken feed.' : !(feedGarden(world)!.feed ?? 0) ? 'I need 1 chicken feed from garden care. Mulching the garden grows feed.' : gardenSpot(world) === null ? 'The feed is ready, but I cannot reach my garden.' : 'I cannot reach a safe feeding spot beside the coop.'
     else if (candidate) reason = 'Materials and a safe work site are available.'
     else {
@@ -50,6 +52,6 @@ export function peteStatus(world: World): PeteStatus {
   })
   const wishes = [...projects].sort((a, b) => Number(b.ready) - Number(a.ready) || Number(PETE_PROJECTS.find(p => p.id === b.id)!.path === world.personality.dominant) - Number(PETE_PROJECTS.find(p => p.id === a.id)!.path === world.personality.dominant))
   const selected = active ? PETE_PROJECTS.find(p => world[p.state] === active) : undefined
-  const activity = world.peace.home === null ? world.pete.mode.toLowerCase().replaceAll('_', ' ') : world.peace.activity === 'project' && active ? active.phase === 'collecting' ? 'Collecting project materials' : active.kind === 'feed' ? 'Feeding the chickens' : active.kind === 'care' ? 'Mulching my garden' : 'Building my project' : ACTIVITY_NAMES[world.peace.activity]
+  const activity = world.peace.home === null ? world.pete.mode.toLowerCase().replaceAll('_', ' ') : world.peace.activity === 'project' && active ? active.kind === 'fell' ? active.carried ? 'Bringing harvested Wood to the supply crate' : 'Felling a mature tree' : active.phase === 'collecting' ? 'Collecting project materials' : active.kind === 'feed' ? 'Feeding the chickens' : active.kind === 'care' ? 'Mulching my garden' : 'Building my project' : ACTIVITY_NAMES[world.peace.activity]
   return { yard: yardSummary(world), activity, current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
 }
