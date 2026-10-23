@@ -3,6 +3,7 @@ import { neighboringTiles, reachableTiles, tilePath } from './navigation'
 import type { SecretProject } from './secretProject'
 import { SIZE } from './world'
 import type { World } from './world'
+export const YARD_MAX_SPAN = 14
 export interface Yard extends SecretProject {
   kind: 'yard'
   left: number
@@ -56,7 +57,7 @@ export function planYard(world: World): Yard | null {
   const xs = anchors.map(i => i % SIZE), ys = anchors.map(i => Math.floor(i / SIZE)), candidates: Yard[] = []
   for (let l = 1; l <= 3; l++) for (let r = 1; r <= 3; r++) for (let t = 1; t <= 3; t++) for (let b = 1; b <= 3; b++) {
     const bounds = { left: Math.min(...xs) - l, right: Math.max(...xs) + r, top: Math.min(...ys) - t, bottom: Math.max(...ys) + b }
-    if (bounds.left < 1 || bounds.top < 1 || bounds.right >= SIZE - 1 || bounds.bottom >= SIZE - 1 || bounds.right - bounds.left > 10 || bounds.bottom - bounds.top > 10) continue
+    if (bounds.left < 1 || bounds.top < 1 || bounds.right >= SIZE - 1 || bounds.bottom >= SIZE - 1 || bounds.right - bounds.left > YARD_MAX_SPAN || bounds.bottom - bounds.top > YARD_MAX_SPAN) continue
     const boundary = yardBoundary(bounds)
     if (boundary.some(i => world.water[i] || (world.buildings[i] && world.buildings[i]?.kind !== 'peteFence'))) continue
     if ([world.pressProject, world.experimentProject, world.campfireProject, world.workshopProject, world.gardenProject, world.verandaProject].some(p => p?.spots.some(i => boundary.includes(i)))) continue
@@ -78,4 +79,13 @@ export function planYard(world: World): Yard | null {
     return y
   }
   return null
+}
+
+export function yardSummary(world: World): string {
+  const y = world.yard
+  if (y?.phase === 'complete') return enclosedYard(world) ? 'Enclosed yard complete. The chickens stay inside its fence.' : 'Yard construction is complete, but a fence section, coop or entrance is missing or blocked.'
+  if (y) return `Enclosed yard: ${y.built}/${y.tiles.length} new fence sections built; ${y.reused.length} original sections reused. Each remaining section needs 2 supplied Wood.${yardSiteClear(world, y) ? '' : ' The planned fence or work approach is blocked; paid work is retained.'}`
+  if (world.project?.phase !== 'complete') return 'The first project builds only three fence sections. The enclosed yard comes after the fence, chicken coop and campfire.'
+  const missing = [world.coopProject?.phase !== 'complete' ? 'chicken coop' : '', world.campfireProject?.phase !== 'complete' ? 'campfire' : ''].filter(Boolean)
+  return missing.length ? `The first three fence sections are complete. Before enclosing the yard I need: ${missing.join(', ')}.` : 'The enclosed yard is unlocked. I need supplied Wood and a safe perimeter around my home, coop and campfire.'
 }

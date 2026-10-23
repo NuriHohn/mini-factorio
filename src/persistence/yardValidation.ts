@@ -1,18 +1,18 @@
 import { restoreProjectSelection } from './projectValidation'
-import { yardBoundary, yardDirection, yardInterior } from '../simulation/yard'
+import { YARD_MAX_SPAN, yardBoundary, yardDirection, yardInterior } from '../simulation/yard'
 import type { Yard } from '../simulation/yard'
 import { neighboringTiles } from '../simulation/navigation'
 import type { World } from '../simulation/world'
 import { SIZE } from '../simulation/world'
 import * as v from './validation'
-export function restoreYard(value: unknown, world: World, version = 22): Yard | null {
+export function restoreYard(value: unknown, world: World, version = 32): Yard | null {
   if (value === undefined) return null
   const r = v.object(value, 'game.yard', ['kind', 'left', 'right', 'top', 'bottom', 'home', 'entrance', 'reused', 'direction', 'tiles', 'spots', 'phase', 'crate', 'built', 'carried', 'elapsedMs'], version >= 22 ? ['selected'] : [])
   if (r.kind !== 'yard' || world.project?.phase !== 'complete' || world.coopProject?.phase !== 'complete' || world.campfireProject?.phase !== 'complete') v.invalid('yard', 'yard requires completed preceding projects')
-  const left = v.number(r.left, 'yard.left', 1, SIZE - 2, true), right = v.number(r.right, 'yard.right', left + 2, Math.min(left + 10, SIZE - 2), true)
-  const top = v.number(r.top, 'yard.top', 1, SIZE - 2, true), bottom = v.number(r.bottom, 'yard.bottom', top + 2, Math.min(top + 10, SIZE - 2), true)
+  const left = v.number(r.left, 'yard.left', 1, SIZE - 2, true), right = v.number(r.right, 'yard.right', left + 2, Math.min(left + (version >= 32 ? YARD_MAX_SPAN : 10), SIZE - 2), true)
+  const top = v.number(r.top, 'yard.top', 1, SIZE - 2, true), bottom = v.number(r.bottom, 'yard.bottom', top + 2, Math.min(top + (version >= 32 ? YARD_MAX_SPAN : 10), SIZE - 2), true)
   const home = v.tile(r.home, 'yard.home'), entrance = v.tile(r.entrance, 'yard.entrance'), direction = v.choice(r.direction, 'yard.direction', ['east'] as const)
-  const tiles = v.array(r.tiles, 'yard.tiles', undefined, 39).map((i, n) => v.tile(i, `yard.tiles[${n}]`)), spots = v.array(r.spots, 'yard.spots', tiles.length).map((i, n) => v.tile(i, `yard.spots[${n}]`))
+  const tiles = v.array(r.tiles, 'yard.tiles', undefined, version >= 32 ? 55 : 39).map((i, n) => v.tile(i, `yard.tiles[${n}]`)), spots = v.array(r.spots, 'yard.spots', tiles.length).map((i, n) => v.tile(i, `yard.spots[${n}]`))
   const reused = v.array(r.reused, 'yard.reused', undefined, 3).map((i, n) => v.tile(i, `yard.reused[${n}]`))
   const phase = v.choice(r.phase, 'yard.phase', ['collecting', 'building', 'complete'] as const), built = v.count(r.built, 'yard.built', tiles.length), carried = v.count(r.carried, 'yard.carried', 2), elapsedMs = v.count(r.elapsedMs, 'yard.elapsedMs', 3950), crate = r.crate === null ? null : v.tile(r.crate, 'yard.crate')
   const yard: Yard = { ...restoreProjectSelection(r), kind: 'yard', left, right, top, bottom, home, entrance, direction, tiles, spots, reused, phase, built, carried, elapsedMs, crate }

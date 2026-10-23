@@ -16,7 +16,7 @@ function until(w: World, predicate: () => boolean) { for (let n = 0; n < 12000 &
 function choose(w: World, id: string) {
   const candidates = projectCandidates(w), index = candidates.findIndex(p => p.definition.id === id)
   expect(index).toBeGreaterThanOrEqual(0)
-  const total = candidates.reduce((sum, p) => sum + p.weight, 0), low = candidates.slice(0, index).reduce((sum, p) => sum + p.weight, 0) / total, high = low + candidates[index].weight / total
+  const total = candidates.reduce((sum, p) => sum + p.priorityWeight, 0), low = candidates.slice(0, index).reduce((sum, p) => sum + p.priorityWeight, 0) / total, high = low + candidates[index].priorityWeight / total
   for (let seed = 0; seed < 100000; seed++) { const roll = ((Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296; if (roll >= low && roll < high) { w.peace.seed = seed; break } }
   expect(trySecretProject(w)).toBe(true)
 }

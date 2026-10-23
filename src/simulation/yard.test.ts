@@ -39,7 +39,7 @@ describe('Pete’s enclosed yard', () => {
     const w = world(); advanceWorld(w, 30000); expect(w.yard).toBeNull()
     supplyWood(w, 824, 1); advanceWorld(w, 30000); expect(w.yard).toBeNull()
     supplyWood(w, 824, 99); until(w, () => w.yard?.phase === 'building')
-    const y = w.yard!; expect(y.carried).toBe(2); expect(crate(w).wood).toBe(98)
+    const y = w.yard!; expect(y.carried).toBe(2); expect(crate(w).wood + ecoProjectWood(w)).toBe(98)
     until(w, () => y.elapsedMs >= 500); const count = w.buildings.filter(b => b?.kind === 'peteFence').length
     advanceWorld(w, 4000 - y.elapsedMs - 50); expect(w.buildings.filter(b => b?.kind === 'peteFence')).toHaveLength(count)
     advanceWorld(w, 50); expect(y.built).toBe(1); expect(y.carried).toBe(0); expect(y.phase).toBe('collecting')
@@ -88,9 +88,9 @@ describe('Pete’s enclosed yard', () => {
   })
   it('pauses blocked work safely and resumes without replaying a pickup', () => {
     const w = world(); supplyWood(w, 824, 100); until(w, () => (w.yard?.elapsedMs ?? 0) >= 500)
-    const y = w.yard!, tile = y.tiles[y.built], stock = crate(w).wood
+    const y = w.yard!, tile = y.tiles[y.built], stock = crate(w).wood + ecoProjectWood(w)
     expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'belt', 'east')).toBe(true)
-    advanceWorld(w, 5000); expect(y.carried).toBe(2); expect(crate(w).wood).toBe(stock); expect(() => load(w)).not.toThrow()
+    advanceWorld(w, 5000); expect(y.carried).toBe(2); expect(crate(w).wood + ecoProjectWood(w)).toBe(stock); expect(() => load(w)).not.toThrow()
     removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE)); until(w, () => y.phase === 'complete')
     expect(crate(w).wood + ecoProjectWood(w)).toBe(100 - y.tiles.length * 2)
   })
