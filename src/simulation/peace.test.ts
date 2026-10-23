@@ -157,7 +157,7 @@ describe('peaceful routine and gifts', () => {
     expect(['resting', 'walking', 'flowers', 'waving', 'homeward', 'entering']).toContain(w.peace.activity)
     expect(Math.hypot(w.pete.x - 20, w.pete.y - 20)).toBeLessThan(6)
   })
-  it('schedules gifts at fixed 5–10 minute intervals on reachable free cells and caps pending gifts', () => {
+  it('schedules gifts at fixed 15–25 minute intervals on reachable free cells and caps pending gifts', () => {
     const w = home()
     for (let i = 0; i < 5; i++) {
       const delay = w.peace.nextGiftAtMs - w.timeMs

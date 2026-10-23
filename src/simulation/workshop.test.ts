@@ -174,7 +174,8 @@ describe('Craftsman level one workshop', () => {
     expect(() => load(w)).not.toThrow()
   })
   it('migrates old saves unchanged and rejects malformed mixed stock, reward paths and activity clocks', () => {
-    const w = world(), old = snapshot(w); Object.assign(old, { version: 23 })
+    const w = world(); w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 23 })
     expect(snapshot(decodeSave(JSON.stringify(old)).world)).toEqual(snapshot(w))
     fund(w); choose(w); until(w, () => (w.workshopProject?.elapsedMs ?? 0) >= 500)
     const badCarry = snapshot(w); badCarry.game.workshopProject!.carriedIron = 7

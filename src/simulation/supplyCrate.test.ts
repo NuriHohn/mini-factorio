@@ -95,7 +95,7 @@ describe('peaceful supply visits and persistence', () => {
     expect(w.pete.tile).not.toBe(824); expect(w.pete.next).toBeNull()
     const buildings = w.buildings.filter(Boolean).length
     advanceWorld(w, SUPPLY_INSPECTION_MS)
-    expect(w.peace.activity).toBe('homeward'); expect(target.inventory.ironGear).toBe(12)
+    expect(w.peace.activity).toBe('walking'); expect(target.inventory.ironGear).toBe(12)
     expect(w.buildings.filter(Boolean).length).toBe(buildings)
   })
   it('ignores unreachable crates and recovers after demolition, obstruction or loss of peace', () => {
@@ -133,10 +133,10 @@ describe('peaceful supply visits and persistence', () => {
     advanceWorld(w, 8765)
     for (const ms of [17, 2000, 103, 2645, 4000]) advanceWorld(loaded, ms)
     expect(JSON.parse(encode(loaded))).toEqual(JSON.parse(encode(w)))
-    expect(SAVE_VERSION).toBe(25)
+    expect(SAVE_VERSION).toBe(26)
   })
   it('accepts genuine prior-version saves and rejects malformed inventory or hidden new state', () => {
-    const legacy = JSON.parse(encode(world())); legacy.version = 13; delete legacy.game.personality
+    const legacy = JSON.parse(encode(world())); legacy.version = 13; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
     expect(JSON.parse(encode(decodeSave(JSON.stringify(legacy)).world))).toEqual(JSON.parse(encode(world())))
     const w = home(); visit(w)
     for (const mutate of [

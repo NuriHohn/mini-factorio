@@ -143,7 +143,8 @@ describe('Eco level two projects', () => {
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }
   })
   it('migrates a version-22 world unchanged and rejects malformed progress, cooldowns and unearned gardens', () => {
-    const w = world(), old = snapshot(w); Object.assign(old, { version: 22 })
+    const w = world(); w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 22 })
     const restored = decodeSave(JSON.stringify(old)).world; expect(snapshot(restored)).toEqual(snapshot(w))
     expect(restored.gardenProject).toBeUndefined(); expect(restored.plantProject).toBeUndefined()
     supplyWood(w, 824, 2); choose(w, 'reforestation'); until(w, () => w.plantProject?.phase === 'complete')

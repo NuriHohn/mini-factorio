@@ -17,7 +17,7 @@ describe('version 9 terrain and bridge persistence', () => {
   it('round trips new generated terrain, nature and factory state exactly', () => {
     const w = createWorld(() => .42); advanceWorld(w, 675)
     const original = snapshot(w), restored = decodeSave(JSON.stringify(original)).world
-    expect(SAVE_VERSION).toBe(25); expect(restored.water.some(Boolean)).toBe(true)
+    expect(SAVE_VERSION).toBe(26); expect(restored.water.some(Boolean)).toBe(true)
     expect(snapshot(restored)).toEqual(original)
     advanceWorld(w, 1234); advanceWorld(restored, 1234)
     expect(snapshot(restored)).toEqual(snapshot(w))
@@ -25,7 +25,8 @@ describe('version 9 terrain and bridge persistence', () => {
   it('migrates a genuine version-8 factory without flooding or changing saved gameplay state', () => {
     const w = poweredWorld(() => .5)
     placeBuilding(w, 20, 20, 'miner', 'east'); advanceWorld(w, 1600)
-    const old = snapshot(w); Object.assign(old, { version: 8 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game, 'water')
+    w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 8 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game, 'water')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.water.every(v => !v)).toBe(true)
     expect(snapshot(restored)).toEqual(snapshot(w))

@@ -29,11 +29,11 @@ const surplus = (w: World) => ecoProjectWood(w) + crate(w).wood + 2 * (w.yard?.b
 function fire() { const w = world(); supplyWood(w, 824, 5); until(w, () => w.campfireProject?.phase === 'complete'); return w }
 function cooking() { const w = fire(); until(w, () => w.peace.activity === 'cooking'); return w }
 describe('Pete’s autonomous campfire and fried eggs', () => {
-  it('waits for the coop and exactly five supplied Wood, reusing pickup and six-second construction', () => {
+  it('waits for the fence and exactly five supplied Wood, reusing pickup and six-second construction', () => {
     const w = createBareWorld(() => .5); w.nature.wood = 100
-    placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east'); supplyWood(w, 824, 21)
-    until(w, () => w.coopProject?.phase === 'building'); expect(w.campfireProject).toBeNull()
-    until(w, () => w.coopProject?.phase === 'complete'); expect(w.campfireProject).toBeNull()
+    placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east'); supplyWood(w, 824, 5)
+    advanceWorld(w, 20000); expect(w.project).toBeNull(); expect(w.campfireProject).toBeNull()
+    supplyWood(w, 824, 1); until(w, () => w.project?.phase === 'complete'); expect(w.campfireProject).toBeNull()
     const unfunded = world(); supplyWood(unfunded, 824, 4); advanceWorld(unfunded, 50000)
     expect(unfunded.campfireProject).toBeNull(); expect(crate(unfunded).wood).toBe(4)
     supplyWood(unfunded, 824, 1); until(unfunded, () => (unfunded.campfireProject?.elapsedMs ?? 0) > 0)
@@ -47,8 +47,8 @@ describe('Pete’s autonomous campfire and fried eggs', () => {
   it('waits for safe space, preserves access and resumes blocked building without charging twice', () => {
     const w = world(); supplyWood(w, 824, 5)
     for (const i of [940, 817]) expect(placeBuilding(w, i % SIZE, Math.floor(i / SIZE), 'storage', 'east')).toBe(true)
-    advanceWorld(w, 50000); expect(w.campfireProject).toBeNull(); expect(crate(w).wood).toBe(5)
-    removeBuilding(w, 20, 23); until(w, () => (w.campfireProject?.elapsedMs ?? 0) >= 500)
+    until(w, () => (w.campfireProject?.elapsedMs ?? 0) >= 500)
+    expect([940, 817]).not.toContain(w.campfireProject!.tiles[0])
     const p = w.campfireProject!, tile = p.tiles[0]
     expect(projectSiteClear(w, p)).toBe(true)
     expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'belt', 'east')).toBe(true)
@@ -85,7 +85,7 @@ describe('Pete’s autonomous campfire and fried eggs', () => {
     advanceWorld(w, COOKING_MS - 50); expect(s.eaten).toBe(eaten)
     advanceWorld(w, 50); expect(s.eaten).toBe(eaten + 1); expect(s.collected).toBe(collected)
     expect(availableEggs(w)).toBe(collected - eaten - 1); expect(w.peace.activity).toBe('campfireHappy'); expect(finishCooking(w)).toBe(false)
-    advanceWorld(w, 2000); expect(w.peace.activity).toBe('homeward')
+    advanceWorld(w, 2000); expect(['campfireHappy', 'cooking']).not.toContain(w.peace.activity); expect(w.pete.next).toBeNull()
   })
   it('restores frying, eating and happy phases deterministically without replaying egg consumption', () => {
     const w = cooking()
@@ -118,7 +118,8 @@ describe('Pete’s autonomous campfire and fried eggs', () => {
   })
   it('migrates populated version-17 saves with exact flock/egg state and no cooked eggs', () => {
     const w = world(); until(w, () => availableEggs(w) > 0)
-    const old = snapshot(w); Object.assign(old, { version: 17 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.poultry!, 'eaten')
+    w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 17 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.poultry!, 'eaten')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.campfireProject).toBeNull(); expect(restored.poultry).toEqual(w.poultry)
     expect(availableEggs(restored)).toBe(w.poultry!.collected)

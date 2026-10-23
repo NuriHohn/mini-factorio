@@ -112,7 +112,8 @@ describe('Pete’s enclosed yard', () => {
     expect(w.yard).toBe(y); expect(y.phase).toBe('complete')
   })
   it('loads a real version-18 world unchanged, then allows the new project', () => {
-    const w = world(), old = snapshot(w); Object.assign(old, { version: 18 }); Reflect.deleteProperty(old.game, 'personality')
+    const w = world(); w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 18 }); Reflect.deleteProperty(old.game, 'personality')
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.yard).toBeNull(); expect(restored.project).toEqual(w.project); expect(restored.poultry).toEqual(w.poultry)
     supplyWood(restored, 824, 100); until(restored, () => restored.yard?.phase === 'complete')

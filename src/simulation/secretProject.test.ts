@@ -129,7 +129,8 @@ describe('Pete’s one autonomous fence project', () => {
   })
   it('migrates version 14 with exact stocks and rejects malformed project and Wood state', () => {
     const w = setup(false); crate(w).inventory.ironGear = 7
-    const old = snapshot(w)
+    w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
+    const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs')
     Object.assign(old, { version: 14 }); Reflect.deleteProperty(old.game, 'personality'); Reflect.deleteProperty(old.game.buildings[824]!, 'wood')
     const loaded = decodeSave(JSON.stringify(old)).world
     expect(loaded.project).toBeNull(); expect(crate(loaded).wood).toBe(0)
