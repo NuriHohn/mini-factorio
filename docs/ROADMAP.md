@@ -6,6 +6,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Milestone | Delivered |
 | --- | --- |
+| Sprint 16.12.3: Progressive Industrial-Pete outfits | Existing dominant Industrial level selects cumulative work gloves, overalls/hard hat, reinforced workwear and legendary navy/gold magnate details; all four outfit paths complete, unchanged progression/saves |
 | Sprint 16.12.2: Progressive Inventor-Pete outfits | Existing dominant Inventor level selects cumulative forehead goggles, copper tools, technical backpack/gears and legendary brass/cyan details; preserved Eco/Craftsman outfits and unchanged progression/saves |
 | Sprint 16.12.1: Progressive Craftsman-Pete outfits | Existing dominant Craftsman level selects cumulative belt, apron/hammer, reinforced master apron/tools and legendary brass/masterwork details through Sprint 16.12's rendering passes; original level 1, preserved Eco outfits and unchanged progression/saves |
 | Sprint 16.12: Progressive Eco-Pete outfits | Existing dominant Eco level selects cumulative scarf, straw hat/vest, leafy cape/flowers and legendary leaf crown/glow; immediate-mode pose-aligned accessories, original level 1/other personalities, unchanged progression and saves |
@@ -68,6 +69,9 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Proposal | Intended scope / prerequisite |
 | --- | --- |
+| Pete: first Inventor project | Next candidate after outfits: one small autonomous technical invention; exact scope and sprint number to be agreed |
+| Pete: first Industrial project | One small production installation; exact outputs, material costs and sprint scope to be agreed |
+| Pete: higher-level evolution | Separately scoped Eco/Craftsman projects, animal keeping/orchard/horse/forestry, bicycle/glider/teleporters and minifactory/steam car; later active dominance bonuses and permanent mastery unlocks, all planned only |
 | Water & Industry (future scope, unassigned sprint) | Future extension: separately scoped water-related industry; no pumps, fluids or new water-powered machines are implemented in Sprint 15.0 |
 | Pete’s Cozy Home (future scope, unassigned sprint) | Future gates, treehouse decorations and further fence layouts beyond the single automatic Sprint 16.1 project; these extensions are not implemented |
 | Improved logistics | Build on basic inserters with separately approved filtering, priorities, stack/reach variants or throughput improvements |

@@ -558,7 +558,9 @@ When Craftsman is dominant, its own existing level selects a separate cumulative
 
 When Inventor is dominant, its own level selects cumulative accessories: level 1 stays original; level 2 adds small forehead safety goggles; level 3 upgrades to copper goggles and pocket tools; level 4 adds a technical backpack with side gears; level 5 adds brass detailing, cyan antenna tips and a small glowing belt ornament. These are cosmetic, with no powered equipment or gameplay effect. See the [Inventor tier comparison](images/inventor-pete-outfits.png).
 
-All three outfits follow normal movement, reactions and the seated boat pose; tiny house-window, police-passenger and walker-cockpit portraits keep their simplified faces. Industrial uses the original appearance regardless of other path levels. Changes and loaded saves update immediately from existing progression, without outfit unlocks or changes to XP, activities, save format or balance.
+When Industrial is dominant, its own level selects cumulative workwear: level 1 stays original; level 2 adds leather work gloves; level 3 adds blue overalls and a yellow hard hat above the pumpkin brim; level 4 reinforces the workwear with shoulder/knuckle plates, knee patches and safety accents; level 5 adds a navy-and-gold magnate finish, gold-edged coat tails, a factory helmet badge and a small watch-chain detail. These are cosmetic and grant no bonuses. See the [Industrial tier comparison](images/industrial-pete-outfits.png).
+
+All four outfits follow normal movement, reactions and the seated boat pose; tiny house-window, police-passenger and walker-cockpit portraits keep their simplified faces. Each outfit uses only the currently dominant path and its own level. Changes and loaded saves update immediately from existing progression, without outfit unlocks or changes to XP, activities, save format or balance.
 
 
 ## Pete’s autonomous project selection

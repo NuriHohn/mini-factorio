@@ -86,7 +86,10 @@ export function drawWetPete(g: Phaser.GameObjects.Graphics, world: World, tile: 
   g.fillStyle(0x17251b).fillCircle(hx - 4, hy, 1.5).fillCircle(hx + 4, hy, 1.5)
   g.lineStyle(2, 0x36582a).lineBetween(hx - 8, hy - 5, hx - 2, hy - 3).lineBetween(hx + 2, hy - 3, hx + 8, hy - 5)
   g.lineStyle(2, 0x36582a).strokeEllipse(hx, hy + 6, 7, running ? 6 : 3)
-  drawPeteOutfit(g, outfit, hx, hy + 4, 'front')
+  drawPeteOutfit(g, outfit, hx, hy + 4, 'front', [
+    { x: x - 17, y: y - 3 - Math.sin(world.timeMs / 70) * 4 },
+    { x: x + 17, y: y - 3 + Math.sin(world.timeMs / 70) * 4 },
+  ])
   for (let i = 0; i < 4; i++) {
     const fall = (world.timeMs / 500 + i / 4) % 1
     g.fillStyle(0x7fe5ff, .9).fillEllipse(hx - 8 + i * 5, hy + fall * 13, 2, 4)
