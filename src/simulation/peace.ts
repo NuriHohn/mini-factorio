@@ -1,3 +1,4 @@
+import { gardenSpot, refreshGardening, TEND_MS, TEND_COOLDOWN_MS } from './ecoProjects'
 import { preparePeteGate } from './gardenGate'
 import { CAMPFIRE_HAPPY_MS, COOKING_MS, finishCooking, reachableCampfire, refreshCooking } from './campfire'
 import { collectEgg, eggAt, EGG_COLLECT_MS, reachableEgg, refreshPoultry } from './poultry'
@@ -16,7 +17,7 @@ export const TREEHOUSE_WOOD = 20
 export const GIFT_MIN_MS = 300000
 export const GIFT_MAX_MS = 600000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
@@ -92,7 +93,9 @@ function plan(world: World): void {
   const p = world.pete, s = world.peace, parents = reachableTiles(world, p.tile)
   const local = localTiles(world, parents)
   const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i))
-  if (s.activity === 'campfireward') {
+  if (s.activity === 'gardenward') {
+    if (gardenSpot(world) !== s.destination) { activity(world, 'homeward'); plan(world); return }
+  } else if (s.activity === 'campfireward') {
     if (reachableCampfire(world) !== s.destination) { activity(world, 'homeward'); plan(world); return }
   } else if (s.activity === 'eggward') {
     if (!eggAt(world, s.destination) || !parents.has(s.destination!)) { activity(world, 'homeward'); plan(world); return }
@@ -115,7 +118,8 @@ function move(world: World, delta: number): void {
       if (p.pathRevision !== world.topologyRevision || world.peace.destination === null) plan(world)
       p.next = p.path.shift() ?? null
       if (p.next === null) {
-        if (world.peace.activity === 'campfireward') activity(world, 'cooking', COOKING_MS, world.peace.destination)
+        if (world.peace.activity === 'gardenward') activity(world, 'gardening', TEND_MS, world.peace.destination)
+        else if (world.peace.activity === 'campfireward') activity(world, 'cooking', COOKING_MS, world.peace.destination)
         else if (world.peace.activity === 'eggward') activity(world, 'collectingEgg', EGG_COLLECT_MS, world.peace.destination)
         else if (world.peace.activity === 'crateward') activity(world, 'checkingCrate', SUPPLY_INSPECTION_MS, world.peace.destination)
         else if (world.peace.activity === 'dockward') {
@@ -177,6 +181,7 @@ export function advancePeace(world: World, delta: number): void {
   if (s.reactionAtMs !== null && world.timeMs - s.reactionAtMs >= 4000) s.reactionAtMs = null
   if (!peaceful(world)) return
   refreshFishing(world)
+  refreshGardening(world)
   refreshSupplyVisit(world)
   refreshPoultry(world)
   refreshCooking(world)
@@ -190,7 +195,7 @@ export function advancePeace(world: World, delta: number): void {
       if (boat.phase === 'boarding') { boat.phase = 'rowing'; activity(world, 'boating', 0, s.destination) }
       else { delete s.boat; activity(world, 'homeward') }
     }
-  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward') {
+  } else if (s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward') {
     if (p.next !== null && (!walkableTile(world, p.next))) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
@@ -199,6 +204,8 @@ export function advancePeace(world: World, delta: number): void {
     else if (s.activity === 'entering') activity(world, 'resting', 12000)
     else if (s.activity === 'resting') {
       if (trySecretProject(world)) return
+      const garden = gardenSpot(world)
+      if (garden !== null && world.timeMs >= (world.gardenProject?.readyAtMs ?? 0) && random(world) < .25) { world.gardenProject!.readyAtMs = world.timeMs + TEND_COOLDOWN_MS; activity(world, 'gardenward', 0, garden); return }
       const fire = reachableCampfire(world)
       if (fire !== null && random(world) < 1 / 3) { activity(world, 'campfireward', 0, fire); return }
       const egg = reachableEgg(world)

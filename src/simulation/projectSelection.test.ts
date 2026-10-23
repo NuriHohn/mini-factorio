@@ -41,7 +41,7 @@ function choose(w: World, id: string): void {
 }
 describe('data-driven autonomous project selection', () => {
   it('registers the five existing once-only Eco level-one projects with their unchanged costs', () => {
-    expect(PETE_PROJECTS.map(p => [p.id, p.path, p.minimumLevel, p.resources.wood, p.repeatable])).toEqual([
+    expect(PETE_PROJECTS.filter(p => p.minimumLevel === 1).map(p => [p.id, p.path, p.minimumLevel, p.resources.wood, p.repeatable])).toEqual([
       ['fence', 'eco', 1, 6, false], ['coop', 'eco', 1, 10, false], ['campfire', 'eco', 1, 5, false], ['yard', 'eco', 1, 2, false], ['gate', 'eco', 1, 3, false],
     ])
     const w = createBareWorld(() => .5)

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createBareWorld } from './testFixtures'
+import { createBareWorld, ecoProjectWood } from './testFixtures'
 import { placeBuilding, removeBuilding, SIZE } from './world'
 import type { SupplyCrate, World } from './world'
 import { advanceWorld } from './step'
@@ -25,7 +25,7 @@ beforeAll(() => {
 })
 const world = () => structuredClone(template)
 const crate = (w: World) => w.buildings[824] as SupplyCrate
-const surplus = (w: World) => crate(w).wood + 2 * (w.yard?.built ?? 0) + (w.yard?.carried ?? 0)
+const surplus = (w: World) => ecoProjectWood(w) + crate(w).wood + 2 * (w.yard?.built ?? 0) + (w.yard?.carried ?? 0)
 function fire() { const w = world(); supplyWood(w, 824, 5); until(w, () => w.campfireProject?.phase === 'complete'); return w }
 function cooking() { const w = fire(); until(w, () => w.peace.activity === 'cooking'); return w }
 describe('Pete’s autonomous campfire and fried eggs', () => {

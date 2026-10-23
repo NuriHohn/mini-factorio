@@ -1,3 +1,4 @@
+import { drawVegetableGarden } from './ecoVisuals'
 import { drawGardenGate } from './gardenGateVisuals'
 import { drawYardCorner, drawYardEntrance, yardCorner } from './yardVisuals'
 import { drawCampfire, drawCampfireEffects } from './campfireVisuals'
@@ -574,6 +575,8 @@ export class FactoryScene extends Phaser.Scene {
         drawSecurityBuilding(this.machines, this.world, building, TILE)
       } else if (building.kind === 'peteGate') {
         drawGardenGate(this.machines, building, TILE)
+      } else if (building.kind === 'peteGarden') {
+        drawVegetableGarden(this.machines, building, TILE)
       } else if (building.kind === 'peteCampfire') {
         drawCampfire(this.machines, building, TILE)
       } else if (building.kind === 'peteCoop') {

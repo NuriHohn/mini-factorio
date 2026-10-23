@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createBareWorld } from './testFixtures'
+import { createBareWorld, ecoProjectWood } from './testFixtures'
 import { placeBuilding, removeBuilding, SIZE } from './world'
 import type { SupplyCrate, World } from './world'
 import { advanceWorld } from './step'
@@ -66,7 +66,7 @@ describe('Pete’s chicken coop follow-up project', () => {
     expect(w.nature.wood).toBe(wood)
     const loaded = load(w), tile = p.tiles[0]
     supplyWood(loaded, 824, 10); advanceWorld(loaded, 60000)
-    expect(coops(loaded)).toHaveLength(1); expect(crate(loaded).wood + 2 * (loaded.yard?.built ?? 0) + (loaded.yard?.carried ?? 0)).toBe(12) // The campfire is already complete; no duplicate construction debit.
+    expect(coops(loaded)).toHaveLength(1); expect(crate(loaded).wood + ecoProjectWood(loaded) + 2 * (loaded.yard?.built ?? 0) + (loaded.yard?.carried ?? 0)).toBe(12) // The campfire is already complete; no duplicate construction debit.
     expect(loaded.campfireProject?.phase).toBe('complete')
     removeBuilding(loaded, tile % SIZE, Math.floor(tile / SIZE)); advanceWorld(loaded, 60000)
     expect(coops(loaded)).toHaveLength(0); expect(loaded.coopProject?.phase).toBe('complete')

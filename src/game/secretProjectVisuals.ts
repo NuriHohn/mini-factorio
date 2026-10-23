@@ -1,3 +1,4 @@
+import { drawVegetableGarden, drawPlanting } from './ecoVisuals'
 import { drawGardenGate } from './gardenGateVisuals'
 import { drawYardCorner, yardCorner } from './yardVisuals'
 import { yardDirection } from '../simulation/yard'
@@ -27,7 +28,9 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
   if (project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
     const progress = project.elapsedMs / projectBuildMs(project)
-    if (project.kind === 'gate') drawGardenGate(g, { kind: 'peteGate', x, y, direction: project.direction, openMs: 0, holdUntilMs: 0 }, tile, progress)
+    if (project.kind === 'garden') drawVegetableGarden(g, { kind: 'peteGarden', x, y }, tile, progress)
+    else if (project.kind === 'plant') drawPlanting(g, x, y, tile, progress)
+    else if (project.kind === 'gate') drawGardenGate(g, { kind: 'peteGate', x, y, direction: project.direction, openMs: 0, holdUntilMs: 0 }, tile, progress)
     else if (project.kind === 'campfire') drawCampfire(g, { kind: 'peteCampfire', x, y }, tile, progress)
     else if (project.kind === 'coop') drawChickenCoop(g, { kind: 'peteCoop', x, y }, tile, progress)
     else if (project.kind === 'yard' && world.yard && yardCorner(world.yard, index)) drawYardCorner(g, { kind: 'peteFence', x, y, direction: yardDirection(world.yard, index) }, world.yard, tile, progress)
@@ -40,7 +43,7 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
     g.lineStyle(3, 0x91dd60).lineBetween(px + 6, py + 4, px + 12, py - 4)
     g.save().translateCanvas(px + 12, py - 4).rotateCanvas(swing)
     g.fillStyle(0xb28b58).fillRect(-1, -9, 2, 12)
-    g.fillStyle(0x89958c).fillRoundedRect(-5, -11, 10, 4, 1).restore()
+    g.fillStyle(0x89958c).fillRoundedRect(-5, -11, 10, project.kind === 'plant' || project.kind === 'garden' ? 8 : 4, 1).restore()
   } else {
     g.lineStyle(3, 0x91dd60).lineBetween(px + 5, py + 4, px + 11, py + 5)
     g.fillStyle(0xb98a53).fillRoundedRect(px + 6, py, 12, 8, 2)

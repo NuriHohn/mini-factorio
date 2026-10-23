@@ -1,3 +1,4 @@
+import type { World } from './world'
 import { createResearch } from './research'
 // Shared explicit infrastructure for full-power production regression fixtures.
 import { createWorld, placeBuilding } from './world'
@@ -19,3 +20,9 @@ export function createUnlockedWorld(random = Math.random) {
 }
 
 export function createBareWorld(random = Math.random) { return createWorld(random, { nature: false, water: false }) }
+
+// Conservation checks in initially treeless construction fixtures include Wood
+// legitimately spent on the new Eco activities, separately from the project under test.
+export function ecoProjectWood(world: World): number {
+  return (world.gardenProject && world.gardenProject.phase !== 'collecting' ? 12 : 0) + (world.plantProject?.carried ?? 0) + 2 * world.buildings.filter(b => b?.kind === 'tree' && b.origin === 'manual').length
+}
