@@ -1,5 +1,5 @@
 import { nearFactory, naturalTreeCap } from './nature'
-import { neighboringTiles, peteReachableTiles } from './navigation'
+import { neighboringTiles, peteReachableTiles, tilePath } from './navigation'
 import { projectPlansConflict, projectSiteClear } from './secretProject'
 import type { SecretProject } from './secretProject'
 import { inside, placementError, SIZE } from './world'
@@ -14,22 +14,25 @@ export function plantingSite(world: World, tile: number): boolean {
   const trees = world.buildings.flatMap((b, i) => b?.kind === 'tree' ? [i] : [])
   return trees.length < naturalTreeCap() && !trees.some(i => distance(i, tile) < 3) && trees.filter(i => distance(i, tile) <= 6).length < 8
 }
+export function nearbyPlanting(project: SecretProject): boolean { return distance(project.home, project.tiles[0]) >= 4 && distance(project.home, project.tiles[0]) <= 6 }
 export function planPlanting(world: World): SecretProject | null {
   const home = world.peace.home
   if (home === null) return null
   const trees = world.buildings.flatMap((b, i) => b?.kind === 'tree' ? [i] : []), parents = peteReachableTiles(world, world.pete.tile)
-  const candidates: number[] = []
-  for (let dy = -10; dy <= 10; dy++) for (let dx = -10; dx <= 10; dx++) {
-    const x = home % SIZE + dx, y = Math.floor(home / SIZE) + dy
-    if (inside(x, y) && plantingSite(world, y * SIZE + x)) candidates.push(y * SIZE + x)
+  const candidates: { tile: number; spot: number; steps: number }[] = []
+  for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) {
+    const x = home % SIZE + dx, y = Math.floor(home / SIZE) + dy, tile = y * SIZE + x
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 4 || !inside(x, y) || !plantingSite(world, tile)) continue
+    for (const spot of neighboringTiles(tile)) {
+      if (!parents.has(spot) || world.water[spot] || world.buildings[spot]) continue
+      candidates.push({ tile, spot, steps: tilePath(parents, spot)!.length })
+    }
   }
-  // Prefer forest edges, then nearby sites, with stable tile-order ties. No RNG here.
-  candidates.sort((a, b) => Number(!trees.some(i => distance(i, a) <= 5)) - Number(!trees.some(i => distance(i, b) <= 5)) || distance(home, a) - distance(home, b) || a - b)
-  for (const tile of candidates) {
-    const spot = neighboringTiles(tile).find(i => parents.has(i) && !world.water[i] && !world.buildings[i])
-    if (spot === undefined) continue
+  // Walking distance wins; forest edges only break equally short route ties.
+  candidates.sort((a, b) => a.steps - b.steps || Number(!trees.some(i => distance(i, a.tile) <= 5)) - Number(!trees.some(i => distance(i, b.tile) <= 5)) || distance(home, a.tile) - distance(home, b.tile) || a.tile - b.tile || a.spot - b.spot)
+  for (const { tile, spot } of candidates) {
     const plan: SecretProject = { kind: 'plant', home, direction: 'east', tiles: [tile], spots: [spot], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
-    if (!projectPlansConflict(world, plan) && projectSiteClear(world, plan)) return plan
+    if (!projectPlansConflict(world, plan, world.plantProject) && projectSiteClear(world, plan)) return plan
   }
   return null
 }

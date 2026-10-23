@@ -517,3 +517,7 @@ Version **28** adds the optional project, strict press kind/buffers and appended
 ### Pete inspection (Sprint 16.16)
 
 `simulation/peteStatus.ts` derives detached status from the shared registry, feasible candidates and existing site/navigation checks. It has no authoritative state or selection writes. Zustand owns the optional presentation snapshot and refreshes it only while inspected through the existing publish cadence. `FactoryScene` handles the ordinary Pete hit before building/gift inspection; explicit tools retain priority. `PeteInspection.tsx` shares the inspector shell and personality view. Scene create/restore and existing tool/inspection cancellation clear the transient panel. No save schema change.
+
+### Nearby reforestation (Sprint 16.17)
+
+`ecoProjects.planPlanting` enumerates only radius 4–6 sites and their reachable adjacent approaches, ranks by actual BFS path length, then forest edge/home distance/stable tile order. All existing density, factory, terrain and final connectivity checks remain. `nearbyPlanting` makes unpaid distant plans ineligible and the shared candidate planner replaces them without charging. Paid plans bypass the new radius policy and retain the previous strict 4–10 persistence bounds. No save schema change or new RNG.
