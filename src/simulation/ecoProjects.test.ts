@@ -98,8 +98,9 @@ describe('Eco level two projects', () => {
     until(restored, () => restored.plantProject?.phase === 'complete')
     expect(trees(restored)).toHaveLength(2); expect(restored.personality.paths.eco.xp).toBe(30); expect(stock(restored)).toBe(0)
   })
-  it('avoids water, factory buffers, ore, tree density, blocked routes and prefers existing natural areas', () => {
-    const w = world(), plan = planPlanting(w)!, tile = plan.tiles[0]
+  it('avoids water, factory buffers, ore, tree density, blocked routes and selects nearby reachable areas', () => {
+    const w = world(); Object.assign(w.pete, { tile: 860, x: 20, y: 21, next: null, path: [] })
+    const plan = planPlanting(w)!, tile = plan.tiles[0]
     expect(plantingSite(w, tile)).toBe(true)
     w.water[tile] = true; expect(plantingSite(w, tile)).toBe(false); w.water[tile] = false
     w.tiles[tile] = 'iron'; expect(plantingSite(w, tile)).toBe(false); w.tiles[tile] = null
@@ -107,7 +108,7 @@ describe('Eco level two projects', () => {
     removeBuilding(w, tile % SIZE + 1, Math.floor(tile / SIZE))
     expect(plantTree(w, tile % SIZE + 1, Math.floor(tile / SIZE), 'birch')).toBe(true); expect(plantingSite(w, tile)).toBe(false)
     const next = planPlanting(w)!
-    expect(Math.max(Math.abs(next.tiles[0] % SIZE - (tile % SIZE + 1)), Math.abs(Math.floor(next.tiles[0] / SIZE) - Math.floor(tile / SIZE)))).toBeLessThanOrEqual(5)
+    expect(Math.max(Math.abs(next.tiles[0] % SIZE - 20), Math.abs(Math.floor(next.tiles[0] / SIZE) - 20))).toBeLessThanOrEqual(6)
     for (let i = 0; i < w.water.length; i++) if (!w.buildings[i] && i !== w.pete.tile) w.water[i] = true
     expect(planPlanting(w)).toBeNull()
   })

@@ -101,3 +101,7 @@ The press consumes its own family (one gear), recovers one plate, respects bound
 ## Sprint 16.16 — Click Pete for status (completed)
 
 Current activity/project, a nonbinding next wish and concrete project requirements are inspectable without changing autonomous decisions.
+
+## Sprint 16.17 — Nearby reforestation (completed)
+
+New planting stays 4–6 tiles from home and prefers shortest reachable walks before forest edges. Paid legacy work remains intact.

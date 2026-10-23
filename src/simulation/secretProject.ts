@@ -3,7 +3,7 @@ import { EXPERIMENT_BUILD_MS, EXPERIMENT_COOLDOWN_MS } from './experiment'
 import { planVeranda, verandaSiteClear, VERANDA_BUILD_MS } from './veranda'
 import { WORKSHOP_BUILD_MS, WORKSHOP_COOLDOWN_MS } from './workshop'
 import { yardInterior } from './yard'
-import { planPlanting, plantingSite, PLANT_COOLDOWN_MS, TEND_COOLDOWN_MS } from './ecoProjects'
+import { nearbyPlanting, planPlanting, plantingSite, PLANT_COOLDOWN_MS, TEND_COOLDOWN_MS } from './ecoProjects'
 import { plantTree } from './nature'
 import { PETE_PROJECTS, projectUnlocked } from './projectRegistry'
 import type { ProjectDefinition, ProjectMaterial } from './projectRegistry'
@@ -150,7 +150,7 @@ export function projectPlansConflict(world: World, project: SecretProject, ignor
   })
 }
 function projectWeight(world: World, project: SecretProject, definition: ProjectDefinition, ignored?: SecretProject): number {
-  return projectUnlocked(world, definition) && !projectPlansConflict(world, project, ignored) && projectSiteClear(world, project) ? availableMaterials(world, project, definition) : 0
+  return (project.kind !== 'plant' || project.phase !== 'collecting' || nearbyPlanting(project)) && projectUnlocked(world, definition) && !projectPlansConflict(world, project, ignored) && projectSiteClear(world, project) ? availableMaterials(world, project, definition) : 0
 }
 export function projectCandidates(world: World, blocked: string[] = []): { definition: ProjectDefinition; project: SecretProject; weight: number }[] {
   if (world.peace.home === null || world.police.car || world.revenge.boss || world.pete.mode !== 'WANDERING') return []
@@ -160,6 +160,7 @@ export function projectCandidates(world: World, blocked: string[] = []): { defin
     if (!availableMaterials(world, saved?.phase !== 'complete' && saved ? saved : null, definition)) return []
     let project = saved?.phase !== 'complete' && saved ? saved : definition.id === 'coop' || definition.id === 'campfire' ? followUpLayout(world, definition.id) : definition.id === 'veranda' ? planVeranda(world) : definition.id === 'reforestation' ? planPlanting(world) : definition.id === 'garden' ? layout(world, 'garden') : definition.id === 'yard' ? planYard(world) : definition.id === 'gate' ? planGate(world) : layout(world, definition.id === 'fence' ? undefined : definition.id)
     if (saved?.phase === 'collecting' && (definition.id === 'coop' || definition.id === 'campfire') && (!project || !projectSiteClear(world, project) || projectPlansConflict(world, project))) project = followUpLayout(world, definition.id, saved)
+    if (saved?.phase === 'collecting' && definition.id === 'reforestation' && (!nearbyPlanting(saved) || !projectSiteClear(world, saved))) project = planPlanting(world)
     if (!project) { blocked.push(definition.id); return [] }
     const weight = projectWeight(world, project, definition, saved ?? undefined)
     if (!weight) blocked.push(definition.id)
