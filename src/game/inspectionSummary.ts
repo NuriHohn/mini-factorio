@@ -3,10 +3,12 @@ import type { Inspection } from '../simulation/inspection'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { PLAYER_TOOLS } from '../state/toolMetadata'
 const descriptions: Record<Inspection['kind'], string> = {
+  peteTreasure: 'Pete collects little keepsakes here. They are separate from factory resources.',
+  peteFlightpad: 'Propeller backpack workshop. Practice at Inventor 4, safe scenic flights at Inventor 5.',
   petePress: 'Pete recycles 1 iron gear into 1 iron plate by hand. Feed gears with belts or inserters; collect plates with an inserter. No electricity needed for the press.',
   peteExperiment: 'Pete’s copper-and-gear experiment table. Completed experiments earn Inventor XP; no production or power needed.',
   peteWorkshop: 'Pete’s wooden-and-metal workshop. Decorative hammering earns Craftsman XP; no production.',
-  peteGarden: 'Pete’s vegetable garden. Mulching uses 2 supplied Wood and earns 4 Eco XP after four seconds, with a 60-second cooldown. Watering is decorative; no crops.',
+  peteGarden: 'Pete’s vegetable garden. Mulching uses 2 supplied Wood and earns 4 Eco XP after four seconds, with a 60-second cooldown. Each completed mulching also grows one chicken-feed portion (up to four), which Pete carries to the coop. Watering is decorative.',
   peteGate: 'Pete’s wooden garden gate. Opens automatically for Pete; chickens stay in the yard.',
   peteCampfire: 'Pete’s cozy campfire. He cooks collected eggs here while peaceful; no factory production.',
   peteCoop: 'Pete’s cozy wooden chicken coop. A home for peaceful chickens and chicks. Eggs stay outside factory inventories.',
@@ -23,9 +25,11 @@ const descriptions: Record<Inspection['kind'], string> = {
 }
 export function inspectionSummary(i: Inspection) {
   const metadata = PLAYER_TOOLS.find(t => t.tool === i.kind)
-  const name = i.kind === 'petePress' ? 'Pete’s Recycling Press' : i.kind === 'peteExperiment' ? 'Pete’s Experiment Table' : i.kind === 'peteWorkshop' ? 'Pete’s Workshop' : i.kind === 'peteGarden' ? 'Pete’s Vegetable Garden' : i.kind === 'peteGate' ? 'Pete’s Garden Gate' : i.kind === 'peteCampfire' ? 'Pete’s Campfire' : i.kind === 'peteCoop' ? 'Pete’s Chicken Coop' : i.kind === 'peteFence' ? 'Pete’s wooden fence' : i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
+  const name = i.kind === 'peteTreasure' ? 'Pete’s Treasure Chest' : i.kind === 'peteFlightpad' ? 'Pete’s Flight Workshop' : i.kind === 'petePress' ? 'Pete’s Recycling Press' : i.kind === 'peteExperiment' ? 'Pete’s Experiment Table' : i.kind === 'peteWorkshop' ? 'Pete’s Workshop' : i.kind === 'peteGarden' ? 'Pete’s Vegetable Garden' : i.kind === 'peteGate' ? 'Pete’s Garden Gate' : i.kind === 'peteCampfire' ? 'Pete’s Campfire' : i.kind === 'peteCoop' ? 'Pete’s Chicken Coop' : i.kind === 'peteFence' ? 'Pete’s wooden fence' : i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
   let state = 'Ready.'
   if ('electrical' in i && i.electrical.state === 'sabotaged') state = 'Temporarily disabled.'
+  else if (i.kind === 'peteTreasure') state = `${i.treasures.reduce((n, t) => n + t.count, 0)} treasures collected.`
+  else if (i.kind === 'peteFlightpad') state = `${i.practices} practice flights · ${i.level >= 5 ? 'Scenic flights unlocked' : 'Learning to fly; bumpy landings are harmless'}.`
   else if (i.kind === 'petePress') state = `${i.gears}/${i.inputCapacity} gears · ${i.plates}/${i.outputCapacity} plates · ${i.pressing ? 'Pete is pressing.' : i.plates >= i.outputCapacity ? 'Output full: collect plates.' : i.gears < 1 ? 'Needs 1 iron gear.' : i.cooldownMs > 0 ? 'Pete is taking a break.' : 'Waiting for Pete.'}`
   else if (i.kind === 'peteExperiment') state = i.experimenting ? 'Pete is testing a little invention.' : 'Ready for peaceful experiments.'
   else if (i.kind === 'peteWorkshop') state = i.hammering ? 'Pete is working at the anvil.' : 'Ready for peaceful workshop visits.'

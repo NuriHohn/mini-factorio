@@ -508,7 +508,7 @@ Save version **18** persists the optional campfire project, carried Wood, constr
 
 After the fence, coop and campfire projects complete, peaceful Pete can extend the existing fence into **one compact yard per world**. Waiting for these projects lets the enclosure include the finished property and reuse its fence; the coop and campfire themselves may finish in either order. There is no manual construction tool or project selector. Each missing fence section costs **2 supplied Wood**, collected separately from a reachable Supply Crate, and takes **4 active simulation seconds** of carrying/hammering work. Insufficient stock waits safely between sections; in-flight stock and work are retained across interruptions. Existing fence sections are reused without a second charge.
 
-The bounded planner considers rectangles with one to three tiles of margin around the treehouse and coop (and an existing campfire), up to ten tiles per side. It prioritizes reuse, then missing sections and compact area. Boundary sites avoid water, buildings, belts, bridge banks, prison exits and reserved actor routes. A simulated completed perimeter must preserve the previously reachable free space, reachable work approaches and access around the property. Nearby obstacles can shift/expand the rectangle; if no safe plan exists, Pete continues his existing routines and retries later. Nothing is overwritten.
+The bounded planner considers rectangles with one to four tiles of margin around the treehouse, coop and standing campfire, up to fourteen tiles per side. It prioritizes reuse, then missing sections and compact area, trying every suitable non-corner opening rather than only four midpoints. Obstacles inside the property need not be cleared; nothing is overwritten. The final perimeter preserves reachable space and free approaches to existing structures. Actual construction checks only the next safe section: a later obstacle no longer blocks earlier work, and unstarted sections can be reordered around a blocked site. Pete may cross future sections while collecting; the immediate construction tile stays out of his pickup route. Occupied work tiles still wait. Existing rails, carried Wood and partial hammer work are retained. Partial work stays attached to its original tile while other safe sections progress; clearing that tile allows Pete to finish it without restarting the work.
 
 One non-corner **open entrance** is reserved on a side. Two posts and a light path identify it; construction and water painting keep the opening clear. Pete and other NPCs use ordinary navigation through this gap. The initial yard leaves this opening clear; [Pete’s garden gate](#petes-garden-gate) later uses it.
 
@@ -672,3 +672,63 @@ After building a garden, Eco level 2 Pete can select repeatable **Garden care (m
 Paid care retains Wood and work through blocked approaches, home loss and Save & Load. A missing garden pauses work without XP or another debit. Supply consideration is read-only; incomplete or split stocks do not qualify. The saved completed-cycle count preserves cumulative Wood use and once-per-completion XP across repeated care and reloads. Save version **31** adds this optional project and strictly validates its garden link, materials, work, count, XP and deadline; versions 1–30 remain loadable.
 
 See [garden care in progress](images/pete-garden-care.png) and [completed care with XP](images/pete-garden-care-complete.png).
+
+### Project priorities and reliable yard planning (Sprint 16.18)
+
+Selection uses a bounded priority weight: up to three funded material sets multiplied by priority 1–4, derived from total construction cost plus completion XP (one tier per ten units, capped at four). Yard cost counts remaining rails. Paid work receives priority four and an existing usable commitment is retained. Every feasible small project has positive weight, so stockpiled Wood cannot make cheap repetition overwhelm larger projects. Candidate stock-set counts remain diagnostic; only the final priority weight drives the single persisted random draw.
+
+Yards now support up to 14 tiles of width/height between boundary coordinates, matching radius-six coop/campfire layouts. Unpaid, unstarted blocked yard plans can be replaced; paid or partially built work is retained. The Pete panel explains the initial three rails, prerequisites, progress, reuse and blocked/missing perimeter. Version 32 permits the expanded geometry; older save schemas retain their ten-tile bounds.
+
+### Chicken bedtime (Sprint 16.19)
+
+When peaceful Pete enters his treehouse or sleeps, chickens and chicks finish any current walking step and take existing dry coop-ground routes back inside. Pecking pauses immediately; birds already inside stay there. They resume ordinary routines after Pete wakes. Veranda rests are not sleep. No eggs are laid during bedtime; existing eggs, collection totals and chick schedules remain. Blocked/flooded ground and coop/home removal retain existing safe recovery. The inspector shows the number inside and bedtime, and a small Z marks an occupied sleeping coop. Existing bird phases/clocks persist without a new save field.
+
+See the [shared bedtime preview](images/chicken-bedtime.png).
+
+### Garden-grown chicken feed (Sprint 16.19.1)
+
+Completed garden care now also grows **one portion of chicken feed**, stored at the garden up to **four portions**. Feed is a dedicated Eco material, separate from factory inventories; it cannot substitute for Wood, metal or factory parts. Cosmetic watering produces none. Old gardens start with zero feed.
+
+At Eco level 2, with completed garden and coop, Pete can select feeding as a repeatable project. He walks to the garden, collects exactly one portion, carries it to a reachable spot beside the coop and feeds for **four seconds**. Completion grants **2 Eco XP** and starts a **180-second feeding interval**. Feed/work survive interruption; removed or blocked structures pause safely. Feeding adds no starvation, death, egg-production buff or industrial item loop. Garden/coop inspection shows available feed and the next meal interval. Version 33 strictly preserves garden stock, carried feed, cycle count and feeding clocks; earlier saves remain loadable.
+
+See the [feeding and enclosed-yard preview](images/chicken-feeding.png).
+
+### Mature-tree forestry (Sprint 16.20)
+
+At Eco level 2, Pete can harvest an ordinary **fully grown tree within six tiles of home**. He prefers the shortest reachable work approach, respects pending project reservations and needs a reachable Supply Crate with **three free slots** before committing. Saplings and young trees are never selected, and saved species/origin/birth identity prevents cutting a replacement tree.
+
+Pete walks to the tree and chops for **six active seconds**, then carries **three Wood** to a supply crate. The player’s global Wood stock is unchanged. Only successful delivery grants **3 Eco XP** and begins a **120-second cooldown**. Full, removed or unreachable crates leave the carried Wood intact; home/work interruptions preserve progress. A removed/replaced unharvested target can be replanned without losing items. Existing player axe behavior is unchanged.
+
+Delivered Wood can fund reforestation (2 Wood per sapling), garden care and other Eco projects through normal project selection. Newly planted trees still take five minutes to mature; there is no instant regrowth or offline catch-up. Version **34** preserves target identity, work, carried Wood, destination, harvest counts and cooldown with strict validation. Previous versions start without a forestry task.
+
+See [Wood carried after felling](images/pete-forestry.png) and [delivery followed by reforestation](images/pete-forestry-delivered.png).
+
+
+## Chicken outdoor run (Sprint 16.21)
+
+After the garden gate, Eco level 2 Pete can build a separate fenced outdoor run around the standing coop. It excludes the treehouse interior and reuses suitable existing rails. Each missing section costs **2 supplied Wood** and takes **4 simulation seconds**; completion awards **15 Eco XP once**. Existing source pickup, carrying, interruptions and inspection apply. Pete and police can step over newly built low run rails; reused outer-yard rails retain their existing collision rules. The reserved opening and free approaches to existing structures stay clear.
+
+A completed intact run restricts the existing chicken/chick ground search to its interior, excluding the opening. Birds roam and peck there, still lay eggs, and return to the coop with Pete's bedtime. If a rail or coop is removed, containment falls back to an intact main yard or the original nearby-coop ground. This is an outdoor enclosure, without new factory resources or animal needs. Inspect the coop for run progress.
+
+## Occasional coop cover (Sprint 16.22)
+
+On arriving home before a new rest, Pete has a **40% chance** to visit a reachable coop approach and spend **2 seconds** stretching a protective tarpaulin over the roof. He then returns home. The cover stays through his rest; after waking he visits the coop again and spends **2 seconds** removing it before choosing his next activity. These committed cover/rest/removal steps finish before new construction. A blocked or removed coop cancels the visit safely. The cover is free, grants no XP and introduces no martens, attacks or animal harm. Rendering unfolds/folds the cover from simulation progress.
+
+## Game speed (Sprint 16.23)
+
+The controls above the world select **Pause, ×1, ×2 or ×4**. The whole simulation advances together: production, transport, NPC routines, growth, cooldowns and visual effects based on simulation time. Camera and interface controls keep normal responsiveness. Pausing still permits normal inspection and player commands; it stops automatic time progression. The chosen pace belongs to the current session, defaults to ×1 after refresh and stays unchanged when importing/loading a factory. The simulation's saved 50 ms remainder and current clocks remain exact; there is no offline catch-up. Standard/Energy Saving frame-rate preferences are independent.
+
+Version **36** persists the optional outdoor-run project, reordered enclosure sections and optional cover decision/stage/time, including travel and work activities. Versions **1–35** remain loadable with their original schemas; older records start without a run or cover. Loading does not spend resources, replay work or grant XP.
+
+
+## Treasures and flight
+
+Sprints 16.24–16.28 add harmless sprinkler play, collecting and Inventor flight. Special → Playful spray chooses a ready, fully powered sprinkler within three tiles of the target. It uses the normal ten-second cooldown, emits a one-second jet and three seconds of cosmetic wet droplets on nearby Pete/chickens. Every in-map target is allowed. It spends no materials and changes no health, routines, crops, stock or structures; hostile automatic sprinkler behavior remains separate.
+
+The treasure chest unlocks at Inventor level 2: 12 copper plates + 4 cables, twelve seconds of paid construction, fifteen completion-only Inventor XP. Pete sometimes notices a nearby keepsake during normal routines (a 50% chance when the three-minute find check is due). Finds stay within four walking steps and six tiles of home, outside unfinished projects and entrances. He walks over, picks up for 1.5 seconds, carries it to the chest and stores it for two seconds. Each deposited item awards one Inventor XP. Inspection shows counts and comments for glittering stones, unusual feathers, rusty wheel relics, mysterious coins and odd crystals. These are decorative keepsakes, never factory resources; the wheel relic is not an iron gear. Blocked or removed chests preserve carried treasures. A removed completed chest is not rebuilt automatically.
+
+The flight workshop unlocks at Inventor level 4 after the experiment table: 24 copper plates + 12 cables + 8 circuits, eighteen seconds of construction, twenty-five completion-only Inventor XP. Pete visits a reachable empty approach and uses a propeller backpack. Six-second practices award fifteen XP on completion, including safe recovery after a crash. His first two practices end in a harmless two-second crash recovery with dust and a tilted pose; later crash chance decreases from 42%, with a 10% floor. No injuries, lost materials or damaged buildings result. Flights wait at least thirty seconds after finishing/cancellation and remain an optional routine alongside projects. Level 5 unlocks twelve-second scenic loops without practice XP, searches, cargo or transport shortcuts. Launch and landing use the same reserved ground position; the visible airborne loop is cosmetic. Interrupted flights award nothing.
+
+## Touch controls
+
+Touch adds one-finger panning, pinch zoom and tap inspection without replacing mouse/keyboard operation. A tool tap selects a highlighted target; Confirm revalidates and commits, Cancel discards. Belts, power connections and footbridges use two tapped endpoints through the same existing route planner. Rotate preserves the selected target. Planting, chopping, landscaping and removal also require confirmation; combat, webs and playful water remain direct taps. Tools collapses the toolbar on narrow touch screens. Panels scroll within the screen, and save export/import moves a factory between browsers; browser storage is not synchronized. Desktop shortcuts, click/drag construction, camera controls and graphics preferences remain available.

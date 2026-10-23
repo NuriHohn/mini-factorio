@@ -5,7 +5,7 @@ import type { SupplyCrate, World } from './world'
 import { advanceWorld } from './step'
 import { paintWater } from './waterLandscaping'
 import { supplyWood } from './supplyCrate'
-import { enclosedYard, planYard, yardBoundary, yardInterior, yardSiteClear } from './yard'
+import { enclosedRun, enclosedYard, planYard, yardBoundary, yardInterior, yardSiteClear } from './yard'
 import { neighboringTiles, reachableTiles, tilePath } from './navigation'
 import { poultryGround, refreshPoultry } from './poultry'
 import { encodeSave, decodeSave } from '../persistence/saveGame'
@@ -27,6 +27,63 @@ const world = () => structuredClone(template)
 const crate = (w: World) => w.buildings[824] as SupplyCrate
 function complete() { const w = world(); supplyWood(w, 824, 100); until(w, () => w.yard?.phase === 'complete'); return w }
 describe('Pete’s enclosed yard', () => {
+  it('builds other sections around a late obstacle and preserves reordered paid work through saving', () => {
+    const w = world(); supplyWood(w, 824, 140)
+    until(w, () => (w.yard?.built ?? 0) >= 1)
+    const y = w.yard!, blocked = y.tiles[y.built]
+    expect(placeBuilding(w, blocked % SIZE, Math.floor(blocked / SIZE), 'storage', 'east')).toBe(true)
+    until(w, () => y.built >= 4)
+    expect(y.tiles.slice(0, y.built)).not.toContain(blocked)
+    const restored = load(w); expect(snapshot(restored)).toEqual(snapshot(w))
+    removeBuilding(w, blocked % SIZE, Math.floor(blocked / SIZE))
+    until(w, () => y.phase === 'complete')
+    expect(enclosedYard(w)).toBe(y)
+  })
+  it('builds a distinct paid chicken run with coop access and saved daytime containment', () => {
+    const w = complete()
+    until(w, () => w.gateProject?.phase === 'complete')
+    crate(w).wood = 190
+    const planned = planYard(w, true)
+    expect(planned).not.toBeNull()
+    until(w, () => (w.chickenRun?.elapsedMs ?? 0) >= 500)
+    expect(snapshot(load(w))).toEqual(snapshot(w))
+    until(w, () => w.chickenRun?.phase === 'complete', 600000)
+    const run = w.chickenRun!
+    expect(run.kind).toBe('run'); expect(enclosedRun(w)).toBe(run)
+    expect(yardInterior(run, w.poultry!.coop)).toBe(true)
+    expect(yardInterior(run, w.peace.home!)).toBe(false)
+    expect([...poultryGround(w, w.poultry!.coop).keys()].every(i => yardInterior(run, i))).toBe(true)
+    expect(w.personality.rewardedProjects.filter(id => id === 'run')).toHaveLength(1)
+    for (const version of [34, 35]) {
+      const legacy = snapshot(w); Object.assign(legacy, { version })
+      expect(() => decodeSave(JSON.stringify(legacy))).toThrow('Invalid save')
+    }
+    const invalid = snapshot(w); invalid.game.chickenRun!.tiles[0] = invalid.game.chickenRun!.entrance
+    expect(() => decodeSave(JSON.stringify(invalid))).toThrow('Invalid save')
+    const restored = load(w)
+    advanceWorld(w, 20000); advanceWorld(restored, 20000)
+    expect(snapshot(restored)).toEqual(snapshot(w))
+    expect(placeBuilding(w, run.entrance % SIZE, Math.floor(run.entrance / SIZE), 'storage', 'east')).toBe(false)
+  }, 30000)
+  it('sometimes visits the coop to cover it before sleep and removes the cover after waking', () => {
+    const w = world()
+    until(w, () => w.peace.activity === 'covering', 1200000)
+    expect(neighboringTiles(w.poultry!.coop)).toContain(w.pete.tile)
+    expect(snapshot(load(w))).toEqual(snapshot(w))
+    const invalid = snapshot(w); invalid.game.poultry!.cover!.stage = 'covered'
+    expect(() => decodeSave(JSON.stringify(invalid))).toThrow('Invalid save')
+    const missing = snapshot(w); Reflect.deleteProperty(missing.game, 'poultry')
+    expect(() => decodeSave(JSON.stringify(missing))).toThrow('Invalid save')
+    until(w, () => w.peace.activity === 'resting' && w.poultry?.cover?.stage === 'covered')
+    expect(snapshot(load(w))).toEqual(snapshot(w))
+    until(w, () => w.peace.activity === 'uncovering')
+    expect(neighboringTiles(w.poultry!.coop)).toContain(w.pete.tile)
+    const restored = load(w)
+    advanceWorld(w, 3000); advanceWorld(restored, 3000)
+    expect(w.poultry!.cover).toBeUndefined()
+    expect(snapshot(restored)).toEqual(snapshot(w))
+  })
+
   it('plans a compact connected perimeter including house/coop, reuses fences and preserves reachable space', () => {
     const w = world(), original = structuredClone(w.project), y = planYard(w)!
     expect(y).not.toBeNull(); expect(y.reused.length).toBeGreaterThan(0)
@@ -39,7 +96,7 @@ describe('Pete’s enclosed yard', () => {
     const w = world(); advanceWorld(w, 30000); expect(w.yard).toBeNull()
     supplyWood(w, 824, 1); advanceWorld(w, 30000); expect(w.yard).toBeNull()
     supplyWood(w, 824, 99); until(w, () => w.yard?.phase === 'building')
-    const y = w.yard!; expect(y.carried).toBe(2); expect(crate(w).wood).toBe(98)
+    const y = w.yard!; expect(y.carried).toBe(2); expect(crate(w).wood + ecoProjectWood(w)).toBe(98)
     until(w, () => y.elapsedMs >= 500); const count = w.buildings.filter(b => b?.kind === 'peteFence').length
     advanceWorld(w, 4000 - y.elapsedMs - 50); expect(w.buildings.filter(b => b?.kind === 'peteFence')).toHaveLength(count)
     advanceWorld(w, 50); expect(y.built).toBe(1); expect(y.carried).toBe(0); expect(y.phase).toBe('collecting')
@@ -86,11 +143,15 @@ describe('Pete’s enclosed yard', () => {
     expect(w.poultry!.birds).toHaveLength(5); expect(w.poultry!.collected).toBeGreaterThan(eggs)
     expect([...ground.keys()].every(i => yardInterior(y, i))).toBe(true)
   })
-  it('pauses blocked work safely and resumes without replaying a pickup', () => {
+  it('retains partial hammer work while building other sections and never replays a pickup', () => {
     const w = world(); supplyWood(w, 824, 100); until(w, () => (w.yard?.elapsedMs ?? 0) >= 500)
-    const y = w.yard!, tile = y.tiles[y.built], stock = crate(w).wood
+    const y = w.yard!, tile = y.tiles[y.built], stock = crate(w).wood + ecoProjectWood(w)
     expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'belt', 'east')).toBe(true)
-    advanceWorld(w, 5000); expect(y.carried).toBe(2); expect(crate(w).wood).toBe(stock); expect(() => load(w)).not.toThrow()
+    const built = y.built, elapsed = y.elapsedMs, carried = y.carried
+    until(w, () => y.built > built)
+    expect(y.deferredWork).toContainEqual({ tile, elapsedMs: elapsed })
+    expect(crate(w).wood + ecoProjectWood(w) + y.carried + (y.built - built) * 2).toBe(stock + carried)
+    expect(() => load(w)).not.toThrow()
     removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE)); until(w, () => y.phase === 'complete')
     expect(crate(w).wood + ecoProjectWood(w)).toBe(100 - y.tiles.length * 2)
   })

@@ -1,5 +1,5 @@
 import { awardActivity, EGG_REWARD } from './personality'
-import { enclosedYard, yardInterior } from './yard'
+import { enclosedRun, enclosedYard, yardInterior } from './yard'
 import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
 import { SIZE } from './world'
 import type { World } from './world'
@@ -18,6 +18,7 @@ export interface Bird {
 }
 export interface Egg { id: number; tile: number; laidAtMs: number; laidBy: number }
 export interface Poultry {
+  cover?: { stage: 'skipped' | 'covering' | 'covered' | 'uncovering'; atMs: number }
   coop: number
   populatedAtMs: number
   chicksAtMs: number
@@ -30,6 +31,7 @@ export interface Poultry {
   collected: number
   seed: number
 }
+export function poultryBedtime(world: World): boolean { return world.peace.home !== null && ['entering', 'resting'].includes(world.peace.activity) }
 export function poultryActive(world: World): boolean {
   const s = world.poultry
   return !!s && world.coopProject?.phase === 'complete' && world.coopProject.tiles[0] === s.coop && world.buildings[s.coop]?.kind === 'peteCoop'
@@ -40,7 +42,7 @@ export function nearCoop(coop: number, tile: number): boolean {
 function dry(world: World, tile: number): boolean { return !world.water[tile] && !world.buildings[tile] }
 // At most 48 exterior cells; never traverse water, even where a footbridge exists.
 export function poultryGround(world: World, coop: number): Map<number, number> {
-  const yard = enclosedYard(world), allowed = (i: number) => dry(world, i) && (!yard || yardInterior(yard, i))
+  const yard = enclosedRun(world) ?? enclosedYard(world), allowed = (i: number) => dry(world, i) && (!yard || yardInterior(yard, i))
   const queue = neighboringTiles(coop).filter(i => allowed(i)), parents = new Map(queue.map(i => [i, -1]))
   for (let h = 0; h < queue.length; h++) for (const i of neighboringTiles(queue[h])) if (nearCoop(coop, i) && allowed(i) && !parents.has(i)) { parents.set(i, queue[h]); queue.push(i) }
   return parents
@@ -57,7 +59,7 @@ export function eggAt(world: World, tile: number | null): Egg | null {
   return tile === null || !poultryActive(world) || !dry(world, tile) ? null : world.poultry!.eggs.find(e => e.tile === tile) ?? null
 }
 function cancelCollection(world: World): void {
-  if (!['eggward', 'collectingEgg'].includes(world.peace.activity)) return
+  if (!['coverward', 'covering', 'uncoverward', 'uncovering', 'eggward', 'collectingEgg'].includes(world.peace.activity)) return
   const p = world.pete
   Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE), path: [], pathRevision: -1 })
   Object.assign(world.peace, { activity: 'homeward', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
@@ -70,7 +72,8 @@ export function refreshPoultry(world: World): void {
     if (b.tile !== null && !ground.has(b.tile)) Object.assign(b, { mode: 'inside', tile: null, next: null, travelMs: 0, untilMs: world.timeMs + 2000 })
     else if (b.next !== null && !ground.has(b.next)) Object.assign(b, { mode: 'pecking', next: null, travelMs: 0, untilMs: world.timeMs + 1500 })
   }
-  if (!active) s.eggs = []
+  if (!active) { s.eggs = []; delete s.cover; if (['coverward', 'covering', 'uncoverward', 'uncovering'].includes(world.peace.activity)) cancelCollection(world) }
+  if (world.peace.home === null) delete s.cover
   if (['eggward', 'collectingEgg'].includes(world.peace.activity) && !eggAt(world, world.peace.destination)) cancelCollection(world)
 }
 export function reachableEgg(world: World): number | null {
@@ -104,11 +107,21 @@ export function advancePoultry(world: World, delta: number): void {
   refreshPoultry(world)
   if (!poultryActive(world)) return
   if (!s.chicksSpawned && world.timeMs >= s.chicksAtMs) { s.chicksSpawned = true; s.birds.push(bird(3, world.timeMs), bird(4, world.timeMs)) }
+  const bedtime = poultryBedtime(world)
   const ground = poultryGround(world, s.coop), exits = neighboringTiles(s.coop).filter(i => ground.has(i))
   for (const b of s.birds) {
     if (b.mode === 'walking') {
       b.travelMs += delta
       if (b.travelMs >= birdStepMs(b)) Object.assign(b, { tile: b.next, next: null, travelMs: 0, mode: 'pecking', untilMs: world.timeMs + 1000 + Math.floor(random(s) * 61) * 50 })
+      continue
+    }
+    if (bedtime) {
+      if (b.tile === null || exits.includes(b.tile)) { Object.assign(b, { mode: 'inside', tile: null, next: null, travelMs: 0, untilMs: world.timeMs + 1000 }); continue }
+      b.next = ground.get(b.tile) ?? null
+      if (b.next !== null) {
+        if (b.next % SIZE !== b.tile % SIZE) b.facing = b.next % SIZE > b.tile % SIZE ? 'east' : 'west'
+        Object.assign(b, { mode: 'walking', travelMs: 0, untilMs: 0 })
+      } else b.untilMs = world.timeMs + 1000
       continue
     }
     if (world.timeMs < b.untilMs) continue
@@ -130,7 +143,7 @@ export function advancePoultry(world: World, delta: number): void {
     b.mode = 'walking'; b.travelMs = 0; b.untilMs = 0
   }
   if (world.timeMs >= s.nextEggAtMs) {
-    const layers = s.birds.filter(b => b.kind === 'adult' && b.mode === 'pecking' && b.tile !== null && !s.eggs.some(e => e.tile === b.tile))
+    const layers = s.birds.filter(b => !bedtime && b.kind === 'adult' && b.mode === 'pecking' && b.tile !== null && !s.eggs.some(e => e.tile === b.tile))
     if (s.eggs.length < MAX_EGGS && layers.length && s.nextEggId < Number.MAX_SAFE_INTEGER) {
       const layer = layers[Math.floor(random(s) * layers.length)]
       s.eggs.push({ id: s.nextEggId++, tile: layer.tile!, laidAtMs: world.timeMs, laidBy: layer.id })

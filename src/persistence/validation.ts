@@ -82,7 +82,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 37 && (kind === 'peteTreasure' || kind === 'peteFlightpad')) invalid(path, 'Inventor leisure structures require save version 37')
   if (version < 28 && kind === 'petePress') invalid(path, 'Pete gear presses require save version 28')
   if (version < 27 && kind === 'peteExperiment') invalid(path, 'Pete experiment tables require save version 27')
   if (version < 24 && kind === 'peteWorkshop') invalid(path, 'Pete workshops require save version 24')
@@ -98,10 +99,12 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    peteTreasure: [],
+    peteFlightpad: [],
     petePress: ['plates', 'gears'],
     peteExperiment: [],
     peteWorkshop: [],
-    peteGarden: [],
+    peteGarden: version >= 33 ? ['feed'] : [],
     peteGate: ['direction', 'openMs', 'holdUntilMs'],
     peteCampfire: [],
     peteCoop: [],
@@ -131,9 +134,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const), openMs, holdUntilMs }
     }
     case 'petePress': return { ...base, kind, plates: count(r.plates, `${path}.plates`, PRESS_INPUT_CAPACITY), gears: count(r.gears, `${path}.gears`, PRESS_OUTPUT_CAPACITY) }
+    case 'peteGarden': return { ...base, kind, feed: version >= 33 ? count(r.feed, `${path}.feed`, 4) : 0 }
+    case 'peteTreasure':
+    case 'peteFlightpad':
     case 'peteExperiment':
     case 'peteWorkshop':
-    case 'peteGarden':
     case 'peteCampfire':
     case 'peteCoop': return { ...base, kind }
     case 'peteFence': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }

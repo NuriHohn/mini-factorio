@@ -28,7 +28,7 @@ describe('cozy campfire and cooking visuals', () => {
     calls.length = 0; drawCampfire(g, fire, 32); expect(calls.length).toBeGreaterThan(midway)
     expect(PLAYER_TOOLS.some(t => t.tool === ('peteCampfire' as string))).toBe(false)
     expect(inspectionSummary({ kind: 'peteCampfire', cooking: true }).state).toContain('frying')
-    expect(inspectionSummary({ kind: 'peteCoop', collected: 3, eaten: 1, eggs: 0, adults: 3, chicks: 2 }).state).toContain('2 available · 1 eaten')
+    expect(inspectionSummary({ kind: 'peteCoop', inside: 0, bedtime: false, collected: 3, eaten: 1, eggs: 0, adults: 3, chicks: 2 }).state).toContain('2 available · 1 eaten')
   })
   it('animates the idle fire from simulation time, culls offscreen and never mutates gameplay', () => {
     const w = structuredClone(template), before = structuredClone(w), { g, calls } = graphics()

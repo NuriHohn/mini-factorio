@@ -25,10 +25,10 @@ beforeAll(() => {
   supplyWood(template, 824, 6); until(template, () => template.project?.phase === 'complete')
 })
 function choose(w: World, id: string): void {
-  const candidates = projectCandidates(w), total = candidates.reduce((sum, c) => sum + c.weight, 0)
+  const candidates = projectCandidates(w), total = candidates.reduce((sum, c) => sum + c.priorityWeight, 0)
   const index = candidates.findIndex(c => c.definition.id === id)
   expect(index).toBeGreaterThanOrEqual(0)
-  const low = candidates.slice(0, index).reduce((sum, c) => sum + c.weight, 0) / total, high = low + candidates[index].weight / total
+  const low = candidates.slice(0, index).reduce((sum, c) => sum + c.priorityWeight, 0) / total, high = low + candidates[index].priorityWeight / total
   let seed = 0
   while (seed < 100000) {
     const roll = ((Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296

@@ -27,7 +27,7 @@ function until(w: World, ready: () => boolean, limit = 500000) {
 function choose(w: World, id: string) {
   const cs = projectCandidates(w), index = cs.findIndex(c => c.definition.id === id)
   expect(index).toBeGreaterThanOrEqual(0)
-  const total = cs.reduce((s, c) => s + c.weight, 0), low = cs.slice(0, index).reduce((s, c) => s + c.weight, 0) / total, high = low + cs[index].weight / total
+  const total = cs.reduce((s, c) => s + c.priorityWeight, 0), low = cs.slice(0, index).reduce((s, c) => s + c.priorityWeight, 0) / total, high = low + cs[index].priorityWeight / total
   let seed = 0
   for (; seed < 100000; seed++) { const r = ((Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296; if (r >= low && r < high) break }
   expect(seed).toBeLessThan(100000); w.peace.seed = seed
@@ -125,8 +125,8 @@ describe('Eco level two projects', () => {
     expect(w.personality.rewardedProjects).toHaveLength(6)
     expect(new Set(w.personality.rewardedProjects).size).toBe(6)
     const planted = trees(w).filter(t => t.kind === 'tree' && t.origin === 'manual').length
-    expect(stock(w) + 6 + 10 + 5 + 3 + 12 + w.yard!.tiles.length * 2 + planted * 2 + (w.plantProject?.carried ?? 0) + (w.careProject?.completedCycles ?? 0) * 2 + (w.careProject?.carried ?? 0)).toBe(200)
-    expect(w.personality.paths.eco.xp).toBe(55 + planted * 5 + w.poultry!.collected + (w.careProject?.completedCycles ?? 0) * 4)
+    expect(stock(w) + 6 + 10 + 5 + 3 + 12 + w.yard!.tiles.length * 2 + planted * 2 + (w.plantProject?.carried ?? 0) + (w.careProject?.completedCycles ?? 0) * 2 + (w.careProject?.carried ?? 0) + (w.harvestProject?.manualCycles ?? 0) * 2 - (w.harvestProject?.completedCycles ?? 0) * 3).toBe(200)
+    expect(w.personality.paths.eco.xp).toBe(55 + planted * 5 + w.poultry!.collected + (w.careProject?.completedCycles ?? 0) * 4 + (w.feedingProject?.completedCycles ?? 0) * 2 + (w.harvestProject?.completedCycles ?? 0) * 3 + (w.harvestProject?.manualCycles ?? 0) * 5)
     expect(snapshot(load(w))).toEqual(snapshot(w))
   })
   it('strictly validates garden construction, completed ownership and tending state', () => {

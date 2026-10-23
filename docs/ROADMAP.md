@@ -110,14 +110,44 @@ New planting stays 4–6 tiles from home and prefers shortest reachable walks be
 
 After the garden, Eco Pete can repeatedly mulch using 2 supplied Wood for 4 Eco XP after four seconds of work, with a 60-second cooldown and exact saved continuation.
 
-Next proposed work: larger-project priorities and yard recovery, followed by chicken bedtime/feeding and mature-tree harvesting. These are not implemented by Sprints 16.15–16.17.1.
+The follow-up priorities, expanded yard planning, chicken bedtime/feeding and mature-tree harvesting are completed in Sprints 16.18–16.20 below.
 
-## Proposed — Playtesting away from the desktop
+## Sprint 16.18 — Project priorities and yard planning (completed)
 
-User-requested follow-up: provide a hosted test version with a stable link that can be opened on a phone while away from the home WLAN, without requiring the development PC to stay on. Review touch controls and small-screen layout for practical mobile playtesting. Clarify save export/import or cross-device continuation before promising shared progress; current saves remain browser-local. Hosting and mobile controls are not implemented yet. The immediate WLAN preview is only a local playtest, not this hosted feature.
+Bounded cost/XP priorities favour substantial projects while retaining small-project chances. Radius-six property layouts fit a bounded expanded yard; the inspector explains starter rails, prerequisites and progress. Paid work remains preserved.
 
-### Proposed — Additive mobile-friendly controls
+## Sprint 16.19 — Chicken bedtime (completed)
 
-Provide touch-friendly controls and a responsive small-screen layout for phone playtesting: accessible tool selection, placement/rotation/removal, inspection, camera movement and zoom without requiring a physical keyboard or mouse. Choose concrete gestures and controls during the design sprint and verify accidental-action handling on real phones.
+Chickens and chicks return to the coop when Pete enters/sleeps, stay inside during his rest and resume afterward, with visible/inspectable bedtime and exact saved continuation.
 
-**Non-regression requirement:** mobile support supplements the existing PC interface; it must not replace, remove or degrade mouse/keyboard controls, hotkeys, drag-building, camera navigation, inspection, desktop layout or responsiveness. Touch controls should appear only where appropriate and must not crowd the desktop interface. Validate both desktop and phone interactions before accepting this work. This is roadmap planning only; no controls have changed.
+## Sprint 16.19.1 — Chicken feeding (completed)
+
+Garden care grows bounded Eco-only feed. Pete physically carries a portion from garden to coop, earns completion-only XP and waits three minutes before feeding again. Source, carrying, work and progress persist.
+
+## Sprint 16.20 — Mature-tree forestry (completed)
+
+Eco Pete selects nearby fully grown trees, chops them, physically returns three Wood to a supply crate and earns XP only on delivery. Interrupted work/carrying and full-crate recovery persist; returned Wood supports normal reforestation and the other Eco projects.
+
+
+## Sprints 16.20.1–16.23 — Yard recovery, fences and chicken life (completed)
+
+- **16.20.1:** expanded entrance/layout choices, safe per-section validation, reordered unfinished sections with saved partial hammer work, preserved paid/hammer progress and explicit obstruction position. The immediate section stays out of pickup routes; access to structures is protected.
+- **16.20.2:** fence posts remain upright in both ground directions instead of rotating into a railway-like silhouette; corners and openings retain their joins.
+- **16.21:** a separate Eco-only paid outdoor run reuses suitable rails, contains the flock when intact and retains bedtime/egg behaviour. People can step over its new low rails. Coop inspection shows progress.
+- **16.22:** occasional physical coop-cover visits before rest and removal after waking, with saved decisions/travel/work and harmless decorative protection.
+- **16.23:** Pause/×1/×2/×4 controls accelerate the entire fixed-step simulation while keeping camera/input and graphics frame-rate preferences independent.
+
+## Sprints 16.24–16.28 — Collecting, flight and mobile access
+
+- **16.24 completed:** harmless manual powered sprinkler targeting and cosmetic wet reactions.
+- **16.25 completed:** Inventor level-2 treasure chest, five decorative keepsakes, nearby physical pickup/carry/deposit and inspectable collection.
+- **16.26 completed:** Inventor level-4 flight workshop/backpack, practice XP and early harmless crash landings.
+- **16.27 completed:** Inventor level-5 scenic flights; no cargo, search or production advantages.
+- **16.28 browser controls and public hosting completed:** additive pan/pinch/tap controls, explicit touch build confirmation, narrow-screen panels/toolbar, relative-path production bundle and validated build/deploy workflow. The repository is public and [GitHub Pages serves the playable game](https://nurihohn.github.io/mini-factorio/). Portable saves use existing export/import, without automatic sync.
+
+Mobile follow-up targets **iPhone and iPad first**, with an installable offline experience and local saves; the distribution/install method and real-device Safari acceptance remain to be specified. PC controls must remain intact.
+
+Authoritative mechanics and costs: [Game design](GAME_DESIGN.md#treasures-and-flight). Hosting setup: [Development](DEVELOPMENT.md#portable-browser-build-and-hosting). Further mobile ergonomics and real-device acceptance remain follow-ups; PC controls must remain intact.
+
+
+The original mobile planning in [PR #75](https://github.com/NuriHohn/mini-factorio/pull/75) is fulfilled by the browser controls and hosted access above. Its additive-PC-control requirement remains in force; real iPhone/iPad acceptance and installable offline play remain follow-ups.

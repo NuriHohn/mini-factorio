@@ -19,7 +19,7 @@ export function restorePlanting(value: unknown, world: World): SecretProject | u
 export function validateGardening(world: World): void {
   const gardens = world.buildings.flatMap((b, i) => b?.kind === 'peteGarden' ? [i] : [])
   if (gardens.some(i => world.gardenProject?.phase !== 'complete' || world.gardenProject.tiles[0] !== i)) v.invalid('garden', 'structure without completed project')
-  if ((world.gardenProject || world.plantProject) && world.personality.paths.eco.level < 2) v.invalid('eco', 'activity requires Eco level 2')
+  if ((world.harvestProject || world.feedingProject || world.gardenProject || world.plantProject) && world.personality.paths.eco.level < 2) v.invalid('eco', 'activity requires Eco level 2')
   if (!['gardenward', 'gardening'].includes(world.peace.activity)) return
   if (world.peace.home === null || gardenSpot(world) !== world.peace.destination || (world.peace.activity === 'gardening' && (world.pete.next !== null || world.pete.tile !== world.peace.destination || world.peace.untilMs - world.peace.sinceMs !== TEND_MS))) v.invalid('garden', 'invalid tending activity')
 }
