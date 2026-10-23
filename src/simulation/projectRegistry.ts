@@ -4,9 +4,10 @@ import type { World } from './world'
 export type ProjectMaterial = Item | 'wood'
 export interface ProjectDefinition {
   id: ProjectReward | 'reforestation'
-  state: 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject'
+  state: 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject'
   path: PersonalityPath
   minimumLevel: number
+  primaryMaterial?: ProjectMaterial
   resources: Partial<Record<ProjectMaterial, number>>
   repeatable: boolean
   prerequisites: readonly ProjectReward[]
@@ -20,6 +21,7 @@ export const PETE_PROJECTS: readonly ProjectDefinition[] = [
   { id: 'gate', state: 'gateProject', path: 'eco', minimumLevel: 1, resources: { wood: 3 }, repeatable: false, prerequisites: ['yard'] },
   { id: 'garden', state: 'gardenProject', path: 'eco', minimumLevel: 2, resources: { wood: 12 }, repeatable: false, prerequisites: [] },
   { id: 'reforestation', state: 'plantProject', path: 'eco', minimumLevel: 2, resources: { wood: 2 }, repeatable: true, prerequisites: [] },
+  { id: 'workshop', state: 'workshopProject', path: 'craftsman', minimumLevel: 1, resources: { wood: 4, ironPlate: 8 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: [] },
 ]
 export function projectUnlocked(world: World, definition: ProjectDefinition): boolean {
   return (definition.id !== 'reforestation' || (world.plantProject?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= definition.minimumLevel && definition.prerequisites.every(id => {

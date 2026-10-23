@@ -1,3 +1,4 @@
+import { drawWorkshopActivity } from './workshopVisuals'
 import { drawGardenTending } from './ecoVisuals'
 import { drawCooking } from './campfireVisuals'
 import { drawEggCollection } from './poultryVisuals'
@@ -99,4 +100,5 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
   }
   drawSecretProject(g, world, tile, view)
   drawGardenTending(g, world, tile, view)
+  drawWorkshopActivity(g, world, tile, view)
 }

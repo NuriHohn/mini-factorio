@@ -10,6 +10,7 @@ export interface PathProgress { xp: number; level: number; influence: number }
 export interface Personality { paths: Record<PersonalityPath, PathProgress>; dominant: PersonalityPath; rewardedProjects: ProjectReward[] }
 export interface XpReward { path: PersonalityPath; xp: number }
 export const PROJECT_REWARDS = {
+  workshop: { path: 'craftsman', xp: 10 },
   garden: { path: 'eco', xp: 20 },
   fence: { path: 'eco', xp: 5 },
   coop: { path: 'eco', xp: 10 },
@@ -45,7 +46,7 @@ export function rewardProject(state: Personality, id: ProjectReward): boolean {
   return true
 }
 export function completedProjects(world: World): ProjectReward[] {
-  return PROJECT_REWARD_IDS.filter(id => ({ garden: world.gardenProject, fence: world.project, coop: world.coopProject, campfire: world.campfireProject, yard: world.yard, gate: world.gateProject })[id]?.phase === 'complete')
+  return PROJECT_REWARD_IDS.filter(id => ({ workshop: world.workshopProject, garden: world.gardenProject, fence: world.project, coop: world.coopProject, campfire: world.campfireProject, yard: world.yard, gate: world.gateProject })[id]?.phase === 'complete')
 }
 export function migratePersonality(world: World): Personality {
   const state = createPersonality()

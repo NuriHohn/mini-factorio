@@ -15,7 +15,9 @@ export function restorePersonality(value: unknown, world: World): Personality {
   state.rewardedProjects = v.array(r.rewardedProjects, 'personality.rewardedProjects', undefined, PROJECT_REWARD_IDS.length).map(id => v.choice(id, 'personality.rewardedProjects', PROJECT_REWARD_IDS))
   const completed = completedProjects(world)
   if (new Set(state.rewardedProjects).size !== state.rewardedProjects.length || completed.length !== state.rewardedProjects.length || completed.some(id => !state.rewardedProjects.includes(id))) v.invalid('personality.rewardedProjects', 'rewards must match completed projects exactly once')
-  const projectXp = state.rewardedProjects.reduce((sum, id) => sum + PROJECT_REWARDS[id].xp, 0)
-  if (state.paths.eco.xp < projectXp) v.invalid('personality.paths.eco.xp', 'missing completed project XP')
+  for (const path of PERSONALITY_PATHS) {
+    const projectXp = state.rewardedProjects.reduce((sum, id) => sum + (PROJECT_REWARDS[id].path === path ? PROJECT_REWARDS[id].xp : 0), 0)
+    if (state.paths[path].xp < projectXp) v.invalid(`personality.paths.${path}.xp`, 'missing completed project XP')
+  }
   return state
 }
