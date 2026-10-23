@@ -1,5 +1,5 @@
 import { awardActivity, EGG_REWARD } from './personality'
-import { enclosedYard, yardInterior } from './yard'
+import { enclosedRun, enclosedYard, yardInterior } from './yard'
 import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
 import { SIZE } from './world'
 import type { World } from './world'
@@ -18,6 +18,7 @@ export interface Bird {
 }
 export interface Egg { id: number; tile: number; laidAtMs: number; laidBy: number }
 export interface Poultry {
+  cover?: { stage: 'skipped' | 'covering' | 'covered' | 'uncovering'; atMs: number }
   coop: number
   populatedAtMs: number
   chicksAtMs: number
@@ -41,7 +42,7 @@ export function nearCoop(coop: number, tile: number): boolean {
 function dry(world: World, tile: number): boolean { return !world.water[tile] && !world.buildings[tile] }
 // At most 48 exterior cells; never traverse water, even where a footbridge exists.
 export function poultryGround(world: World, coop: number): Map<number, number> {
-  const yard = enclosedYard(world), allowed = (i: number) => dry(world, i) && (!yard || yardInterior(yard, i))
+  const yard = enclosedRun(world) ?? enclosedYard(world), allowed = (i: number) => dry(world, i) && (!yard || yardInterior(yard, i))
   const queue = neighboringTiles(coop).filter(i => allowed(i)), parents = new Map(queue.map(i => [i, -1]))
   for (let h = 0; h < queue.length; h++) for (const i of neighboringTiles(queue[h])) if (nearCoop(coop, i) && allowed(i) && !parents.has(i)) { parents.set(i, queue[h]); queue.push(i) }
   return parents
@@ -58,7 +59,7 @@ export function eggAt(world: World, tile: number | null): Egg | null {
   return tile === null || !poultryActive(world) || !dry(world, tile) ? null : world.poultry!.eggs.find(e => e.tile === tile) ?? null
 }
 function cancelCollection(world: World): void {
-  if (!['eggward', 'collectingEgg'].includes(world.peace.activity)) return
+  if (!['coverward', 'covering', 'uncoverward', 'uncovering', 'eggward', 'collectingEgg'].includes(world.peace.activity)) return
   const p = world.pete
   Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE), path: [], pathRevision: -1 })
   Object.assign(world.peace, { activity: 'homeward', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
@@ -71,7 +72,8 @@ export function refreshPoultry(world: World): void {
     if (b.tile !== null && !ground.has(b.tile)) Object.assign(b, { mode: 'inside', tile: null, next: null, travelMs: 0, untilMs: world.timeMs + 2000 })
     else if (b.next !== null && !ground.has(b.next)) Object.assign(b, { mode: 'pecking', next: null, travelMs: 0, untilMs: world.timeMs + 1500 })
   }
-  if (!active) s.eggs = []
+  if (!active) { s.eggs = []; delete s.cover; if (['coverward', 'covering', 'uncoverward', 'uncovering'].includes(world.peace.activity)) cancelCollection(world) }
+  if (world.peace.home === null) delete s.cover
   if (['eggward', 'collectingEgg'].includes(world.peace.activity) && !eggAt(world, world.peace.destination)) cancelCollection(world)
 }
 export function reachableEgg(world: World): number | null {

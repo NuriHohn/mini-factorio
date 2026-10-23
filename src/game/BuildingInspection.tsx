@@ -30,7 +30,7 @@ export function BuildingInspection() {
         </>}
         {inspection.kind === 'treehouse' && <PersonalityOverview personality={inspection.personality} />}
         {inspection.kind === 'peteGarden' && <p>Chicken feed: {inspection.feed ?? 0}/4 · Garden care grows one portion. Pete carries it to the coop.</p>}
-        {inspection.kind === 'peteCoop' && <p>{inspection.adults} chickens · {inspection.chicks} chicks · {inspection.inside} inside{inspection.bedtime ? ' · Bedtime with Pete' : ''} · {(inspection.fedUntilMs ?? 0) > 0 ? `Fed · next meal in ${Math.ceil(inspection.fedUntilMs! / 1000)}s` : 'Ready for feeding'}</p>}
+        {inspection.kind === 'peteCoop' && <p>{inspection.adults} chickens · {inspection.chicks} chicks · {inspection.inside} inside{inspection.bedtime ? ' · Bedtime with Pete' : ''}{inspection.covered ? ' · Protective cover on' : ''} · {inspection.run} · {(inspection.fedUntilMs ?? 0) > 0 ? `Fed · next meal in ${Math.ceil(inspection.fedUntilMs! / 1000)}s` : 'Ready for feeding'}</p>}
         {inspection.kind === 'belt' && <p>Output: {inspection.direction} · {inspection.item ? ITEM_DEFINITIONS[inspection.item].label : 'No item'}</p>}
         {inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}
       </div>

@@ -32,6 +32,8 @@ function until(w: World, ready: () => boolean, limit = 500000) {
   expect(ready()).toBe(true)
 }
 function choose(w: World) {
+  // This helper explicitly starts a fresh decision rather than continuing the new run project.
+  for (const definition of PETE_PROJECTS) { const project = w[definition.state]; if (project) delete project.selected }
   const cs = projectCandidates(w), index = cs.findIndex(c => c.definition.id === 'experiment')
   expect(index).toBeGreaterThanOrEqual(0)
   const total = cs.reduce((sum, c) => sum + c.priorityWeight, 0), low = cs.slice(0, index).reduce((sum, c) => sum + c.priorityWeight, 0) / total, high = low + cs[index].priorityWeight / total

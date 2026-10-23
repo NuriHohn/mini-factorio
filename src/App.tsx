@@ -1,3 +1,4 @@
+import { SimulationSpeed } from './game/SimulationSpeed'
 import { RevengeHUD } from './game/RevengeHUD'
 import { ResearchPanel } from './game/ResearchPanel'
 import { AnalyticsPanel } from './game/AnalyticsPanel'
@@ -27,7 +28,7 @@ export default function App() {
     </header>
     <main>
       <section className="world-panel" aria-label="Factory world">
-        <div className="world-heading"><RevengeHUD /></div>
+        <div className="world-heading"><SimulationSpeed /><RevengeHUD /></div>
         <div className="world-stage"><GameCanvas /><BuildingInspection /><UtilityPanels /><AnalyticsPanel /></div>
         <StatusMessage />
       </section>

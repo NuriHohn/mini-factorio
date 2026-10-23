@@ -24,5 +24,5 @@ export function createBareWorld(random = Math.random) { return createWorld(rando
 // Conservation checks in initially treeless construction fixtures include Wood
 // legitimately spent on the new Eco activities, separately from the project under test.
 export function ecoProjectWood(world: World): number {
-  return (world.harvestProject?.manualCycles ?? 0) * 2 - (world.harvestProject?.completedCycles ?? 0) * 3 + (world.careProject?.completedCycles ?? 0) * 2 + (world.careProject?.carried ?? 0) + (world.gardenProject && world.gardenProject.phase !== 'collecting' ? 12 : 0) + (world.plantProject?.carried ?? 0) + 2 * world.buildings.filter(b => b?.kind === 'tree' && b.origin === 'manual').length
+  return (world.chickenRun ? world.chickenRun.built * 2 + world.chickenRun.carried : 0) + (world.harvestProject?.manualCycles ?? 0) * 2 - (world.harvestProject?.completedCycles ?? 0) * 3 + (world.careProject?.completedCycles ?? 0) * 2 + (world.careProject?.carried ?? 0) + (world.gardenProject && world.gardenProject.phase !== 'collecting' ? 12 : 0) + (world.plantProject?.carried ?? 0) + 2 * world.buildings.filter(b => b?.kind === 'tree' && b.origin === 'manual').length
 }

@@ -127,3 +127,14 @@ Garden care grows bounded Eco-only feed. Pete physically carries a portion from 
 ## Sprint 16.20 — Mature-tree forestry (completed)
 
 Eco Pete selects nearby fully grown trees, chops them, physically returns three Wood to a supply crate and earns XP only on delivery. Interrupted work/carrying and full-crate recovery persist; returned Wood supports normal reforestation and the other Eco projects.
+
+
+## Sprints 16.20.1–16.23 — Yard recovery, fences and chicken life (completed)
+
+- **16.20.1:** expanded entrance/layout choices, safe per-section validation, reordered unfinished sections with saved partial hammer work, preserved paid/hammer progress and explicit obstruction position. The immediate section stays out of pickup routes; access to structures is protected.
+- **16.20.2:** fence posts remain upright in both ground directions instead of rotating into a railway-like silhouette; corners and openings retain their joins.
+- **16.21:** a separate Eco-only paid outdoor run reuses suitable rails, contains the flock when intact and retains bedtime/egg behaviour. People can step over its new low rails. Coop inspection shows progress.
+- **16.22:** occasional physical coop-cover visits before rest and removal after waking, with saved decisions/travel/work and harmless decorative protection.
+- **16.23:** Pause/×1/×2/×4 controls accelerate the entire fixed-step simulation while keeping camera/input and graphics frame-rate preferences independent.
+
+Future ideas still proposed: manual sprinkler play on chickens, peaceful Pete and every target in range, with harmless wet reactions and otherwise only a water-jet animation; Pete's own chest for collecting treasures; and actual flight late in the Inventor path. Treasure sources/path/costs and the flight unlock need later specifications; every new project must retain exclusive path materials. The accessible older chat excerpts and handover did not confirm an earlier flight unlock. Additive mobile controls and away-from-home testing remain tracked in [planning PR #75](https://github.com/NuriHohn/mini-factorio/pull/75); preserve existing PC operation.

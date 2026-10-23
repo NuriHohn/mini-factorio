@@ -15,7 +15,7 @@ export function drawYardCorner(g: Phaser.GameObjects.Graphics, fence: PeteFence,
   g.fillStyle(0xb88b58).fillRect(x - 2, y - 6, 4, 20).fillStyle(0xd4b080).fillTriangle(x - 3, y - 6, x, y - 10, x + 3, y - 6)
 }
 export function drawYardEntrance(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
-  const yard = world.yard
+  const yard = world.chickenRun ?? world.yard
   if (!yard) return
   const i = yard.entrance, x = (i % SIZE + .5) * tile, y = (Math.floor(i / SIZE) + .5) * tile
   if (!visiblePoint(view, x, y, tile) || world.water[i] || world.buildings[i] || !yardBoundary(yard).includes(i)) return
