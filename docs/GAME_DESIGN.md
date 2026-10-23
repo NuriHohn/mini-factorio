@@ -684,3 +684,11 @@ Yards now support up to 14 tiles of width/height between boundary coordinates, m
 When peaceful Pete enters his treehouse or sleeps, chickens and chicks finish any current walking step and take existing dry coop-ground routes back inside. Pecking pauses immediately; birds already inside stay there. They resume ordinary routines after Pete wakes. Veranda rests are not sleep. No eggs are laid during bedtime; existing eggs, collection totals and chick schedules remain. Blocked/flooded ground and coop/home removal retain existing safe recovery. The inspector shows the number inside and bedtime, and a small Z marks an occupied sleeping coop. Existing bird phases/clocks persist without a new save field.
 
 See the [shared bedtime preview](images/chicken-bedtime.png).
+
+### Garden-grown chicken feed (Sprint 16.19.1)
+
+Completed garden care now also grows **one portion of chicken feed**, stored at the garden up to **four portions**. Feed is a dedicated Eco material, separate from factory inventories; it cannot substitute for Wood, metal or factory parts. Cosmetic watering produces none. Old gardens start with zero feed.
+
+At Eco level 2, with completed garden and coop, Pete can select feeding as a repeatable project. He walks to the garden, collects exactly one portion, carries it to a reachable spot beside the coop and feeds for **four seconds**. Completion grants **2 Eco XP** and starts a **180-second feeding interval**. Feed/work survive interruption; removed or blocked structures pause safely. Feeding adds no starvation, death, egg-production buff or industrial item loop. Garden/coop inspection shows available feed and the next meal interval. Version 33 strictly preserves garden stock, carried feed, cycle count and feeding clocks; earlier saves remain loadable.
+
+See the [feeding and enclosed-yard preview](images/chicken-feeding.png).
