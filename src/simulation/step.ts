@@ -23,6 +23,7 @@ export function advanceWorld(world: World, delta: number): void {
   while (world.remainder + 1e-8 >= STEP_MS) {
     world.remainder = Math.max(0, world.remainder - STEP_MS)
     world.timeMs += STEP_MS
+    if (world.playfulSpray && world.timeMs >= world.playfulSpray.untilMs) delete world.playfulSpray
     const reactingToWater = world.pete.water !== null
     advanceNature(world)
     advanceGate(world, STEP_MS)

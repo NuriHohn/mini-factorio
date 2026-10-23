@@ -28,6 +28,7 @@ export function BuildingInspection() {
           <InventoryView inventory={inspection.inventory} showAll />
           <div className="stats"><span>Supplied Wood</span><b>{inspection.wood}</b></div>
         </>}
+        {inspection.kind === 'peteTreasure' && <div className="treasure-collection">{inspection.treasures.map(t => <div key={t.id}><strong>{t.icon} {t.label} · {t.count}</strong><p>{t.comment}</p></div>)}{inspection.carrying && <p>Pete is bringing another treasure home.</p>}</div>}
         {inspection.kind === 'treehouse' && <PersonalityOverview personality={inspection.personality} />}
         {inspection.kind === 'peteGarden' && <p>Chicken feed: {inspection.feed ?? 0}/4 · Garden care grows one portion. Pete carries it to the coop.</p>}
         {inspection.kind === 'peteCoop' && <p>{inspection.adults} chickens · {inspection.chicks} chicks · {inspection.inside} inside{inspection.bedtime ? ' · Bedtime with Pete' : ''}{inspection.covered ? ' · Protective cover on' : ''} · {inspection.run} · {(inspection.fedUntilMs ?? 0) > 0 ? `Fed · next meal in ${Math.ceil(inspection.fedUntilMs! / 1000)}s` : 'Ready for feeding'}</p>}

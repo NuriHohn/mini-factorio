@@ -34,6 +34,7 @@ function beginSlip(world: World): void {
   world.pete.mode = 'SLIPPING'
 }
 export function removeSprinkler(world: World, building: Building): void {
+  if (world.playfulSpray?.source === building.y * SIZE + building.x) delete world.playfulSpray
   if (building.kind === 'sprinkler' && world.pete.mode === 'SPRAYED' && world.pete.water?.source === building.y * SIZE + building.x) beginSlip(world)
 }
 // Called after current power allocation and police dispatch: a committed police case wins.

@@ -98,7 +98,7 @@ export function planYard(world: World, run = false): Yard | null {
     if (run && yardInterior(bounds, home)) continue
     const boundary = yardBoundary(bounds)
     if ((run && boundary.includes(world.yard?.entrance ?? -1)) || boundary.some(i => world.water[i] || (world.buildings[i] && world.buildings[i]?.kind !== 'peteFence'))) continue
-    if ([world.pressProject, world.experimentProject, world.campfireProject, world.workshopProject, world.gardenProject, world.verandaProject].some(p => p?.spots.some(i => boundary.includes(i)))) continue
+    if ([world.treasureProject, world.flightProject, world.pressProject, world.experimentProject, world.campfireProject, world.workshopProject, world.gardenProject, world.verandaProject].some(p => p?.spots.some(i => boundary.includes(i)))) continue
     const reused = boundary.filter(i => world.buildings[i]?.kind === 'peteFence')
     const entrances = boundary.filter(i => !world.buildings[i] && neighboringTiles(i).some(n => n % SIZE > bounds.left && n % SIZE < bounds.right && Math.floor(n / SIZE) > bounds.top && Math.floor(n / SIZE) < bounds.bottom))
     // Prefer mid-side openings, then try other accessible openings in the bounded perimeter.

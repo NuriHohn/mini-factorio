@@ -1,0 +1,47 @@
+name: Publish playable game
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --maxWorkers=2 --testTimeout=15000
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playable-game
+          path: dist
+      - uses: actions/configure-pages@v5
+        if: vars.ENABLE_PAGES == 'true'
+      - uses: actions/upload-pages-artifact@v4
+        if: vars.ENABLE_PAGES == 'true'
+        with:
+          path: dist
+  deploy:
+    if: vars.ENABLE_PAGES == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy game
+        id: deployment
+        uses: actions/deploy-pages@v4

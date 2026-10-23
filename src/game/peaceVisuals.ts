@@ -81,7 +81,7 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       else if (s.activity === 'cooking' || s.activity === 'campfireHappy') drawCooking(g, world, tile, view)
       else if (s.activity === 'boating') drawRowboat(g, world, tile, view)
       else if (dock) drawFishing(g, world, dock, tile, view)
-      else drawPete(g, world, tile, view)
+      else if (!['flying', 'crashRest'].includes(s.activity)) drawPete(g, world, tile, view)
       drawCrateInspection(g, world, tile, view)
       drawEggCollection(g, world, tile, view)
       if (s.activity === 'waving' && visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) {

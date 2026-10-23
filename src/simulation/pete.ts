@@ -1,3 +1,4 @@
+import { flightPose } from './peteLeisure'
 import { preparePeteGate } from './gardenGate'
 import { peaceful } from './peace'
 import { peteUnavailable } from './revenge'
@@ -59,7 +60,7 @@ function escapePath(world: World): void {
 }
 export function peteHit(world: World, position: Position): boolean {
   if (peteUnavailable(world)) return false
-  return Math.hypot(world.pete.x - position.x, world.pete.y - position.y) <= .8
+  return Math.hypot((flightPose(world) ?? world.pete).x - position.x, (flightPose(world) ?? world.pete).y - position.y) <= .8
 }
 // Free web hits replay visuals; water/custody clicks are consumed without a scare.
 export function clickPete(world: World, position: Position): boolean {

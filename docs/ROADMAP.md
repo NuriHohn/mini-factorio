@@ -137,4 +137,12 @@ Eco Pete selects nearby fully grown trees, chops them, physically returns three 
 - **16.22:** occasional physical coop-cover visits before rest and removal after waking, with saved decisions/travel/work and harmless decorative protection.
 - **16.23:** Pause/×1/×2/×4 controls accelerate the entire fixed-step simulation while keeping camera/input and graphics frame-rate preferences independent.
 
-Future ideas still proposed: manual sprinkler play on chickens, peaceful Pete and every target in range, with harmless wet reactions and otherwise only a water-jet animation; Pete's own chest for collecting treasures; and actual flight late in the Inventor path. Treasure sources/path/costs and the flight unlock need later specifications; every new project must retain exclusive path materials. The accessible older chat excerpts and handover did not confirm an earlier flight unlock. Additive mobile controls and away-from-home testing remain tracked in [planning PR #75](https://github.com/NuriHohn/mini-factorio/pull/75); preserve existing PC operation.
+## Sprints 16.24–16.28 — Collecting, flight and mobile access
+
+- **16.24 completed:** harmless manual powered sprinkler targeting and cosmetic wet reactions.
+- **16.25 completed:** Inventor level-2 treasure chest, five decorative keepsakes, nearby physical pickup/carry/deposit and inspectable collection.
+- **16.26 completed:** Inventor level-4 flight workshop/backpack, practice XP and early harmless crash landings.
+- **16.27 completed:** Inventor level-5 scenic flights; no cargo, search or production advantages.
+- **16.28 controls/build preparation completed; hosting activation pending:** additive pan/pinch/tap controls, explicit touch build confirmation, narrow-screen panels/toolbar, relative-path production bundle and validated downloadable build workflow. GitHub Pages is unavailable on the current private-repository plan; activating external hosting or choosing a compatible plan is still needed for an away-from-home URL. No repository visibility or billing changes have been made. Portable saves use existing export/import, without automatic sync.
+
+Authoritative mechanics and costs: [Game design](GAME_DESIGN.md#treasures-and-flight). Hosting setup: [Development](DEVELOPMENT.md#portable-browser-build-and-hosting). Further mobile ergonomics and real-device acceptance remain follow-ups; PC controls must remain intact.
