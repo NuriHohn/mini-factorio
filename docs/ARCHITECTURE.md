@@ -535,3 +535,7 @@ Version 31 permits only the optional care record; `ecoValidation.restoreGardenCa
 ### Shared chicken bedtime (Sprint 16.19)
 
 `poultryBedtime` derives rest from Pete entering/resting with a standing home. `advancePoultry` reuses the coop-ground BFS parents, finishes in-flight steps, then routes birds to existing exits and holds inside clocks while bedtime lasts. No extra bird mode, random stream, save field or wall-clock timer is added. `drawPoultry` renders a culled simulation-time Z only when all birds are inside; inspection publishes inside counts and bedtime.
+
+### Garden-to-coop feeding (Sprint 16.19.1)
+
+`feeding.ts` owns bounded garden feed stock, reachable coop approaches and four-second/three-minute feeding values. `chickenFeed` extends the project-material family map as an Eco-only non-factory resource. Shared projects special-case physical garden pickup and existing-coop work without replacing structures or changing topology. Garden care grows one capped portion only on completion. The selected feeding record carries one portion and cumulative completions; personality validation includes its earned XP. Version 33 adds optional feeding state and garden stock with strict phase/link/deadline validation, migrating old gardens to zero. No factory Item/recipe or Poultry schema changes.

@@ -101,7 +101,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     petePress: ['plates', 'gears'],
     peteExperiment: [],
     peteWorkshop: [],
-    peteGarden: [],
+    peteGarden: version >= 33 ? ['feed'] : [],
     peteGate: ['direction', 'openMs', 'holdUntilMs'],
     peteCampfire: [],
     peteCoop: [],
@@ -131,9 +131,9 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const), openMs, holdUntilMs }
     }
     case 'petePress': return { ...base, kind, plates: count(r.plates, `${path}.plates`, PRESS_INPUT_CAPACITY), gears: count(r.gears, `${path}.gears`, PRESS_OUTPUT_CAPACITY) }
+    case 'peteGarden': return { ...base, kind, feed: version >= 33 ? count(r.feed, `${path}.feed`, 4) : 0 }
     case 'peteExperiment':
     case 'peteWorkshop':
-    case 'peteGarden':
     case 'peteCampfire':
     case 'peteCoop': return { ...base, kind }
     case 'peteFence': return { ...base, kind, direction: choice(r.direction, `${path}.direction`, ['east', 'south'] as const) }

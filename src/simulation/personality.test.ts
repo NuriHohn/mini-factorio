@@ -77,7 +77,7 @@ describe('actual activity rewards and persistence', () => {
     advanceWorld(restored, w.timeMs - restored.timeMs)
     expect(restored.personality).toEqual(w.personality)
     expect(w.personality.rewardedProjects.filter(id => id !== 'garden')).toEqual(['fence', 'coop', 'campfire', 'yard', 'gate'])
-    expect(w.personality.paths.eco.xp).toBe(35 + w.poultry!.collected + 5 * w.buildings.filter(b => b?.kind === 'tree' && b.origin === 'manual').length + (w.gardenProject?.phase === 'complete' ? 20 : 0) + (w.careProject?.completedCycles ?? 0) * 4)
+    expect(w.personality.paths.eco.xp).toBe(35 + w.poultry!.collected + 5 * w.buildings.filter(b => b?.kind === 'tree' && b.origin === 'manual').length + (w.gardenProject?.phase === 'complete' ? 20 : 0) + (w.careProject?.completedCycles ?? 0) * 4 + (w.feedingProject?.completedCycles ?? 0) * 2)
     const tile = w.gateProject!.tiles[0]; removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE))
     const after = load(w); advanceWorld(after, 5000)
     expect(after.personality.rewardedProjects).toEqual(w.personality.rewardedProjects)

@@ -119,3 +119,7 @@ Bounded cost/XP priorities favour substantial projects while retaining small-pro
 ## Sprint 16.19 — Chicken bedtime (completed)
 
 Chickens and chicks return to the coop when Pete enters/sleeps, stay inside during his rest and resume afterward, with visible/inspectable bedtime and exact saved continuation.
+
+## Sprint 16.19.1 — Chicken feeding (completed)
+
+Garden care grows bounded Eco-only feed. Pete physically carries a portion from garden to coop, earns completion-only XP and waits three minutes before feeding again. Source, carrying, work and progress persist.
