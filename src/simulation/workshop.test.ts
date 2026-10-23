@@ -126,10 +126,10 @@ describe('Craftsman level one workshop', () => {
     const restored = load(w), remaining = w.peace.untilMs - w.timeMs
     advanceWorld(w, remaining - 50); expect(w.personality.paths.craftsman.xp).toBe(10)
     advanceWorld(w, 50); advanceWorld(restored, remaining)
-    expect(snapshot(restored)).toEqual(snapshot(w)); expect(w.personality.paths.craftsman.xp).toBe(11)
+    expect(snapshot(restored)).toEqual(snapshot(w)); expect(w.personality.paths.craftsman.xp).toBe(13)
     expect(finishWorkshop(w)).toBe(false); expect(w.workshopProject!.readyAtMs).toBe(w.timeMs + WORKSHOP_COOLDOWN_MS)
-    advanceWorld(w, WORKSHOP_COOLDOWN_MS - 50); expect(w.personality.paths.craftsman.xp).toBe(11)
-    until(w, () => w.personality.paths.craftsman.xp === 12)
+    advanceWorld(w, WORKSHOP_COOLDOWN_MS - 50); expect(w.personality.paths.craftsman.xp).toBe(13)
+    until(w, () => w.personality.paths.craftsman.xp === 16)
     until(w, () => w.peace.activity === 'hammering')
     const xp = w.personality.paths.craftsman.xp, tile = w.workshopProject!.tiles[0]
     removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE)); expect(w.peace.activity).toBe('homeward')

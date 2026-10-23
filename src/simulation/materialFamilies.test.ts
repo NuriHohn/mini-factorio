@@ -8,7 +8,7 @@ import { decodeSave, encodeSave } from '../persistence/saveGame'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 describe('exclusive Pete material families', () => {
   it('assigns every item exactly once and keeps every current project within its family', () => {
-    expect(Object.keys(MATERIAL_PATH).sort()).toEqual([...ITEMS, 'wood', 'chickenFeed'].sort())
+    expect(Object.keys(MATERIAL_PATH).sort()).toEqual([...ITEMS, 'wood', 'chickenFeed', 'fruit', 'sapling'].sort())
     for (const project of PETE_PROJECTS) for (const item of Object.keys(project.resources)) expect(MATERIAL_PATH[item as keyof typeof MATERIAL_PATH]).toBe(project.path)
   })
   it('preserves paid version-28 workshop materials through repeated saves and completion', () => {

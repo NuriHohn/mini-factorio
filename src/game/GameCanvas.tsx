@@ -41,7 +41,11 @@ export function GameCanvas() {
       } },
     })
     const observer = new ResizeObserver(() => {
-      if (host.current?.clientWidth && host.current.clientHeight) game.scale.resize(host.current.clientWidth, host.current.clientHeight)
+      if (host.current?.clientWidth && host.current.clientHeight) {
+        // RESIZE mode reads parentSize during refresh, including toolbar layout changes.
+        game.scale.getParentBounds()
+        game.scale.refresh()
+      }
     })
     observer.observe(host.current)
     return () => { document.removeEventListener('visibilitychange', visibility); observer.disconnect(); game.destroy(true) }

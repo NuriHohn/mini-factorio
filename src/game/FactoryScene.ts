@@ -1,3 +1,4 @@
+import { drawDevelopment, drawDevelopmentActivity } from './developmentVisuals'
 import { TouchGestures } from './touchGestures'
 import { commitConstruction } from '../simulation/construction'
 import { drawInventorStructure, drawLeisure, drawPlayfulSpray } from './leisureVisuals'
@@ -352,8 +353,9 @@ export class FactoryScene extends Phaser.Scene {
       state.inspect(this.world, tile.x, tile.y); return
     }
     const previous = state.touchPlacement
+    if (previous?.tool === state.tool && previous.end.x === tile.x && previous.end.y === tile.y) { useGameStore.setState({ touchRequest: 'confirm' }); return }
     const route = state.tool === 'belt' || state.tool === 'powerPole' || state.tool === 'footbridge'
-    useGameStore.setState({ touchPlacement: { tool: state.tool, start: route && previous?.tool === state.tool ? previous.start : tile, end: tile }, message: route ? 'Tap an endpoint, then Confirm to build. Dragging only moves the view.' : 'Check the highlighted target, then Confirm.' })
+    useGameStore.setState({ touchToolsOpen: false, touchAnchor: { x: point.x / this.cameras.main.width * 100, y: point.y / this.cameras.main.height * 100 }, touchPlacement: { tool: state.tool, start: route && previous?.tool === state.tool ? previous.start : tile, end: tile }, message: route ? 'Tap an endpoint, then tap it again to build.' : 'Tap the highlighted target again to build.' })
   }
   private processTouchRequest() {
     const state = useGameStore.getState(), request = state.touchRequest, pending = state.touchPlacement
@@ -657,6 +659,12 @@ export class FactoryScene extends Phaser.Scene {
         drawGardenGate(this.machines, building, TILE)
       } else if (building.kind === 'peteTreasure' || building.kind === 'peteFlightpad') {
         drawInventorStructure(this.machines, building.kind === 'peteTreasure' ? 'treasure' : 'flightpad', building.x, building.y, TILE, 1, this.world.peace.activity === 'storingTreasure')
+      } else if (building.kind === 'peteDevelopment') {
+        if (building.development === 'house' && this.world.houseProject?.home === this.world.peace.home) {
+          const h = this.world.houseProject.home
+          this.machines.lineStyle(6, 0x98764d).lineBetween((h % SIZE + .5) * TILE, (Math.floor(h / SIZE) + .5) * TILE, (building.x + .5) * TILE, (building.y + .5) * TILE)
+        }
+        drawDevelopment(this.machines, building.development, building.x, building.y, TILE, this.world.timeMs, 1, building.fruit, this.world.peace.activity === 'developmentWork' && Math.abs(this.world.pete.tile % SIZE - building.x) + Math.abs(Math.floor(this.world.pete.tile / SIZE) - building.y) === 1)
       } else if (building.kind === 'petePress') {
         drawGearPress(this.machines, building, TILE)
       } else if (building.kind === 'peteExperiment') {
@@ -845,6 +853,7 @@ export class FactoryScene extends Phaser.Scene {
     drawYardEntrance(this.peteEffects, this.world, TILE, view)
     drawPoultry(this.peteEffects, this.world, TILE, view)
     drawPeace(this.peteEffects, this.world, TILE, view)
+    drawDevelopmentActivity(this.peteEffects, this.world, TILE)
     drawLeisure(this.peteEffects, this.world, TILE, view)
     drawPlayfulSpray(this.peteEffects, this.world, TILE, view)
     this.crateSupply.draw(this.peteEffects, this.world, view, TILE, camera.zoom, useGameStore.getState().tool === null && !worldInputBlocked(useGameStore.getState()))

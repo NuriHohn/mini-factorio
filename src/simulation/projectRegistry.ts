@@ -1,11 +1,11 @@
 import type { Item } from './items'
 import type { PersonalityPath, ProjectReward } from './personality'
 import type { World } from './world'
-export type ProjectMaterial = Item | 'wood' | 'chickenFeed'
-export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
+export type ProjectMaterial = Item | 'wood' | 'chickenFeed' | 'fruit' | 'sapling'
+export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { fruit: 'eco', sapling: 'eco', mechanicModule: 'industrial', chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
 export interface ProjectDefinition {
   id: ProjectReward | 'reforestation' | 'gardenCare' | 'feeding' | 'harvesting'
-  state: 'treasureProject' | 'flightProject' | 'chickenRun' | 'harvestProject' | 'feedingProject' | 'careProject' | 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'
+  state: 'orchardProject' | 'nurseryProject' | 'bicycleProject' | 'mechanicProject' | 'winchProject' | 'houseProject' | 'treasureProject' | 'flightProject' | 'chickenRun' | 'harvestProject' | 'feedingProject' | 'careProject' | 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'
   path: PersonalityPath
   minimumLevel: number
   primaryMaterial?: ProjectMaterial
@@ -32,6 +32,12 @@ export const PETE_PROJECTS: readonly ProjectDefinition[] = [
   { id: 'harvesting', state: 'harvestProject', path: 'eco', minimumLevel: 2, resources: {}, repeatable: true, prerequisites: [] },
   { id: 'treasure', state: 'treasureProject', path: 'inventor', minimumLevel: 2, resources: { copperPlate: 12, copperCable: 4 }, primaryMaterial: 'copperPlate', repeatable: false, prerequisites: [] },
   { id: 'flightpad', state: 'flightProject', path: 'inventor', minimumLevel: 4, resources: { copperPlate: 24, copperCable: 12, electronicCircuit: 8 }, primaryMaterial: 'copperPlate', repeatable: false, prerequisites: ['experiment'] },
+  { id: 'orchard', state: 'orchardProject', path: 'eco', minimumLevel: 3, resources: { wood: 18 }, primaryMaterial: 'wood', repeatable: false, prerequisites: [] },
+  { id: 'bicycle', state: 'bicycleProject', path: 'craftsman', minimumLevel: 3, resources: { ironPlate: 24 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: ['workshop'] },
+  { id: 'mechanic', state: 'mechanicProject', path: 'industrial', minimumLevel: 2, resources: { ironGear: 16 }, primaryMaterial: 'ironGear', repeatable: false, prerequisites: ['press'] },
+  { id: 'winch', state: 'winchProject', path: 'industrial', minimumLevel: 2, resources: { ironGear: 8, mechanicModule: 6 }, primaryMaterial: 'ironGear', repeatable: false, prerequisites: ['mechanic'] },
+  { id: 'nursery', state: 'nurseryProject', path: 'eco', minimumLevel: 4, resources: { wood: 24 }, primaryMaterial: 'wood', repeatable: false, prerequisites: ['orchard'] },
+  { id: 'house', state: 'houseProject', path: 'craftsman', minimumLevel: 4, resources: { ironPlate: 32 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: ['veranda'] },
 ]
 export function projectUnlocked(world: World, definition: ProjectDefinition): boolean {
   return (!definition.repeatable || (world[definition.state]?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= definition.minimumLevel && definition.prerequisites.every(id => {

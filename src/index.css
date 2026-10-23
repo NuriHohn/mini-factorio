@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 :root { font-family: 'Segoe UI', sans-serif; color: #e0e6df; background: #111714; font-synthesis: none; -webkit-font-smoothing: antialiased; color-scheme: dark; }
 * { box-sizing: border-box; } body { margin: 0; min-width: 640px; } button { font: inherit; cursor: pointer; }
 button:focus-visible { outline: 2px solid #9cdaa2; outline-offset: 4px; }
@@ -306,3 +306,38 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .touch-mode .building-inspection, .touch-mode .utility-panel { width: calc(100% - 12px); max-width: none; max-height: 65dvh; inset: 6px 6px auto; overflow: auto; }
   .touch-tools-closed .construction-toolbar { display: none; }
 }
+
+/* Touch controls float over the world; desktop retains its existing layout. */
+.touch-mode { height: 100dvh; min-height: 0; }
+.touch-mode .touch-controls { position: absolute; z-index: 25; left: 8px; bottom: 8px; padding: 0; }
+.touch-target-actions { position: absolute; z-index: 25; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 8px; background: #17271df2; max-width: 220px; }
+.touch-target-actions span { max-width: 105px; font-size: 11px; }
+.touch-target-actions button { min-height: 44px; min-width: 44px; }
+.touch-tools-closed .construction-toolbar { display: none; }
+@media (max-width: 700px), (max-height: 500px) {
+  .touch-mode .game-header { flex-wrap: nowrap; min-height: 48px; padding: 2px 4px; gap: 3px; }
+  .touch-mode .construction-resources { padding: 3px; gap: 2px; border: 0; font-size: 11px; }
+  .touch-mode .construction-resources > span:first-child { display: none; }
+  .touch-mode .hud-actions { flex: 1; justify-content: space-between; flex-wrap: nowrap; gap: 2px; }
+  .touch-mode .hud-button { min-width: 32px; padding: 2px; }
+  .touch-mode .research-icon, .touch-mode .research-toggle b { display: none; }
+  .touch-mode .research-toggle { font-size: 10px; }
+  .touch-mode .world-heading { min-height: 0; height: 38px; overflow: hidden; flex-wrap: nowrap; }
+  .touch-mode .world-heading .revenge-progress, .touch-mode .world-heading .peace-status { font-size: 9px; }
+  .touch-mode .simulation-speed .hud-button { min-height: 32px; min-width: 32px; }
+  .touch-mode .status-message { position: absolute; bottom: 58px; left: 8px; right: 8px; background: #17271dcc; height: 20px; font-size: 10px; }
+  .touch-mode .world-panel { position: relative; padding: 2px; }
+  .touch-mode .construction-toolbar { position: absolute; z-index: 30; bottom: 0; left: 0; right: 0; max-height: 26dvh; padding: 4px; }
+  .touch-mode .tool-hint, .touch-mode .selected-tool, .touch-mode .tool-key { display: none; }
+  .touch-mode .construction-toolbar .tool-icon { min-height: 52px; flex-basis: 66px; padding: 3px; }
+  .touch-mode .construction-toolbar .build-tab { padding: 4px 7px; min-height: 36px; }
+  .touch-mode .building-inspection { inset: auto 4px 4px; width: auto; max-height: 35dvh; }
+  .touch-mode .utility-panel, .touch-mode .analytics-panel.is-open { max-height: 80dvh; }
+  .touch-mode .building-inspection .inspection-summary p { margin: 4px 0; }
+}
+@media (min-width: 701px) {
+  .touch-mode .construction-toolbar { position: absolute; right: 8px; bottom: 8px; z-index: 30; max-width: 620px; border-radius: 10px; }
+}
+
+.touch-target-actions { pointer-events: none; }
+.touch-target-actions button { pointer-events: auto; }

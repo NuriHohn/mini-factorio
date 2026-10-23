@@ -31,6 +31,7 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  touchAnchor: Position
   touchActive: boolean
   touchToolsOpen: boolean
   touchPlacement: { start: Position; end: Position; tool: NonNullable<Tool> } | null
@@ -96,7 +97,8 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
-  touchActive: typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches, touchToolsOpen: true, touchPlacement: null, touchRequest: null,
+  touchAnchor: { x: 0, y: 0 },
+  touchActive: typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches, touchToolsOpen: false, touchPlacement: null, touchRequest: null,
   peteInspection: null,
   inspectPete: world => { if (get().tool === null) set({ peteInspection: peteStatus(world), inspected: null, inspection: null, recipeRequest: null, releaseRequest: null }) },
   dragActive: false, dragCancelToken: 0, hintUses: {},

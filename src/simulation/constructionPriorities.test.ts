@@ -137,7 +137,7 @@ describe('construction placement and daily priorities', () => {
     expect(w.peace.activity).toBe('hammering'); expect(crate(w).wood).toBe(90)
     expect(w.personality.paths.craftsman.xp).toBe(xp)
     advanceWorld(w, 50)
-    expect(w.personality.paths.craftsman.xp).toBe(xp + 1)
+    expect(w.personality.paths.craftsman.xp).toBe(xp + 3)
     expect(w.peace.activity).toBe('project'); expect(currentProject(w)?.phase).toBe('collecting')
     expect(crate(w).wood).toBe(90)
     expect(() => load(w)).not.toThrow()

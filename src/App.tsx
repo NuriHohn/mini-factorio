@@ -29,8 +29,8 @@ export default function App() {
     </header>
     <main>
       <section className="world-panel" aria-label="Factory world">
-        <TouchControls /><div className="world-heading"><SimulationSpeed /><RevengeHUD /></div>
-        <div className="world-stage"><GameCanvas /><BuildingInspection /><UtilityPanels /><AnalyticsPanel /></div>
+        <div className="world-heading"><SimulationSpeed /><RevengeHUD /></div>
+        <div className="world-stage"><GameCanvas /><TouchControls /><BuildingInspection /><UtilityPanels /><AnalyticsPanel /></div>
         <StatusMessage />
       </section>
     </main>
