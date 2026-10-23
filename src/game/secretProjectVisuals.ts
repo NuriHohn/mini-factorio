@@ -42,7 +42,7 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
     else if (project.kind === 'yard' && world.yard && yardCorner(world.yard, index)) drawYardCorner(g, { kind: 'peteFence', x, y, direction: yardDirection(world.yard, index) }, world.yard, tile, progress)
     else drawPeteFence(g, { kind: 'peteFence', x, y, direction: project.kind === 'yard' && world.yard ? yardDirection(world.yard, index) : project.direction }, tile, progress)
   }
-  if (world.peace.activity !== 'project' || !project.carried || !visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, tile)) return
+  if (world.peace.activity !== 'project' || project.phase !== 'building' || !visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, tile)) return
   const px = (p.x + .5) * tile, py = (p.y + .5) * tile
   if (p.tile === project.spots[project.built] && p.next === null) {
     const swing = Math.sin(world.timeMs / 230) * .6

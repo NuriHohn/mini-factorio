@@ -22,7 +22,7 @@ function world(xp = 20) {
   if (xp) awardActivity(w.personality, { path: 'craftsman', xp })
   return w
 }
-function fund(w: World, wood = 8, iron = 12) {
+function fund(w: World, wood = 0, iron = 20) {
   if (wood) expect(supplyWood(w, 824, wood)).toBe(true)
   for (let i = 0; i < iron; i++) expect(deliverItem(crate(w), 'ironPlate', 'east')).toBe(true)
 }
@@ -44,7 +44,7 @@ function built() { const w = building(); until(w, () => w.verandaProject?.phase 
 describe('Craftsman level two treehouse veranda', () => {
   it('unlocks at 20 Craftsman XP independently of dominance and weights available iron', () => {
     const w = world(19), definition = PETE_PROJECTS.find(p => p.id === 'veranda')!
-    expect(definition).toMatchObject({ path: 'craftsman', minimumLevel: 2, primaryMaterial: 'ironPlate', resources: { wood: 8, ironPlate: 12 }, repeatable: false })
+    expect(definition).toMatchObject({ path: 'craftsman', minimumLevel: 2, primaryMaterial: 'ironPlate', resources: { ironPlate: 20 }, repeatable: false })
     fund(w); expect(projectUnlocked(w, definition)).toBe(false)
     expect(projectCandidates(w).some(c => c.definition.id === 'veranda')).toBe(false)
     awardActivity(w.personality, { path: 'craftsman', xp: 1 })
@@ -53,12 +53,12 @@ describe('Craftsman level two treehouse veranda', () => {
     const before = snapshot(w), candidates = projectCandidates(w)
     expect(candidates.find(c => c.definition.id === 'veranda')?.weight).toBe(1)
     expect(snapshot(w)).toEqual(before)
-    fund(w, 0, 12)
+    fund(w, 0, 20)
     expect(projectCandidates(w).find(c => c.definition.id === 'veranda')?.weight).toBe(2)
     expect(projectCandidates(w).find(c => c.definition.id === 'fence')?.weight).toBe(candidates.find(c => c.definition.id === 'fence')?.weight)
   })
   it('requires complete stock and a reachable dry approach without spending on consideration', () => {
-    for (const [wood, iron] of [[7, 12], [8, 11]]) {
+    for (const [wood, iron] of [[0, 19], [8, 11]]) {
       const w = world(); fund(w, wood, iron)
       expect(projectCandidates(w).some(c => c.definition.id === 'veranda')).toBe(false)
       expect(crate(w)).toMatchObject({ wood, inventory: { ironPlate: iron } })
@@ -66,13 +66,13 @@ describe('Craftsman level two treehouse veranda', () => {
     const w = world(); fund(w)
     for (const i of neighboringTiles(820)) w.water[i] = true
     expect(projectCandidates(w).some(c => c.definition.id === 'veranda')).toBe(false)
-    expect(crate(w)).toMatchObject({ wood: 8, inventory: { ironPlate: 12 } })
+    expect(crate(w)).toMatchObject({ wood: 0, inventory: { ironPlate: 20 } })
   })
   it('collects both materials atomically once, builds gradually and preserves every footprint', () => {
     const w = world(); fund(w); choose(w)
     const structures = structuredClone(w.buildings), revision = w.topologyRevision
     until(w, () => w.verandaProject?.phase === 'building')
-    expect(w.verandaProject).toMatchObject({ tiles: [820], carried: 8, carriedIron: 12, built: 0, elapsedMs: 0 })
+    expect(w.verandaProject).toMatchObject({ tiles: [820], carried: 0, carriedIron: 20, built: 0, elapsedMs: 0 })
     expect(crate(w)).toMatchObject({ wood: 0, inventory: { ironPlate: 0 } })
     until(w, () => w.verandaProject!.elapsedMs >= 500)
     expect(hasVeranda(w)).toBe(false); expect(w.personality.paths.craftsman.xp).toBe(20)
@@ -92,10 +92,10 @@ describe('Craftsman level two treehouse veranda', () => {
   it('revalidates lost stock before pickup without a partial debit', () => {
     const w = world(); fund(w); choose(w)
     until(w, () => w.verandaProject?.crate === 824 && w.pete.next !== null)
-    crate(w).inventory.ironPlate = 11
+    crate(w).inventory.ironPlate = 19
     until(w, () => w.peace.activity !== 'project')
     expect(w.verandaProject).toMatchObject({ phase: 'collecting', carried: 0, carriedIron: 0 })
-    expect(crate(w).wood).toBe(8)
+    expect(crate(w).wood).toBe(0)
     fund(w, 0, 1); choose(w); until(w, () => w.verandaProject!.phase === 'building')
     expect(crate(w)).toMatchObject({ wood: 0, inventory: { ironPlate: 0 } })
   })
@@ -105,7 +105,7 @@ describe('Craftsman level two treehouse veranda', () => {
     const spot = w.verandaProject!.spots[0]
     expect(placeBuilding(w, spot % SIZE, Math.floor(spot / SIZE), 'storage', 'east')).toBe(true)
     advanceWorld(w, 20000)
-    expect(w.verandaProject).toMatchObject({ phase: 'building', carried: 8, carriedIron: 12, elapsedMs: 0 })
+    expect(w.verandaProject).toMatchObject({ phase: 'building', carried: 0, carriedIron: 20, elapsedMs: 0 })
     const restored = load(w)
     expect(removeBuilding(restored, spot % SIZE, Math.floor(spot / SIZE))).toBe(true)
     until(restored, () => restored.verandaProject!.phase === 'complete')
@@ -116,7 +116,7 @@ describe('Craftsman level two treehouse veranda', () => {
     const w = building(), elapsed = w.verandaProject!.elapsedMs
     expect(removeBuilding(w, 20, 20)).toBe(true)
     const restored = load(w); advanceWorld(restored, 20000)
-    expect(restored.verandaProject).toMatchObject({ elapsedMs: elapsed, carried: 8, carriedIron: 12 })
+    expect(restored.verandaProject).toMatchObject({ elapsedMs: elapsed, carried: 0, carriedIron: 20 })
     expect(placeBuilding(restored, 20, 20, 'treehouse', 'east')).toBe(true)
     until(restored, () => restored.verandaProject!.phase === 'complete')
     expect(restored.personality.paths.craftsman.xp).toBe(45)
@@ -149,7 +149,7 @@ describe('Craftsman level two treehouse veranda', () => {
     expect(snapshot(restored)).toEqual(snapshot(w))
   })
   it('migrates version 24 workshop saves exactly and rejects malformed upgrade progress and rewards', () => {
-    const w = world(0); fund(w, 4, 8); choose(w, 'workshop'); until(w, () => w.workshopProject?.phase === 'complete')
+    const w = world(0); fund(w, 0, 12); choose(w, 'workshop'); until(w, () => w.workshopProject?.phase === 'complete')
     w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
     const old = snapshot(w); Reflect.deleteProperty(old.game.peace, 'nextProjectCheckAtMs'); Object.assign(old, { version: 24 })
     expect(snapshot(decodeSave(JSON.stringify(old)).world)).toEqual(snapshot(w))

@@ -89,3 +89,7 @@ A fully free, offline assistant should gradually unlock through gameplay. Player
 No mandatory cloud API, paid service or local LLM is part of this goal. Natural-language support must have an offline path without requiring a model; optional local AI could enhance interpretation later. The current repository has no natural-language interpreter, optimizer, blueprint placer or AI integration.
 
 Preserve pure simulation, stable item/recipe IDs, quantity-based recipes and machine metadata for speed, power, ports and capacity. These are implemented foundations, not evidence that the Architect already exists. Each planning/optimization stage should have deterministic tests before being exposed to players.
+
+## Sprint 16.15 — Exclusive Pete material families (completed)
+
+All current materials have one development path; new technical projects consume only their own family. Paid legacy work, completed structures and XP are preserved through version-29 saves.

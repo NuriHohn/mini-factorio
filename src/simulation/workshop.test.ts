@@ -22,7 +22,7 @@ function world() {
   placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east')
   return w
 }
-function fund(w: World, wood = 4, iron = 8, tile = 824) {
+function fund(w: World, wood = 0, iron = 12, tile = 824) {
   if (wood) expect(supplyWood(w, tile, wood)).toBe(true)
   for (let i = 0; i < iron; i++) expect(deliverItem(crate(w, tile), 'ironPlate', 'east')).toBe(true)
 }
@@ -43,20 +43,20 @@ function built() { const w = world(); fund(w); choose(w); until(w, () => w.works
 describe('Craftsman level one workshop', () => {
   it('is available independently of dominant personality and responds to iron without changing Eco weights', () => {
     const w = world(), definition = PETE_PROJECTS.find(p => p.id === 'workshop')!
-    expect(definition).toMatchObject({ path: 'craftsman', minimumLevel: 1, primaryMaterial: 'ironPlate', resources: { wood: 4, ironPlate: 8 }, repeatable: false })
+    expect(definition).toMatchObject({ path: 'craftsman', minimumLevel: 1, primaryMaterial: 'ironPlate', resources: { ironPlate: 12 }, repeatable: false })
     expect(projectUnlocked(w, definition)).toBe(true)
     awardActivity(w.personality, { path: 'industrial', xp: 450 })
-    expect(w.personality.dominant).toBe('industrial'); fund(w, 8, 8)
+    expect(w.personality.dominant).toBe('industrial'); fund(w, 8, 12)
     const before = snapshot(w), cs = projectCandidates(w)
     expect(cs.find(c => c.definition.id === 'workshop')?.weight).toBe(1)
     expect(cs.find(c => c.definition.id === 'fence')?.weight).toBe(1)
     expect(snapshot(w)).toEqual(before)
-    fund(w, 0, 8)
+    fund(w, 0, 12)
     expect(projectCandidates(w).find(c => c.definition.id === 'workshop')?.weight).toBe(2)
     expect(projectCandidates(w).find(c => c.definition.id === 'fence')?.weight).toBe(1)
   })
   it('requires both materials together and never treats ore or inaccessible stock as plates', () => {
-    for (const [wood, plates] of [[3, 8], [4, 7]]) {
+    for (const [wood, plates] of [[0, 11], [4, 7]]) {
       const w = world(); fund(w, wood, plates)
       expect(projectCandidates(w).some(c => c.definition.id === 'workshop')).toBe(false)
       expect(crate(w).wood).toBe(wood); expect(crate(w).inventory.ironPlate).toBe(plates)
@@ -64,7 +64,7 @@ describe('Craftsman level one workshop', () => {
     const w = world(); fund(w, 4, 0)
     for (let i = 0; i < 8; i++) deliverItem(crate(w), 'iron', 'east')
     expect(projectCandidates(w).some(c => c.definition.id === 'workshop')).toBe(false)
-    placeBuilding(w, 10, 10, 'supplyCrate', 'east'); fund(w, 0, 8, 410)
+    placeBuilding(w, 10, 10, 'supplyCrate', 'east'); fund(w, 0, 11, 410)
     expect(projectCandidates(w).some(c => c.definition.id === 'workshop')).toBe(false)
     fund(w, 4, 0, 410)
     for (const [x, y] of [[9, 10], [11, 10], [10, 9], [10, 11]]) placeBuilding(w, x, y, 'storage', 'east')
@@ -72,9 +72,9 @@ describe('Craftsman level one workshop', () => {
   })
   it('selects a fully funded reachable source rather than a closer wood-only crate', () => {
     const w = world(); fund(w, 4, 0)
-    placeBuilding(w, 30, 20, 'supplyCrate', 'east'); fund(w, 4, 8, 830)
+    placeBuilding(w, 30, 20, 'supplyCrate', 'east'); fund(w, 0, 12, 830)
     choose(w); until(w, () => w.workshopProject?.crate === 830)
-    expect(crate(w, 830).inventory.ironPlate).toBe(8)
+    expect(crate(w, 830).inventory.ironPlate).toBe(12)
     const restored = load(w); until(restored, () => restored.workshopProject?.phase === 'building')
     expect(crate(restored).wood).toBe(4); expect(crate(restored, 830).wood).toBe(0); expect(crate(restored, 830).inventory.ironPlate).toBe(0)
   })
@@ -83,7 +83,7 @@ describe('Craftsman level one workshop', () => {
     until(w, () => w.workshopProject?.crate === 824 && w.pete.next !== null)
     crate(w).inventory.ironPlate-- // Model contention before the committed pickup arrives.
     advanceWorld(w, 50)
-    expect(crate(w).wood).toBe(4); expect(crate(w).inventory.ironPlate).toBe(7)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.ironPlate).toBe(11)
     expect(w.workshopProject).toMatchObject({ phase: 'collecting', carried: 0, carriedIron: 0 })
     expect(w.personality.paths.craftsman.xp).toBe(0); expect(() => load(w)).not.toThrow()
     fund(w, 0, 1); until(w, () => w.workshopProject?.phase === 'building')
@@ -91,10 +91,10 @@ describe('Craftsman level one workshop', () => {
   })
   it('atomically collects four Wood and eight plates, builds gradually and awards ten Craftsman XP once', () => {
     const w = world(); fund(w); const eco = structuredClone(w.personality.paths.eco); choose(w)
-    expect(crate(w).wood).toBe(4); expect(crate(w).inventory.ironPlate).toBe(8)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.ironPlate).toBe(12)
     until(w, () => (w.workshopProject?.elapsedMs ?? 0) >= 500)
     const project = w.workshopProject!, tile = project.tiles[0]
-    expect(project).toMatchObject({ carried: 4, carriedIron: 8 }); expect(crate(w).wood).toBe(0); expect(crate(w).inventory.ironPlate).toBe(0)
+    expect(project).toMatchObject({ carried: 0, carriedIron: 12 }); expect(crate(w).wood).toBe(0); expect(crate(w).inventory.ironPlate).toBe(0)
     expect(w.personality.paths.craftsman.xp).toBe(0); expect(w.buildings[tile]).toBeNull()
     const restored = load(w), remaining = 12000 - project.elapsedMs
     advanceWorld(w, remaining - 50); expect(w.buildings[tile]).toBeNull()
@@ -106,13 +106,13 @@ describe('Craftsman level one workshop', () => {
     expect(placeBuilding(w, 10, 10, 'peteWorkshop', 'east')).toBe(false)
     removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE)); fund(w); advanceWorld(w, 90000)
     expect(w.buildings.filter(b => b?.kind === 'peteWorkshop')).toHaveLength(0)
-    expect(crate(w).wood).toBe(4); expect(crate(w).inventory.ironPlate).toBe(8); expect(w.personality.paths.craftsman.xp).toBe(10)
+    expect(crate(w).wood).toBe(0); expect(crate(w).inventory.ironPlate).toBe(12); expect(w.personality.paths.craftsman.xp).toBe(10)
   })
   it('retains both carried materials and work across blocking, interruption and Save/Load', () => {
     const w = world(); fund(w); choose(w); until(w, () => (w.workshopProject?.elapsedMs ?? 0) >= 500)
     const p = w.workshopProject!, tile = p.tiles[0], elapsed = p.elapsedMs
     expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'belt', 'east')).toBe(true)
-    advanceWorld(w, 5000); expect(p.elapsedMs).toBe(elapsed); expect(p.carriedIron).toBe(8); expect(w.personality.paths.craftsman.xp).toBe(0)
+    advanceWorld(w, 5000); expect(p.elapsedMs).toBe(elapsed); expect(p.carriedIron).toBe(12); expect(w.personality.paths.craftsman.xp).toBe(0)
     const restored = load(w); removeBuilding(restored, tile % SIZE, Math.floor(tile / SIZE))
     until(restored, () => restored.workshopProject?.phase === 'complete')
     expect(restored.personality.paths.craftsman.xp).toBe(10); expect(crate(restored).inventory.ironPlate).toBe(0); expect(crate(restored).wood).toBe(0)
@@ -143,7 +143,7 @@ describe('Craftsman level one workshop', () => {
   it('fits outside an existing enclosure while preserving gate, home and supply access', () => {
     const w = world(); fund(w, 200, 0)
     until(w, () => w.gateProject?.phase === 'complete', 900000)
-    fund(w, 0, 8); choose(w)
+    fund(w, 0, 12); choose(w)
     const p = w.workshopProject!, gate = w.yard!.entrance
     expect(yardInterior(w.yard!, p.tiles[0])).toBe(false); expect([...p.tiles, ...p.spots]).not.toContain(gate)
     w.water[p.tiles[0]] = true; expect(projectSiteClear(w, p)).toBe(false); w.water[p.tiles[0]] = false

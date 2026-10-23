@@ -25,7 +25,7 @@ function world() {
   placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east')
   return w
 }
-function fund(w: World, wood = 4, iron = 12, gears = 4, tile = 824) {
+function fund(w: World, wood = 0, iron = 0, gears = 10, tile = 824) {
   if (wood) expect(supplyWood(w, tile, wood)).toBe(true)
   for (let n = 0; n < iron; n++) expect(deliverItem(crate(w, tile), 'ironPlate', 'east')).toBe(true)
   for (let n = 0; n < gears; n++) expect(deliverItem(crate(w, tile), 'ironGear', 'east')).toBe(true)
@@ -51,26 +51,26 @@ describe('Industrial level one gear press', () => {
   it('uses iron weighting independently of dominant personality and changes no stock or RNG during planning', () => {
     const w = world(); awardActivity(w.personality, { path: 'inventor', xp: 450 }); fund(w, 6)
     const before = snapshot(w), cs = projectCandidates(w)
-    expect(cs.find(c => c.definition.id === 'press')).toMatchObject({ weight: 1, definition: { path: 'industrial', minimumLevel: 1, resources: { wood: 4, ironPlate: 12, ironGear: 4 } } })
+    expect(cs.find(c => c.definition.id === 'press')).toMatchObject({ weight: 1, definition: { path: 'industrial', minimumLevel: 1, resources: { ironGear: 10 } } })
     expect(snapshot(w)).toEqual(before)
-    fund(w, 0, 12, 0)
+    fund(w, 0, 0, 10)
     expect(projectCandidates(w).find(c => c.definition.id === 'press')?.weight).toBe(2)
     expect(projectCandidates(w).find(c => c.definition.id === 'fence')?.weight).toBe(cs.find(c => c.definition.id === 'fence')?.weight)
   })
 
   it('requires the complete build set in one reachable crate and rechecks gear contention atomically', () => {
-    const w = world(); fund(w, 4, 12, 3)
+    const w = world(); fund(w, 0, 0, 9)
     placeBuilding(w, 30, 20, 'supplyCrate', 'east'); fund(w, 0, 0, 1, 830)
     expect(projectCandidates(w).some(c => c.definition.id === 'press')).toBe(false)
     fund(w, 0, 0, 1); choose(w)
     until(w, () => w.pressProject?.crate === 824 && w.pete.next !== null)
     crate(w).inventory.ironGear--
     advanceWorld(w, 50)
-    expect(crate(w)).toMatchObject({ wood: 4, inventory: { ironPlate: 12, ironGear: 3 } })
+    expect(crate(w)).toMatchObject({ wood: 0, inventory: { ironPlate: 0, ironGear: 9 } })
     expect(w.pressProject).toMatchObject({ phase: 'collecting', carried: 0, carriedIron: 0, carriedGears: 0 })
     fund(w, 0, 0, 1); until(w, () => w.pressProject?.phase === 'building')
     expect(crate(w)).toMatchObject({ wood: 0, inventory: { ironPlate: 0, ironGear: 0 } })
-    expect(w.pressProject).toMatchObject({ carried: 4, carriedIron: 12, carriedGears: 4 })
+    expect(w.pressProject).toMatchObject({ carried: 0, carriedIron: 0, carriedGears: 10 })
     expect(() => load(w)).not.toThrow()
   })
 

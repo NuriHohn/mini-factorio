@@ -128,8 +128,8 @@ describe('construction placement and daily priorities', () => {
     expect(() => load(w)).not.toThrow()
   })
   it('finishes committed workshop work and rewards it once before switching to a newly funded project', () => {
-    const w = structuredClone(template); supplyWood(w, 824, 4)
-    for (let i = 0; i < 8; i++) expect(deliverItem(crate(w), 'ironPlate', 'east')).toBe(true)
+    const w = structuredClone(template)
+    for (let i = 0; i < 12; i++) expect(deliverItem(crate(w), 'ironPlate', 'east')).toBe(true)
     until(w, () => w.peace.activity === 'hammering', 300000)
     const xp = w.personality.paths.craftsman.xp
     supplyWood(w, 824, 90)
