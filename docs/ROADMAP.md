@@ -93,3 +93,7 @@ Preserve pure simulation, stable item/recipe IDs, quantity-based recipes and mac
 ## Sprint 16.15 — Exclusive Pete material families (completed)
 
 All current materials have one development path; new technical projects consume only their own family. Paid legacy work, completed structures and XP are preserved through version-29 saves.
+
+## Sprint 16.15.1 — Industrial recycling (completed)
+
+The press consumes its own family (one gear), recovers one plate, respects bounded logistics and retains legacy inventory without creating free resources.

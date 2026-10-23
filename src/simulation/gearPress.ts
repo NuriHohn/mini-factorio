@@ -1,7 +1,6 @@
 import { recordProduction } from './analytics'
 import { peteReachableTiles } from './navigation'
 import { awardActivity } from './personality'
-import { RECIPES } from './recipes'
 import { SIZE } from './world'
 import type { PetePress, World } from './world'
 
@@ -10,7 +9,7 @@ export const PRESS_ACTIVITY_MS = 5000
 export const PRESS_COOLDOWN_MS = 60000
 export const PRESS_INPUT_CAPACITY = 4
 export const PRESS_OUTPUT_CAPACITY = 4
-export const PRESS_PLATES = RECIPES.ironGear.inputs.ironPlate!
+export const PRESS_GEARS = 1
 
 export function gearPress(world: World): PetePress | null {
   const project = world.pressProject
@@ -19,7 +18,7 @@ export function gearPress(world: World): PetePress | null {
 }
 export function pressReady(world: World): boolean {
   const press = gearPress(world)
-  return !!press && press.plates >= PRESS_PLATES && press.gears < PRESS_OUTPUT_CAPACITY && world.timeMs >= world.pressProject!.readyAtMs! && world.produced.ironGear < Number.MAX_SAFE_INTEGER
+  return !!press && press.gears >= PRESS_GEARS && press.plates < PRESS_OUTPUT_CAPACITY && world.timeMs >= world.pressProject!.readyAtMs! && world.produced.ironPlate < Number.MAX_SAFE_INTEGER
 }
 export function pressSpot(world: World): number | null {
   const project = world.pressProject
@@ -29,11 +28,11 @@ export function pressSpot(world: World): number | null {
 export function finishPress(world: World): boolean {
   const project = world.pressProject, peace = world.peace, press = gearPress(world)
   if (!project || !press || peace.home === null || peace.activity !== 'pressing' || world.timeMs < peace.untilMs || !pressReady(world) || world.pete.next !== null || pressSpot(world) !== world.pete.tile || peace.destination !== world.pete.tile) return false
-  // Keep input intact until the output commits: interrupted visits never spend plates.
-  press.plates -= PRESS_PLATES
-  press.gears++
-  world.produced.ironGear++
-  recordProduction(world, { ironGear: 1 }, { ironPlate: PRESS_PLATES })
+  // Keep input intact until the output commits: interrupted visits never spend gears.
+  press.gears -= PRESS_GEARS
+  press.plates++
+  world.produced.ironPlate++
+  recordProduction(world, { ironPlate: 1 }, { ironGear: PRESS_GEARS })
   project.readyAtMs = world.timeMs + PRESS_COOLDOWN_MS
   awardActivity(world.personality, { path: 'industrial', xp: 1 })
   return true

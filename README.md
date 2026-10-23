@@ -46,7 +46,7 @@ The bottom build toolbar starts on **Factory**, alongside **Logistics**, **Power
 
 Open **Menu (☰)** for Save & Load and a confirmed New game. **Help (?)** separates How to Play from Controls. **Overview** contains detailed stock and power values; the header shows construction Wood. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import file validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export a JSON file before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
 
-Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-29 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–28 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
+Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-30 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–29 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
 
 ## Pete’s Revenge
 
@@ -91,4 +91,4 @@ At **Craftsman level 2**, Pete can autonomously add a permanent veranda to his t
 
 At **Inventor level 1**, Pete can autonomously build an **Experiment Table** using **8 copper plates and 4 copper cables** from one Supply Crate. Finished experiments earn Inventor XP without producing items or requiring power. See [Experiment table](docs/GAME_DESIGN.md#inventor-level-1-petes-experiment-table).
 
-At **Industrial level 1**, Pete can build a **Gear Press** for **10 supplied iron gears**. Feed iron plates directly by belt/inserter; Pete presses 2 plates into 1 gear, and inserters collect its output. See [Gear press](docs/GAME_DESIGN.md#industrial-level-1-petes-gear-press).
+At **Industrial level 1**, Pete can build a **Recycling Press** for **10 supplied iron gears**. Feed iron gears by belt/inserter; Pete recycles 1 gear into 1 plate, and inserters collect its output. See [Gear press](docs/GAME_DESIGN.md#industrial-level-1-petes-gear-press).

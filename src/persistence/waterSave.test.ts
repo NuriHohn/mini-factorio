@@ -17,7 +17,7 @@ describe('version 9 terrain and bridge persistence', () => {
   it('round trips new generated terrain, nature and factory state exactly', () => {
     const w = createWorld(() => .42); advanceWorld(w, 675)
     const original = snapshot(w), restored = decodeSave(JSON.stringify(original)).world
-    expect(SAVE_VERSION).toBe(29); expect(restored.water.some(Boolean)).toBe(true)
+    expect(SAVE_VERSION).toBe(30); expect(restored.water.some(Boolean)).toBe(true)
     expect(snapshot(restored)).toEqual(original)
     advanceWorld(w, 1234); advanceWorld(restored, 1234)
     expect(snapshot(restored)).toEqual(snapshot(w))

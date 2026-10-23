@@ -3,7 +3,7 @@ import type { Inspection } from '../simulation/inspection'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { PLAYER_TOOLS } from '../state/toolMetadata'
 const descriptions: Record<Inspection['kind'], string> = {
-  petePress: 'Pete presses 2 iron plates into 1 gear by hand. Feed plates with belts or inserters; collect gears with an inserter. No electricity needed for the press.',
+  petePress: 'Pete recycles 1 iron gear into 1 iron plate by hand. Feed gears with belts or inserters; collect plates with an inserter. No electricity needed for the press.',
   peteExperiment: 'Pete’s copper-and-gear experiment table. Completed experiments earn Inventor XP; no production or power needed.',
   peteWorkshop: 'Pete’s wooden-and-metal workshop. Decorative hammering earns Craftsman XP; no production.',
   peteGarden: 'Pete’s vegetable garden. Decorative plants, tended while peaceful; no crops or inventory.',
@@ -23,10 +23,10 @@ const descriptions: Record<Inspection['kind'], string> = {
 }
 export function inspectionSummary(i: Inspection) {
   const metadata = PLAYER_TOOLS.find(t => t.tool === i.kind)
-  const name = i.kind === 'petePress' ? 'Pete’s Gear Press' : i.kind === 'peteExperiment' ? 'Pete’s Experiment Table' : i.kind === 'peteWorkshop' ? 'Pete’s Workshop' : i.kind === 'peteGarden' ? 'Pete’s Vegetable Garden' : i.kind === 'peteGate' ? 'Pete’s Garden Gate' : i.kind === 'peteCampfire' ? 'Pete’s Campfire' : i.kind === 'peteCoop' ? 'Pete’s Chicken Coop' : i.kind === 'peteFence' ? 'Pete’s wooden fence' : i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
+  const name = i.kind === 'petePress' ? 'Pete’s Recycling Press' : i.kind === 'peteExperiment' ? 'Pete’s Experiment Table' : i.kind === 'peteWorkshop' ? 'Pete’s Workshop' : i.kind === 'peteGarden' ? 'Pete’s Vegetable Garden' : i.kind === 'peteGate' ? 'Pete’s Garden Gate' : i.kind === 'peteCampfire' ? 'Pete’s Campfire' : i.kind === 'peteCoop' ? 'Pete’s Chicken Coop' : i.kind === 'peteFence' ? 'Pete’s wooden fence' : i.kind === 'belt' && i.bridge ? 'Conveyor bridge' : metadata?.label ?? (i.kind === 'tree' ? `${i.species[0].toUpperCase()}${i.species.slice(1)} tree` : 'Pete’s prison')
   let state = 'Ready.'
   if ('electrical' in i && i.electrical.state === 'sabotaged') state = 'Temporarily disabled.'
-  else if (i.kind === 'petePress') state = `${i.plates}/${i.inputCapacity} plates · ${i.gears}/${i.outputCapacity} gears · ${i.pressing ? 'Pete is pressing.' : i.gears >= i.outputCapacity ? 'Output full: collect gears.' : i.plates < 2 ? 'Needs 2 iron plates.' : i.cooldownMs > 0 ? 'Pete is taking a break.' : 'Waiting for Pete.'}`
+  else if (i.kind === 'petePress') state = `${i.gears}/${i.inputCapacity} gears · ${i.plates}/${i.outputCapacity} plates · ${i.pressing ? 'Pete is pressing.' : i.plates >= i.outputCapacity ? 'Output full: collect plates.' : i.gears < 1 ? 'Needs 1 iron gear.' : i.cooldownMs > 0 ? 'Pete is taking a break.' : 'Waiting for Pete.'}`
   else if (i.kind === 'peteExperiment') state = i.experimenting ? 'Pete is testing a little invention.' : 'Ready for peaceful experiments.'
   else if (i.kind === 'peteWorkshop') state = i.hammering ? 'Pete is working at the anvil.' : 'Ready for peaceful workshop visits.'
   else if (i.kind === 'peteGate') state = i.openMs === 0 ? 'Closed · Pete opens it when approaching.' : i.openMs === GATE_OPEN_MS ? 'Open · keeping the passage clear.' : 'Gate is swinging.'

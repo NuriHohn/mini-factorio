@@ -19,10 +19,10 @@ export function drawGearPress(g: Phaser.GameObjects.Graphics, press: PetePress, 
   if (progress < .85) return
   g.fillStyle(0xe4ba62).fillRect(x + 9, y + 4, 3, 3).fillRect(x + 20, y + 4, 3, 3)
   g.fillStyle(0xc2cfd0)
-  for (let n = 0; n < press.plates; n++) g.fillRect(x + 1, y + 22 - n * 2, 6, 2)
+  for (let n = 0; n < press.plates; n++) g.fillRect(x + 25, y + 22 - n * 2, 6, 2)
   for (let n = 0; n < press.gears; n++) {
-    g.fillStyle(0xc2cfd0).fillCircle(x + 25, y + 25 - n * 3, 2.5)
-    g.fillStyle(0x354b5b).fillCircle(x + 25, y + 25 - n * 3, .8)
+    g.fillStyle(0xc2cfd0).fillCircle(x + 4, y + 25 - n * 3, 2.5)
+    g.fillStyle(0x354b5b).fillCircle(x + 4, y + 25 - n * 3, .8)
   }
 }
 

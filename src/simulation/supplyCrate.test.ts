@@ -133,7 +133,7 @@ describe('peaceful supply visits and persistence', () => {
     advanceWorld(w, 8765)
     for (const ms of [17, 2000, 103, 2645, 4000]) advanceWorld(loaded, ms)
     expect(JSON.parse(encode(loaded))).toEqual(JSON.parse(encode(w)))
-    expect(SAVE_VERSION).toBe(29)
+    expect(SAVE_VERSION).toBe(30)
   })
   it('accepts genuine prior-version saves and rejects malformed inventory or hidden new state', () => {
     const legacy = JSON.parse(encode(world())); legacy.version = 13; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
