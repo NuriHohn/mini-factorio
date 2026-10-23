@@ -1,3 +1,4 @@
+import { drawVeranda, drawVerandaRest } from './verandaVisuals'
 import { drawWorkshopActivity } from './workshopVisuals'
 import { drawGardenTending } from './ecoVisuals'
 import { drawCooking } from './campfireVisuals'
@@ -32,6 +33,7 @@ export function drawTreehouse(g: Phaser.GameObjects.Graphics, world: World, home
   g.fillStyle(0x624633).fillRect(x + 5, y, 5, 9)
   g.lineStyle(2, 0xcbb07b).lineBetween(x + 4, y + 8, x + 1, y + 16).lineBetween(x + 10, y + 8, x + 7, y + 16)
   for (let i = 0; i < 3; i++) g.lineBetween(x + 3 - i, y + 10 + i * 3, x + 9 - i, y + 10 + i * 3)
+  if (!preview) drawVeranda(g, world, home, tile)
   if (t < 1) for (let i = 0; i < 4; i++) {
     const a = t * Math.PI * 2 + i * 1.7
     g.fillStyle(0xd8ad72, (1 - t) * .7).fillRect(x + Math.sin(a) * 16, baseY + 9 - t * 14 - i, 3, 2)
@@ -73,7 +75,8 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       }
     } else {
       const dock = s.activity === 'fishing' ? dockAtSpot(world, s.destination) : null
-      if (s.activity === 'cooking' || s.activity === 'campfireHappy') drawCooking(g, world, tile, view)
+      if (s.activity === 'verandaRest') drawVerandaRest(g, world, tile, view)
+      else if (s.activity === 'cooking' || s.activity === 'campfireHappy') drawCooking(g, world, tile, view)
       else if (s.activity === 'boating') drawRowboat(g, world, tile, view)
       else if (dock) drawFishing(g, world, dock, tile, view)
       else drawPete(g, world, tile, view)

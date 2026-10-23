@@ -59,7 +59,7 @@ export function planYard(world: World): Yard | null {
     if (bounds.left < 1 || bounds.top < 1 || bounds.right >= SIZE - 1 || bounds.bottom >= SIZE - 1 || bounds.right - bounds.left > 10 || bounds.bottom - bounds.top > 10) continue
     const boundary = yardBoundary(bounds)
     if (boundary.some(i => world.water[i] || (world.buildings[i] && world.buildings[i]?.kind !== 'peteFence'))) continue
-    if ([world.campfireProject, world.workshopProject].some(p => p?.spots.some(i => boundary.includes(i)))) continue
+    if ([world.campfireProject, world.workshopProject, world.verandaProject].some(p => p?.spots.some(i => boundary.includes(i)))) continue
     const reused = boundary.filter(i => world.buildings[i]?.kind === 'peteFence')
     const entrances = boundary.filter(i => !world.buildings[i] && neighboringTiles(i).some(n => n % SIZE > bounds.left && n % SIZE < bounds.right && Math.floor(n / SIZE) > bounds.top && Math.floor(n / SIZE) < bounds.bottom))
     // Four mid-side openings keep the search bounded; choose the closest accessible crate side first.

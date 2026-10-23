@@ -1,3 +1,4 @@
+import { hasVeranda, VERANDA_REST_MS } from './veranda'
 import { workshopSpot, refreshWorkshop, finishWorkshop, WORKSHOP_ACTIVITY_MS } from './workshop'
 import { gardenSpot, refreshGardening, TEND_MS, TEND_COOLDOWN_MS } from './ecoProjects'
 import { preparePeteGate } from './gardenGate'
@@ -18,7 +19,7 @@ export const TREEHOUSE_WOOD = 20
 export const GIFT_MIN_MS = 300000
 export const GIFT_MAX_MS = 600000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
@@ -207,8 +208,8 @@ export function advancePeace(world: World, delta: number): void {
     if (s.activity === 'hammering') { finishWorkshop(world); activity(world, 'homeward') }
     else if (s.activity === 'cooking') { if (finishCooking(world)) activity(world, 'campfireHappy', CAMPFIRE_HAPPY_MS); else activity(world, 'homeward') }
     else if (s.activity === 'collectingEgg') { collectEgg(world); activity(world, 'homeward') }
-    else if (s.activity === 'entering') activity(world, 'resting', 12000)
-    else if (s.activity === 'resting') {
+    else if (s.activity === 'entering') activity(world, hasVeranda(world) && random(world) < .25 ? 'verandaRest' : 'resting', VERANDA_REST_MS)
+    else if (s.activity === 'resting' || s.activity === 'verandaRest') {
       if (trySecretProject(world)) return
       const workshop = workshopSpot(world)
       if (workshop !== null && world.timeMs >= world.workshopProject!.readyAtMs! && random(world) < .25) { activity(world, 'workshopward', 0, workshop); return }

@@ -46,7 +46,7 @@ The bottom build toolbar starts on **Factory**, alongside **Logistics**, **Power
 
 Open **Menu (☰)** for Save & Load and a confirmed New game. **Help (?)** separates How to Play from Controls. **Overview** contains detailed stock and power values; the header shows construction Wood. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import file validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export a JSON file before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
 
-Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-24 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–23 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
+Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-25 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–24 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
 
 ## Pete’s Revenge
 
@@ -86,3 +86,5 @@ After the coop, Pete can build a **Campfire** with **5 supplied Wood**, then sit
 After the campfire, Pete can extend his fence into a compact **enclosed yard**, reusing existing rails and collecting two supplied Wood per missing section. An open entrance keeps his routes clear; a completed intact yard contains chickens and chicks. See [yard rules](docs/GAME_DESIGN.md#petes-enclosed-yard).
 
 Pete then builds his **Garden Gate** at the reserved entrance for **3 supplied Wood**. It swings open when he approaches from either side and closes after passage; chickens and chicks stay inside. See [garden gate rules](docs/GAME_DESIGN.md#petes-garden-gate).
+
+At **Craftsman level 2**, Pete can autonomously add a permanent veranda to his treehouse using **8 supplied Wood and 12 iron plates**, then occasionally relax there. See [Treehouse veranda](docs/GAME_DESIGN.md#craftsman-level-2-treehouse-veranda).
