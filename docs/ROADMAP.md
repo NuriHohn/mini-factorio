@@ -127,3 +127,21 @@ Garden care grows bounded Eco-only feed. Pete physically carries a portion from 
 ## Sprint 16.20 — Mature-tree forestry (completed)
 
 Eco Pete selects nearby fully grown trees, chops them, physically returns three Wood to a supply crate and earns XP only on delivery. Interrupted work/carrying and full-crate recovery persist; returned Wood supports normal reforestation and the other Eco projects.
+
+## Next priority: Sprint 16.20.1 — Unblock complete-yard construction (planned)
+
+Player testing reports that complete enclosure is too easily blocked. Current yard validation rejects the whole remaining plan when any remaining fence cell or work approach is obstructed; moving actors and their reserved paths also count as obstacles. Partially built yards retain their layout. These source findings guide reproduction and are not yet a verified diagnosis of the player's exact save.
+
+Reproduce the stalled partial-yard case first, then allow reachable, safe sections to progress while a different section is temporarily blocked. Re-evaluate work approaches and suitable entrance positions, distinguish temporary actor occupancy from permanent obstacles, and retry without losing existing rails, carried/paid materials or earned progress. Preserve a usable entrance and access to home, coop, supplies and existing workplaces; never close an occupied route unsafely. Explain the actual remaining blocker and its position in Pete's inspection. Recovery must not duplicate costs or completion XP.
+
+Acceptance includes one blocked section in an otherwise buildable partial yard, Pete crossing a future section, temporary actor reservations, later trees/buildings, obstacle removal, full enclosure with safe access, and deterministic Save & Load during recovery. Schedule this repair before the later ideas below; no gameplay change is implemented by this planning entry.
+
+## Later player ideas — proposed, not implemented
+
+- **Playful sprinkler use:** let the player spray chickens, peaceful Pete and any other target in range. Wetting Pete or chickens is harmless; other targets only show the water-jet animation. No damage, resource loss or negative gameplay consequences. Define manual targeting alongside existing sprinkler behaviour without degrading PC controls.
+- **Occasional coop cover / marten protection:** sometimes Pete stretches a tarpaulin over the coop before bed and removes it after getting up. Coordinate this with chicken bedtime and saved continuation. This idea does not yet introduce martens, attacks or animal harm; frequency, costs and any protection effect need a later specification.
+- **Flying Pete:** reserve a late Inventor-path milestone for actual flight. The player recalls discussing this earlier, but the accessible excerpts of “Mini-Factorio Sprint 15.7.1” and “Projektideen fürs Vibe Coding”, and the attached handover, did not establish an earlier level or design. Exact unlock, flight device, movement/landing rules and costs remain open; existing outfits do not implement flight.
+- **Pete's treasure chest:** Pete can build his own chest and collect treasures in it. Define treasure sources, presentation, capacity and development-path ownership before implementation; keep it distinct from the player's factory storage and Pete's supply crates.
+- **Simulation speed:** add normal, ×2 and ×4 speed so production, transport, Pete, chickens, growth and other simulation timers advance together. Preserve pause, deterministic fixed-step simulation and Save & Load; camera and interface input remain normally responsive. Rendering frame-rate preferences stay independent.
+
+All future Pete project inputs must obey the [exclusive material families](GAME_DESIGN.md); assign each new resource/item to exactly one path and keep each project's costs inside its own family. Sprint numbers and ordering for these later ideas remain open. Existing mobile-control and away-from-home testing proposals remain separately tracked in [planning PR #75](https://github.com/NuriHohn/mini-factorio/pull/75); mobile controls must supplement and preserve PC operation.
