@@ -115,3 +115,9 @@ Next proposed work: larger-project priorities and yard recovery, followed by chi
 ## Proposed — Playtesting away from the desktop
 
 User-requested follow-up: provide a hosted test version with a stable link that can be opened on a phone while away from the home WLAN, without requiring the development PC to stay on. Review touch controls and small-screen layout for practical mobile playtesting. Clarify save export/import or cross-device continuation before promising shared progress; current saves remain browser-local. Hosting and mobile controls are not implemented yet. The immediate WLAN preview is only a local playtest, not this hosted feature.
+
+### Proposed — Additive mobile-friendly controls
+
+Provide touch-friendly controls and a responsive small-screen layout for phone playtesting: accessible tool selection, placement/rotation/removal, inspection, camera movement and zoom without requiring a physical keyboard or mouse. Choose concrete gestures and controls during the design sprint and verify accidental-action handling on real phones.
+
+**Non-regression requirement:** mobile support supplements the existing PC interface; it must not replace, remove or degrade mouse/keyboard controls, hotkeys, drag-building, camera navigation, inspection, desktop layout or responsiveness. Touch controls should appear only where appropriate and must not crowd the desktop interface. Validate both desktop and phone interactions before accepting this work. This is roadmap planning only; no controls have changed.
