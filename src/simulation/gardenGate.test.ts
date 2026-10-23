@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createBareWorld } from './testFixtures'
+import { createBareWorld, ecoProjectWood } from './testFixtures'
 import { placeBuilding, placementError, removeBuilding, SIZE } from './world'
 import type { SupplyCrate, World } from './world'
 import { advanceWorld } from './step'
@@ -42,14 +42,15 @@ describe('Pete’s autonomous garden gate', () => {
   it('requires a completed yard and all three Wood, then constructs gradually without a duplicate debit', () => {
     const empty = createBareWorld(() => .5); advanceWorld(empty, 30000); expect(empty.gateProject).toBeNull()
     const w = world(); supplyWood(w, 824, 2); advanceWorld(w, 30000); expect(w.gateProject).toBeNull()
-    supplyWood(w, 824, 1); until(w, () => (w.gateProject?.elapsedMs ?? 0) >= 500)
+    supplyWood(w, 824, 3 - crate(w).wood); until(w, () => (w.gateProject?.elapsedMs ?? 0) >= 500)
     const p = w.gateProject!; expect(p.carried).toBe(3); expect(crate(w).wood).toBe(0); expect(gardenGate(w)).toBeNull()
     advanceWorld(w, 4000 - p.elapsedMs - 50); expect(gardenGate(w)).toBeNull()
     advanceWorld(w, 50); expect(p).toMatchObject({ phase: 'complete', built: 1, carried: 0, elapsedMs: 0 })
     expect(gardenGate(w)).toMatchObject({ kind: 'peteGate', openMs: 0, holdUntilMs: 0 })
     expect(placeBuilding(w, 1, 1, 'peteGate', 'east')).toBe(false)
+    const ecoWood = ecoProjectWood(w)
     supplyWood(w, 824, 3); advanceWorld(w, 60000)
-    expect(w.buildings.filter(b => b?.kind === 'peteGate')).toHaveLength(1); expect(crate(w).wood).toBe(3)
+    expect(w.buildings.filter(b => b?.kind === 'peteGate')).toHaveLength(1); expect(crate(w).wood + ecoProjectWood(w) - ecoWood).toBe(3)
   })
   it('opens from either side, waits before entering, stays open during passage and closes after clearing', () => {
     const w = gate(), g = gardenGate(w)!, entry = w.yard!.entrance, s = sides(w)
@@ -140,6 +141,7 @@ describe('Pete’s autonomous garden gate', () => {
   })
   it('migrates version-19 yard/flock state exactly and rejects malformed gate state or clocks', () => {
     const legacy = world(), old = snapshot(legacy); Object.assign(old, { version: 19 }); Reflect.deleteProperty(old.game, 'personality')
+    Reflect.deleteProperty(old.game, 'plantProject')
     const loaded = decodeSave(JSON.stringify(old)).world
     expect(loaded.gateProject).toBeNull(); expect(loaded.yard).toEqual(legacy.yard); expect(loaded.poultry).toEqual(legacy.poultry)
     const w = gate(), entry = w.yard!.entrance

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createBareWorld } from './testFixtures'
+import { createBareWorld, ecoProjectWood } from './testFixtures'
 import { placeBuilding, removeBuilding, SIZE } from './world'
 import type { SupplyCrate, World } from './world'
 import { advanceWorld } from './step'
@@ -45,7 +45,7 @@ describe('Pete’s enclosed yard', () => {
     advanceWorld(w, 50); expect(y.built).toBe(1); expect(y.carried).toBe(0); expect(y.phase).toBe('collecting')
     expect(enclosedYard(w)).toBeNull()
     expect([...poultryGround(w, w.poultry!.coop).keys()]).toEqual([...poultryGround({ ...w, yard: null }, w.poultry!.coop).keys()])
-    until(w, () => y.phase === 'complete'); expect(crate(w).wood).toBe(100 - y.tiles.length * 2)
+    until(w, () => y.phase === 'complete'); expect(crate(w).wood + ecoProjectWood(w)).toBe(100 - y.tiles.length * 2)
     expect(w.buildings.filter(b => b?.kind === 'peteFence')).toHaveLength(3 + y.tiles.length)
     expect(enclosedYard(w)).toBe(y)
   })
@@ -92,7 +92,7 @@ describe('Pete’s enclosed yard', () => {
     expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'belt', 'east')).toBe(true)
     advanceWorld(w, 5000); expect(y.carried).toBe(2); expect(crate(w).wood).toBe(stock); expect(() => load(w)).not.toThrow()
     removeBuilding(w, tile % SIZE, Math.floor(tile / SIZE)); until(w, () => y.phase === 'complete')
-    expect(crate(w).wood).toBe(100 - y.tiles.length * 2)
+    expect(crate(w).wood + ecoProjectWood(w)).toBe(100 - y.tiles.length * 2)
   })
   it('persists pickup/work/completion and deterministic chicken behavior across equivalent time partitions', () => {
     const w = world(); supplyWood(w, 824, 100)
@@ -104,11 +104,11 @@ describe('Pete’s enclosed yard', () => {
     const before = snapshot(w); advanceWorld(w, 0); expect(snapshot(w)).toEqual(before)
   })
   it('disables containment safely after demolition and never rebuilds a duplicate yard', () => {
-    const w = complete(), y = w.yard!, before = crate(w).wood, i = y.tiles[0]
+    const w = complete(), y = w.yard!, before = crate(w).wood + ecoProjectWood(w), i = y.tiles[0]
     removeBuilding(w, 20, 20); expect(enclosedYard(w)).toBe(y); expect(() => load(w)).not.toThrow()
     removeBuilding(w, i % SIZE, Math.floor(i / SIZE)); refreshPoultry(w)
     expect(enclosedYard(w)).toBeNull(); expect(() => load(w)).not.toThrow()
-    advanceWorld(w, 30000); expect(w.buildings[i]).toBeNull(); expect(crate(w).wood).toBe(before)
+    advanceWorld(w, 30000); expect(w.buildings[i]).toBeNull(); expect(crate(w).wood + ecoProjectWood(w)).toBe(before)
     expect(w.yard).toBe(y); expect(y.phase).toBe('complete')
   })
   it('loads a real version-18 world unchanged, then allows the new project', () => {

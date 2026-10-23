@@ -29,7 +29,7 @@ describe('version-5 research persistence', () => {
   it('restores fractional currency, exact unlocks and deterministic continuation alongside analytics and jobs', () => {
     const world = setup(), before = document(world)
     const loaded = decodeSave(JSON.stringify(before))
-    expect(SAVE_VERSION).toBe(22)
+    expect(SAVE_VERSION).toBe(23)
     expect(loaded.world.research).toEqual(world.research)
     expect(loaded.world.research.unlocked).toEqual(['basicIndustry', 'automation1'])
     expect(loaded.view).toEqual(view)
