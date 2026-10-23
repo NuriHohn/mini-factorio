@@ -35,7 +35,7 @@ export function drawRowboat(g: Phaser.GameObjects.Graphics, world: World, tile: 
   if (seated) {
     // A small upright seated pose keeps Pete identifiable in every boat heading.
     const outfit = peteOutfit(world.personality)
-    if (outfit > 1) {
+    if (outfit.level > 1) {
       g.save().translateCanvas(x, y - 5).scaleCanvas(.65, .65)
       drawPeteOutfit(g, outfit, 0, 0, 'back')
       g.restore()
@@ -44,7 +44,7 @@ export function drawRowboat(g: Phaser.GameObjects.Graphics, world: World, tile: 
     g.fillStyle(0x91dd60).fillCircle(x, y - 8, 6).fillTriangle(x - 4, y - 9, x - 10, y - 12, x - 6, y - 5).fillTriangle(x + 4, y - 9, x + 10, y - 12, x + 6, y - 5)
     g.fillStyle(0xffe4a0).fillCircle(x - 2, y - 9, 1.4).fillCircle(x + 2, y - 9, 1.4)
     g.lineStyle(2, 0x91dd60).lineBetween(x - 3, y - 1, x - 9, y + stroke * 2).lineBetween(x + 3, y - 1, x + 9, y - stroke * 2)
-    if (outfit > 1) {
+    if (outfit.level > 1) {
       g.save().translateCanvas(x, y - 5).scaleCanvas(.65, .65)
       drawPeteOutfit(g, outfit, 0, 0, 'front')
       g.restore()

@@ -6,6 +6,7 @@ Completed means implemented in the repository. Future entries are proposals, not
 
 | Milestone | Delivered |
 | --- | --- |
+| Sprint 16.12.1: Progressive Craftsman-Pete outfits | Existing dominant Craftsman level selects cumulative belt, apron/hammer, reinforced master apron/tools and legendary brass/masterwork details through Sprint 16.12's rendering passes; original level 1, preserved Eco outfits and unchanged progression/saves |
 | Sprint 16.12: Progressive Eco-Pete outfits | Existing dominant Eco level selects cumulative scarf, straw hat/vest, leafy cape/flowers and legendary leaf crown/glow; immediate-mode pose-aligned accessories, original level 1/other personalities, unchanged progression and saves |
 | Sprint 15.5: Waterwheel Generator | 10-Wood, 50-kW water-facing land generator through existing poles; anchored rotation, automatic dry-bank stop/restart, gentle fixed-step wheel animation, inspection and strict version-10 saves with version-1–9 compatibility |
 | Sprint 15.6: Pete’s Fishing Dock | 8-Wood water-facing Nature dock, reachable peaceful visits and 20-second recreational fishing, quiet rod/line/ripples, safe demolition/water/approach recovery, existing inspection/rotation and strict version-11 continuation with version-1–10 compatibility |
