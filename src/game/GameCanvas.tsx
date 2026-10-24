@@ -52,6 +52,6 @@ export function GameCanvas() {
     observer.observe(host.current)
     return () => { document.removeEventListener('visibilitychange', visibility); observer.disconnect(); game.destroy(true) }
   }, [])
-  return <><PerformanceOverlay /><div ref={host} className="game-canvas" aria-label={mode === 'petesWorld' ? 'Petes Welt: Kamera bewegen und zoomen, Wald oder Eisen platzieren, Pete und Maschinen anklicken.' : "Factory world: WASD to move, scroll to zoom, 1 miner, 2 belt, 3 storage, 4 furnace, 5 generator, 6 power pole, 7 assembler, 8 inserter, 9 radar trap, 0 splitter, P electricity overlay, R rotate, X remove, Escape inspect."} /></>
+  return <><PerformanceOverlay /><div ref={host} className="game-canvas" aria-label={mode === 'petesWorld' ? 'Petes Welt: Kamera bewegen und zoomen, Wald, Eisen oder Kupfer platzieren, Pete und Maschinen anklicken.' : "Factory world: WASD to move, scroll to zoom, 1 miner, 2 belt, 3 storage, 4 furnace, 5 generator, 6 power pole, 7 assembler, 8 inserter, 9 radar trap, 0 splitter, P electricity overlay, R rotate, X remove, Escape inspect."} /></>
 }
 

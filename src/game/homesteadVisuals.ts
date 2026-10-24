@@ -29,13 +29,13 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
   if (inventoryTotal(s.carried)) {
     const item = ITEMS.find(i => s.carried[i])!, visual = ITEM_DEFINITIONS[item].visual
     for (let n = 0; n < Math.min(3, s.carried[item]); n++) {
-      if (item === 'iron') g.fillStyle(visual.color).fillTriangle(x + 5, y + 6 - n * 4, x + 11, y - 2 - n * 4, x + 17, y + 6 - n * 4)
+      if ((item === 'iron' || item === 'copper')) g.fillStyle(visual.color).fillTriangle(x + 5, y + 6 - n * 4, x + 11, y - 2 - n * 4, x + 17, y + 6 - n * 4)
       else g.fillStyle(visual.color).fillRect(x + 5, y + 3 - n * 4, 12, item === 'woodenCrate' ? 7 : 4)
       if (item === 'wood') g.fillStyle(visual.highlight).fillCircle(x + 15, y + 5 - n * 4, 2)
     }
   }
   if (!s.elapsedMs) return
-  const phase = Math.sin(s.elapsedMs / 130), axe = s.task === 'gather' || s.task === 'mineIron'
+  const phase = Math.sin(s.elapsedMs / 130), axe = s.task === 'gather' || s.task === 'mineIron' || s.task === 'mineCopper'
   g.lineStyle(3, 0x91dd60).lineBetween(x + 5, y + 4, x + 11, y - 3 - phase * 3)
   g.lineStyle(2, 0xa87b4e).lineBetween(x + 10, y - 1, x + 15, y - 12 - phase * 3)
   g.fillStyle(0xc6d3cd).fillRect(x + 12, y - 14 - phase * 3, axe ? 8 : 6, axe ? 6 : 4)

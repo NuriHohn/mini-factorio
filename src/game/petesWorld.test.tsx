@@ -15,6 +15,7 @@ it('shows only resource placement and contextual help in Petes Welt', () => {
   const html = renderToStaticMarkup(<BuildToolbar />)
   expect(html).toContain('Waldgruppe')
   expect(html).toContain('Eisenvorkommen')
+  expect(html).toContain('Kupfervorkommen')
   expect(html).not.toContain('data-tool="miner"')
   expect(html).not.toContain('data-tool="assembler"')
   expect(html).not.toContain('id="tab-factory"')
@@ -32,4 +33,5 @@ it('retains normal Factory construction and keeps its grove tool hidden', () => 
   useGameStore.setState({ buildTab: 'nature' })
   expect(renderToStaticMarkup(<BuildToolbar />)).not.toContain('data-tool="placeGrove"')
   expect(renderToStaticMarkup(<BuildToolbar />)).not.toContain('data-tool="placeIron"')
+  expect(renderToStaticMarkup(<BuildToolbar />)).not.toContain('data-tool="placeCopper"')
 })
