@@ -33,27 +33,43 @@ function begin(world: World, task: DevelopmentTask, target: number, plant: numbe
   s.task = task; s.target = target; s.plant = plant
   return { activity: 'developmentward' as const, destination: target }
 }
-export function developmentDecision(world: World) {
+export function developmentDecision(world: World, overdueOnly = false) {
   if (world.peace.home === null || (!world.developmentLife && !DEVELOPMENT_KINDS.some(k => developmentBuilding(world, k)))) return null
   const s = world.developmentLife ??= createDevelopmentLife(), home = approach(world, world.peace.home)
-  if (s.carriedFruit) return home !== null && s.fruit + s.carriedFruit <= 12 ? begin(world, 'storeFruit', home) : null
+  if (s.carriedFruit) {
+    if (home !== null && s.fruit + s.carriedFruit <= 12) return begin(world, 'storeFruit', home)
+    // A full pantry must not prevent cooking the portion that would free its space.
+    const fire = world.campfireProject
+    const spot = s.fruit && ready(world, 'cookFruit') && fire?.phase === 'complete' && world.buildings[fire.tiles[0]]?.kind === 'peteCampfire' ? approach(world, fire.tiles[0]) : null
+    return spot === null ? null : begin(world, 'cookFruit', spot)
+  }
   if (s.carriedSapling) { const p = planPlanting(world); return p ? begin(world, 'plantSapling', p.spots[0], p.tiles[0]) : null }
   if (s.carriedWood) { const spot = atBuilding(world, 'nursery'); return spot === null ? null : begin(world, 'nursing', spot) }
   const options: { task: DevelopmentTask; tile: number; plant?: number }[] = []
   const add = (task: DevelopmentTask, kind: DevelopmentKind, allowed = true) => { const tile = allowed && ready(world, task) ? atBuilding(world, kind) : null; if (tile !== null) options.push({ task, tile }) }
   const orchard = developmentBuilding(world, 'orchard'), mechanic = developmentBuilding(world, 'mechanic')
-  add('tendOrchard', 'orchard', !!orchard && orchard.fruit < 6)
-  add('pickFruit', 'orchard', !!orchard && orchard.fruit >= 2 && s.fruit <= 10)
+  add('tendOrchard', 'orchard', !!orchard && orchard.fruit < 4 && s.fruit <= 10 && home !== null)
+  add('pickFruit', 'orchard', !!orchard && orchard.fruit >= 2 && s.fruit <= 10 && home !== null)
   if (s.fruit && ready(world, 'cookFruit')) { const fire = world.campfireProject; const tile = fire?.phase === 'complete' && world.buildings[fire.tiles[0]]?.kind === 'peteCampfire' ? approach(world, fire.tiles[0]) : null; if (tile !== null) options.push({ task: 'cookFruit', tile }) }
   add('mechanics', 'mechanic', !!mechanic && mechanic.gears >= 2 && mechanic.modules < 4)
   add('winching', 'winch'); add('cycle', 'bicycle'); add('annexRest', 'house')
-  if (developmentBuilding(world, 'nursery') && s.saplings < 3 && ready(world, 'collectNurseryWood')) {
-    for (let i = 0; i < world.buildings.length; i++) { const b = world.buildings[i]; if (b?.kind === 'supplyCrate' && b.wood >= 2) { const tile = approach(world, i); if (tile !== null) { options.push({ task: 'collectNurseryWood', tile }); break } } }
+  if (developmentBuilding(world, 'nursery') && s.saplings === 0 && planPlanting(world) && ready(world, 'collectNurseryWood')) {
+    const parents = peteReachableTiles(world, world.pete.tile)
+    const sources = world.buildings.flatMap((b, i) => {
+      const tile = b?.kind === 'supplyCrate' && b.wood >= 2 ? approach(world, i) : null
+      return tile === null ? [] : [{ tile, steps: tilePath(parents, tile)!.length }]
+    }).sort((a, b) => a.steps - b.steps || a.tile - b.tile)
+    if (sources[0]) options.push({ task: 'collectNurseryWood', tile: sources[0].tile })
   }
-  add('takeSapling', 'nursery', s.saplings > 0 && ready(world, 'plantSapling'))
+  add('takeSapling', 'nursery', s.saplings > 0 && ready(world, 'plantSapling') && !!planPlanting(world))
   if (!options.length) return null
+  const eligible = overdueOnly ? options.filter(o => world.timeMs - s.nextAt[o.task] >= 120000) : options
+  if (!eligible.length) return null
+  // Persisted completion deadlines provide a fair queue without another saved clock.
+  const oldest = Math.min(...eligible.map(o => s.nextAt[o.task]))
+  const waiting = eligible.filter(o => s.nextAt[o.task] === oldest)
   s.seed = (Math.imul(1664525, s.seed) + 1013904223) >>> 0
-  const choice = options[Math.floor(s.seed / 4294967296 * options.length)]
+  const choice = waiting[Math.floor(s.seed / 4294967296 * waiting.length)]
   return begin(world, choice.task, choice.tile, choice.plant ?? null)
 }
 export function beginDevelopmentWork(world: World) {

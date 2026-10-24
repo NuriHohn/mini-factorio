@@ -1,5 +1,5 @@
 import { developmentKind } from '../simulation/peteDevelopments'
-import { drawDevelopment } from './developmentVisuals'
+import { drawAnnexWalkway, drawDevelopment } from './developmentVisuals'
 import { drawInventorStructure } from './leisureVisuals'
 import { drawGearPress } from './gearPressVisuals'
 import { drawExperimentTable } from './experimentVisuals'
@@ -42,6 +42,7 @@ export function drawSecretProject(g: Phaser.GameObjects.Graphics, world: World, 
   const index = project.tiles[project.built], x = index % SIZE, y = Math.floor(index / SIZE)
   if (project.kind !== 'veranda' && project.kind !== 'care' && project.kind !== 'feed' && project.kind !== 'fell' && project.elapsedMs && !world.buildings[index] && !world.water[index] && visiblePoint(view, (x + .5) * tile, (y + .5) * tile, tile)) {
     const progress = project.elapsedMs / projectBuildMs(project)
+    if (project.kind === 'house') drawAnnexWalkway(g, world, tile, progress)
     if (developmentKind(project.kind)) drawDevelopment(g, project.kind, x, y, tile, world.timeMs, progress)
     else if (project.kind === 'treasure' || project.kind === 'flightpad') drawInventorStructure(g, project.kind, x, y, tile, progress)
     else if (project.kind === 'press') drawGearPress(g, { kind: 'petePress', plates: 0, gears: 0, x, y }, tile, progress)

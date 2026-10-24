@@ -225,6 +225,11 @@ function tryConstruction(world: World): boolean {
 function nextActivity(world: World): void {
   if (world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling) { const visit = developmentDecision(world); if (visit) { activity(world, visit.activity, 0, visit.destination); return } }
   if (world.leisure?.carried) { const visit = leisureDecision(world); if (visit) { activity(world, visit.activity, 0, visit.destination); return } }
+  const committed = currentProject(world)
+  if (world.developmentLife && committed?.phase !== 'building' && !committed?.carried) {
+    const overdue = developmentDecision(world, true)
+    if (overdue) { activity(world, overdue.activity, 0, overdue.destination); return }
+  }
   if (tryConstruction(world)) return
   const development = (world.orchardProject || world.bicycleProject || world.mechanicProject || world.nurseryProject || world.winchProject || world.houseProject) && random(world) < .4 ? developmentDecision(world) : null
   if (development) { activity(world, development.activity, 0, development.destination); return }
