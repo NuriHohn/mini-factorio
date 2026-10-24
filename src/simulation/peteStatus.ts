@@ -1,3 +1,4 @@
+import { miniStatus } from './petesWorld'
 import { developmentStatus, TASK_LABELS } from './developmentStatus'
 import { DEVELOPMENT_NAMES } from './peteDevelopments'
 import { woodDestination } from './forestry'
@@ -17,6 +18,8 @@ const ACTIVITY_NAMES: Record<World['peace']['activity'], string> = { development
 export interface ProjectStatus { id: string; name: string; reason: string; ready: boolean }
 export interface PeteStatus extends ReturnType<typeof developmentStatus> { intent: string; yard: string; activity: string; current: string | null; wish: ProjectStatus | null; projects: ProjectStatus[]; personality: Personality }
 export function peteStatus(world: World): PeteStatus {
+  const mini = miniStatus(world)
+  if (mini) return { ...developmentStatus(world), intent: mini, yard: '', activity: world.miniFactory?.elapsedMs ? 'Ich baue meine Öko-Fabrik' : 'Ich kümmere mich um meine Öko-Fabrik', current: 'Öko-Mini-Fabrik', wish: null, projects: [], personality: structuredClone(world.personality) }
   const active = currentProject(world), candidates = projectCandidates(world)
   const parents = peteReachableTiles(world, world.pete.tile)
   const crates = world.buildings.flatMap((b, tile) => b?.kind === 'supplyCrate' ? [{ crate: b, reachable: neighboringTiles(tile).some(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !world.buildings.some(p => p?.kind === 'prison' && p.exit === i)) }] : [])

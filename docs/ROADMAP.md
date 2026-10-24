@@ -199,4 +199,17 @@ Mechanics and limits are owned by [Game design](GAME_DESIGN.md#learning-and-orie
 
 ## Future proposal — Two play directions
 
-The user’s later-version idea separates **Petes Welt** (working label “FSK0”: minimal factory systems, simple resource placement, watching Pete autonomously grow a miniature factory and learning by observation) from **Factory** (working label “FSK12”: no Pete, richer production/logistics/energy planning). Shared resource pictures and process explanations can bridge learning between the two. These are proposed directions only: no mode split, autonomous factory builder, separate distribution or complexity conversion is implemented by Sprints 16.43–16.47. Scope, age-oriented content and progression still need design before implementation.
+The user’s later-version idea separates **Petes Welt** (working label “FSK0”: minimal factory systems, simple resource placement, watching Pete autonomously grow a miniature factory and learning by observation) from **Factory** (working label “FSK12”: no Pete, richer production/logistics/energy planning). Shared resource pictures and process explanations can bridge learning between the two. At Sprint 16.47 these were proposed directions only. Sprints 16.48–16.52 below implement the first separate Eco prototype; the full four-path split, Pete-free Factory edition and complexity conversion remain proposals. Scope, age-oriented content and progression still need design before implementation.
+
+
+## Sprints 16.48–16.52 — Shared Eco chain and first Petes Welt prototype
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.48 | Powered directional Forststation, mature-only bounded harvesting and physical Wood output through existing logistics |
+| 16.49 | Shared powered Sägewerk, wood panels and the existing Assembler’s wooden-crate recipe |
+| 16.50 | Paid replacement saplings on harvested plots, existing nearby nursery seedling integration, ordinary growth and obstruction/backpressure handling |
+| 16.51 | Separate Petes Welt game/save slots, atomic nearby grove placement, resource-only tools and touch confirmation |
+| 16.52 | One bounded autonomous eleven-step Eco factory, physical Pete walks/build work, real shared production, status/inspection and exact saved continuation |
+
+Authoritative scope and limits: [shared Eco production and Petes Welt](GAME_DESIGN.md#shared-eco-production-and-petes-welt). This is the first playable Eco prototype. More autonomous paths, expanding/rebuilding factories, wooden-product projects and long-term child interaction remain future work. The original Factory game keeps its existing Pete behaviour; a Pete-free complex edition is not part of this increment. Sprint 16.38 stays deferred; physical iPhone/iPad Safari acceptance remains open.

@@ -6,6 +6,8 @@ export type Tool = ToolKind | null
 export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code?: string; tab: BuildTab }
 export const BUILD_TABS: readonly { id: BuildTab; label: string; icon: string }[] = [{ id: 'factory', label: 'Factory', icon: '⚙' }, { id: 'logistics', label: 'Logistics', icon: '➜' }, { id: 'power', label: 'Power', icon: 'ϟ' }, { id: 'nature', label: 'Nature', icon: '♣' }, { id: 'pete', label: 'Special', icon: '✳' }]
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
+  { tool: 'forester', label: 'Forststation', hint: 'Mature trees within 3 tiles → Wood · 30 kW · replants harvested plots', key: 'Click', icon: '♠', tab: 'factory' },
+  { tool: 'sawmill', label: 'Sägewerk', hint: '1 Wood → 2 wood panels · 40 kW', key: 'Click', icon: '▥', tab: 'factory' },
   { tool: 'playfulSpray', label: 'Playful spray', hint: 'Click any target within 3 tiles of a ready powered sprinkler · harmless', key: 'Click', icon: '💦', tab: 'pete' },
   { tool: 'miner', label: 'Mining machine', hint: '1 ore / sec at full power · on ore', key: '1', icon: '⚙', code: 'Digit1', tab: 'factory' },
   { tool: 'belt', label: 'Conveyor belt', hint: 'Single lane · follows arrow', key: '2', icon: '➜', code: 'Digit2', tab: 'logistics' },
@@ -27,6 +29,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'fishingDock', label: 'Fishing Dock', hint: '8 Wood · face adjacent water · peaceful Pete visits', key: 'Click', icon: '⚓', tab: 'nature' },
   { tool: 'supplyCrate', label: 'Pete’s Supply Crate', hint: '6 Wood · holds 200 items · belt/inserter input · peaceful Pete visits', key: 'Click', icon: '▤', tab: 'nature' },
   { tool: 'treehouse', label: 'Pete’s Treehouse', hint: '20 Wood · one home · makes Pete peaceful · no power', key: 'Click', icon: '⌂', tab: 'nature' },
+  { tool: 'placeGrove', label: 'Waldgruppe', hint: '3×3 Bäume · 4–10 Felder vom Baumhaus · Pete baut selbst', key: 'Click', icon: '♣', tab: 'nature' },
   { tool: 'plantOak', label: 'Plant Oak', hint: 'Free sapling · young at 2 min · mature at 5 min', key: 'Click', icon: '♣', tab: 'nature' },
   { tool: 'plantPine', label: 'Plant Pine', hint: 'Free sapling · trees occupy one tile', key: 'Click', icon: '♠', tab: 'nature' },
   { tool: 'plantBirch', label: 'Plant Birch', hint: 'Free sapling · may grow on ore', key: 'Click', icon: '♧', tab: 'nature' },

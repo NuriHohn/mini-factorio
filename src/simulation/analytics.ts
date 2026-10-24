@@ -32,7 +32,7 @@ export function createAnalytics(timeMs = 0): AnalyticsState {
 }
 export function productionTask(world: World, building: Building | null): string | null {
   if (building?.kind === 'miner') return depositAt(world, building.x, building.y)
-  if (building?.kind === 'furnace' || building?.kind === 'assembler') return building.recipeLocked ? building.recipeId : null
+  if (building?.kind === 'sawmill' || building?.kind === 'furnace' || building?.kind === 'assembler') return building.recipeLocked ? building.recipeId : null
   return null
 }
 // Called only at actual creation/commit boundaries. Relocation and deletion never call this.
@@ -84,7 +84,7 @@ export function observeMachines(world: World, delta: number): void {
     else if (building.kind === 'miner') {
       if (building.item) cause = 'Output Blocked'
       else productive = (consumer?.speedFraction ?? 0) > 0
-    } else if (building.kind === 'assembler' || building.kind === 'furnace') {
+    } else if (building.kind === 'sawmill' || building.kind === 'assembler' || building.kind === 'furnace') {
       if (craftingStatus(building) === 'output-full') cause = 'Output Blocked'
       else if (!building.job && !hasRecipeInputs(building.input, RECIPES[building.recipeId!])) cause = 'Missing Input'
       else productive = building.job !== null && (consumer?.speedFraction ?? 0) > 0

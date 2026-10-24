@@ -41,7 +41,7 @@ export function processGuides(world: World, index: number | null = null): Proces
 export interface MachineGuide { reason: string; action: string; tiles: number[] }
 export function machineGuide(world: World, index: number): MachineGuide | null {
   const b = world.buildings[index], i = inspectBuilding(world, index)
-  if (!b || !i || !['miner', 'furnace', 'assembler', 'belt', 'inserter'].includes(b.kind)) return null
+  if (!b || !i || !['forester', 'sawmill', 'miner', 'furnace', 'assembler', 'belt', 'inserter'].includes(b.kind)) return null
   const tile = (dx: number, dy: number) => inside(b.x + dx, b.y + dy) ? [(b.y + dy) * SIZE + b.x + dx] : []
   if ('electrical' in i && i.electrical.state === 'sabotaged') return { reason: 'Pete has temporarily stopped this machine.', action: 'It recovers automatically; materials and progress are preserved.', tiles: [index] }
   if ('electrical' in i && ['disconnected', 'no-generation'].includes(i.electrical.state)) {
@@ -49,12 +49,13 @@ export function machineGuide(world: World, index: number): MachineGuide | null {
     return { reason: i.electrical.state === 'disconnected' ? 'No pole connection.' : 'The connected network has no electricity.', action: 'Keep a pole within 3 tiles and a generator connected to its network. Power coverage shows the ranges.', tiles: [index, ...poles.slice(0, 1).map(p => p.n)] }
   }
   if (i.kind === 'inserter') return { reason: i.status === 'output-blocked' ? 'The drop point cannot accept this item.' : i.status === 'waiting-input' ? 'No compatible item is ready behind this inserter.' : 'The inserter is carrying items.', action: 'Pickup is behind the arrow; delivery is ahead. Check item type, ports and free space.', tiles: [index, ...([i.pickup, i.drop].flatMap(p => inside(p.x, p.y) ? [p.y * SIZE + p.x] : []))] }
-  if (b.kind === 'miner' || b.kind === 'furnace' || b.kind === 'assembler' || b.kind === 'belt') {
+  if (b.kind === 'forester' || b.kind === 'sawmill' || b.kind === 'miner' || b.kind === 'furnace' || b.kind === 'assembler' || b.kind === 'belt') {
     const out = offsets[b.direction], front = tile(out.x, out.y)
     const input = DIRECTIONS.filter(d => d !== b.direction).flatMap(d => tile(offsets[d].x, offsets[d].y))
     if (i.kind === 'belt') return { reason: i.item && i.progress >= 1 ? 'This belt is waiting for space ahead.' : i.item ? 'This item is travelling along the belt.' : 'No item has arrived yet.', action: 'Follow the arrow to the next belt, compatible machine port or chest.', tiles: [index, ...front] }
+    if (i.kind === 'forester') return { reason: i.details, action: 'Keep tree plots clear. The station uses electricity and reserves one Wood to replant each harvested plot.', tiles: [index, ...front] }
     if (i.kind === 'miner') return { reason: !i.resource ? 'There is no ore beneath this miner.' : i.buffered ? 'The miner output is occupied.' : 'The miner extracts ore while powered.', action: !i.resource ? 'Place a miner on an ore patch.' : 'Connect a belt in front, or an inserter facing away from the output.', tiles: [index, ...front] }
-    if (i.kind !== 'furnace' && i.kind !== 'assembler') return null
+    if (i.kind !== 'sawmill' && i.kind !== 'furnace' && i.kind !== 'assembler') return null
     if (!i.recipeId) return { reason: i.kind === 'assembler' ? 'Choose a recipe first.' : 'The furnace is waiting to detect an ore.', action: i.kind === 'assembler' ? 'Open Details and settings and choose a recipe.' : 'Supply iron or copper ore through the rear or sides.', tiles: [index, ...input] }
     if (i.status === 'output-full') return { reason: 'The output cannot make room for more products.', action: 'Clear the output or add a compatible belt/inserter ahead of the arrow.', tiles: [index, ...front] }
     if (i.status !== 'processing') {

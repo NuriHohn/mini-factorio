@@ -1,3 +1,4 @@
+import { advanceMiniFactory } from './petesWorld'
 import { beginDevelopmentWork, developmentDecision, finishDevelopment, refreshDevelopment } from './peteDevelopments'
 import { beginLeisureWork, finishLeisure, leisureDecision, leisureSpot, refreshLeisure } from './peteLeisure'
 import { coverSpot, COVER_MS } from './coopCover'
@@ -258,6 +259,7 @@ function nextActivity(world: World): void {
   }
 }
 export function advancePeace(world: World, delta: number): void {
+  if (world.miniFactory) { advanceMiniFactory(world, delta); return }
   const s = world.peace, p = world.pete
   if (s.shutdown && world.timeMs - s.shutdown.atMs >= 6000) s.shutdown = null
   if (s.reactionAtMs !== null && world.timeMs - s.reactionAtMs >= 4000) s.reactionAtMs = null

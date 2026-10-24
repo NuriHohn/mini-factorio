@@ -1,3 +1,4 @@
+import { useGameStore } from '../state/gameStore'
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import { FramePacer } from './framePacing'
@@ -5,6 +6,7 @@ import { useGraphicsSettings } from '../state/graphicsSettings'
 import { PerformanceOverlay } from './GraphicsOptions'
 import { FactoryScene } from './FactoryScene'
 export function GameCanvas() {
+  const mode = useGameStore(state => state.playMode)
   const host = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!host.current) return
@@ -50,6 +52,6 @@ export function GameCanvas() {
     observer.observe(host.current)
     return () => { document.removeEventListener('visibilitychange', visibility); observer.disconnect(); game.destroy(true) }
   }, [])
-  return <><PerformanceOverlay /><div ref={host} className="game-canvas" aria-label="Factory world: WASD to move, scroll to zoom, 1 miner, 2 belt, 3 storage, 4 furnace, 5 generator, 6 power pole, 7 assembler, 8 inserter, 9 radar trap, 0 splitter, P electricity overlay, R rotate, X remove, Escape inspect." /></>
+  return <><PerformanceOverlay /><div ref={host} className="game-canvas" aria-label={mode === 'petesWorld' ? 'Petes Welt: Kamera bewegen und zoomen, Waldgruppen platzieren, Pete und Maschinen anklicken.' : "Factory world: WASD to move, scroll to zoom, 1 miner, 2 belt, 3 storage, 4 furnace, 5 generator, 6 power pole, 7 assembler, 8 inserter, 9 radar trap, 0 splitter, P electricity overlay, R rotate, X remove, Escape inspect."} /></>
 }
 

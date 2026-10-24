@@ -41,7 +41,7 @@ describe('Pete supply delivery', () => {
     const w = world(), d = offsets[direction]
     placeBuilding(w, 20, 20, 'supplyCrate', 'east'); placeBuilding(w, 20 - d.x, 20 - d.y, 'belt', direction)
     const b = w.buildings[(20 - d.y) * SIZE + 20 - d.x] as Belt
-    for (const item of ITEMS) { b.item = item; b.progress = 0; advanceTransport(w, 500); expect(b.item).toBeNull(); expect(crate(w).inventory[item]).toBe(1) }
+    for (const item of ITEMS) { b.item = item; b.progress = 0; advanceTransport(w, 500); expect(b.item).toBeNull(); expect(item === 'wood' ? crate(w).wood : crate(w).inventory[item]).toBe(1) }
     expect(worldStats(w).stored).toEqual(crate(w).inventory)
   })
   it('reserves the last slot across competing mixed-item belts without loss', () => {
@@ -133,7 +133,7 @@ describe('peaceful supply visits and persistence', () => {
     advanceWorld(w, 8765)
     for (const ms of [17, 2000, 103, 2645, 4000]) advanceWorld(loaded, ms)
     expect(JSON.parse(encode(loaded))).toEqual(JSON.parse(encode(w)))
-    expect(SAVE_VERSION).toBe(38)
+    expect(SAVE_VERSION).toBe(39)
   })
   it('accepts genuine prior-version saves and rejects malformed inventory or hidden new state', () => {
     const legacy = JSON.parse(encode(world())); legacy.version = 13; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs

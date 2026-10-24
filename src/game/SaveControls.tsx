@@ -3,13 +3,15 @@ import { useGameStore } from '../state/gameStore'
 import { MAX_SAVE_BYTES } from '../persistence/saveGame'
 import { errorMessage } from '../persistence/storage'
 export function SaveControls() {
-  const { saveStatus, saveBusy, requestSave, saveFeedback } = useGameStore()
+  const { playMode, saveStatus, saveBusy, requestSave, saveFeedback } = useGameStore()
   const fileInput = useRef<HTMLInputElement>(null)
   const [reading, setReading] = useState(false)
   const disabled = reading || saveBusy
   const time = (value: string | null) => value ? new Date(value).toLocaleString() : 'Never'
   return <section aria-label="Save and load">
-    <p className="eyebrow">SAVE & LOAD · OFFLINE</p>
+    <p className="eyebrow">{playMode === 'petesWorld' ? 'PETES WELT' : 'FACTORY'} · SAVE & LOAD</p>
+    <p>Petes Welt und Factory haben getrennte Speicherplätze.</p>
+    <div className="save-grid"><button className="save-action" disabled={disabled} onClick={() => requestSave({ kind: 'new', mode: 'petesWorld' })}>Neue Petes Welt</button><button className="save-action" disabled={disabled} onClick={() => requestSave({ kind: 'new', mode: 'factory' })}>Neue Factory</button><button className="save-action" disabled={disabled} onClick={() => requestSave({ kind: 'load', mode: playMode === 'factory' ? 'petesWorld' : 'factory' })}>Andere Spielweise laden</button></div>
     <div className="save-grid">
       <button className="save-action" disabled={disabled} onClick={() => requestSave({ kind: 'save' })}>Save Game</button>
       <button className="save-action" disabled={disabled} onClick={() => requestSave({ kind: 'load' })}>Load Game</button>

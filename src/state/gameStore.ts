@@ -1,3 +1,4 @@
+import { miniStatus } from '../simulation/petesWorld'
 import { peteStatus } from '../simulation/peteStatus'
 import { learningGoals, machineGuide, processGuides } from '../simulation/learning'
 import type { LearningGoal, MachineGuide, ProcessGuide } from '../simulation/learning'
@@ -35,6 +36,8 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  playMode: 'factory' | 'petesWorld'
+  miniHint: string | null
   petePathVisible: boolean
   connectionVisible: boolean
   goals: LearningGoal[]
@@ -110,6 +113,7 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  playMode: 'factory', miniHint: null,
   petePathVisible: true, connectionVisible: false,
   goals: [], pinnedGoal: null, machineHelp: null, processes: [], supplies: [], supplyRequest: null,
   applySupply: world => {
@@ -167,13 +171,14 @@ export const useGameStore = create<State>((set, get) => ({
     set({ releaseRequest: null, message: released ? 'Pete released · eligible for arrest immediately.' : 'Pete is no longer held by this prison.' })
   },
   recipeRequest: null,
-  requestRecipe: recipeMode => set(state => state.inspected !== null && (state.inspection?.kind === 'furnace' || state.inspection?.kind === 'assembler') ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
+  requestRecipe: recipeMode => set(state => state.playMode === 'factory' && state.inspected !== null && (state.inspection?.kind === 'furnace' || state.inspection?.kind === 'assembler') ? { recipeRequest: { index: state.inspected, recipeMode } } : state),
   stats: { mined: emptyInventory(), produced: emptyInventory(), stored: emptyInventory(), maxMiningPerSec: 0, maxSmeltingPerSec: 0, miners: 0, furnaces: 0, assemblers: 0, inserters: 0, maxCraftingPerSec: 0 },
   electricity: { installedKw: 0, connectedKw: 0, requestedKw: 0, suppliedKw: 0, surplusKw: 0, deficitKw: 0, networks: 0 },
   powerOverlay: false, togglePowerOverlay: () => set(state => ({ powerOverlay: !state.powerOverlay })),
   tool: 'miner', direction: 'east', inspected: null, inspection: null,
   message: 'Power first: place a generator (5) and pole (6) within 3 tiles of your machines. P shows electricity.',
   select: requested => set(state => {
+    if (requested && ((state.playMode === 'petesWorld' && requested !== 'placeGrove') || (state.playMode === 'factory' && requested === 'placeGrove'))) return { message: 'In Petes Welt platzierst du nur Waldgruppen. Pete baut selbst.' }
     const technologyError = requested && buildingTechnologyError(state.research, requested)
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested
@@ -217,12 +222,14 @@ export const useGameStore = create<State>((set, get) => ({
     const electricity = powerOverview(world)
     const inspection = inspectBuilding(world, state.inspected)
     const inspected = inspection ? state.inspected : null
+    const playMode = world.miniFactory ? 'petesWorld' : 'factory'
+    const miniHint = miniStatus(world)
     const goals = learningGoals(world)
     const machineHelp = inspected === null ? null : machineGuide(world, inspected)
     const processes = state.peteInspection || inspected !== null ? processGuides(world, state.peteInspection ? null : inspected) : []
     const supplies = inspected === null ? [] : supplyOffers(world, inspected)
     // Publish value snapshots only when summaries change, never live world objects.
-    if (JSON.stringify([goals, machineHelp, processes, supplies]) === JSON.stringify([state.goals, state.machineHelp, state.processes, state.supplies]) && JSON.stringify(peteInspection) === JSON.stringify(state.peteInspection) && peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { goals, machineHelp, processes, supplies, peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
+    if (playMode === state.playMode && miniHint === state.miniHint && JSON.stringify([goals, machineHelp, processes, supplies]) === JSON.stringify([state.goals, state.machineHelp, state.processes, state.supplies]) && JSON.stringify(peteInspection) === JSON.stringify(state.peteInspection) && peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
+    return { playMode, miniHint, goals, machineHelp, processes, supplies, peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
   }),
 }))

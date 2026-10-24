@@ -5,6 +5,9 @@ interface ItemDefinition {
   readonly visual: { readonly shape: 'ore' | 'plate' | 'gear' | 'cable' | 'circuit' | 'component'; readonly color: number; readonly highlight: number; readonly accent: number; readonly shade: number }
 }
 export const ITEM_DEFINITIONS = {
+  wood: { id: 'wood', label: 'Wood', category: 'component', visual: { shape: 'component', color: 0x9a673b, highlight: 0xd4aa72, accent: 0x78502f, shade: 0x4c3220 } },
+  woodPanel: { id: 'woodPanel', label: 'Wood panel', category: 'plate', visual: { shape: 'plate', color: 0xc39858, highlight: 0xf1cd8b, accent: 0x956d3d, shade: 0x71502f } },
+  woodenCrate: { id: 'woodenCrate', label: 'Wooden crate', category: 'component', visual: { shape: 'component', color: 0xb5874e, highlight: 0xe2ba7a, accent: 0x77522d, shade: 0x49321e } },
   iron: { id: 'iron', label: 'Iron ore', category: 'ore', visual: { shape: 'ore', color: 0x526769, highlight: 0xb4cbd0, accent: 0x8da9b1, shade: 0x69848e } },
   ironPlate: { id: 'ironPlate', label: 'Iron plate', category: 'plate', visual: { shape: 'plate', color: 0xcbd8e2, highlight: 0xe2e8ec, accent: 0xe2e8ec, shade: 0x7a99ac } },
   copper: { id: 'copper', label: 'Copper ore', category: 'ore', visual: { shape: 'ore', color: 0x99532f, highlight: 0xf0ad70, accent: 0xde9259, shade: 0xc27b46 } },

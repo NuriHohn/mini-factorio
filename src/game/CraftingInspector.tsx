@@ -1,3 +1,4 @@
+import { useGameStore } from '../state/gameStore'
 import type { Inspection } from '../simulation/inspection'
 import { inventoryTotal } from '../simulation/items'
 import { RECIPES } from '../simulation/recipes'
@@ -7,18 +8,19 @@ import { InventoryView, RecipeAmounts } from './InventoryView'
 const detectionStatuses = { undetected: 'Waiting for automatic detection', choosing: 'Choosing initial recipe', 'automatic-locked': 'Locked automatically', 'manual-locked': 'Locked manually' }
 const statuses = { processing: 'Processing', 'waiting-input': 'Waiting for ingredients', 'output-full': 'Output full', 'waiting-recipe': 'Waiting for more ingredients' }
 export function CraftingInspector({ inspection, requestRecipe }: {
-  inspection: Extract<Inspection, { kind: 'furnace' | 'assembler' }>
+  inspection: Extract<Inspection, { kind: 'furnace' | 'assembler' | 'sawmill' }>
   requestRecipe: (mode: FurnaceRecipeMode) => void
 }) {
+  const mode = useGameStore(state => state.playMode)
   const furnace = inspection.kind === 'furnace'
   const selectorId = `${inspection.kind}-recipe`
   return <>
-    <h2>{furnace ? 'Furnace' : 'Assembler'}</h2>
+    <h2>{furnace ? 'Furnace' : inspection.kind === 'sawmill' ? 'Sägewerk' : 'Assembler'}</h2>
     <div className="stats"><span>{inspection.recipeLocked ? 'Locked recipe' : 'Candidate recipe'}</span><b>{inspection.recipe}</b></div>
     <div className="stats"><span>Detection status</span><b>{!furnace && !inspection.recipeId ? 'Select a recipe manually' : detectionStatuses[inspection.detectionStatus]}</b></div>
     {!furnace && <div className="stats"><span>Recipe mode</span><b>Manual</b></div>}
-    <label className="recipe-label" htmlFor={selectorId}>{furnace ? 'Recipe mode' : 'Assembler recipe'}</label>
-    <select id={selectorId} value={furnace ? inspection.recipeMode : inspection.recipeId ?? ''} disabled={inspection.recipeChangeError !== null} aria-describedby="recipe-help" onChange={event => {
+    <label className="recipe-label" htmlFor={selectorId}>{furnace ? 'Recipe mode' : inspection.kind === 'sawmill' ? 'Fixed sawmill recipe' : 'Assembler recipe'}</label>
+    <select id={selectorId} value={furnace ? inspection.recipeMode : inspection.recipeId ?? ''} disabled={mode === 'petesWorld' || inspection.kind === 'sawmill' || inspection.recipeChangeError !== null} aria-describedby="recipe-help" onChange={event => {
       if (event.currentTarget.value === 'auto') { requestRecipe('auto'); return }
       const recipe = Object.values(RECIPES).find(recipe => recipe.machine === inspection.kind && recipe.id === event.currentTarget.value)
       if (recipe) requestRecipe(recipe.id)

@@ -73,15 +73,16 @@ export function polePlacementPreview(world: World, position: Position): PolePlac
   return { state: connections.length ? 'connected' : 'disconnected', error: null, connections }
 }
 export function powerRequirement(building: Building): number {
-  return building.kind === 'sprinkler' ? SPRINKLER_KW : building.kind === 'radar' ? RADAR_KW : building.kind === 'inserter' ? INSERTER_KW : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
+  return building.kind === 'sprinkler' ? SPRINKLER_KW : building.kind === 'radar' ? RADAR_KW : building.kind === 'inserter' ? INSERTER_KW : building.kind === 'forester' ? 30 : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' || building.kind === 'sawmill' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
 }
 export function workingDemand(building: Building, world?: World, frame?: InserterFrame): number {
   if (world && sabotageRemaining(world, building) > 0) return 0
   if (building.kind === 'sprinkler') return SPRINKLER_KW
   if (building.kind === 'radar') return RADAR_KW
   if (building.kind === 'inserter') return world ? inserterDemand(world, building, frame) : 0
+  if (building.kind === 'forester') return building.output.wood <= 3 || (building.replant && building.plots.length > 0) ? 30 : 0
   if (building.kind === 'miner') return building.item ? 0 : MINER_KW
-  if (building.kind !== 'furnace' && building.kind !== 'assembler') return 0
+  if (building.kind !== 'furnace' && building.kind !== 'assembler' && building.kind !== 'sawmill') return 0
   return (building.job && craftingStatus(building) !== 'output-full') || (!building.job && canStartCrafting(building)) ? powerRequirement(building) : 0
 }
 function discover(world: World): PowerState {

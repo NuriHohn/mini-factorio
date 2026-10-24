@@ -60,7 +60,7 @@ export function researchRate(world: World): number {
     if (!building) return
     const speed = world.power?.consumers[index]?.speedFraction ?? 0
     if (building.kind === 'miner' && !building.item && world.tiles[index]) rate += RP_RATES.miner * speed
-    if ((building.kind === 'furnace' || building.kind === 'assembler') && building.job && building.job.elapsedMs < RECIPES[building.job.recipeId].durationMs) rate += RP_RATES[building.kind] * speed
+    if ((building.kind === 'sawmill' || building.kind === 'furnace' || building.kind === 'assembler') && building.job && building.job.elapsedMs < RECIPES[building.job.recipeId].durationMs) rate += RP_RATES[building.kind === 'sawmill' ? 'furnace' : building.kind] * speed
   })
   return rate
 }
