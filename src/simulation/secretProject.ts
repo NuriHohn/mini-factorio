@@ -1,7 +1,7 @@
 import { DEVELOPMENT_KINDS, developmentKind } from './peteDevelopments'
 import { HARVEST_MS, HARVEST_WOOD, HARVEST_XP, HARVEST_COOLDOWN_MS, harvestSiteClear, harvestTreeReady, planHarvest, woodDestination } from './forestry'
 import { inventoryTotal } from './items'
-import { SUPPLY_CRATE_CAPACITY } from './supplyCrate'
+import { supplyCapacity } from './supplyCrate'
 import { FEED_MS, FEED_XP, FEED_COOLDOWN_MS, GARDEN_FEED_CAPACITY, feedGarden, feedingSiteClear, planFeeding } from './feeding'
 import { PRESS_BUILD_MS, PRESS_COOLDOWN_MS } from './gearPress'
 import { EXPERIMENT_BUILD_MS, EXPERIMENT_COOLDOWN_MS } from './experiment'
@@ -10,7 +10,7 @@ import { WORKSHOP_BUILD_MS, WORKSHOP_COOLDOWN_MS } from './workshop'
 import { yardInterior } from './yard'
 import { CARE_XP, gardenSpot, planGardenCare, nearbyPlanting, planPlanting, plantingSite, PLANT_COOLDOWN_MS, TEND_COOLDOWN_MS } from './ecoProjects'
 import { chopTree, plantTree } from './nature'
-import { PETE_PROJECTS, projectUnlocked } from './projectRegistry'
+import { homesteadProjectDelay, PETE_PROJECTS, projectUnlocked } from './projectRegistry'
 import type { ProjectDefinition, ProjectMaterial } from './projectRegistry'
 import { awardActivity, PROJECT_REWARDS, rewardProject } from './personality'
 import { gateSiteClear, planGate, preparePeteGate } from './gardenGate'
@@ -150,8 +150,9 @@ export function refreshProject(world: World): void {
   }
 }
 function availableMaterials(world: World, project: SecretProject | null, definition: ProjectDefinition): number {
-  if (definition.id === 'harvesting') return 1
+  if (definition.id === 'harvesting') return world.homestead && !project?.carried && world.buildings.some(b => b?.kind === 'supplyCrate' && b.storeTier !== undefined && b.wood >= 24) ? 0 : 1
   if (project?.phase === 'building') return 1 // Already collected stock is never charged again.
+  if (homesteadProjectDelay(world, definition.id)) return 0
   if (definition.id === 'feeding') return gardenSpot(world) === null ? 0 : feedGarden(world)?.feed ?? 0
   const parents = reachableTiles(navigationWorld(world, project), world.pete.tile)
   const resources = Object.entries(definition.resources) as [ProjectMaterial, number][]
@@ -274,9 +275,9 @@ export function advanceSecretProject(world: World, delta: number): void {
     project.crate = destination.crate
     if (!moveTo(world, destination.spot, delta)) return
     const crate = world.buildings[destination.crate]
-    if (crate?.kind !== 'supplyCrate' || crate.wood + inventoryTotal(crate.inventory) + project.carried > SUPPLY_CRATE_CAPACITY) { stop(world); return }
+    if (crate?.kind !== 'supplyCrate' || crate.wood + inventoryTotal(crate.inventory) + project.carried > supplyCapacity(crate)) { stop(world); return }
     crate.wood += project.carried; project.carried = 0; project.crate = null; project.phase = 'complete'; project.built = 1
-    project.completedCycles = (project.completedCycles ?? 0) + 1; project.readyAtMs = world.timeMs + HARVEST_COOLDOWN_MS
+    project.completedCycles = (project.completedCycles ?? 0) + 1; project.readyAtMs = world.timeMs + (world.homestead ? 20000 : HARVEST_COOLDOWN_MS)
     delete project.selected
     awardActivity(world.personality, { path: 'eco', xp: HARVEST_XP }); stop(world)
     return

@@ -1,3 +1,4 @@
+import { drawHomestead } from './homesteadVisuals'
 import { drawPressActivity } from './gearPressVisuals'
 import { drawExperimentActivity } from './experimentVisuals'
 import { drawVeranda, drawVerandaRest } from './verandaVisuals'
@@ -103,6 +104,7 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       g.strokeEllipse(x - 3, y - 8, 7, 5).strokeEllipse(x + 3, y - 8, 7, 5)
     }
   }
+  drawHomestead(g, world, tile, view)
   drawSecretProject(g, world, tile, view)
   drawGardenTending(g, world, tile, view)
   drawWorkshopActivity(g, world, tile, view)

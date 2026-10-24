@@ -1,7 +1,7 @@
 import { DEVELOPMENT_KINDS } from '../simulation/peteDevelopments'
 import { PRESS_INPUT_CAPACITY, PRESS_OUTPUT_CAPACITY } from '../simulation/gearPress'
 import { GATE_HOLD_MS, GATE_OPEN_MS } from '../simulation/gardenGate'
-import { SUPPLY_CRATE_CAPACITY } from '../simulation/supplyCrate'
+import { supplyCapacity } from '../simulation/supplyCrate'
 import { WATERWHEEL_PERIOD_MS } from '../simulation/waterwheel'
 import { validateTree } from './natureValidation'
 import { isSabotageable } from '../simulation/buildingCapabilities'
@@ -128,7 +128,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
     splitter: ['direction', 'input', 'outputs', 'nextOutput', 'delivered', 'placedAtMs'],
   }
-  const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs', ...(version >= 9 && kind === 'belt' ? ['bridge'] : [])])
+  const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs', ...(version >= 9 && kind === 'belt' ? ['bridge'] : []), ...(version >= 40 && kind === 'supplyCrate' ? ['storeTier'] : [])])
   const x = count(r.x, `${path}.x`, SIZE - 1), y = count(r.y, `${path}.y`, SIZE - 1)
   if (y * SIZE + x !== index) invalid(path, 'building position disagrees with its tile')
   const base = { x, y, ...(r.sabotageUntilMs === undefined ? {} : { sabotageUntilMs: count(r.sabotageUntilMs, `${path}.sabotageUntilMs`) }) }
@@ -185,9 +185,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     }
     case 'supplyCrate': {
       const contents = inventory(r.inventory, `${path}.inventory`)
-      const wood = version >= 15 ? count(r.wood, `${path}.wood`, SUPPLY_CRATE_CAPACITY) : 0
-      if (inventoryTotal(contents) + wood > SUPPLY_CRATE_CAPACITY) invalid(`${path}.inventory`, 'supply crate capacity exceeded')
-      return { ...base, kind, inventory: contents, wood }
+      const storeTier = r.storeTier === undefined ? undefined : count(r.storeTier, `${path}.storeTier`, 1) as 0 | 1
+      const capacity = supplyCapacity({ storeTier })
+      const wood = version >= 15 ? count(r.wood, `${path}.wood`, capacity) : 0
+      if (inventoryTotal(contents) + wood > capacity) invalid(`${path}.inventory`, 'supply crate capacity exceeded')
+      return { ...base, kind, inventory: contents, wood, ...(storeTier === undefined ? {} : { storeTier }) }
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }

@@ -1,3 +1,6 @@
+import { createHomestead, homesteadHint } from './homestead'
+import { preparePeteGate } from './gardenGate'
+import { PETE_PROJECTS } from './projectRegistry'
 import { awardActivity } from './personality'
 import { changeCraftingRecipe } from './crafting'
 import { MATURE_TREE_MS, plantTree, REPRODUCTION_MS, refreshNatureSchedule } from './nature'
@@ -28,6 +31,7 @@ export function createPetesWorld(): World {
   Object.assign(world.pete, { tile: 21 * SIZE + 20, x: 20, y: 21 })
   world.research.unlocked = ['basicIndustry', 'automation1']
   world.miniFactory = { anchor: null, built: 0, elapsedMs: 0, nextCheckAtMs: 0 }
+  world.homestead = createHomestead()
   return world
 }
 export function groveError(world: World, x: number, y: number): string | null {
@@ -38,6 +42,10 @@ export function groveError(world: World, x: number, y: number): string | null {
   if (distance < 4 || distance > 10) return 'Wähle eine Fläche 4–10 Felder vom Baumhaus entfernt.'
   const anchor = world.miniFactory.anchor
   const reserved = anchor === null ? [] : Array.from({ length: 28 }, (_, i) => anchor + Math.floor(i / 7) * SIZE + i % 7)
+  const h = world.homestead
+  if (h?.task === 'buildStore' && h.target !== null) reserved.push(h.target)
+  if (h?.millAnchor !== null && h?.millAnchor !== undefined && h.millBuilt < 3) reserved.push(h.millAnchor, h.millAnchor + SIZE, h.millAnchor + SIZE + 1)
+  for (const { state } of PETE_PROJECTS) { const project = world[state]; if (project && project.phase !== 'complete') reserved.push(...project.tiles, ...project.spots) }
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
     const tx = x + dx, ty = y + dy, tile = ty * SIZE + tx
     if (!inside(tx, ty) || world.water[tile] || world.buildings[tile] || reserved.includes(tile) || world.pete.tile === tile || world.pete.next === tile) return 'Die ganze 3×3-Waldgruppe braucht freie, trockene Felder.'
@@ -57,7 +65,7 @@ export function placeGrove(world: World, x: number, y: number): string | null {
   refreshNatureSchedule(world)
   return null
 }
-function approach(world: World, tile: number): number | null {
+export function miniApproach(world: World, tile: number): number | null {
   const parents = peteReachableTiles(world, world.pete.tile)
   return neighboringTiles(tile).filter(i => peteWalkableTile(world, i) && parents.has(i)).sort((a, b) => tilePath(parents, a)!.length - tilePath(parents, b)!.length || a - b)[0] ?? null
 }
@@ -78,11 +86,11 @@ function planMini(world: World): number | null {
   }
   candidates.sort((a, b) => b.trees - a.trees || a.distance - b.distance || a.anchor - b.anchor)
   for (const candidate of candidates) {
-    if (miniLayout(candidate.anchor).every(s => approach(world, s.tile) !== null)) return candidate.anchor
+    if (miniLayout(candidate.anchor).every(s => miniApproach(world, s.tile) !== null)) return candidate.anchor
   }
   return null
 }
-function walk(world: World, destination: number, delta: number): boolean {
+export function miniWalk(world: World, destination: number, delta: number): boolean {
   const p = world.pete
   if (world.peace.activity !== 'walking') { world.peace.sinceMs = world.timeMs; world.peace.untilMs = world.timeMs }
   world.peace.activity = 'walking'; world.peace.destination = destination
@@ -93,6 +101,7 @@ function walk(world: World, destination: number, delta: number): boolean {
     p.next = p.path.shift() ?? null
   }
   if (p.next === null) return p.tile === destination
+  if (!preparePeteGate(world, p.next)) return false
   p.travelMs = Math.min(PETE_WALK_MS, p.travelMs + delta)
   const t = p.travelMs / PETE_WALK_MS
   p.x = p.tile % SIZE + (p.next % SIZE - p.tile % SIZE) * t
@@ -115,13 +124,13 @@ export function advanceMiniFactory(world: World, delta: number): void {
   if (!step) {
     // Short inspectable visits along the finished factory, with pauses.
     if (world.timeMs < s.nextCheckAtMs) return
-    const target = approach(world, steps[world.pete.tile % 2 ? 4 : 10].tile)
-    if (target !== null && walk(world, target, delta)) { world.peace.activity = 'waving'; world.peace.destination = null; world.peace.sinceMs = world.timeMs; world.peace.untilMs = world.timeMs + 5000; world.pete.path = []; s.nextCheckAtMs = world.timeMs + 5000 }
+    const target = miniApproach(world, steps[world.pete.tile % 2 ? 4 : 10].tile)
+    if (target !== null && miniWalk(world, target, delta)) { world.peace.activity = 'waving'; world.peace.destination = null; world.peace.sinceMs = world.timeMs; world.peace.untilMs = world.timeMs + 5000; world.pete.path = []; s.nextCheckAtMs = world.timeMs + 5000 }
     return
   }
   if (world.buildings[step.tile] || world.water[step.tile]) return
-  const target = approach(world, step.tile)
-  if (target === null || !walk(world, target, delta)) return
+  const target = miniApproach(world, step.tile)
+  if (target === null || !miniWalk(world, target, delta)) return
   s.elapsedMs = Math.min(MINI_BUILD_MS, s.elapsedMs + delta)
   if (s.elapsedMs < MINI_BUILD_MS) return
   if (!placeBuilding(world, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, 'east')) return
@@ -132,9 +141,10 @@ export function advanceMiniFactory(world: World, delta: number): void {
 export function miniStatus(world: World): string | null {
   const s = world.miniFactory
   if (!s) return null
+  if (world.homestead && (s.anchor === null || s.built === 11)) return homesteadHint(world)
   if (s.anchor === null) return world.buildings.some(b => b?.kind === 'tree') ? 'Ich suche Platz für meine Öko-Fabrik. Neben dem Wald brauche ich eine freie Fläche von etwa 7×4 Feldern.' : 'Platziere eine Waldgruppe in meiner Nähe. Ich baue daraus selbst eine kleine Öko-Fabrik.'
   const steps = miniLayout(s.anchor), step = steps[s.built]
   if (!step) return 'Meine Öko-Fabrik arbeitet: Wald → Holz → Holzplatten → Holzkisten. Klicke die Maschinen an, um zuzusehen.'
-  if (world.buildings[step.tile] || world.water[step.tile] || approach(world, step.tile) === null) return `Für ${step.label} fehlt mir Platz oder ein freier Weg. Mein Baufortschritt bleibt erhalten.`
+  if (world.buildings[step.tile] || world.water[step.tile] || miniApproach(world, step.tile) === null) return `Für ${step.label} fehlt mir Platz oder ein freier Weg. Mein Baufortschritt bleibt erhalten.`
   return `Ich baue ${step.label} · ${s.built + 1}/${steps.length} · ${Math.floor(s.elapsedMs / MINI_BUILD_MS * 100)} %. Du brauchst keine Maschinen zu platzieren.`
 }

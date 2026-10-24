@@ -261,7 +261,7 @@ export class FactoryScene extends Phaser.Scene {
           if (this.landscapeStroke.begin(this.world, point, mode, useGameStore.getState().brushSize) > 0) { useGameStore.getState().recordToolUse(selected); this.landscapeUsed = true }
           return
         }
-        if (selected === 'placeGrove') { useGameStore.setState({ message: placeGrove(this.world, point.x, point.y) ?? 'Wald platziert. Pete kümmert sich um Abbau und Fabrik.' }); return }
+        if (selected === 'placeGrove') { useGameStore.setState({ message: placeGrove(this.world, point.x, point.y) ?? 'Wald platziert. Pete kümmert sich um Holz und seine Projekte.' }); return }
         const species = plantingSpecies(selected)
         if (species) {
           const error = placementError(this.world, point.x, point.y, 'tree')
@@ -452,7 +452,7 @@ export class FactoryScene extends Phaser.Scene {
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: candidate.world.miniFactory ? 'Petes Welt geladen.' : 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain

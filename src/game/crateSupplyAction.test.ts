@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type Phaser from 'phaser'
 import { CrateSupplyAction, supplyIcon, UNLOAD_MS } from './crateSupplyAction'
+import { createPetesWorld } from '../simulation/petesWorld'
 import { createBareWorld } from '../simulation/testFixtures'
 import { placeBuilding, removeBuilding } from '../simulation/world'
 import type { SupplyCrate } from '../simulation/world'
@@ -17,6 +18,19 @@ function graphics() {
 }
 const view = { x: 0, y: 0, width: 1280, height: 1280 }
 describe('Wood icon and cozy crate unloading', () => {
+  it('keeps Petes Welt resource-only without manual crate unloading', () => {
+    const world = createPetesWorld(), action = new CrateSupplyAction(), { g, calls } = graphics()
+    world.nature.wood = 30
+    placeBuilding(world, 18, 18, 'supplyCrate', 'east')
+    const before = world.nature.wood
+    const crate = world.buildings[738] as SupplyCrate
+    expect(action.hit(world, supplyIcon(crate, 32, 1), 32, 1)).toBeNull()
+    expect(action.activate(world, 738)).toBe(false)
+    action.draw(g, world, view, 32, 1, true)
+    expect(calls).toEqual([])
+    expect(crate.wood).toBe(0)
+    expect(world.nature.wood).toBe(before)
+  })
   it.each([.5, .65, 1.3, 2.5])('uses a constant screen-pixel hit area at zoom %s', zoom => {
     const { world, crate, action } = setup(), p = supplyIcon(crate, 32, zoom)
     expect(action.hit(world, p, 32, zoom)).toBe(820)

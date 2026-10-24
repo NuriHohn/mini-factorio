@@ -1,6 +1,6 @@
 import { forestryOutput } from './forestryStation'
 import { PRESS_INPUT_CAPACITY } from './gearPress'
-import { SUPPLY_CRATE_CAPACITY } from './supplyCrate'
+import { supplyCapacity } from './supplyCrate'
 import { SPLITTER_STAGE_MS, splitterDirections } from './splitters'
 import type { SplitterOutput } from './splitters'
 import { buildingAt, offsets, opposite, SIZE } from './world'
@@ -22,7 +22,7 @@ export function canReceive(target: Building, item: Item, travel: Direction, rese
     case 'splitter': return travel === target.direction && target.input === null && inventoryTotal(reserved) === 0
     case 'peteDevelopment': return target.development === 'mechanic' && item === 'ironGear' && target.gears + (reserved.ironGear ?? 0) < 4
     case 'petePress': return item === 'ironGear' && target.gears + (reserved.ironGear ?? 0) < PRESS_INPUT_CAPACITY
-    case 'supplyCrate': return inventoryTotal(target.inventory) + target.wood + inventoryTotal(reserved) < SUPPLY_CRATE_CAPACITY
+    case 'supplyCrate': return inventoryTotal(target.inventory) + target.wood + inventoryTotal(reserved) < supplyCapacity(target)
     case 'storage': return true
     case 'belt': return !target.item && inventoryTotal(reserved) === 0 && (target.bridge ? target.direction === travel : target.direction !== opposite(travel))
     case 'sawmill': return target.direction !== opposite(travel) && item === 'wood' && inventoryTotal(target.input) + inventoryTotal(reserved) < 2

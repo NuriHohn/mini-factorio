@@ -213,3 +213,16 @@ The user’s later-version idea separates **Petes Welt** (working label “FSK0�
 | 16.52 | One bounded autonomous eleven-step Eco factory, physical Pete walks/build work, real shared production, status/inspection and exact saved continuation |
 
 Authoritative scope and limits: [shared Eco production and Petes Welt](GAME_DESIGN.md#shared-eco-production-and-petes-welt). This is the first playable Eco prototype. More autonomous paths, expanding/rebuilding factories, wooden-product projects and long-term child interaction remain future work. The original Factory game keeps its existing Pete behaviour; a Pete-free complex edition is not part of this increment. Sprint 16.38 stays deferred; physical iPhone/iPad Safari acceptance remains open.
+
+
+## Sprints 16.53–16.57 — Pete’s daily life before automation
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.53 | Restored original projects/day-life in Petes Welt; no immediate new factory at level 1; paid old prototype builds and stock preserved |
+| 16.54 | Level-1 mature-tree chopping and physical Wood delivery, nearby reachable selection and no free/global stock |
+| 16.55 | Pete-built general material store, existing-project withdrawals, all-item transport, visible material types/filling stages and exact inspection |
+| 16.56 | Mode-specific stock reserves and deferred unpaid fence extensions, original feeding/sleep/garden/leisure between tasks and clear status |
+| 16.57 | Eco-3 hand-fed shared sawmill, paid power/build work, physical panel returns and an eight-panel roof/capacity upgrade of the same store |
+
+Rules and compatibility: [Petes Welt progression](GAME_DESIGN.md#petes-welt-daily-life-supplies-and-gradual-processing). New higher-level automatic forestry/conveyors/assemblers and the other resource-placement paths are future work. Existing Factory mechanics and old prototype factories remain available. Sprint 16.38 stays deferred; physical iPhone/iPad acceptance remains open.

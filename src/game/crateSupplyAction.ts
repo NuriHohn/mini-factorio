@@ -1,7 +1,7 @@
 import { SIZE } from '../simulation/world'
 import type Phaser from 'phaser'
 import { inventoryTotal } from '../simulation/items'
-import { supplyWood, SUPPLY_CRATE_CAPACITY } from '../simulation/supplyCrate'
+import { supplyWood, supplyCapacity } from '../simulation/supplyCrate'
 import type { Position, SupplyCrate, World } from '../simulation/world'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
@@ -10,7 +10,7 @@ export function supplyIcon(crate: SupplyCrate, tile: number, zoom: number): Posi
   return { x: (crate.x + .5) * tile, y: Math.max(12 / zoom, crate.y * tile - 13 / zoom) }
 }
 function canSupply(world: World, crate: SupplyCrate): boolean {
-  return world.nature.wood >= 6 && inventoryTotal(crate.inventory) + crate.wood + 6 <= SUPPLY_CRATE_CAPACITY
+  return world.nature.wood >= 6 && inventoryTotal(crate.inventory) + crate.wood + 6 <= supplyCapacity(crate)
 }
 function logs(g: Phaser.GameObjects.Graphics, x: number, y: number, scale: number): void {
   g.fillStyle(0xb88a54).fillRoundedRect(x - 6 * scale, y - 4 * scale, 12 * scale, 4 * scale, scale).fillRoundedRect(x - 4 * scale, y, 12 * scale, 4 * scale, scale)
@@ -31,6 +31,7 @@ export class CrateSupplyAction {
     return this.crates
   }
   hit(world: World, point: Position, tile: number, zoom: number): number | null {
+    if (world.miniFactory) return null
     for (const crate of this.sites(world)) {
       const icon = supplyIcon(crate, tile, zoom)
       if (Math.hypot(point.x - icon.x, point.y - icon.y) <= 11 / zoom) return crate.y * SIZE + crate.x
@@ -38,12 +39,14 @@ export class CrateSupplyAction {
     return null
   }
   activate(world: World, index: number): boolean {
+    if (world.miniFactory) return false
     this.sites(world)
     if (!supplyWood(world, index, 6)) return false
     this.unloads.set(index, { crate: world.buildings[index] as SupplyCrate, atMs: world.timeMs })
     return true
   }
   draw(g: Phaser.GameObjects.Graphics, world: World, view: Viewport, tile: number, zoom: number, interactive: boolean): void {
+    if (world.miniFactory) return
     for (const crate of this.sites(world)) {
       const icon = supplyIcon(crate, tile, zoom), scale = 1 / zoom
       if (!interactive || !visiblePoint(view, icon.x, icon.y, 14 * scale)) continue

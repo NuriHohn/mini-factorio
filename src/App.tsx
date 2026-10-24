@@ -30,7 +30,7 @@ export default function App() {
     </header>
     <main>
       <section className="world-panel" aria-label="Factory world">
-        <div className="world-heading"><SimulationSpeed />{playMode === 'factory' ? <RevengeHUD /> : <span>♥ Pete baut seine Welt</span>}</div>
+        <div className="world-heading"><SimulationSpeed />{playMode === 'factory' ? <RevengeHUD /> : <span>♥ Pete lebt und baut seine Welt</span>}</div>
         <div className="world-stage"><GameCanvas /><TouchControls /><PinnedGoal />{miniHint && inspected === null && !peteInspection && !uiPanel && <aside className="mini-world-hint" aria-live="polite">{miniHint}</aside>}<BuildingInspection /><UtilityPanels /><AnalyticsPanel /></div>
         <StatusMessage />
       </section>
