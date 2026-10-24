@@ -70,6 +70,7 @@ describe('shared Eco production and Petes Welt', () => {
   })
   it('retains partial work while a mini-factory site is obstructed', () => {
     const w = createPetesWorld(); placeGrove(w, 26, 15)
+    w.miniFactory!.anchor = 17 * SIZE + 24 // Already committed prototype work remains resumable.
     advanceWorld(w, 50)
     const s = w.miniFactory!, step = miniLayout(s.anchor!)[0]
     placeBuilding(w, step.tile % SIZE, Math.floor(step.tile / SIZE), 'storage', 'east')
@@ -121,9 +122,10 @@ describe('shared Eco production and Petes Welt', () => {
     expect(placeGrove(w, 26, 15)).toBeNull()
     expect(w.buildings.filter(b => b?.kind === 'tree')).toHaveLength(9)
   })
-  it('Pete physically builds the whole powered chain and real items reach its storage', () => {
+  it('finishes an already committed prototype chain and preserves its real products', () => {
     const w = createPetesWorld()
     expect(placeGrove(w, 26, 15)).toBeNull()
+    w.miniFactory!.anchor = 17 * SIZE + 24
     advanceWorld(w, 180000)
     expect(w.miniFactory?.built).toBe(11)
     expect(w.pete.tile).not.toBe(860)
@@ -134,7 +136,7 @@ describe('shared Eco production and Petes Welt', () => {
     expect(storage?.kind === 'storage' && storage.inventory.woodenCrate).toBeGreaterThan(0)
     const mills = w.buildings.filter(b => b?.kind === 'sawmill' || b?.kind === 'assembler')
     expect(mills).toHaveLength(2)
-    expect(w.personality.paths.eco.xp).toBe(11 + w.produced.woodenCrate)
+    expect(w.personality.paths.eco.xp).toBeGreaterThanOrEqual(11 + w.produced.woodenCrate)
     expect(w.personality.paths.craftsman.xp).toBe(0)
     expect(() => decodeSave(encodeSave(w, view, date))).not.toThrow()
   })
@@ -176,7 +178,11 @@ describe('shared Eco production and Petes Welt', () => {
     useGameStore.setState(prior, true)
   })
   it('counts no new wood outside the harvest/recipe boundaries', () => {
-    const w = createPetesWorld(); placeGrove(w, 26, 15); advanceWorld(w, 180000)
+    const w = createUnlockedWorld(() => .42)
+    for (const step of miniLayout(20 * SIZE + 18)) placeBuilding(w, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, 'east')
+    changeCraftingRecipe(w, 22, 20, 'woodenCrate')
+    for (const x of [17, 18, 19]) { plantTree(w, x, 18, 'oak'); const tree = w.buildings[18 * SIZE + x]; if (tree?.kind === 'tree') { tree.bornAtMs = -MATURE_TREE_MS; tree.origin = 'natural' } }
+    advanceWorld(w, 180000)
     let timber = 0
     for (const b of w.buildings) {
       if (!b) continue

@@ -1,7 +1,7 @@
 import { brushMode, natureTool, plantingSpecies } from './natureTools'
 import type { Tool } from './toolMetadata'
 export const TOOL_HINTS = {
-  grove: 'Wähle eine freie Waldfläche zwischen den Markierungen. Pete baut die Fabrik selbst.',
+  grove: 'Wähle eine freie Waldfläche zwischen den Markierungen. Pete sammelt Holz und baut seine Welt selbst.',
   playfulSpray: 'Click any target within 3 tiles of a ready powered sprinkler. Just a harmless splash.',
   footbridge: 'Drag straight from one dry shore to the other. Up to 5 water tiles; 3 Wood each. Occupied bridges cannot be removed.',
   miner: 'Click an ore patch to build.',

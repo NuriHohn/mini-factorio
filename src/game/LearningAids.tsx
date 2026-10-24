@@ -17,10 +17,11 @@ export function MachineHelp() {
   </section>
 }
 export function SupplyAssistant() {
-  const { supplies, inspected, supplyRequest } = useGameStore()
+  const { playMode, supplies, inspected, supplyRequest } = useGameStore()
   const [selected, setSelected] = useState(''), selectId = useId()
   const offer = supplies.find(o => o.id === selected) ?? supplies[0]
   if (inspected === null || !offer) return <p>No material-funded project is unlocked right now. Pete’s inspection explains prerequisites.</p>
+  if (playMode === 'petesWorld') return <section className="learning-card" aria-label="Lager und Projekte"><h3>Material für Petes Projekte</h3>{supplies.map(o => <p key={o.id}>{o.name}: {o.amounts.map(r => `${r.stored}/${r.required} ${r.label}`).join(' · ')}</p>)}<p>Pete holt das Material selbst. Du platzierst nur Ressourcen in seiner Nähe.</p></section>
   return <section className="learning-card" aria-label="Supply assistant"><h3>Supply a project</h3>
     <label htmlFor={selectId}>What would you like to support?</label><select id={selectId} value={offer.id} onChange={e => setSelected(e.target.value)}>{supplies.map(o => <option key={o.id} value={o.id}>{o.name}{o.id === 'yard' || o.id === 'run' ? ' · per missing fence section' : ''}</option>)}</select>
     {offer.amounts.map(a => <div className="supply-amount" key={a.material}><strong>{a.label}</strong><span>{Math.min(a.required, a.stored)}/{a.required} supplied · {Math.max(0, a.required - a.stored)} missing</span><small>{a.available} available {a.material === 'wood' ? 'in your Wood stock' : 'in storage chests within 3 tiles'}</small></div>)}

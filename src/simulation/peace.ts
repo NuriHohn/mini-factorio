@@ -1,3 +1,4 @@
+import { advanceHomestead, createHomestead } from './homestead'
 import { advanceMiniFactory } from './petesWorld'
 import { beginDevelopmentWork, developmentDecision, finishDevelopment, refreshDevelopment } from './peteDevelopments'
 import { beginLeisureWork, finishLeisure, leisureDecision, leisureSpot, refreshLeisure } from './peteLeisure'
@@ -224,6 +225,7 @@ function tryConstruction(world: World): boolean {
   return trySecretProject(world)
 }
 function nextActivity(world: World): void {
+  if (world.homestead && advanceHomestead(world, 0, true)) return
   if (world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling) { const visit = developmentDecision(world); if (visit) { activity(world, visit.activity, 0, visit.destination); return } }
   if (world.leisure?.carried) { const visit = leisureDecision(world); if (visit) { activity(world, visit.activity, 0, visit.destination); return } }
   const committed = currentProject(world)
@@ -259,7 +261,11 @@ function nextActivity(world: World): void {
   }
 }
 export function advancePeace(world: World, delta: number): void {
-  if (world.miniFactory) { advanceMiniFactory(world, delta); return }
+  if (world.miniFactory) {
+    world.homestead ??= createHomestead()
+    if (world.miniFactory.anchor !== null && world.miniFactory.built < 11) { advanceMiniFactory(world, delta); return }
+    if (advanceHomestead(world, delta)) return
+  }
   const s = world.peace, p = world.pete
   if (s.shutdown && world.timeMs - s.shutdown.atMs >= 6000) s.shutdown = null
   if (s.reactionAtMs !== null && world.timeMs - s.reactionAtMs >= 4000) s.reactionAtMs = null

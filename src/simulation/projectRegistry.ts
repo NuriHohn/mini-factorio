@@ -40,8 +40,26 @@ export const PETE_PROJECTS: readonly ProjectDefinition[] = [
   { id: 'house', state: 'houseProject', path: 'craftsman', minimumLevel: 4, resources: { ironPlate: 32 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: ['veranda'] },
 ]
 export function projectUnlocked(world: World, definition: ProjectDefinition): boolean {
-  return (!definition.repeatable || (world[definition.state]?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= definition.minimumLevel && definition.prerequisites.every(id => {
+  return (!definition.repeatable || (world[definition.state]?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= (world.homestead && definition.id === 'harvesting' ? 1 : definition.minimumLevel) && definition.prerequisites.every(id => {
     const prerequisite = PETE_PROJECTS.find(p => p.id === id)!
     return world[prerequisite.state]?.phase === 'complete'
   }) && (definition.repeatable || world[definition.state]?.phase !== 'complete')
+}
+
+export function homesteadProjectDelay(world: World, id: ProjectDefinition['id']): string | null {
+  const h = world.homestead
+  if (!h) return null
+  const level = world.personality.paths.eco.level
+  if (id === 'yard' || id === 'run') {
+    if (world.gardenProject?.phase !== 'complete') return 'Ich baue zuerst meinen Garten. Danach erweitere ich die Zäune.'
+    if (level >= 3 && (world.orchardProject?.phase !== 'complete' || h.millBuilt < 3)) return 'Ich spare zunächst Holz für Obstgarten und Sägewerk. Bezahlte Zaunabschnitte gehen weiter.'
+  }
+  if (id === 'gardenCare' || id === 'reforestation') {
+    const stock = world.buildings.reduce((n, b) => n + (b?.kind === 'supplyCrate' && b.storeTier !== undefined ? b.wood : 0), 0)
+    const garden = world.gardenProject?.phase === 'complete' ? world.buildings[world.gardenProject.tiles[0]] : null
+    if (id === 'gardenCare' && garden?.kind === 'peteGarden' && !garden.feed && stock >= 2) return null
+    const reserve = 12
+    if (stock < reserve) return `Ich sammle zuerst ${reserve} Holz für meine Bauprojekte. Danach folgen Pflege und Aufforstung.`
+  }
+  return null
 }

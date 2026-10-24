@@ -2,7 +2,7 @@ import { ITEM_DEFINITIONS, inventoryTotal } from './items'
 import type { Item } from './items'
 import { PETE_PROJECTS, projectUnlocked } from './projectRegistry'
 import { PROJECT_NAMES } from './peteStatus'
-import { SUPPLY_CRATE_CAPACITY, supplyWood } from './supplyCrate'
+import { supplyCapacity, supplyWood } from './supplyCrate'
 import { SIZE } from './world'
 import type { Storage, World } from './world'
 
@@ -16,7 +16,7 @@ function nearbyStores(world: World, index: number): Storage[] {
 export function supplyOffers(world: World, index: number): SupplyOffer[] {
   const crate = world.buildings[index]
   if (crate?.kind !== 'supplyCrate') return []
-  const stores = nearbyStores(world, index), free = SUPPLY_CRATE_CAPACITY - crate.wood - inventoryTotal(crate.inventory)
+  const stores = nearbyStores(world, index), free = supplyCapacity(crate) - crate.wood - inventoryTotal(crate.inventory)
   return PETE_PROJECTS.flatMap(d => {
     if (!projectUnlocked(world, d) || world[d.state]?.phase === 'building' || !Object.keys(d.resources).length) return []
     const entries = Object.entries(d.resources)

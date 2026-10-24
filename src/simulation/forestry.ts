@@ -3,7 +3,7 @@ import { treeStage } from './nature'
 import { neighboringTiles, peteReachableTiles, tilePath } from './navigation'
 import { projectPlansConflict } from './secretProject'
 import type { SecretProject } from './secretProject'
-import { SUPPLY_CRATE_CAPACITY } from './supplyCrate'
+import { supplyCapacity } from './supplyCrate'
 import { SIZE } from './world'
 import type { World } from './world'
 export const HARVEST_MS = 6000
@@ -12,7 +12,7 @@ export const HARVEST_XP = 3
 export const HARVEST_WOOD = 3
 export function woodDestination(world: World): { crate: number; spot: number } | null {
   const paths = peteReachableTiles(world, world.pete.tile)
-  const options = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && b.wood + inventoryTotal(b.inventory) + HARVEST_WOOD <= SUPPLY_CRATE_CAPACITY ? neighboringTiles(crate).filter(spot => paths.has(spot) && !world.water[spot] && !world.buildings[spot] && !world.buildings.some(p => p?.kind === 'prison' && p.exit === spot)).map(spot => ({ crate, spot })) : [])
+  const options = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && b.wood + inventoryTotal(b.inventory) + HARVEST_WOOD <= supplyCapacity(b) ? neighboringTiles(crate).filter(spot => paths.has(spot) && !world.water[spot] && !world.buildings[spot] && !world.buildings.some(p => p?.kind === 'prison' && p.exit === spot)).map(spot => ({ crate, spot })) : [])
   return options.sort((a, b) => tilePath(paths, a.spot)!.length - tilePath(paths, b.spot)!.length || a.crate - b.crate || a.spot - b.spot)[0] ?? null
 }
 export function harvestTreeReady(world: World, project: SecretProject): boolean {
@@ -26,7 +26,7 @@ export function planHarvest(world: World): SecretProject | null {
   const paths = peteReachableTiles(world, world.pete.tile), candidates: { project: SecretProject; steps: number }[] = []
   for (let tile = 0; tile < world.buildings.length; tile++) {
     const tree = world.buildings[tile]
-    if (tree?.kind !== 'tree' || treeStage(world, tree) !== 'mature' || Math.max(Math.abs(tile % SIZE - home % SIZE), Math.abs(Math.floor(tile / SIZE) - Math.floor(home / SIZE))) > 6) continue
+    if (tree?.kind !== 'tree' || treeStage(world, tree) !== 'mature' || Math.max(Math.abs(tile % SIZE - home % SIZE), Math.abs(Math.floor(tile / SIZE) - Math.floor(home / SIZE))) > (world.miniFactory ? 11 : 6)) continue
     for (const spot of neighboringTiles(tile)) {
       if (!paths.has(spot) || world.water[spot] || world.buildings[spot] || world.buildings.some(b => b?.kind === 'prison' && b.exit === spot)) continue
       const project: SecretProject = { kind: 'fell', home, direction: 'east', tiles: [tile], spots: [spot], phase: 'building', crate: null, built: 0, carried: 0, elapsedMs: 0, treeBornAtMs: tree.bornAtMs, treeSpecies: tree.species, treeOrigin: tree.origin, completedCycles: world.harvestProject?.completedCycles ?? 0, manualCycles: world.harvestProject?.manualCycles ?? 0 }

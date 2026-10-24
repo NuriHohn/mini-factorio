@@ -18,7 +18,7 @@ it('shows only resource placement and contextual help in Petes Welt', () => {
   expect(html).not.toContain('data-tool="assembler"')
   expect(html).not.toContain('id="tab-factory"')
   const help = renderToStaticMarkup(<HelpContents />)
-  expect(help).toContain('Pete baut die Fabrik')
+  expect(help).toContain('Pete baut seine Welt')
   expect(help).toContain('noch einmal antippen')
   expect(help).not.toContain('help-goals-tab')
 })
