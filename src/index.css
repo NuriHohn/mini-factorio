@@ -362,3 +362,20 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .touch-mode .simulation-speed .hud-button { min-height: 36px; min-width: 36px; }
   .touch-selected-tool { max-width: 130px; font-size: 11px; }
 }
+.learning-card { border: 1px solid #4c6547; background: #223222; border-radius: 8px; padding: 10px; margin: 10px 0; }
+.learning-card p, .learning-processes p { font-size: 12px; line-height: 1.6; }
+.learning-card select { display: block; width: 100%; min-height: 44px; margin: 6px 0; padding: 6px; background: #17251c; color: #e6e6cf; border: 1px solid #647b55; border-radius: 5px; }
+.learning-card .save-action { white-space: normal; min-height: 44px; }
+.supply-amount { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; font-size: 12px; }
+.supply-amount small { color: #b4bea9; }
+.learning-processes { margin: 10px 0; }
+.learning-processes summary { cursor: pointer; min-height: 44px; padding: 10px 0; }
+.process-steps { display: flex; flex-wrap: wrap; gap: 5px; padding: 0; list-style: none; }
+.process-steps li { padding: 7px; border: 1px solid #526047; border-radius: 6px; font-size: 12px; }
+.process-steps li[aria-current="step"] { background: #3f5730; border-color: #d4d48a; }
+.little-goals progress { width: 100%; accent-color: #b4d58b; }
+.pinned-goal { position: absolute; right: 8px; top: 8px; z-index: 12; display: flex; align-items: center; gap: 5px; max-width: min(360px, 75%); padding: 4px 8px; background: #20331eeb; border: 1px solid #738754; border-radius: 8px; font-size: 12px; }
+.pinned-goal .save-action { min-width: 36px; min-height: 36px; }
+.touch-mode .pinned-goal { max-width: 70%; font-size: 11px; }
+.help-tabs { flex-wrap: wrap; }
+.touch-mode .pinned-goal .save-action { min-width: 44px; min-height: 44px; }

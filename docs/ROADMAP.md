@@ -184,3 +184,19 @@ Sprint **16.38 is deferred at the user’s request**: installation/offline suppo
 | 16.42 | Foundation/frame/finish construction stages, elevated plank-and-rail annex walkway, parked bicycle consistency and task-specific work/progress effects |
 
 Browser viewport/input checks cover phone portrait/landscape, tablet and PC; **physical iPhone/iPad Safari acceptance remains open**, so the real-device portion of 16.39 is not claimed complete. Existing saves, costs, XP rewards and PC construction remain compatible. Rules are owned by [Game design](GAME_DESIGN.md#daily-development-comfort).
+
+## Sprints 16.43–16.47 — Watching and understanding
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.43 | Actual Pete route/next-stop overlay and active project material purpose, with hide control |
+| 16.44 | Supply Crate requirements/shortages and explicit existing-stock handoff from Wood stock/nearby storage, with capacity and family checks |
+| 16.45 | Read-only visual process cards for fruit, paid seedlings and mechanic modules, with active task and stock |
+| 16.46 | Concrete machine/transport explanations and optional input/output/power connection highlights |
+| 16.47 | Voluntary Help goals, real saved production/project progress and dismissible world pin; no time pressure or rewards |
+
+Mechanics and limits are owned by [Game design](GAME_DESIGN.md#learning-and-orientation-aids). Installation/offline Sprint 16.38 remains deferred; physical iPhone/iPad acceptance is still open.
+
+## Future proposal — Two play directions
+
+The user’s later-version idea separates **Petes Welt** (working label “FSK0”: minimal factory systems, simple resource placement, watching Pete autonomously grow a miniature factory and learning by observation) from **Factory** (working label “FSK12”: no Pete, richer production/logistics/energy planning). Shared resource pictures and process explanations can bridge learning between the two. These are proposed directions only: no mode split, autonomous factory builder, separate distribution or complexity conversion is implemented by Sprints 16.43–16.47. Scope, age-oriented content and progression still need design before implementation.

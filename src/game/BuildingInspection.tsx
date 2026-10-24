@@ -10,6 +10,7 @@ import { InserterInspector } from './InserterInspector'
 import { SplitterInspector } from './SplitterInspector'
 import { CraftingInspector } from './CraftingInspector'
 import { ITEM_DEFINITIONS } from '../simulation/items'
+import { MachineHelp, ProcessCards, SupplyAssistant } from './LearningAids'
 export function BuildingInspection() {
   const { peteInspection, inspected, inspection, requestRecipe, requestRelease } = useGameStore()
   const panel = useRef<HTMLElement>(null)
@@ -24,7 +25,9 @@ export function BuildingInspection() {
         <h2><span aria-hidden="true">{summary.icon}</span> {summary.name}</h2>
         <p>{summary.description}</p><strong role="status">{summary.state}</strong>
         {summary.power && <p>Power: {summary.power}</p>}
+        <MachineHelp /><ProcessCards />
         {inspection.kind === 'supplyCrate' && <>
+          <SupplyAssistant />
           <InventoryView inventory={inspection.inventory} showAll />
           <div className="stats"><span>Supplied Wood</span><b>{inspection.wood}</b></div>
         </>}

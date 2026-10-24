@@ -1,4 +1,8 @@
 import { peteStatus } from '../simulation/peteStatus'
+import { learningGoals, machineGuide, processGuides } from '../simulation/learning'
+import type { LearningGoal, MachineGuide, ProcessGuide } from '../simulation/learning'
+import { supplyOffers, supplyProject } from '../simulation/supplyAssistant'
+import type { SupplyOffer } from '../simulation/supplyAssistant'
 import type { PeteStatus } from '../simulation/peteStatus'
 import { constructionHint } from '../simulation/secretProject'
 import { toolHintId } from './toolHints'
@@ -31,6 +35,15 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  petePathVisible: boolean
+  connectionVisible: boolean
+  goals: LearningGoal[]
+  pinnedGoal: string | null
+  machineHelp: MachineGuide | null
+  processes: ProcessGuide[]
+  supplies: SupplyOffer[]
+  supplyRequest: { index: number; id: string } | null
+  applySupply: (world: World) => void
   touchAnchor: Position
   touchActive: boolean
   touchToolsOpen: boolean
@@ -97,10 +110,19 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  petePathVisible: true, connectionVisible: false,
+  goals: [], pinnedGoal: null, machineHelp: null, processes: [], supplies: [], supplyRequest: null,
+  applySupply: world => {
+    const request = get().supplyRequest
+    if (!request) return
+    const moved = supplyProject(world, request.index, request.id)
+    set({ supplyRequest: null, message: moved ? `${moved} existing materials supplied. Pete still chooses his own projects.` : 'No matching materials can be moved. Check nearby stock, free space and project requirements.' })
+    get().publish(world)
+  },
   touchAnchor: { x: 0, y: 0 },
   touchActive: typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches, touchToolsOpen: false, touchPlacement: null, touchRequest: null,
   peteInspection: null,
-  inspectPete: world => { if (get().tool === null) set({ peteInspection: peteStatus(world), inspected: null, inspection: null, recipeRequest: null, releaseRequest: null }) },
+  inspectPete: world => { if (get().tool === null) set({ peteInspection: peteStatus(world), processes: processGuides(world), supplies: [], machineHelp: null, petePathVisible: true, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null }) },
   dragActive: false, dragCancelToken: 0, hintUses: {},
   recordToolUse: tool => set(state => {
     const id = toolHintId(tool)
@@ -156,7 +178,7 @@ export const useGameStore = create<State>((set, get) => ({
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { peteInspection: null, tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { peteInspection: null, tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, supplyRequest: null, connectionVisible: false, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
     if (event.code === 'Escape' && get().dragActive) { set(state => ({ dragActive: false, dragCancelToken: state.dragCancelToken + 1 })); return }
@@ -180,7 +202,8 @@ export const useGameStore = create<State>((set, get) => ({
   inspect: (world, x, y) => set(state => {
     if (state.tool !== null) return state
     const inspection = buildingAt(world, x, y) ? inspectBuilding(world, y * SIZE + x) : null
-    return { peteInspection: null, inspected: inspection ? y * SIZE + x : null, inspection, recipeRequest: null, releaseRequest: null }
+    const index = inspection ? y * SIZE + x : null
+    return { peteInspection: null, inspected: index, inspection, machineHelp: index === null ? null : machineGuide(world, index), processes: index === null ? [] : processGuides(world, index), supplies: index === null ? [] : supplyOffers(world, index), connectionVisible: false, recipeRequest: null, releaseRequest: null, supplyRequest: null }
   }),
   rotate: () => set(state => ({ direction: rotate(state.direction) })),
   publish: world => set(state => {
@@ -194,8 +217,12 @@ export const useGameStore = create<State>((set, get) => ({
     const electricity = powerOverview(world)
     const inspection = inspectBuilding(world, state.inspected)
     const inspected = inspection ? state.inspected : null
+    const goals = learningGoals(world)
+    const machineHelp = inspected === null ? null : machineGuide(world, inspected)
+    const processes = state.peteInspection || inspected !== null ? processGuides(world, state.peteInspection ? null : inspected) : []
+    const supplies = inspected === null ? [] : supplyOffers(world, inspected)
     // Publish value snapshots only when summaries change, never live world objects.
-    if (JSON.stringify(peteInspection) === JSON.stringify(state.peteInspection) && peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
+    if (JSON.stringify([goals, machineHelp, processes, supplies]) === JSON.stringify([state.goals, state.machineHelp, state.processes, state.supplies]) && JSON.stringify(peteInspection) === JSON.stringify(state.peteInspection) && peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
+    return { goals, machineHelp, processes, supplies, peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
   }),
 }))

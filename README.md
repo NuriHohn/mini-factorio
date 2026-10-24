@@ -123,3 +123,5 @@ On touch devices, drag to pan, pinch to zoom and tap to inspect. To build, tap a
 
 
 Higher paths now include an Eco orchard/nursery with physical fruit and planting routines, a Craftsman bicycle/treehouse annex, and an Industrial mechanic workshop/hoist. Supply only each path’s materials. The mechanic workshop turns two gears into one Industrial mechanic module; extract it with an inserter and deliver it to a Supply Crate for the hoist. Click Pete or his structures for requirements and stock. See [Game design](docs/GAME_DESIGN.md#higher-pete-developments).
+
+For optional learning aids, open **Help → Little goals** and pin something to try. Inspect Pete for his next step and process cards, machines for connection explanations, or a Supply Crate for project shortages and nearby-stock handoff. These aids use existing materials and saved production progress; they add no timed challenges or rewards. See [learning and orientation](docs/GAME_DESIGN.md#learning-and-orientation-aids).
