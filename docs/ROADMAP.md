@@ -238,4 +238,17 @@ Rules and compatibility: [Petes Welt progression](GAME_DESIGN.md#petes-welt-dail
 | 16.61 | Atomic nearby iron offering, level-1 physical ore mining/delivery and viable iron-only general-store start |
 | 16.62 | Craftsman-2 shared powered furnace, physical ore/plate carrying and existing workshop/plate project integration |
 
-Costs, rules and compatibility: [Product projects and iron](GAME_DESIGN.md#product-projects-and-the-iron-path-sprints-1658-1662). Copper/Industrial offerings, automatic iron miners, further expansion and the Pete-free Factory edition remain proposals. Installation/offline Sprint 16.38 stays deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.
+Costs, rules and compatibility: [Product projects and iron](GAME_DESIGN.md#product-projects-and-the-iron-path-sprints-1658-1662). Copper offerings and automatic iron miners follow below. Industrial offerings, further expansion and the Pete-free Factory edition remain proposals. Installation/offline Sprint 16.38 stays deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.
+
+
+## Sprints 16.63–16.67 — Resource-led Craftsman and Inventor progression
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.63 | Craftsman-3 paid shared iron miner, bounded obstacle-aware belt to the existing furnace, own power, retained paid progress and ordinary buffer backpressure |
+| 16.64 | Diminishing resource-family influence from nearby offers and store stock on new tasks and affordable project choices; seeded mixed-path scheduling, committed work and daily-life opportunities retained |
+| 16.65 | Atomic nearby copper offering and level-1 personal mining/delivery, Inventor XP and copper-only bootstrap into the same general store |
+| 16.66 | Inventor-2 paid shared copper furnace/power, actual ore/plate carrying and bounded stock with a viable route to the next level |
+| 16.67 | Inventor-3 plate-paid shared cable assembler, physical plate/cable logistics, original experiment/treasure projects and level/material/access explanations |
+
+Authoritative rules: [Resource-led paths](GAME_DESIGN.md#resource-led-craftsman-and-inventor-paths-sprints-1663-1667). These increments do not supply circuits or build an automatic copper miner; those, Industrial resource offerings and later expansion remain proposals. Original level-4 flight preparation and level-5 scenic flights keep their existing requirements. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.

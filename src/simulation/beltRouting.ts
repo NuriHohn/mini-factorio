@@ -10,12 +10,14 @@ export interface WaterRouting { water: (x: number, y: number) => boolean; availa
 export interface BeltRoute { points: Position[] | null; exhausted: boolean; expanded: number }
 interface Node { tile: number; direction: number; cost: number; estimate: number; order: number; run: number; wood: number; parent: Node | null }
 const directions: Direction[] = ['north', 'east', 'south', 'west']
-// A step always outweighs every possible turn in this finite directional graph.
-const DETAIL_COST = SIZE * SIZE * 4 + 1
-const STEP_COST = DETAIL_COST * DETAIL_COST
 // Read-only A*: cardinal movement, shortest length, then existing-belt reuse, then fewest turns, stable ties.
 // The callback is the existing authoritative belt placement validator.
 export function findBeltRoute(start: Position, end: Position, facing: Direction, canBuild: (x: number, y: number, outgoing: Direction, incoming?: Direction) => boolean, budget = BELT_SEARCH_BUDGET, existing: (x: number, y: number) => boolean = () => false, water?: WaterRouting): BeltRoute {
+  // Read world constants at call time: NPC construction also imports this planner
+  // through the world's lifecycle modules. Module initialization order must not
+  // turn the route costs into NaN during that import cycle.
+  const DETAIL_COST = SIZE * SIZE * 4 + 1
+  const STEP_COST = DETAIL_COST * DETAIL_COST
   const left = Math.max(0, Math.min(start.x, end.x) - BELT_SEARCH_MARGIN), right = Math.min(SIZE - 1, Math.max(start.x, end.x) + BELT_SEARCH_MARGIN)
   const top = Math.max(0, Math.min(start.y, end.y) - BELT_SEARCH_MARGIN), bottom = Math.min(SIZE - 1, Math.max(start.y, end.y) + BELT_SEARCH_MARGIN)
   const passable = new Map<string, boolean>(), best = new Map<string, number>(), heap: Node[] = []

@@ -1,3 +1,4 @@
+import { resourcePreference } from './resourcePreference'
 import { DEVELOPMENT_KINDS, developmentKind } from './peteDevelopments'
 import { HARVEST_MS, HARVEST_WOOD, HARVEST_XP, HARVEST_COOLDOWN_MS, harvestSiteClear, harvestTreeReady, planHarvest, woodDestination } from './forestry'
 import { inventoryTotal } from './items'
@@ -200,7 +201,7 @@ export function projectCandidates(world: World, blocked: string[] = []): { defin
     if (!project) { if (definition.id !== 'harvesting') blocked.push(definition.id); return [] }
     const weight = projectWeight(world, project, definition, saved ?? undefined)
     if (!weight && definition.id !== 'harvesting') blocked.push(definition.id)
-    return weight ? [{ definition, project, weight, priorityWeight: projectPriority(definition, project) * Math.min(3, weight) }] : []
+    return weight ? [{ definition, project, weight, priorityWeight: projectPriority(definition, project) * Math.min(3, weight) * (world.homestead ? resourcePreference(world, definition.path) : 1) }] : []
   })
 }
 export function trySecretProject(world: World): boolean {
