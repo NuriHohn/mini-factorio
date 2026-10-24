@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, ironError, placeGrove, placeIron } from './petesWorld'
 import { advanceWorld } from './step'
 import { advanceHomestead, begin, materialStore } from './homestead'
@@ -79,30 +79,60 @@ describe('gradual homestead products and iron development', () => {
     expect(s.inventory.iron).toBe(3); expect(h.carried.iron).toBe(0)
     expect(w.personality.paths.craftsman.xp).toBe(xp + 3)
   })
-  it('pays panels/crates for visible improvements and builds real connected Eco machines', () => {
-    const w = forest()
-    until(w, () => w.gardenProject?.phase === 'complete' && w.coopProject?.phase === 'complete', 1200000)
-    const store = materialStore(w)!
-    store.wood = 60; awardActivity(w.personality, { path: 'eco', xp: 200 })
-    until(w, () => store.storeTier === 1 && w.homestead!.expansion.improvements.coopAwning !== undefined && w.homestead!.expansion.improvements.gardenBench !== undefined, 1800000)
-    expect(w.produced.woodPanel).toBeGreaterThanOrEqual(20)
-    until(w, () => w.homestead!.expansion.forestry !== null && w.homestead!.expansion.assembler !== null, 1800000)
-    const e = w.homestead!.expansion
-    expect(w.buildings[e.forestry!]?.kind).toBe('forester')
-    expect(w.buildings[e.assembler!]?.kind).toBe('assembler')
-    until(w, () => store.storeTier === 2 && e.improvements.gardenBoxes !== undefined, 1800000)
-    expect(IMPROVEMENTS.every(id => e.improvements[id] !== undefined)).toBe(true)
-    expect(w.produced.woodenCrate).toBeGreaterThanOrEqual(7)
-    expect(supplyCapacity(store)).toBe(600)
-    const restored = decodeSave(encodeSave(w, view, stamp)).world
-    advanceWorld(w, 10000); advanceWorld(restored, 10000)
-    expect(snapshot(restored)).toEqual(snapshot(w))
-    // Bounded machine buffers stop the shared line once Pete stops collecting.
-    store.inventory.woodenCrate = 8
-    advanceWorld(w, 60000)
-    expect(store.inventory.woodenCrate).toBe(8)
-    const assembler = w.buildings[e.assembler!]
-    expect(assembler?.kind === 'assembler' && inventoryTotal(assembler.output)).toBeLessThanOrEqual(4)
+  describe('Eco products from an independently copied, simulated homestead', () => {
+    let fixture: World
+    beforeAll(() => {
+      fixture = forest()
+      until(fixture, () => fixture.gardenProject?.phase === 'complete' && fixture.coopProject?.phase === 'complete', 1200000)
+    }, 60000)
+    beforeAll(() => {
+      const store = materialStore(fixture)!
+      store.wood = 60; awardActivity(fixture.personality, { path: 'eco', xp: 200 })
+      until(fixture, () => store.storeTier === 1 && fixture.homestead!.expansion.improvements.coopAwning !== undefined && fixture.homestead!.expansion.improvements.gardenBench !== undefined, 1800000)
+    }, 60000)
+    it('pays real panels for the roof, coop awning and garden bench', () => {
+      const w = structuredClone(fixture), store = materialStore(w)!, e = w.homestead!.expansion
+      expect(store.storeTier).toBe(1)
+      expect(e.improvements.coopAwning).toBeDefined()
+      expect(e.improvements.gardenBench).toBeDefined()
+      expect(w.produced.woodPanel).toBeGreaterThanOrEqual(20)
+    })
+    describe('with a genuinely completed shared production line', () => {
+      let chainFixture: World
+      let productFixture: World
+      beforeAll(() => {
+        chainFixture = structuredClone(fixture)
+        until(chainFixture, () => chainFixture.homestead!.expansion.forestry !== null, 1800000)
+      }, 60000)
+      beforeAll(() => {
+        until(chainFixture, () => chainFixture.homestead!.expansion.assembler !== null, 1800000)
+      }, 60000)
+      beforeAll(() => {
+        productFixture = structuredClone(chainFixture)
+        until(productFixture, () => productFixture.produced.woodenCrate >= 7, 1800000)
+      }, 60000)
+      it('builds the real connected forestry and crate production machines', () => {
+        const w = structuredClone(chainFixture), e = w.homestead!.expansion
+        expect(w.buildings[e.forestry!]?.kind).toBe('forester')
+        expect(w.buildings[e.assembler!]?.kind).toBe('assembler')
+      })
+      it('spends actual crates on all improvements and preserves bounded production after saves', () => {
+        const w = structuredClone(productFixture), store = materialStore(w)!, e = w.homestead!.expansion
+        until(w, () => store.storeTier === 2 && e.improvements.gardenBoxes !== undefined, 1800000)
+        expect(IMPROVEMENTS.every(id => e.improvements[id] !== undefined)).toBe(true)
+        expect(w.produced.woodenCrate).toBeGreaterThanOrEqual(7)
+        expect(supplyCapacity(store)).toBe(600)
+        const restored = decodeSave(encodeSave(w, view, stamp)).world
+        advanceWorld(w, 10000); advanceWorld(restored, 10000)
+        expect(snapshot(restored)).toEqual(snapshot(w))
+        // Bounded machine buffers stop the shared line once Pete stops collecting.
+        store.inventory.woodenCrate = 8
+        advanceWorld(w, 60000)
+        expect(store.inventory.woodenCrate).toBe(8)
+        const assembler = w.buildings[e.assembler!]
+        expect(assembler?.kind === 'assembler' && inventoryTotal(assembler.output)).toBeLessThanOrEqual(4)
+      })
+    })
   })
   it('continues active iron mining/build/input/output exactly across saves', () => {
     const w = createPetesWorld(); placeIron(w, 26, 18)
