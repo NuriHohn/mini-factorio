@@ -782,3 +782,34 @@ New structures visibly progress through foundation, frame and finish. The annex 
 **Machine explanations (16.46):** miners, furnaces, assemblers, belts and inserters explain missing power/ingredients, unconfigured recipes, occupied output or normal work, using existing recipe/inspection state. Optional amber outlines identify the relevant input sides, output, pickup/drop points or nearby power pole. Highlights never connect machinery, alter power or change transfer rules. Closed/changed selections remove them.
 
 **Voluntary little goals (16.47):** Help → Little goals offers first iron mining (5 ore), plate production (5), gear production (3) and helping Pete finish his workshop. Goals use existing lifetime mined/produced counters and the once-only workshop reward ledger, so their progress survives ordinary saves/loads and completed projects remain complete after demolition. They have no timers, failure, penalties, XP or currency rewards. One goal may be pinned over the world and dismissed; the pin is a transient UI preference. Refresh/world loading does not replay a reward, and older saves need no new goal schema.
+
+
+## Shared Eco production and Petes Welt
+
+Sprints 16.48–16.52 implement one shared Eco chain and the first autonomous-mode prototype. Labels such as FSK0/FSK12 are design shorthand, not age ratings. The existing Factory game remains available with its current Pete mechanics; a future Pete-free complex edition and the other autonomous material paths are not included.
+
+### Shared buildings, recipes and materials
+
+- **Forststation** is a directional 1×1 electric building (30 kW). It fells only mature trees in its square radius-three work area, in stable tile order, over six powered seconds per tree. Each felled tree produces three physical `wood` items, recorded as mined output, without adding global construction Wood. Its output holds at most six Wood; harvesting waits above three. Belts and forward-facing inserters export the same physical stock.
+- **Reforestation:** the station remembers only its own harvested plots (at most 48). When a plot is free and dry, it grows/plants one replacement oak over three powered seconds using one reserved Wood. Blocked plots are never overwritten. A completed existing Pete tree nursery within Manhattan distance three can instead supply one of its existing saplings; that seedling is consumed once. Ordinary tree growth remains five minutes, and only mature trees are felled. Replant work and plot memory survive interruptions and saves. Natural spreading still uses existing nature rules.
+- **Sägewerk** is a directional 1×1 electric crafting machine (40 kW), with fixed recipe **1 Wood → 2 wood panels in two seconds**. Its input holds two Wood, its output holds four products including reservations. The front exports; rear/side transport accepts Wood. It shares crafting, power, belts and inserters with existing machines.
+- The existing **Assembler** gains **4 wood panels → 1 wooden crate in three seconds**, with its usual 60 kW, recipe selection, per-ingredient buffers and output rules. Wooden crates are tangible manufactured stock in this prototype; no automatic conversion into buildings or hidden project spending occurs.
+- Physical Wood delivered into a Supply Crate becomes that crate’s existing Eco Wood stock. The global player construction stock remains separate, and existing costs/paid projects are preserved. Wood, wood panels and wooden crates belong exclusively to Eco; the Assembler is shared equipment, not an additional material family.
+
+Factory players place and connect these buildings themselves, using the existing output rotation, inspection, electricity and logistics controls. Sawmills have a fixed recipe; assembler wood recipes unlock with ordinary Automation I. Production and consumption statistics record actual operations.
+
+### Autonomous Eco prototype
+
+Choose **Menu → Neue Petes Welt** to start a separate peaceful world with Pete’s home. It begins with no resource deposits, forests or existing factory. The child has one resource tool, **Waldgruppe**, and inspection/camera controls; machine-building hotkeys and recipe changes are unavailable in this mode.
+
+A grove places nine mature oaks on an entirely free dry 3×3 area whose center is 4–10 tiles from home. Placement is atomic, respects actors and reserves the planned factory rectangle; the world’s normal natural-tree cap still applies. It is a generous free resource source for the prototype, with no inventory collection or machine placement required from the child. A preview outlines the grove and home-distance limits. Touch uses the existing same-target second-tap confirmation and cancellation.
+
+Pete searches bounded sites near offered trees, preferring sites that cover more trees, then nearer home and stable tile order. The first factory has a fixed east-facing seven-tile line and a walking lane, within a 7×4 planning rectangle. Two poles and two ordinary 100-kW generators supply its shared machines. Pete physically walks to each of eleven construction sites and spends three simulation seconds building there. Each actual construction and each completed wooden-crate batch grants one Eco XP; merely placing resources grants none. Buildings appear only on successful completion, keep their ordinary inventories and run the real shared production simulation. No player approval of individual sites is needed. Blocked work preserves progress and displays a concrete explanation. Once built, Pete visits the factory and waves while it operates.
+
+This increment builds one Eco factory per world; it does not yet rebuild demolished machines, expand to several chains, consume wooden crates for new personal projects, choose among mixed material paths, or provide Pete’s full existing daily-life schedule in this mode. The original game retains those routines. Later resource families, long-term child interaction and freeform factory planning remain proposals.
+
+### Persistence and access
+
+Version **39** strictly stores forestry buffers, work and harvested plots, sawmill jobs and optional autonomous layout/build progress. Versions 1–38 gain zero-valued inventory entries for the new wood items and continue in the existing Factory game. Construction Wood, completed projects and XP are retained. Save/load does not replay completed work or generate offline production.
+
+Petes Welt has distinct `.petes-world` manual/autosave keys; Factory retains the original keys. New games and loads ask before replacing the running world. Save before switching; **Andere Spielweise laden** loads the other mode’s manual slot. Export/import preserves the mode and does not overwrite either mode’s browser slots. Failed/cancelled loading keeps the running world and slot selection.

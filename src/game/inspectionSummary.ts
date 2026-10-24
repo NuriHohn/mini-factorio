@@ -3,6 +3,8 @@ import type { Inspection } from '../simulation/inspection'
 import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { PLAYER_TOOLS } from '../state/toolMetadata'
 const descriptions: Record<Inspection['kind'], string> = {
+  forester: 'Harvests mature trees within 3 tiles. Replants its harvested plots using 1 Wood; new trees mature in 5 minutes. Needs 30 kW.',
+  sawmill: '1 Wood → 2 wood panels. Shared belts, inserters and electricity; 40 kW.',
   peteDevelopment: 'Pete’s own development project. Click Pete to see his current work and wishes.',
   peteTreasure: 'Pete collects little keepsakes here. They are separate from factory resources.',
   peteFlightpad: 'Propeller backpack workshop. Practice at Inventor 4, safe scenic flights at Inventor 5.',
@@ -43,8 +45,9 @@ export function inspectionSummary(i: Inspection) {
   else if (i.kind === 'waterwheel' && !i.waterAvailable) state = 'Needs water on the facing side.'
   else if (i.kind === 'assembler' && !i.recipeId) state = 'Choose a recipe first.'
   else if ('electrical' in i && ['disconnected', 'no-generation'].includes(i.electrical.state) && i.kind !== 'generator' && i.kind !== 'waterwheel' && i.kind !== 'powerPole') state = 'Needs electricity.'
+  else if (i.kind === 'forester') state = i.details
   else if (i.kind === 'miner') state = i.buffered ? 'Output is full.' : i.resource ? 'Working normally.' : 'Needs an ore patch.'
-  else if (i.kind === 'furnace' || i.kind === 'assembler') {
+  else if (i.kind === 'sawmill' || i.kind === 'furnace' || i.kind === 'assembler') {
     if (i.status === 'output-full') state = 'Output is full.'
     else if (i.status === 'processing') state = i.electrical.speedFraction > 0 ? 'Working normally.' : 'Needs electricity.'
     else {

@@ -1,5 +1,6 @@
 import { drawGuidance } from './guidanceVisuals'
 import { drawAnnexWalkway, drawDevelopment, drawDevelopmentActivity } from './developmentVisuals'
+import { createPetesWorld, groveError, miniLayout, placeGrove } from '../simulation/petesWorld'
 import { TouchGestures } from './touchGestures'
 import { commitConstruction } from '../simulation/construction'
 import { drawInventorStructure, drawLeisure, drawPlayfulSpray } from './leisureVisuals'
@@ -260,6 +261,7 @@ export class FactoryScene extends Phaser.Scene {
           if (this.landscapeStroke.begin(this.world, point, mode, useGameStore.getState().brushSize) > 0) { useGameStore.getState().recordToolUse(selected); this.landscapeUsed = true }
           return
         }
+        if (selected === 'placeGrove') { useGameStore.setState({ message: placeGrove(this.world, point.x, point.y) ?? 'Wald platziert. Pete kümmert sich um Abbau und Fabrik.' }); return }
         const species = plantingSpecies(selected)
         if (species) {
           const error = placementError(this.world, point.x, point.y, 'tree')
@@ -287,6 +289,7 @@ export class FactoryScene extends Phaser.Scene {
       if (useGameStore.getState().useWebTool(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
+      if (this.world.miniFactory && tool && tool !== 'placeGrove') return
       if (tool === 'spiderWeb' || tool === 'playfulSpray' || combatTool(tool) || natureTool(tool)) return
       if (!tool) {
         if (peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) { useGameStore.getState().inspectPete(this.world); return }
@@ -369,6 +372,7 @@ export class FactoryScene extends Phaser.Scene {
     else if (natureTool(tool)) {
       const mode = brushMode(tool), species = plantingSpecies(tool)
       if (mode !== undefined) { const stroke = new LandscapeStroke(); stroke.begin(this.world, end, mode, state.brushSize); stroke.end() }
+      else if (tool === 'placeGrove') error = placeGrove(this.world, end.x, end.y)
       else if (species) { if (!plantTree(this.world, end.x, end.y, species)) error = 'This planting site is blocked.' }
       else { const result = chopTree(this.world, end.x, end.y); if (result) this.natureVisuals.fell(this.world, result.tree); else error = 'Choose a tree.' }
     } else if (tool === 'remove') { error = removalError(this.world, end.x, end.y); if (!error) removeBuilding(this.world, end.x, end.y) }
@@ -471,19 +475,26 @@ export class FactoryScene extends Phaser.Scene {
     try {
       if (request.kind === 'save') this.saves.save(this.world, this.viewState(), 'manual')
       else if (request.kind === 'new') {
-        if (window.confirm('Start a new factory? Unsaved progress will be lost. Your browser saves will be kept.')) {
+        if (window.confirm('Neue Spielwelt starten? Ungespeicherter Fortschritt geht verloren. Deine gespeicherten Welten bleiben erhalten.')) {
           const camera = this.cameras.main
-          this.restore({ world: createWorld(), view: { scrollX: SIZE * TILE / 2 - camera.width / 2, scrollY: SIZE * TILE / 2 - camera.height / 2, zoom: 1.3, direction: 'east', powerOverlay: false }, savedAt: new Date().toISOString() })
-          this.saves.feedback('New factory started. Browser save slots were kept.')
+          this.restore({ world: request.mode === 'petesWorld' || (!request.mode && this.world.miniFactory) ? createPetesWorld() : createWorld(), view: { scrollX: SIZE * TILE / 2 - camera.width / 2, scrollY: SIZE * TILE / 2 - camera.height / 2, zoom: 1.3, direction: 'east', powerOverlay: false }, savedAt: new Date().toISOString() })
+          this.saves.setMode(this.world.miniFactory ? 'petesWorld' : 'factory')
+          useGameStore.getState().setBuildTab(this.world.miniFactory ? 'nature' : 'factory')
+          this.saves.feedback('New game started. Browser save slots were kept.')
         } else this.saves.feedback('New game cancelled. Current factory kept.')
       } else if (request.kind === 'export') {
         const savedAt = new Date().toISOString()
         downloadSave(encodeSave(this.world, this.viewState(), savedAt), savedAt)
         this.saves.feedback('JSON save exported. Browser save slots were kept.')
       } else {
-        const candidate = request.kind === 'import' ? decodeSave(request.text) : this.saves.load(request.kind === 'load-auto' ? 'auto' : 'manual')
+        const previousMode = this.saves.mode
+        if (request.kind !== 'import' && request.mode) this.saves.setMode(request.mode)
+        let candidate: LoadedGame
+        try { candidate = request.kind === 'import' ? decodeSave(request.text) : this.saves.load(request.kind === 'load-auto' ? 'auto' : 'manual') } finally { this.saves.setMode(previousMode) }
         if (window.confirm('Replace the current running factory with this saved game? Unsaved progress will be replaced.')) {
           this.restore(candidate)
+          this.saves.setMode(this.world.miniFactory ? 'petesWorld' : 'factory')
+          useGameStore.getState().setBuildTab(this.world.miniFactory ? 'nature' : 'factory')
           this.saves.feedback(request.kind === 'import' ? 'JSON save imported. Browser save slots were kept.' : 'Game loaded locally.')
         } else this.saves.feedback('Load cancelled. Current factory kept.')
       }
@@ -500,6 +511,15 @@ export class FactoryScene extends Phaser.Scene {
       this.items.fillStyle(0x17222b).fillCircle(x, y, 5)
       this.items.fillStyle(visual.color).fillTriangle(x - 4, y + 3, x - 2, y - 4, x + 4, y + 2)
       this.items.fillStyle(visual.highlight).fillCircle(x + 1, y, 2.5)
+    } else if (item === 'wood') {
+      this.items.fillStyle(visual.color).fillRoundedRect(x - 6, y - 3, 12, 6, 2)
+      this.items.fillStyle(visual.highlight).fillCircle(x + 4, y, 3)
+      this.items.lineStyle(1, visual.shade).strokeCircle(x + 4, y, 1.5)
+    } else if (item === 'woodenCrate') {
+      this.items.fillStyle(visual.color).fillRect(x - 5, y - 5, 10, 10)
+      this.items.lineStyle(1, visual.highlight).strokeRect(x - 5, y - 5, 10, 10)
+      this.items.lineStyle(1, visual.shade).lineBetween(x - 4, y - 4, x + 4, y + 4)
+      this.items.lineBetween(x - 4, y + 4, x + 4, y - 4)
     } else if (visual.shape === 'gear') {
       this.items.lineStyle(3, visual.color)
       for (let i = 0; i < 8; i++) {
@@ -687,6 +707,21 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.lineStyle(2, 0xb68b50).strokeRect(x + 5, y + 5, 22, 22)
         this.machines.fillStyle(0xb68b50).fillRect(x + 5, y + 13, 22, 5)
         ITEMS.filter(item => building.inventory[item] > 0).slice(0, 4).forEach((item, index) => this.drawItem(item, x + 11 + index % 2 * 10, y + 12 + Math.floor(index / 2) * 10))
+      } else if (building.kind === 'forester' || building.kind === 'sawmill') {
+        const mill = building.kind === 'sawmill'
+        this.machines.fillStyle(0x263d2c).fillRoundedRect(x + 2, y + 3, 28, 27, 3)
+        this.machines.lineStyle(2, 0xb59357).strokeRect(x + 4, y + 6, 24, 22)
+        this.machines.fillStyle(0x9e7242).fillRect(x + 5, y + 18, 22, 7)
+        if (mill) {
+          this.machines.fillStyle(0xcad8d1).fillCircle(x + 16, y + 16, 8)
+          this.machines.lineStyle(2, 0x476051)
+          const angle = (building.job?.elapsedMs ?? 0) / 200
+          for (let n = 0; n < 6; n++) this.machines.lineBetween(x + 16, y + 16, x + 16 + Math.cos(angle + n * Math.PI / 3) * 9, y + 16 + Math.sin(angle + n * Math.PI / 3) * 9)
+        } else {
+          this.machines.fillStyle(0x73ac66).fillTriangle(x + 16, y + 4, x + 7, y + 19, x + 25, y + 19)
+          this.machines.fillStyle(0xe0d1a3).fillRect(x + 7, y + 26, 18 * building.elapsed / 6000, 2)
+        }
+        this.arrow(x, y, building.direction)
       } else if (building.kind === 'miner') {
         this.machines.fillStyle(0x15201e).fillRoundedRect(x + 3, y + 4, 27, 27, 3)
         this.machines.fillStyle(0xc69a46).fillRect(x + 5, y + 4, 22, 21)
@@ -875,11 +910,24 @@ export class FactoryScene extends Phaser.Scene {
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
     this.preview.clear()
+    const mini = this.world.miniFactory
+    if (mini?.anchor !== null && mini?.anchor !== undefined) {
+      const next = miniLayout(mini.anchor)[mini.built]
+      if (next) {
+        this.preview.lineStyle(2, 0xf0d191, .8).strokeRect(next.tile % SIZE * TILE + 2, Math.floor(next.tile / SIZE) * TILE + 2, TILE - 4, TILE - 4)
+        this.preview.fillStyle(0xb0d792, .5).fillRect(next.tile % SIZE * TILE + 3, Math.floor(next.tile / SIZE) * TILE + TILE - 7, (TILE - 6) * mini.elapsedMs / 3000, 4)
+      }
+    }
+    if (this.world.miniFactory && state.tool === 'placeGrove' && this.world.peace.home !== null) {
+      const home = this.world.peace.home, hx = home % SIZE, hy = Math.floor(home / SIZE)
+      this.preview.lineStyle(2, 0x96c77c, .5).strokeRect((hx - 10) * TILE, (hy - 10) * TILE, 21 * TILE, 21 * TILE)
+      this.preview.lineStyle(2, 0xce9c73, .5).strokeRect((hx - 3) * TILE, (hy - 3) * TILE, 7 * TILE, 7 * TILE)
+    }
     if (state.tool === null) drawGuidance(this.preview, this.world, TILE, !!state.peteInspection && state.petePathVisible, state.inspected, state.connectionVisible)
     const touchTarget = useGameStore.getState().touchPlacement
     if (touchTarget) {
       const { start, end, tool } = touchTarget
-      const cells = tool === 'belt' || tool === 'powerPole' || tool === 'footbridge' ? planConstruction(this.world, start, end, tool, useGameStore.getState().direction, true).cells : [end]
+      const cells = tool === 'placeGrove' ? brushTiles(end, end, 3).map(tile => ({ x: tile % SIZE, y: Math.floor(tile / SIZE) })) : tool === 'belt' || tool === 'powerPole' || tool === 'footbridge' ? planConstruction(this.world, start, end, tool, useGameStore.getState().direction, true).cells : [end]
       for (const cell of cells) this.preview.lineStyle(2, 0xf5d68b).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
     }
     this.constructionLabel.setVisible(false)
@@ -932,10 +980,13 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
             this.preview.lineStyle(1, color, .7).strokeRect(i % SIZE * TILE + 1, Math.floor(i / SIZE) * TILE + 1, TILE - 2, TILE - 2)
           }
         } else {
-          const error = species ? placementError(this.world, x, y, 'tree') : buildingAt(this.world, x, y)?.kind !== 'tree'
+          const error = state.tool === 'placeGrove' ? groveError(this.world, x, y) : species ? placementError(this.world, x, y, 'tree') : buildingAt(this.world, x, y)?.kind !== 'tree'
           const color = error ? 0xe5a08d : 0xb2d08a
           this.preview.fillStyle(color, .2).fillRect(x * TILE, y * TILE, TILE, TILE)
           this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
+          if (state.tool === 'placeGrove' && inside(x, y)) {
+            this.preview.lineStyle(2, color).strokeRect((x - 1) * TILE, (y - 1) * TILE, TILE * 3, TILE * 3)
+          }
           if (species && inside(x, y) && !error) drawTree(this.preview, this.world, { kind: 'tree', x, y, species, origin: 'manual', bornAtMs: this.world.timeMs, nextReproductionAtMs: this.world.timeMs + MATURE_TREE_MS + REPRODUCTION_MS }, TILE)
         }
         return

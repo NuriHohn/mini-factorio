@@ -17,6 +17,12 @@ npm run dev
 
 Open the URL printed by Vite. In Windows PowerShell, use `npm.cmd` if script execution blocks `npm`. See [Development](docs/DEVELOPMENT.md) for toolchain, validation and review instructions.
 
+## Petes Welt and shared forestry
+
+Open **Menu → Neue Petes Welt** for the first autonomous Eco prototype. Select **Waldgruppe** and place a 3×3 group of mature trees 4–10 tiles from Pete’s home. Pete finds room, walks to each site and builds a powered **Forststation → belt → Sägewerk → belt → Assembler → belt → storage** chain. Machines are inspectable; the child places only resources. **Menu → Andere Spielweise laden** loads the other mode’s last manual save; save before switching. Each mode has separate manual/autosave slots, and JSON export/import includes the mode.
+
+The existing Factory game also offers Forststation and Sägewerk. The shared chain harvests physical Wood, saws 1 Wood into 2 wood panels, then uses the ordinary assembler to make 1 wooden crate from 4 panels. Forestry replants its own harvested plots and respects five-minute tree growth. See [shared Eco production](docs/GAME_DESIGN.md#shared-eco-production-and-petes-welt).
+
 ## First factory
 
 Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, choose Electronic circuit in an assembler’s inspector, then feed iron plates and copper cables to separate inputs. Assemblers require a manual recipe. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Use **Save Game** to keep a local browser save, **Load Game** to restore it after refresh, or **Export file** for a portable offline backup. A separate autosave runs every two minutes of active gameplay. Research **Analytics I**, then open **Analytics** in the header for actual item rates, production history, utilization and clickable bottlenecks; see [Production analytics](docs/GAME_DESIGN.md#production-analytics).
@@ -52,7 +58,7 @@ The bottom build toolbar starts on **Factory**, alongside **Logistics**, **Power
 
 Open **Menu (☰)** for Save & Load and a confirmed New game. **Help (?)** separates How to Play from Controls. **Overview** contains detailed stock and power values; the header shows construction Wood. Manual saves and autosaves occupy separate localStorage slots. Load Game, Load Autosave and Import file validate the entire snapshot before asking to replace the current factory. Export/import do not overwrite either browser slot. Refresh starts a new world until you explicitly load a save; there is no offline production catch-up. Browser saves belong to the current browser/profile/site, so export a JSON file before clearing site data or switching devices. See [Game design](docs/GAME_DESIGN.md#offline-save-and-load) for details.
 
-Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-38 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–37 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
+Use **G** to place an **Anti-Goblin Sprinkler** from Pete. With full 5 kW power it detects Pete within 3 tiles, sprays for 1 second, then he slips for 1 second, complains for 2 seconds and flees for 8 seconds. Sprinklers cool down for 10 seconds after spraying; no pipes or water supply are needed. Police and post-release grace take priority. Existing Sprint 9 saves remain loadable; current version-39 saves preserve reactions, webs, cooldowns, analytics and research, while version-1–38 saves remain loadable. See [sprinkler rules](docs/GAME_DESIGN.md#anti-goblin-sprinkler).
 
 ## Pete’s Revenge
 

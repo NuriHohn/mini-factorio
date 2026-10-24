@@ -1,3 +1,4 @@
+import { forestryOutput } from './forestryStation'
 import { splitterDirections } from './splitters'
 import { emptyInventory, ITEMS } from './items'
 import type { Inventory, Item } from './items'
@@ -20,7 +21,7 @@ function neighbors(world: World, inserter: Inserter) {
   const { pickup, drop } = inserterPorts(inserter)
   return { source: buildingAt(world, pickup.x, pickup.y), target: buildingAt(world, drop.x, drop.y) }
 }
-function sourceCount(source: Building, inserter: Inserter, item: Item, requireReady = true): number {
+function sourceCount(source: Building, inserter: Inserter, item: Item, requireReady = true, world?: World): number {
   switch (source.kind) {
     case 'splitter': {
       const output = splitterDirections(source.direction).indexOf(inserter.direction)
@@ -33,6 +34,8 @@ function sourceCount(source: Building, inserter: Inserter, item: Item, requireRe
     case 'storage': return source.inventory[item]
     case 'belt': return source.item === item && (!requireReady || source.progress >= 1 - 1e-8) ? 1 : 0
     case 'miner': return source.direction === inserter.direction && source.item === item ? 1 : 0
+    case 'forester': return source.direction === inserter.direction && item === 'wood' ? forestryOutput(source, world) : 0
+    case 'sawmill':
     case 'furnace':
     case 'assembler': return source.direction === inserter.direction ? source.output[item] : 0
     default: return 0
@@ -48,10 +51,10 @@ export function createInserterFrame(world: World): InserterFrame {
       const inventory = emptyInventory()
       // Direction is checked again per inserter; snapshot all physical source units.
       for (const item of ITEMS) {
-        if (source.kind === 'furnace' || source.kind === 'assembler') inventory[item] = source.output[item]
+        if (source.kind === 'forester' || source.kind === 'sawmill' || source.kind === 'furnace' || source.kind === 'assembler') inventory[item] = source.kind === 'forester' && item === 'wood' ? forestryOutput(source, world) : source.output[item]
         else if (source.kind === 'splitter') inventory[item] = source.outputs.filter(packet => packet?.item === item).length
         else if (source.kind === 'miner') inventory[item] = Number(source.item === item)
-        else inventory[item] = sourceCount(source, inserter, item, false)
+        else inventory[item] = sourceCount(source, inserter, item, false, world)
       }
       frame.sources.set(source, inventory)
     }
@@ -65,7 +68,7 @@ function accepts(target: Building | null, item: Item, inserter: Inserter, frame?
 function pickupCandidate(world: World, inserter: Inserter, frame?: InserterFrame): Item | null {
   const { source, target } = neighbors(world, inserter)
   if (!source) return null
-  return ITEMS.find(item => sourceCount(source, inserter, item) > 0
+  return ITEMS.find(item => sourceCount(source, inserter, item, true, world) > 0
     && (!frame || (frame.sources.get(source)?.[item] ?? 0) > 0)
     && accepts(target, item, inserter, frame)) ?? null
 }
@@ -79,7 +82,7 @@ export function inserterStatus(world: World, inserter: Inserter): InserterStatus
   if (inserter.phase === 'returning') return 'returning'
   if (inserter.phase === 'carrying') return inserter.elapsedMs >= INSERTER_SWING_MS && inserterDemand(world, inserter) === 0 ? 'output-blocked' : 'moving'
   const { source } = neighbors(world, inserter)
-  return source && ITEMS.some(item => sourceCount(source, inserter, item) > 0) && !pickupCandidate(world, inserter) ? 'output-blocked' : 'waiting-input'
+  return source && ITEMS.some(item => sourceCount(source, inserter, item, true, world) > 0) && !pickupCandidate(world, inserter) ? 'output-blocked' : 'waiting-input'
 }
 function pickup(world: World, inserter: Inserter, frame: InserterFrame): void {
   const item = pickupCandidate(world, inserter, frame)
@@ -96,6 +99,8 @@ function pickup(world: World, inserter: Inserter, frame: InserterFrame): void {
     case 'peteDevelopment': source.modules--; break
     case 'petePress': source.plates--; break
     case 'storage': source.inventory[item]--; break
+    case 'forester':
+    case 'sawmill':
     case 'furnace':
     case 'assembler': source.output[item]--; break
     case 'miner': source.item = null; break

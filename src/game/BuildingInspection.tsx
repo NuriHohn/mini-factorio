@@ -36,7 +36,7 @@ export function BuildingInspection() {
         {inspection.kind === 'peteGarden' && <p>Chicken feed: {inspection.feed ?? 0}/4 · Garden care grows one portion. Pete carries it to the coop.</p>}
         {inspection.kind === 'peteCoop' && <p>{inspection.adults} chickens · {inspection.chicks} chicks · {inspection.inside} inside{inspection.bedtime ? ' · Bedtime with Pete' : ''}{inspection.covered ? ' · Protective cover on' : ''} · {inspection.run} · {(inspection.fedUntilMs ?? 0) > 0 ? `Fed · next meal in ${Math.ceil(inspection.fedUntilMs! / 1000)}s` : 'Ready for feeding'}</p>}
         {inspection.kind === 'belt' && <p>Output: {inspection.direction} · {inspection.item ? ITEM_DEFINITIONS[inspection.item].label : 'No item'}</p>}
-        {inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}
+        {inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}
       </div>
       <details className="inspection-technical" key={inspected}><summary>Details and settings</summary>
       {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
@@ -74,7 +74,7 @@ export function BuildingInspection() {
         <div className="stats"><span>Radar</span><b>{inspection.active ? 'Active' : 'Inactive · needs full 5 kW'}</b></div>
         <div className="stats"><span>Police operation</span><b>{inspection.operation}</b></div>
         <p className="inspection-note">One police operation at a time. {inspection.prison ? `Prison at ${inspection.prison.x}, ${inspection.prison.y}.` : 'A prison appears at a reachable map edge on first dispatch.'}</p>
-      </> : inspection.kind === 'storage' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
+      </> : inspection.kind === 'forester' ? <><p>{inspection.details}</p><InventoryView inventory={inspection.inventory} /><progress aria-label="Felling progress" value={inspection.progress} max={1} /></> : inspection.kind === 'storage' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
         <div className="stats"><span>Extracting</span><b>{inspection.resource ? ITEM_DEFINITIONS[inspection.resource].label : 'No deposit'}</b></div>
         <div className="stats"><span>Mining progress</span><b>{Math.round(inspection.progress * 100)}%</b></div>
         <div className="stats"><span>Output buffer</span><b>{inspection.buffered ? '1 ore · blocked' : 'Empty'}</b></div>

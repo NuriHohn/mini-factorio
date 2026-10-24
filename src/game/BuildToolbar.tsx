@@ -5,17 +5,18 @@ import { buildingTechnologyError } from '../simulation/research'
 import { useGameStore } from '../state/gameStore'
 import { BUILD_TABS, PLAYER_TOOLS, toolMetadata } from '../state/toolMetadata'
 export function BuildToolbar() {
-  const { touchActive, hintUses, peaceful, revenge, simulationTime, research, brushSize, setBrushSize, wood, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
+  const { playMode, touchActive, hintUses, peaceful, revenge, simulationTime, research, brushSize, setBrushSize, wood, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
+  const tabs = BUILD_TABS.filter(tab => playMode === 'factory' || tab.id === 'nature')
   const error = (id: typeof PLAYER_TOOLS[number]['tool']) => buildingTechnologyError(research, id) ?? (id === 'treehouse' ? peaceful ? 'Only one treehouse · Pete already has a home.' : wood < 20 ? `20 Wood required · ${wood} available` : null : null)
   const hint = toolHintId(tool)
   const selected = tool ? toolMetadata(tool) : null
   return <section className="construction-toolbar" aria-label="Build toolbar">
     <div className="toolbar-top">
       {touchActive && <button className="save-action" aria-label="Close tools" onClick={() => useGameStore.setState({ touchToolsOpen: false })}>×</button>}
-      <div className="build-tabs" role="tablist" aria-label="Building categories">{BUILD_TABS.map(tab => <button key={tab.id} className="build-tab" role="tab" id={`tab-${tab.id}`} aria-controls="build-panel" aria-selected={buildTab === tab.id} tabIndex={buildTab === tab.id ? 0 : -1} onClick={() => setBuildTab(tab.id)} onKeyDown={event => {
+      <div className="build-tabs" role="tablist" aria-label="Building categories">{tabs.map(tab => <button key={tab.id} className="build-tab" role="tab" id={`tab-${tab.id}`} aria-controls="build-panel" aria-selected={buildTab === tab.id} tabIndex={buildTab === tab.id ? 0 : -1} onClick={() => setBuildTab(tab.id)} onKeyDown={event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
         event.preventDefault()
-        const next = event.key === 'Home' ? BUILD_TABS[0] : event.key === 'End' ? BUILD_TABS.at(-1)! : BUILD_TABS[(BUILD_TABS.findIndex(t => t.id === buildTab) + (event.key === 'ArrowLeft' ? BUILD_TABS.length - 1 : 1)) % BUILD_TABS.length]
+        const next = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs.at(-1)! : tabs[(tabs.findIndex(t => t.id === buildTab) + (event.key === 'ArrowLeft' ? tabs.length - 1 : 1)) % tabs.length]
         setBuildTab(next.id)
         document.getElementById(`tab-${next.id}`)?.focus()
       }}><span aria-hidden="true">{tab.icon}</span> {tab.label}</button>)}</div>
@@ -23,7 +24,7 @@ export function BuildToolbar() {
       {hint && (hintUses[hint] ?? 0) < 3 && <span className="tool-hint" role="note">{TOOL_HINTS[hint]}</span>}
     </div>
     <div className="toolbar-tools">
-      <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="tool-icons">{PLAYER_TOOLS.filter(option => option.tab === buildTab).map(option => {
+      <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="tool-icons">{PLAYER_TOOLS.filter(option => playMode === 'petesWorld' ? option.tool === 'placeGrove' : option.tab === buildTab && option.tool !== 'placeGrove').map(option => {
         const reason = error(option.tool)
         const fundingOnly = option.tool === 'treehouse' && !peaceful && wood < 20
         const cooldown = combatTool(option.tool) && revenge.playerReadyAtMs > simulationTime ? `${((revenge.playerReadyAtMs - simulationTime) / 1000).toFixed(1)} s cooldown` : ''
@@ -36,7 +37,7 @@ export function BuildToolbar() {
       })}</div>
       <div className="toolbar-options">
         {brushMode(tool) !== undefined && <fieldset className="brush-options"><legend>Brush size</legend>{([1, 3, 5] as const).map(size => <button key={size} className="save-action" aria-pressed={brushSize === size} onClick={() => setBrushSize(size)}>{size}×{size}</button>)}</fieldset>}
-        {['miner', 'belt', 'furnace', 'assembler', 'inserter', 'splitter'].includes(tool ?? '') && <button className="save-action rotate-tool" title="Rotate output clockwise (R)" aria-label={`Rotate output: ${direction}`} onClick={rotate}>↻ <span>{direction}</span></button>}
+        {['forester', 'sawmill', 'miner', 'belt', 'furnace', 'assembler', 'inserter', 'splitter'].includes(tool ?? '') && <button className="save-action rotate-tool" title="Rotate output clockwise (R)" aria-label={`Rotate output: ${direction}`} onClick={rotate}>↻ <span>{direction}</span></button>}
       </div>
     </div>
   </section>

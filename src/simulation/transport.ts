@@ -1,3 +1,4 @@
+import { forestryOutput } from './forestryStation'
 import { PRESS_INPUT_CAPACITY } from './gearPress'
 import { SUPPLY_CRATE_CAPACITY } from './supplyCrate'
 import { SPLITTER_STAGE_MS, splitterDirections } from './splitters'
@@ -24,6 +25,7 @@ export function canReceive(target: Building, item: Item, travel: Direction, rese
     case 'supplyCrate': return inventoryTotal(target.inventory) + target.wood + inventoryTotal(reserved) < SUPPLY_CRATE_CAPACITY
     case 'storage': return true
     case 'belt': return !target.item && inventoryTotal(reserved) === 0 && (target.bridge ? target.direction === travel : target.direction !== opposite(travel))
+    case 'sawmill': return target.direction !== opposite(travel) && item === 'wood' && inventoryTotal(target.input) + inventoryTotal(reserved) < 2
     case 'assembler': return target.direction !== opposite(travel)
       && target.input[item] + (reserved[item] ?? 0) < assemblerInputCapacity(target, item)
     case 'furnace': return target.direction !== opposite(travel)
@@ -38,13 +40,17 @@ function accept(target: Building, item: Item, direction: Direction): void {
     case 'peteDevelopment': target.gears++; break
     case 'petePress': target.gears++; break
     case 'supplyCrate':
-    case 'storage': target.inventory[item]++; break
+    case 'storage':
+      if (target.kind === 'supplyCrate' && item === 'wood') target.wood++
+      else target.inventory[item]++
+      break
     case 'furnace': {
       const recipeId = incomingRecipe(target, item)
       if (recipeId) { target.recipeId = recipeId; target.recipeLocked = true }
       target.input[item]++
       break
     }
+    case 'sawmill':
     case 'assembler': target.input[item]++; break
     case 'belt':
       target.item = item
@@ -130,7 +136,8 @@ export function splitterBlocked(world: World, splitter: Splitter, output: Splitt
 }
 export function outputMachines(world: World, vacated: ReadonlySet<Building>): void {
   for (const source of world.buildings) {
-    if (source?.kind !== 'miner' && source?.kind !== 'furnace' && source?.kind !== 'assembler') continue
+    if (source?.kind !== 'forester' && source?.kind !== 'sawmill' && source?.kind !== 'miner' && source?.kind !== 'furnace' && source?.kind !== 'assembler') continue
+    if (source.kind === 'forester' && !forestryOutput(source, world)) continue
     const item = source.kind === 'miner' ? source.item : ITEMS.find(item => source.output[item] > 0)
     if (!item) continue
     const target = receiver(world, source, source.direction)
@@ -142,7 +149,7 @@ export function outputMachines(world: World, vacated: ReadonlySet<Building>): vo
   }
 }
 export function outputWaiting(world: World, source: Building): boolean {
-  if ((source.kind !== 'furnace' && source.kind !== 'assembler') || inventoryTotal(source.output) === 0) return false
+  if ((source.kind !== 'sawmill' && source.kind !== 'furnace' && source.kind !== 'assembler') || inventoryTotal(source.output) === 0) return false
   const item = ITEMS.find(item => source.output[item] > 0)
   if (!item) return false
   const target = receiver(world, source, source.direction)

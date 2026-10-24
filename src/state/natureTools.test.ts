@@ -14,6 +14,7 @@ describe('Nature toolbar and copied inventory', () => {
     expect(TOOL_HOTKEYS).toMatchObject({ Digit1: 'miner', Digit9: 'radar', Digit0: 'splitter', KeyX: 'remove', KeyB: 'spiderWeb', KeyG: 'sprinkler' })
     expect(PLAYER_TOOLS.some(t => t.tool === ('tree' as string))).toBe(false)
     for (const tool of NATURE_TOOLS) {
+      useGameStore.setState({ playMode: tool === 'placeGrove' ? 'petesWorld' : 'factory' })
       useGameStore.getState().select(tool)
       expect(useGameStore.getState()).toMatchObject({ tool, buildTab: 'nature' })
       useGameStore.getState().select(tool); expect(useGameStore.getState().tool).toBe(null)
@@ -36,7 +37,7 @@ describe('Nature toolbar and copied inventory', () => {
     plantTree(w, 5, 5, 'oak'); w.timeMs = MATURE_TREE_MS; chopTree(w, 5, 5)
     useGameStore.getState().publish(w)
     expect(useGameStore.getState().wood).toBe(3)
-    expect(useGameStore.getState().stats.stored).not.toHaveProperty('wood')
+    expect(useGameStore.getState().stats.stored.wood).toBe(0)
     chopTree(w, 5, 5); useGameStore.getState().publish(w)
     expect(useGameStore.getState().wood).toBe(3)
     useGameStore.getState().publish(createWorld(() => .5, { nature: false, water: false }))

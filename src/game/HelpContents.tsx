@@ -1,9 +1,11 @@
+import { useGameStore } from '../state/gameStore'
 import { TOOL_HINTS } from '../state/toolHints'
 import type { KeyboardEvent } from 'react'
 import { useState } from 'react'
 import { CONTROL_ROWS } from '../state/uiMetadata'
 import { LittleGoals } from './LearningAids'
 export function HelpContents() {
+  const mode = useGameStore(state => state.playMode)
   const [section, setSection] = useState<'play' | 'controls' | 'goals'>('play')
   const helpKey = (event: KeyboardEvent) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
@@ -13,6 +15,7 @@ export function HelpContents() {
     setSection(next)
     document.getElementById(`help-${next}-tab`)?.focus()
   }
+  if (mode === 'petesWorld') return <section aria-label="Petes Welt spielen"><h3>Du gibst den Wald, Pete baut die Fabrik</h3><ol><li>Wähle Waldgruppe und platziere sie zwischen den Markierungen, 4–10 Felder vom Baumhaus.</li><li>Am Handy: Ziel antippen und dieselbe Stelle noch einmal antippen.</li><li>Pete baut Stromversorgung, Forststation, Sägewerk, Förderbänder und Assembler selbst.</li><li>Klicke eine Maschine oder Pete an: Du siehst, was gerade passiert. Holz wird zu Holzplatten und dann zu Holzkisten.</li><li>Nach dem Fällen wachsen neue Bäume. Das dauert fünf Spielminuten.</li></ol><p>Du kannst die Kamera bewegen und zoomen. Speichere vor einem Wechsel im Menü. Petes Welt und Factory haben eigene Speicherplätze.</p></section>
   return <>
     <div className="help-tabs" role="tablist" aria-label="Help sections">
       <button className="save-action" role="tab" aria-selected={section === 'play'} tabIndex={section === 'play' ? 0 : -1} onKeyDown={helpKey} id="help-play-tab" aria-controls="help-play" onClick={() => setSection('play')}>How to Play</button>

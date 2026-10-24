@@ -1,3 +1,4 @@
+import { awardActivity } from './personality'
 import { awardResearch } from './research'
 import { recordProduction } from './analytics'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
@@ -21,14 +22,14 @@ export function canStartCrafting(machine: CraftingMachine): boolean {
 }
 export function advanceCrafting(world: World, delta: number): void {
   for (const machine of world.buildings) {
-    if (machine?.kind !== 'furnace' && machine?.kind !== 'assembler') continue
+    if (machine?.kind !== 'furnace' && machine?.kind !== 'assembler' && machine?.kind !== 'sawmill') continue
     const speed = world.power?.consumers[machine.y * SIZE + machine.x]?.speedFraction ?? 0
     if (speed <= 0) continue
     const job = machine.job
     if (job) {
       const recipe = RECIPES[job.recipeId]
       const elapsedMs = Math.min(recipe.durationMs, job.elapsedMs + delta * speed * MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
-      awardResearch(world, machine.kind, job.elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed, elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
+      awardResearch(world, machine.kind === 'sawmill' ? 'furnace' : machine.kind, job.elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed, elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
       job.elapsedMs = elapsedMs
       if (job.elapsedMs >= recipe.durationMs - 1e-8 && hasOutputSpace(machine)) {
         for (const item of ITEMS) {
@@ -36,6 +37,7 @@ export function advanceCrafting(world: World, delta: number): void {
           world.produced[item] += job.outputs[item]
         }
         recordProduction(world, job.outputs)
+        if (world.miniFactory && job.recipeId === 'woodenCrate') awardActivity(world.personality, { path: 'eco', xp: 1 })
         machine.job = null
       }
     }

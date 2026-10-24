@@ -77,13 +77,13 @@ function expectConserved(world: World) {
 }
 describe('central item and recipe definitions', () => {
   it('has unique typed IDs, labels, categories and distinct visual properties for all registered items', () => {
-    expect(new Set(ITEMS).size).toBe(8)
+    expect(new Set(ITEMS).size).toBe(11)
     for (const item of ITEMS) {
       const definition = ITEM_DEFINITIONS[item]
       expect(definition.id).toBe(item)
       expect(definition.label.length).toBeGreaterThan(0)
       if (definition.category !== 'component') expect(definition.visual.shape).toBe(definition.category)
-      else expect(['gear', 'cable', 'circuit']).toContain(definition.visual.shape)
+      else expect(['gear', 'cable', 'circuit', 'component']).toContain(definition.visual.shape)
     }
     expect(ITEM_DEFINITIONS.iron.visual.color).not.toBe(ITEM_DEFINITIONS.copper.visual.color)
     expect(ITEM_DEFINITIONS.ironPlate.visual.color).not.toBe(ITEM_DEFINITIONS.copperPlate.visual.color)

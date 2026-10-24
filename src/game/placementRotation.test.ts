@@ -6,7 +6,7 @@ import { PLAYER_TOOLS } from '../state/toolMetadata'
 const tile = { x: 10, y: 10 }, origin = { x: 300, y: 200 }
 
 it('applies only to directional single-placement tools', () => {
-  expect(PLAYER_TOOLS.filter(t => rotationBuilding(t.tool)).map(t => t.tool)).toEqual(['miner', 'furnace', 'waterwheel', 'assembler', 'inserter', 'splitter', 'fishingDock'])
+  expect(PLAYER_TOOLS.filter(t => rotationBuilding(t.tool)).map(t => t.tool)).toEqual(['forester', 'sawmill', 'miner', 'furnace', 'waterwheel', 'assembler', 'inserter', 'splitter', 'fishingDock'])
   expect(rotationBuilding(null)).toBe(false)
 })
 it.each(['east', 'south', 'west', 'north'] as const)('keeps preset %s on a short click, without building before release', direction => {

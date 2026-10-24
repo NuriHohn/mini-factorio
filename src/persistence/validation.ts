@@ -66,6 +66,7 @@ function validateCrafting(machine: CraftingMachine, path: string): void {
   if (recipe && recipe.machine !== machine.kind) invalid(path, 'recipe belongs to another machine')
   if (machine.job && (!machine.recipeLocked || machine.job.recipeId !== machine.recipeId)) invalid(path, 'job and locked recipe disagree')
   const unconfigured = machine.kind === 'assembler' && !recipe && !machine.recipeLocked && !inventoryTotal(machine.input) && !inventoryTotal(machine.output)
+  if (machine.kind === 'sawmill' && (machine.recipeId !== 'woodSawing' || machine.recipeMode !== 'woodSawing' || !machine.recipeLocked)) invalid(path, 'sawmill requires its fixed recipe')
   if (machine.recipeMode !== 'auto' && !unconfigured && (!machine.recipeLocked || !recipe || (machine.kind === 'furnace' && machine.recipeMode !== machine.recipeId))) invalid(path, 'invalid manual recipe lock')
   if (machine.recipeLocked && !recipe) invalid(path, 'locked recipe is missing')
   if (machine.kind === 'furnace') {
@@ -83,7 +84,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['forester', 'sawmill', 'peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 39 && (kind === 'forester' || kind === 'sawmill')) invalid(path, 'forestry buildings require version 39')
   if (version < 38 && kind === 'peteDevelopment') invalid(path, 'development requires version 38')
   if (version < 37 && (kind === 'peteTreasure' || kind === 'peteFlightpad')) invalid(path, 'Inventor leisure structures require save version 37')
   if (version < 28 && kind === 'petePress') invalid(path, 'Pete gear presses require save version 28')
@@ -101,6 +103,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (version < 8 && kind === 'treehouse') invalid(path, 'treehouses require save version 8')
   if (version < 7 && kind === 'tree') invalid(path, 'trees require save version 7')
   const fields = {
+    forester: ['direction', 'elapsed', 'output', 'replant', 'plots', 'plantElapsed'],
+    sawmill: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'input', 'output', 'job'],
     peteDevelopment: ['development', 'gears', 'modules', 'fruit', 'readyAtMs'],
     peteTreasure: [],
     peteFlightpad: [],
@@ -131,6 +135,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (r.sabotageUntilMs !== undefined && !isSabotageable({ kind })) invalid(path, 'ineligible sabotage target')
   const facing = () => direction(r.direction, `${path}.direction`)
   switch (kind) {
+    case 'forester': {
+      const output = inventory(r.output, path), plots = array(r.plots, path, undefined, 48).map(i => tile(i, path))
+      if (ITEMS.some(i => i !== 'wood' && output[i]) || output.wood > 6 || new Set(plots).size !== plots.length || plots.some(i => Math.abs(i % SIZE - x) > 3 || Math.abs(Math.floor(i / SIZE) - y) > 3 || i === index)) invalid(path, 'invalid forestry stock or plots')
+      return { ...base, kind, direction: facing(), output, plots, replant: boolean(r.replant, path), elapsed: number(r.elapsed, path, 0, 6000), plantElapsed: number(r.plantElapsed, path, 0, 3000) }
+    }
     case 'peteGate': {
       const openMs = count(r.openMs, `${path}.openMs`, GATE_OPEN_MS), holdUntilMs = count(r.holdUntilMs, `${path}.holdUntilMs`, timeMs + GATE_HOLD_MS)
       if (openMs % 50 || holdUntilMs % 50 || (openMs > 0 && holdUntilMs === 0) || (openMs === GATE_OPEN_MS && holdUntilMs <= timeMs)) invalid(path, 'invalid gate animation clock')
@@ -193,9 +202,9 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       const outputs = array(r.outputs, `${path}.outputs`, 2), delivered = array(r.delivered, `${path}.delivered`, 2)
       return { ...base, kind, direction: facing(), input: packet(r.input, `${path}.input`), outputs: [packet(outputs[0], `${path}.outputs[0]`), packet(outputs[1], `${path}.outputs[1]`)], nextOutput: count(r.nextOutput, `${path}.nextOutput`, 1) as 0 | 1, delivered: [count(delivered[0], `${path}.delivered[0]`), count(delivered[1], `${path}.delivered[1]`)], placedAtMs: count(r.placedAtMs, `${path}.placedAtMs`, timeMs) }
     }
-    case 'furnace': case 'assembler': {
+    case 'sawmill': case 'furnace': case 'assembler': {
       const shared = { ...base, direction: facing(), recipeId: recipeId(r.recipeId, `${path}.recipeId`), recipeLocked: boolean(r.recipeLocked, `${path}.recipeLocked`), input: inventory(r.input, `${path}.input`), output: inventory(r.output, `${path}.output`), job: job(r.job, `${path}.job`) }
-      const machine: CraftingMachine = kind === 'furnace' ? { ...shared, kind, recipeMode: choice(r.recipeMode, `${path}.recipeMode`, ['auto', ...recipeIds]) } : { ...shared, kind, recipeMode: choice(r.recipeMode, `${path}.recipeMode`, ['auto', 'manual'] as const), autoWaitElapsedMs: r.autoWaitElapsedMs === null ? null : number(r.autoWaitElapsedMs, `${path}.autoWaitElapsedMs`, 0, 2000) }
+      const machine: CraftingMachine = kind === 'furnace' || kind === 'sawmill' ? { ...shared, kind, recipeMode: choice(r.recipeMode, `${path}.recipeMode`, ['auto', ...recipeIds]) } : { ...shared, kind, recipeMode: choice(r.recipeMode, `${path}.recipeMode`, ['auto', 'manual'] as const), autoWaitElapsedMs: r.autoWaitElapsedMs === null ? null : number(r.autoWaitElapsedMs, `${path}.autoWaitElapsedMs`, 0, 2000) }
       validateCrafting(machine, path)
       return machine
     }

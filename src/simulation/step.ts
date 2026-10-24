@@ -1,3 +1,4 @@
+import { advanceForestry } from './forestryStation'
 import { advanceGate } from './gardenGate'
 import { advancePoultry } from './poultry'
 import { advanceWaterwheels } from './waterwheel'
@@ -42,6 +43,7 @@ export function advanceWorld(world: World, delta: number): void {
     advanceInserters(world, STEP_MS, inserterFrame)
     observeMachines(world, STEP_MS)
     advanceCrafting(world, STEP_MS)
+    advanceForestry(world, STEP_MS)
     for (const miner of world.buildings) {
       if (miner?.kind !== 'miner' || miner.item) continue
       const resource = depositAt(world, miner.x, miner.y)
