@@ -105,7 +105,7 @@ export interface PeteGarden extends BuildingPosition { kind: 'peteGarden'; feed?
 export interface PeteCampfire extends BuildingPosition { kind: 'peteCampfire' }
 export interface PeteCoop extends BuildingPosition { kind: 'peteCoop' }
 export interface PeteFence extends BuildingPosition { kind: 'peteFence'; direction: 'east' | 'south' }
-export interface SupplyCrate extends BuildingPosition { storeTier?: 0 | 1; kind: 'supplyCrate'; inventory: Inventory; wood: number }
+export interface SupplyCrate extends BuildingPosition { storeTier?: 0 | 1 | 2; kind: 'supplyCrate'; inventory: Inventory; wood: number }
 export interface Footbridge extends BuildingPosition { kind: 'footbridge'; direction: 'east' | 'south' }
 export interface FishingDock extends BuildingPosition { kind: 'fishingDock'; direction: Direction }
 export interface Waterwheel extends BuildingPosition { kind: 'waterwheel'; direction: Direction; rotationMs: number }

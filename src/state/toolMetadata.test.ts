@@ -26,7 +26,7 @@ describe('categorized build menu', () => {
   it('auto-selects the correct tab for every hotkey and keeps ESC idempotent', () => {
     for (const metadata of PLAYER_TOOLS) {
       useGameStore.getState().setBuildTab(metadata.tab === 'factory' ? 'pete' : 'factory')
-      useGameStore.setState({ playMode: metadata.tool === 'placeGrove' ? 'petesWorld' : 'factory' })
+      useGameStore.setState({ playMode: ['placeGrove', 'placeIron'].includes(metadata.tool) ? 'petesWorld' : 'factory' })
       if (metadata.code) key(metadata.code)
       else useGameStore.getState().select(metadata.tool)
       expect(useGameStore.getState()).toMatchObject({ tool: metadata.tool, buildTab: metadata.tab })

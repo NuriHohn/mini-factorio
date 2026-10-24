@@ -1,6 +1,6 @@
 import { drawGuidance } from './guidanceVisuals'
 import { drawAnnexWalkway, drawDevelopment, drawDevelopmentActivity } from './developmentVisuals'
-import { createPetesWorld, groveError, miniLayout, placeGrove } from '../simulation/petesWorld'
+import { createPetesWorld, groveError, ironError, miniLayout, placeGrove, placeIron } from '../simulation/petesWorld'
 import { TouchGestures } from './touchGestures'
 import { commitConstruction } from '../simulation/construction'
 import { drawInventorStructure, drawLeisure, drawPlayfulSpray } from './leisureVisuals'
@@ -261,6 +261,7 @@ export class FactoryScene extends Phaser.Scene {
           if (this.landscapeStroke.begin(this.world, point, mode, useGameStore.getState().brushSize) > 0) { useGameStore.getState().recordToolUse(selected); this.landscapeUsed = true }
           return
         }
+        if (selected === 'placeIron') { useGameStore.setState({ message: placeIron(this.world, point.x, point.y) ?? 'Eisen platziert. Pete sammelt und verarbeitet das Erz.' }); return }
         if (selected === 'placeGrove') { useGameStore.setState({ message: placeGrove(this.world, point.x, point.y) ?? 'Wald platziert. Pete kümmert sich um Holz und seine Projekte.' }); return }
         const species = plantingSpecies(selected)
         if (species) {
@@ -289,7 +290,7 @@ export class FactoryScene extends Phaser.Scene {
       if (useGameStore.getState().useWebTool(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
-      if (this.world.miniFactory && tool && tool !== 'placeGrove') return
+      if (this.world.miniFactory && tool && !['placeGrove', 'placeIron'].includes(tool)) return
       if (tool === 'spiderWeb' || tool === 'playfulSpray' || combatTool(tool) || natureTool(tool)) return
       if (!tool) {
         if (peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) { useGameStore.getState().inspectPete(this.world); return }
@@ -372,6 +373,7 @@ export class FactoryScene extends Phaser.Scene {
     else if (natureTool(tool)) {
       const mode = brushMode(tool), species = plantingSpecies(tool)
       if (mode !== undefined) { const stroke = new LandscapeStroke(); stroke.begin(this.world, end, mode, state.brushSize); stroke.end() }
+      else if (tool === 'placeIron') error = placeIron(this.world, end.x, end.y)
       else if (tool === 'placeGrove') error = placeGrove(this.world, end.x, end.y)
       else if (species) { if (!plantTree(this.world, end.x, end.y, species)) error = 'This planting site is blocked.' }
       else { const result = chopTree(this.world, end.x, end.y); if (result) this.natureVisuals.fell(this.world, result.tree); else error = 'Choose a tree.' }
@@ -918,7 +920,7 @@ export class FactoryScene extends Phaser.Scene {
         this.preview.fillStyle(0xb0d792, .5).fillRect(next.tile % SIZE * TILE + 3, Math.floor(next.tile / SIZE) * TILE + TILE - 7, (TILE - 6) * mini.elapsedMs / 3000, 4)
       }
     }
-    if (this.world.miniFactory && state.tool === 'placeGrove' && this.world.peace.home !== null) {
+    if (this.world.miniFactory && ['placeGrove', 'placeIron'].includes(state.tool ?? '') && this.world.peace.home !== null) {
       const home = this.world.peace.home, hx = home % SIZE, hy = Math.floor(home / SIZE)
       this.preview.lineStyle(2, 0x96c77c, .5).strokeRect((hx - 10) * TILE, (hy - 10) * TILE, 21 * TILE, 21 * TILE)
       this.preview.lineStyle(2, 0xce9c73, .5).strokeRect((hx - 3) * TILE, (hy - 3) * TILE, 7 * TILE, 7 * TILE)
@@ -927,7 +929,7 @@ export class FactoryScene extends Phaser.Scene {
     const touchTarget = useGameStore.getState().touchPlacement
     if (touchTarget) {
       const { start, end, tool } = touchTarget
-      const cells = tool === 'placeGrove' ? brushTiles(end, end, 3).map(tile => ({ x: tile % SIZE, y: Math.floor(tile / SIZE) })) : tool === 'belt' || tool === 'powerPole' || tool === 'footbridge' ? planConstruction(this.world, start, end, tool, useGameStore.getState().direction, true).cells : [end]
+      const cells = (tool === 'placeGrove' || tool === 'placeIron') ? brushTiles(end, end, 3).map(tile => ({ x: tile % SIZE, y: Math.floor(tile / SIZE) })) : tool === 'belt' || tool === 'powerPole' || tool === 'footbridge' ? planConstruction(this.world, start, end, tool, useGameStore.getState().direction, true).cells : [end]
       for (const cell of cells) this.preview.lineStyle(2, 0xf5d68b).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
     }
     this.constructionLabel.setVisible(false)
@@ -980,11 +982,11 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
             this.preview.lineStyle(1, color, .7).strokeRect(i % SIZE * TILE + 1, Math.floor(i / SIZE) * TILE + 1, TILE - 2, TILE - 2)
           }
         } else {
-          const error = state.tool === 'placeGrove' ? groveError(this.world, x, y) : species ? placementError(this.world, x, y, 'tree') : buildingAt(this.world, x, y)?.kind !== 'tree'
+          const error = state.tool === 'placeGrove' ? groveError(this.world, x, y) : state.tool === 'placeIron' ? ironError(this.world, x, y) : species ? placementError(this.world, x, y, 'tree') : buildingAt(this.world, x, y)?.kind !== 'tree'
           const color = error ? 0xe5a08d : 0xb2d08a
           this.preview.fillStyle(color, .2).fillRect(x * TILE, y * TILE, TILE, TILE)
           this.preview.lineStyle(2, color).strokeRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2)
-          if (state.tool === 'placeGrove' && inside(x, y)) {
+          if (['placeGrove', 'placeIron'].includes(state.tool ?? '') && inside(x, y)) {
             this.preview.lineStyle(2, color).strokeRect((x - 1) * TILE, (y - 1) * TILE, TILE * 3, TILE * 3)
           }
           if (species && inside(x, y) && !error) drawTree(this.preview, this.world, { kind: 'tree', x, y, species, origin: 'manual', bornAtMs: this.world.timeMs, nextReproductionAtMs: this.world.timeMs + MATURE_TREE_MS + REPRODUCTION_MS }, TILE)

@@ -8,6 +8,8 @@ import { neighboringTiles, peteReachableTiles, peteWalkableTile, tilePath } from
 import { PETE_WALK_MS } from './pete'
 import { createWorld, inside, placeBuilding, SIZE } from './world'
 import type { BuildingKind, World } from './world'
+import { expansionLayout } from './homesteadExpansion'
+import { invalidateTerrain } from './waterTerrain'
 
 export interface MiniFactory { anchor: number | null; built: number; elapsedMs: number; nextCheckAtMs: number }
 export interface MiniStep { tile: number; kind: BuildingKind; label: string }
@@ -36,22 +38,40 @@ export function createPetesWorld(): World {
 }
 export function groveError(world: World, x: number, y: number): string | null {
   if (world.buildings.filter(b => b?.kind === 'tree' && b.origin === 'natural').length > 311) return 'Für neue Waldgruppen brauchen wir wieder etwas freien Waldplatz.'
-  if (!world.miniFactory || world.peace.home === null) return 'Waldgruppen gibt es in Petes Welt.'
+  return resourceAreaError(world, x, y)
+}
+export function ironError(world: World, x: number, y: number): string | null {
+  if (world.tiles.filter(t => t === 'iron').length >= 144) return 'Es gibt schon genug Eisenvorkommen in dieser Welt.'
+  return resourceAreaError(world, x, y)
+}
+function resourceAreaError(world: World, x: number, y: number): string | null {
+  if (!world.miniFactory || world.peace.home === null) return 'Ressourcengruppen gibt es in Petes Welt.'
+  if (!Number.isInteger(x) || !Number.isInteger(y) || !inside(x, y)) return 'Wähle eine Fläche innerhalb der Welt.'
   const home = world.peace.home
   const distance = Math.max(Math.abs(x - home % SIZE), Math.abs(y - Math.floor(home / SIZE)))
   if (distance < 4 || distance > 10) return 'Wähle eine Fläche 4–10 Felder vom Baumhaus entfernt.'
   const anchor = world.miniFactory.anchor
   const reserved = anchor === null ? [] : Array.from({ length: 28 }, (_, i) => anchor + Math.floor(i / 7) * SIZE + i % 7)
   const h = world.homestead
+  if (h?.expansion.plan) reserved.push(...expansionLayout(h.expansion.plan).map(s => s.tile))
   if (h?.task === 'buildStore' && h.target !== null) reserved.push(h.target)
   if (h?.millAnchor !== null && h?.millAnchor !== undefined && h.millBuilt < 3) reserved.push(h.millAnchor, h.millAnchor + SIZE, h.millAnchor + SIZE + 1)
   for (const { state } of PETE_PROJECTS) { const project = world[state]; if (project && project.phase !== 'complete') reserved.push(...project.tiles, ...project.spots) }
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
     const tx = x + dx, ty = y + dy, tile = ty * SIZE + tx
-    if (!inside(tx, ty) || world.water[tile] || world.buildings[tile] || reserved.includes(tile) || world.pete.tile === tile || world.pete.next === tile) return 'Die ganze 3×3-Waldgruppe braucht freie, trockene Felder.'
+    if (!inside(tx, ty) || world.water[tile] || world.tiles[tile] || world.buildings[tile] || reserved.includes(tile) || world.pete.tile === tile || world.pete.next === tile || world.poultry?.birds.some(b => b.tile === tile || b.next === tile)) return 'Die ganze 3×3-Fläche braucht freie, trockene Felder ohne andere Ressourcen.'
   }
   const parents = peteReachableTiles(world, world.pete.tile)
   if (!neighboringTiles(y * SIZE + x).some(i => parents.has(i))) return 'Pete braucht einen erreichbaren Weg zum Wald.'
+  return null
+}
+export function placeIron(world: World, x: number, y: number): string | null {
+  const error = ironError(world, x, y)
+  if (error) return error
+  const changed: number[] = []
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'iron'; changed.push(tile) }
+  invalidateTerrain(world, changed)
+  world.topologyRevision++
   return null
 }
 export function placeGrove(world: World, x: number, y: number): string | null {

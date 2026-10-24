@@ -226,3 +226,16 @@ Authoritative scope and limits: [shared Eco production and Petes Welt](GAME_DESI
 | 16.57 | Eco-3 hand-fed shared sawmill, paid power/build work, physical panel returns and an eight-panel roof/capacity upgrade of the same store |
 
 Rules and compatibility: [Petes Welt progression](GAME_DESIGN.md#petes-welt-daily-life-supplies-and-gradual-processing). New higher-level automatic forestry/conveyors/assemblers and the other resource-placement paths are future work. Existing Factory mechanics and old prototype factories remain available. Sprint 16.38 stays deferred; physical iPhone/iPad acceptance remains open.
+
+
+## Sprints 16.58-16.62 - Products with purpose and the iron path
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.58 | Paid six-panel coop awning/garden bench, visible work and once-only rewards; early Wood projects retained |
+| 16.59 | Eco-4 shared forestry station and short sawmill belt, paid starter replant Wood, ordinary growth and safe mature-tree clearing |
+| 16.60 | Shared crate assembler/belt/power, four-crate 600-capacity shelves and three-crate garden planters, bounded stock/backpressure |
+| 16.61 | Atomic nearby iron offering, level-1 physical ore mining/delivery and viable iron-only general-store start |
+| 16.62 | Craftsman-2 shared powered furnace, physical ore/plate carrying and existing workshop/plate project integration |
+
+Costs, rules and compatibility: [Product projects and iron](GAME_DESIGN.md#product-projects-and-the-iron-path-sprints-1658-1662). Copper/Industrial offerings, automatic iron miners, further expansion and the Pete-free Factory edition remain proposals. Installation/offline Sprint 16.38 stays deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.

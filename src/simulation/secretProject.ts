@@ -150,7 +150,7 @@ export function refreshProject(world: World): void {
   }
 }
 function availableMaterials(world: World, project: SecretProject | null, definition: ProjectDefinition): number {
-  if (definition.id === 'harvesting') return world.homestead && !project?.carried && world.buildings.some(b => b?.kind === 'supplyCrate' && b.storeTier !== undefined && b.wood >= 24) ? 0 : 1
+  if (definition.id === 'harvesting') return world.homestead && !project?.selected && !project?.carried && world.buildings.some(b => b?.kind === 'supplyCrate' && b.storeTier !== undefined && b.wood >= 24) ? 0 : 1
   if (project?.phase === 'building') return 1 // Already collected stock is never charged again.
   if (homesteadProjectDelay(world, definition.id)) return 0
   if (definition.id === 'feeding') return gardenSpot(world) === null ? 0 : feedGarden(world)?.feed ?? 0

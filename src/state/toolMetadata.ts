@@ -30,6 +30,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'supplyCrate', label: 'Pete’s Supply Crate', hint: '6 Wood · holds 200 items · belt/inserter input · peaceful Pete visits', key: 'Click', icon: '▤', tab: 'nature' },
   { tool: 'treehouse', label: 'Pete’s Treehouse', hint: '20 Wood · one home · makes Pete peaceful · no power', key: 'Click', icon: '⌂', tab: 'nature' },
   { tool: 'placeGrove', label: 'Waldgruppe', hint: '3×3 Bäume · 4–10 Felder vom Baumhaus · Pete baut selbst', key: 'Click', icon: '♣', tab: 'nature' },
+  { tool: 'placeIron', label: 'Eisenvorkommen', hint: '3×3 Eisenerz · 4–10 Felder vom Baumhaus · Pete baut ab und verarbeitet selbst', key: 'Click', icon: '◆', tab: 'nature' },
   { tool: 'plantOak', label: 'Plant Oak', hint: 'Free sapling · young at 2 min · mature at 5 min', key: 'Click', icon: '♣', tab: 'nature' },
   { tool: 'plantPine', label: 'Plant Pine', hint: 'Free sapling · trees occupy one tile', key: 'Click', icon: '♠', tab: 'nature' },
   { tool: 'plantBirch', label: 'Plant Birch', hint: 'Free sapling · may grow on ore', key: 'Click', icon: '♧', tab: 'nature' },

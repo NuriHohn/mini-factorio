@@ -3,7 +3,7 @@ import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from
 import type { SupplyCrate, World } from './world'
 export const SUPPLY_CRATE_WOOD = 6
 export const SUPPLY_CRATE_CAPACITY = 200
-export function supplyCapacity(crate: Pick<SupplyCrate, 'storeTier'>): number { return crate.storeTier === 1 ? 400 : SUPPLY_CRATE_CAPACITY }
+export function supplyCapacity(crate: Pick<SupplyCrate, 'storeTier'>): number { return crate.storeTier === 2 ? 600 : crate.storeTier === 1 ? 400 : SUPPLY_CRATE_CAPACITY }
 export const SUPPLY_INSPECTION_MS = 4000
 // The existing peace destination is an empty adjacent land approach, never the crate.
 export function crateAtSpot(world: World, spot: number | null): SupplyCrate | null {

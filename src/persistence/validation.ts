@@ -185,7 +185,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     }
     case 'supplyCrate': {
       const contents = inventory(r.inventory, `${path}.inventory`)
-      const storeTier = r.storeTier === undefined ? undefined : count(r.storeTier, `${path}.storeTier`, 1) as 0 | 1
+      const storeTier = r.storeTier === undefined ? undefined : count(r.storeTier, `${path}.storeTier`, version >= 41 ? 2 : 1) as 0 | 1 | 2
       const capacity = supplyCapacity({ storeTier })
       const wood = version >= 15 ? count(r.wood, `${path}.wood`, capacity) : 0
       if (inventoryTotal(contents) + wood > capacity) invalid(`${path}.inventory`, 'supply crate capacity exceeded')

@@ -34,3 +34,16 @@ it('draws carried materials and work from authoritative progress without changin
   calls.length = 0; drawHomestead(g, w, 32, { x: 5000, y: 5000, width: 10, height: 10 })
   expect(calls).toEqual([])
 })
+it('shows completed improvements and physically carried ore without advancing state', () => {
+  const w = createPetesWorld(), h = w.homestead!, { g, calls } = graphics()
+  h.expansion.improvements.coopAwning = w.peace.home!
+  h.expansion.improvements.gardenBench = w.peace.home!
+  h.expansion.improvements.gardenBoxes = w.peace.home!
+  h.expansion.improvements.storeShelves = w.peace.home!
+  h.task = 'mineIron'; h.target = 738; h.carried.iron = 3; h.elapsedMs = 3000
+  const before = structuredClone(w)
+  drawHomestead(g, w, 32)
+  expect(calls.some(c => c.name === 'fillTriangle')).toBe(true)
+  expect(calls.some(c => c.name === 'lineBetween')).toBe(true)
+  expect(w).toEqual(before)
+})
