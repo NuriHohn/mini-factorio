@@ -178,7 +178,7 @@ export const useGameStore = create<State>((set, get) => ({
   tool: 'miner', direction: 'east', inspected: null, inspection: null,
   message: 'Power first: place a generator (5) and pole (6) within 3 tiles of your machines. P shows electricity.',
   select: requested => set(state => {
-    if (requested && ((state.playMode === 'petesWorld' && requested !== 'placeGrove') || (state.playMode === 'factory' && requested === 'placeGrove'))) return { message: 'In Petes Welt platzierst du nur Waldgruppen. Pete baut selbst.' }
+    if (requested && ((state.playMode === 'petesWorld' && !['placeGrove', 'placeIron'].includes(requested)) || (state.playMode === 'factory' && ['placeGrove', 'placeIron'].includes(requested)))) return { message: 'In Petes Welt platzierst du nur Ressourcen. Pete baut selbst.' }
     const technologyError = requested && buildingTechnologyError(state.research, requested)
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested

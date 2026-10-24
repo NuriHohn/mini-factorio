@@ -6,7 +6,7 @@ import { woodDestination } from './forestry'
 import { feedGarden } from './feeding'
 import { gardenSpot } from './ecoProjects'
 import { yardSummary } from './yard'
-import { ITEM_DEFINITIONS } from './items'
+import { ITEM_DEFINITIONS, ITEMS } from './items'
 import { neighboringTiles, peteReachableTiles } from './navigation'
 import { PATH_LABELS } from './personality'
 import type { Personality } from './personality'
@@ -65,8 +65,8 @@ export function peteStatus(world: World): PeteStatus {
   const development = developmentStatus(world)
   if (world.homestead?.task) {
     const h = world.homestead
-    development.carrying = `${h.carried.wood} Holz · ${h.carried.woodPanel} Holzplatten`
-    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'expandStore' ? 8000 : h.task === 'buildMill' ? 4000 : 6000)) : null
+    development.carrying = ITEMS.filter(item => h.carried[item]).map(item => `${h.carried[item]} ${ITEM_DEFINITIONS[item].label}`).join(' · ') || 'Nichts getragen'
+    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
   }
   return { intent: mini ?? intent, ...development, yard: yardSummary(world), activity: world.homestead?.task ? HOME_TASK_LABELS[world.homestead.task] : activity, current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
 }

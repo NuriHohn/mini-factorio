@@ -29,7 +29,7 @@ export function drawSupplyCrate(g: Phaser.GameObjects.Graphics, crate: SupplyCra
       }
     }
     if (stock.length > 3) { g.fillStyle(0xe8d1a0).fillRect(x + 24, y + 5, 6, 5); g.lineStyle(1, 0x694a2f).strokeRect(x + 24, y + 5, 6, 5) }
-    if (crate.storeTier === 1) {
+    if (crate.storeTier !== 0) {
       g.fillStyle(0x446a4d).fillTriangle(x, y + 11, x + 16, y + 1, x + 32, y + 11)
       g.lineStyle(2, 0xbca576).lineBetween(x + 2, y + 11, x + 30, y + 11)
     } else g.fillStyle(0xb99058).fillRect(x + 2, y + 7, 28, 4)

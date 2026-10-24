@@ -9,8 +9,8 @@ export function PeteInspection({ status }: { status: PeteStatus }) {
     <section className="inspection"><div className="inspection-summary">
       <h2>🎃 Pete</h2><p role="status">Right now: {status.activity}</p>
       {!status.activity.includes(status.intent) && <p>{status.intent}</p>}<button className="save-action" aria-pressed={petePathVisible} onClick={() => useGameStore.setState({ petePathVisible: !petePathVisible })}>{petePathVisible ? 'Hide Pete’s route' : 'Show Pete’s route'}</button><p className="inspection-note">Green marks show Pete’s actual planned walk and next stop. If he is waiting or choosing, there may be no route yet.</p>
-      {status.progress !== null && <progress aria-label="Current activity progress" max={100} value={status.progress} />}
-      {status.developments.length > 0 && <p className="pete-carrying">Carrying: <strong>{status.carrying}</strong></p>}
+      {status.progress !== null && <progress aria-label="Current activity progress" max={1} value={status.progress} />}
+      <p className="pete-carrying">Carrying: <strong>{status.carrying}</strong></p>
       {status.current && <p>My current project: <strong>{status.current}</strong></p>}
       {status.wish && <><h3>I would like to try: {status.wish.name}</h3><p>{status.wish.reason}</p><p className="inspection-note">A wish, not a fixed order. My next decision depends on materials and space.</p></>}
       <p>{status.yard}</p>

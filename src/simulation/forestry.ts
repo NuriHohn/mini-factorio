@@ -20,11 +20,12 @@ export function harvestTreeReady(world: World, project: SecretProject): boolean 
   return tree?.kind === 'tree' && tree.bornAtMs === project.treeBornAtMs && tree.species === project.treeSpecies && tree.origin === project.treeOrigin && treeStage(world, tree) === 'mature' && !world.water[spot] && !world.buildings[spot] && peteReachableTiles(world, world.pete.tile).has(spot)
 }
 export function harvestSiteClear(world: World, project: SecretProject): boolean { return project.carried === HARVEST_WOOD ? woodDestination(world) !== null : harvestTreeReady(world, project) && woodDestination(world) !== null }
-export function planHarvest(world: World): SecretProject | null {
+export function planHarvest(world: World, onlyTiles?: readonly number[]): SecretProject | null {
   const home = world.peace.home
   if (home === null || !woodDestination(world)) return null
   const paths = peteReachableTiles(world, world.pete.tile), candidates: { project: SecretProject; steps: number }[] = []
   for (let tile = 0; tile < world.buildings.length; tile++) {
+    if (onlyTiles && !onlyTiles.includes(tile)) continue
     const tree = world.buildings[tile]
     if (tree?.kind !== 'tree' || treeStage(world, tree) !== 'mature' || Math.max(Math.abs(tile % SIZE - home % SIZE), Math.abs(Math.floor(tile / SIZE) - Math.floor(home / SIZE))) > (world.miniFactory ? 11 : 6)) continue
     for (const spot of neighboringTiles(tile)) {

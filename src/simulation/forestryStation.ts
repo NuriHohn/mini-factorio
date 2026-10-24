@@ -7,7 +7,7 @@ import type { Forester, World } from './world'
 export const FOREST_RADIUS = 3
 export const FELL_MS = 6000
 export const REPLANT_MS = 3000
-export function forestTiles(station: Forester): number[] {
+export function forestTiles(station: Pick<Forester, 'x' | 'y'>): number[] {
   const tiles: number[] = []
   for (let y = Math.max(0, station.y - FOREST_RADIUS); y <= Math.min(SIZE - 1, station.y + FOREST_RADIUS); y++) {
     for (let x = Math.max(0, station.x - FOREST_RADIUS); x <= Math.min(SIZE - 1, station.x + FOREST_RADIUS); x++) tiles.push(y * SIZE + x)
