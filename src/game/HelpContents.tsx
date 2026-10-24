@@ -2,12 +2,14 @@ import { TOOL_HINTS } from '../state/toolHints'
 import type { KeyboardEvent } from 'react'
 import { useState } from 'react'
 import { CONTROL_ROWS } from '../state/uiMetadata'
+import { LittleGoals } from './LearningAids'
 export function HelpContents() {
-  const [section, setSection] = useState<'play' | 'controls'>('play')
+  const [section, setSection] = useState<'play' | 'controls' | 'goals'>('play')
   const helpKey = (event: KeyboardEvent) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
     event.preventDefault()
-    const next = event.key === 'Home' ? 'play' : event.key === 'End' ? 'controls' : section === 'play' ? 'controls' : 'play'
+    const sections = ['play', 'controls', 'goals'] as const
+    const next = event.key === 'Home' ? 'play' : event.key === 'End' ? 'goals' : sections[(sections.indexOf(section) + (event.key === 'ArrowLeft' ? 2 : 1)) % sections.length]
     setSection(next)
     document.getElementById(`help-${next}-tab`)?.focus()
   }
@@ -15,6 +17,7 @@ export function HelpContents() {
     <div className="help-tabs" role="tablist" aria-label="Help sections">
       <button className="save-action" role="tab" aria-selected={section === 'play'} tabIndex={section === 'play' ? 0 : -1} onKeyDown={helpKey} id="help-play-tab" aria-controls="help-play" onClick={() => setSection('play')}>How to Play</button>
       <button className="save-action" role="tab" aria-selected={section === 'controls'} tabIndex={section === 'controls' ? 0 : -1} onKeyDown={helpKey} id="help-controls-tab" aria-controls="help-controls" onClick={() => setSection('controls')}>Controls</button>
+      <button className="save-action" role="tab" aria-selected={section === 'goals'} tabIndex={section === 'goals' ? 0 : -1} onKeyDown={helpKey} id="help-goals-tab" aria-controls="help-goals" onClick={() => setSection('goals')}>Little goals</button>
     </div>
     {section === 'play' ? <div id="help-play" role="tabpanel" aria-labelledby="help-play-tab" className="how-to-play">
       <p>Build a little factory, one machine at a time.</p>
@@ -26,7 +29,7 @@ export function HelpContents() {
       <h3>♥ Meet Pete</h3><p>Pete plays pranks and briefly stops machines. Radar traps call the police. Repeated arrests bring his Revenge walker. Choose a combat tool to defend your factory, or build Pete a home for peace and little gifts.</p>
       <h3>Building tips</h3><ul className="help-tool-hints">{Object.values(TOOL_HINTS).map(hint => <li key={hint}>{hint}</li>)}</ul>
       <h3>☰ Keep your factory</h3><p>Open Menu to save or load. Autosave keeps a separate copy every two minutes of play. Export a file for a backup. Loading is always your choice.</p>
-    </div> : <div id="help-controls" role="tabpanel" aria-labelledby="help-controls-tab">
+    </div> : section === 'goals' ? <div id="help-goals" role="tabpanel" aria-labelledby="help-goals-tab"><LittleGoals /></div> : <div id="help-controls" role="tabpanel" aria-labelledby="help-controls-tab">
       <p className="inspection-note">Click a group below the world, then choose a tool. Click the active tool again to put it away. Right-click cancels a drag first, then puts away the selected tool.</p>
       <p>Touch: drag to pan, pinch to zoom, tap to inspect. With a tool selected, tap a target (two endpoints for routes), then tap the same target again to build. Rotate/cancel actions appear beside the target. Tools hides the toolbar on small screens. Playful spray is in Special and needs a ready powered sprinkler nearby.</p>
       <dl className="controls-list">{CONTROL_ROWS.map(row => <div key={row.keys}><dt><kbd>{row.keys}</kbd></dt><dd>{row.action}</dd></div>)}</dl>

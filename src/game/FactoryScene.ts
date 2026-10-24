@@ -1,3 +1,4 @@
+import { drawGuidance } from './guidanceVisuals'
 import { drawAnnexWalkway, drawDevelopment, drawDevelopmentActivity } from './developmentVisuals'
 import { TouchGestures } from './touchGestures'
 import { commitConstruction } from '../simulation/construction'
@@ -115,7 +116,7 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
+    useGameStore.setState({ peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
@@ -447,7 +448,7 @@ export class FactoryScene extends Phaser.Scene {
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -591,6 +592,7 @@ export class FactoryScene extends Phaser.Scene {
       }
       useGameStore.setState({ focusRequest: null })
     }
+    useGameStore.getState().applySupply(this.world)
     useGameStore.getState().applyResearch(this.world)
     useGameStore.getState().applyRelease(this.world)
     const request = useGameStore.getState().recipeRequest
@@ -873,6 +875,7 @@ export class FactoryScene extends Phaser.Scene {
     const state = useGameStore.getState()
     const inspected = state.inspected === null ? null : this.world.buildings[state.inspected]
     this.preview.clear()
+    if (state.tool === null) drawGuidance(this.preview, this.world, TILE, !!state.peteInspection && state.petePathVisible, state.inspected, state.connectionVisible)
     const touchTarget = useGameStore.getState().touchPlacement
     if (touchTarget) {
       const { start, end, tool } = touchTarget

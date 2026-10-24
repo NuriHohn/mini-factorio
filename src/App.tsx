@@ -1,4 +1,5 @@
 import { TouchControls } from './game/TouchControls'
+import { PinnedGoal } from './game/LearningAids'
 import { SimulationSpeed } from './game/SimulationSpeed'
 import { RevengeHUD } from './game/RevengeHUD'
 import { ResearchPanel } from './game/ResearchPanel'
@@ -30,7 +31,7 @@ export default function App() {
     <main>
       <section className="world-panel" aria-label="Factory world">
         <div className="world-heading"><SimulationSpeed /><RevengeHUD /></div>
-        <div className="world-stage"><GameCanvas /><TouchControls /><BuildingInspection /><UtilityPanels /><AnalyticsPanel /></div>
+        <div className="world-stage"><GameCanvas /><TouchControls /><PinnedGoal /><BuildingInspection /><UtilityPanels /><AnalyticsPanel /></div>
         <StatusMessage />
       </section>
     </main>
