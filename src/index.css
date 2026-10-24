@@ -341,3 +341,24 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 .touch-target-actions { pointer-events: none; }
 .touch-target-actions button { pointer-events: auto; }
+/* Touch comfort is additive: mouse/keyboard layout stays unchanged. */
+.touch-mode { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.touch-mode .touch-controls { max-width: calc(100% - 16px); }
+.touch-selected-tool { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px; border-radius: 6px; background: #17271de8; color: #efd8b4; }
+.touch-mode .build-tab, .touch-mode .panel-dismiss, .touch-mode .hud-button, .touch-mode .save-action { min-height: 44px; min-width: 44px; touch-action: manipulation; }
+.touch-mode .build-tabs { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.touch-mode .building-inspection { overscroll-behavior: contain; }
+.development-details > div { border-bottom: 1px solid #43503f; padding: 4px 0; }
+.development-details summary { cursor: pointer; min-height: 44px; padding: 10px 0; }
+.pete-carrying { padding: 6px; background: #30432c; border-radius: 4px; }
+.inspection-summary > progress { width: 100%; accent-color: #b3d188; }
+@media (max-width: 700px), (max-height: 500px) {
+  .touch-mode .game-header .hud-button { min-width: 32px; }
+  .touch-mode .game-header .research-toggle { min-width: 40px; }
+  .touch-mode .construction-toolbar { max-height: 38dvh; }
+  .touch-mode .toolbar-top { align-items: flex-start; gap: 4px; }
+  .touch-mode .build-tabs { flex: 1; flex-wrap: nowrap; }
+  .touch-mode .building-inspection .panel-dismiss { position: sticky; top: 0; float: right; z-index: 3; background: #263529; }
+  .touch-mode .simulation-speed .hud-button { min-height: 36px; min-width: 36px; }
+  .touch-selected-tool { max-width: 130px; font-size: 11px; }
+}

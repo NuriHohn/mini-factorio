@@ -171,3 +171,16 @@ The yard-recovery and Pete ideas originally recorded in [PR #80](https://github.
 | 16.37 | Craftsman-4 staged treehouse annex and resting visits |
 
 Costs, durations and rewards are owned by [Game design](GAME_DESIGN.md#higher-pete-developments). **16.38 remains proposed:** installable, reliably offline iPhone/iPad play; no service worker, native packaging or automatic save synchronization is included here. Physical iPhone/iPad acceptance remains necessary beyond automated browser input/layout checks.
+
+## Sprints 16.39–16.42 — Comfort, explanations and daily life
+
+Sprint **16.38 is deferred at the user’s request**: installation/offline support for iPhone/iPad remains a future proposal, outside this delivery.
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.39 | Touch safe-area spacing, larger controls/category targets, visible selected tool, edge-bounded rotate/cancel and inspection controls without overlapping floating tools |
+| 16.40 | Read-only carried stock, work progress and per-development supplies, cooldowns, missing material, access and demolition explanations in Pete’s inspection |
+| 16.41 | Oldest-ready new activities, overdue opportunities between unpaid project choices, nearby nursery supply pickup, existing-seedling priority and full-pantry recovery |
+| 16.42 | Foundation/frame/finish construction stages, elevated plank-and-rail annex walkway, parked bicycle consistency and task-specific work/progress effects |
+
+Browser viewport/input checks cover phone portrait/landscape, tablet and PC; **physical iPhone/iPad Safari acceptance remains open**, so the real-device portion of 16.39 is not claimed complete. Existing saves, costs, XP rewards and PC construction remain compatible. Rules are owned by [Game design](GAME_DESIGN.md#daily-development-comfort).

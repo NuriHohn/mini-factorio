@@ -133,6 +133,13 @@ describe('higher Pete developments', () => {
     const before = snap(w), bad = structuredClone(before); bad.game.developmentLife.ecoXp = bad.game.personality.paths.eco.xp + 1
     expect(() => decodeSave(JSON.stringify(bad))).toThrow('Invalid save'); expect(snap(w)).toEqual(before)
   })
+  it('saves pantry recovery while carrying fruit without losing or duplicating the load', () => {
+    const w = prepared('orchard'); build(w, 'fence'); build(w, 'coop'); build(w, 'campfire')
+    w.developmentLife ??= createDevelopmentLife(); w.developmentLife.fruit = 12; w.developmentLife.carriedFruit = 2
+    start(w, 'cookFruit'); until(w, () => w.peace.activity === 'developmentWork')
+    const restored = load(w); advanceWorld(w, 6000); advanceWorld(restored, 6000)
+    expect(snap(restored)).toEqual(snap(w)); expect(w.developmentLife.carriedFruit).toBe(2); expect(w.developmentLife.fruit).toBe(11)
+  })
   it('retains fruit and wood on home loss and migrates module-free version 37', () => {
     const w = prepared('orchard'); w.developmentLife ??= createDevelopmentLife(); w.developmentLife.carriedFruit = 2
     removeBuilding(w, 20, 20); expect(w.developmentLife.carriedFruit).toBe(2); expect(() => load(w)).not.toThrow()
