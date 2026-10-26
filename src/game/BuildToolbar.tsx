@@ -3,7 +3,7 @@ import { brushMode } from '../state/natureTools'
 import { combatTool } from '../simulation/revenge'
 import { buildingTechnologyError } from '../simulation/research'
 import { useGameStore } from '../state/gameStore'
-import { BUILD_TABS, PLAYER_TOOLS, toolMetadata } from '../state/toolMetadata'
+import { BUILD_TABS, PETES_WORLD_TOOLS, PLAYER_TOOLS, toolMetadata } from '../state/toolMetadata'
 export function BuildToolbar() {
   const { playMode, touchActive, hintUses, peaceful, revenge, simulationTime, research, brushSize, setBrushSize, wood, buildTab, setBuildTab, tool, select, direction, rotate } = useGameStore()
   const tabs = BUILD_TABS.filter(tab => playMode === 'factory' || tab.id === 'nature')
@@ -24,7 +24,7 @@ export function BuildToolbar() {
       {hint && (hintUses[hint] ?? 0) < 3 && <span className="tool-hint" role="note">{TOOL_HINTS[hint]}</span>}
     </div>
     <div className="toolbar-tools">
-      <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="tool-icons">{PLAYER_TOOLS.filter(option => option.tool !== 'playfulSpray').filter(option => playMode === 'petesWorld' ? ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'axe', 'remove', 'clearResource'].includes(option.tool) : option.tab === buildTab && !['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource'].includes(option.tool)).map(option => {
+      <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="tool-icons">{PLAYER_TOOLS.filter(option => option.tool !== 'playfulSpray').filter(option => playMode === 'petesWorld' ? PETES_WORLD_TOOLS.includes(option.tool) : option.tab === buildTab && !['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource'].includes(option.tool)).map(option => {
         const reason = error(option.tool)
         const fundingOnly = option.tool === 'treehouse' && !peaceful && wood < 20
         const cooldown = combatTool(option.tool) && revenge.playerReadyAtMs > simulationTime ? `${((revenge.playerReadyAtMs - simulationTime) / 1000).toFixed(1)} s cooldown` : ''

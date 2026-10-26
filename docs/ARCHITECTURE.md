@@ -624,6 +624,12 @@ The general store reuses `SupplyCrate` and its separate Wood field, plus optiona
 
 `persistence/rebuildingValidation.ts` validates strict ownership discriminants, fixed-step clocks, unique missing targets, chain geometry/references and exact paid invoices. State is restored before peace validation only to recognize an explicitly missing Petes Welt home; final ownership validation runs after project/homestead restoration. Supported old Petes Welt saves derive unpaid missing-component opportunities once, without modifying inventories or completion rewards. Source-bound manual spray remains save-44 compatible. React receives copied repair status; scene-only pointer/preview state is unsaved.
 
+## Petes Welt water/tool follow-up
+
+`createPetesWorld` retains `nature: false` for player-offered resources but no longer disables the shared seeded water generator. The initial clearing stays dry under the existing generator. `PETES_WORLD_TOOLS` in `toolMetadata.ts` is the common toolbar/selection/scene allowlist: resource/removal and water/land tools are exposed, while the separate Axe button remains Factory-only. Petes Welt touch tree taps create a transient `touchPlacement.contextual` confirmation using the existing chop command; the marker is never saved and clears along with the contextual tool on success/cancellation/focus loss. Normal Factory selection is retained.
+
+`waterProtection` adds Petes Welt project, partial homestead/prototype, repair and home reservations to its existing single per-preview/paint scan. Both modes reuse `paintWater`, topology/cache invalidation and the saved water mask. Touch water previews reuse the normal brush validity drawing at the confirmed touch target instead of the stale mouse pointer. No simulation/persistence version changes are introduced.
+
 ### Save 46 and shared copper/coal progression
 
 `homesteadExpansion.ts` owns copper-miner routes, mixed circuit deliveries and steam commissioning/refuelling in the existing task machine. It uses shared crafting, transport and power; new expansion references and repair owners retain original component identity. `steam.ts` owns fixed-step fuel work: `fuel`, `burnRemainingMs` and completed `cycles` are authoritative. Power sees available/committed fuel before that step's burn; fuel advances after production so the final 50 ms remains powered. Sabotage freezes burn. Rendering and inspection only read this state. Coal is a registered ore/item, with dense inventories across production, analytics and persistence.

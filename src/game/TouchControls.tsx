@@ -7,10 +7,10 @@ export function TouchControls() {
     {!peteInspection && inspected === null && <div className="touch-controls" role="group" aria-label="Touch controls">
       <button className="save-action" aria-expanded={touchToolsOpen} onClick={() => useGameStore.setState({ touchToolsOpen: !touchToolsOpen })}>Tools</button>
       <button className="save-action" onClick={() => select(null)}>Inspect</button>
-      {tool && <span className="touch-selected-tool" role="status">{toolMetadata(tool)?.label ?? tool}</span>}
+      {tool && <span className="touch-selected-tool" role="status">{touchPlacement?.contextual ? 'Baum fällen' : toolMetadata(tool)?.label ?? tool}</span>}
     </div>}
     {touchPlacement && <div className="touch-target-actions" style={{ left: `clamp(4px, ${touchAnchor.x}%, calc(100% - 216px))`, top: `${Math.max(0, Math.min(65, touchAnchor.y - 18))}%` }}>
-      <span>Tap target again to build</span><button className="save-action" aria-label="Rotate touch target" onClick={rotate}>↻</button><button className="save-action" aria-label="Cancel touch target" onClick={() => useGameStore.setState({ touchRequest: 'cancel' })}>×</button>
+      <span>{touchPlacement.contextual ? 'Erneut tippen: Baum fällen' : 'Tap target again to build'}</span>{!touchPlacement.contextual && <button className="save-action" aria-label="Rotate touch target" onClick={rotate}>↻</button>}<button className="save-action" aria-label="Cancel touch target" onClick={() => useGameStore.setState({ touchRequest: 'cancel' })}>×</button>
     </div>}
   </>
 }

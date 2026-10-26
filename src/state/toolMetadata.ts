@@ -46,5 +46,6 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'restoreLand', label: 'Restore Land', hint: 'Free · drag to remove water · bridges stay protected', key: 'Drag', icon: '▱', tab: 'nature' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'pete' },
 ]
+export const PETES_WORLD_TOOLS: readonly ToolKind[] = ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource', 'remove', 'createWater', 'restoreLand']
 export const TOOL_HOTKEYS: Readonly<Record<string, ToolKind>> = Object.fromEntries(PLAYER_TOOLS.filter(tool => tool.code).map(tool => [tool.code, tool.tool]))
 export function toolMetadata(tool: ToolKind): ToolMetadata { return PLAYER_TOOLS.find(metadata => metadata.tool === tool)! }

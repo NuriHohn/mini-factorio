@@ -35,7 +35,7 @@ import { PlacementRotation, rotationBuilding } from './placementRotation'
 import { ConstructionDrag } from './constructionDrag'
 import { placementInfo, planConstruction } from '../simulation/construction'
 import type { ConstructionPlan } from '../simulation/construction'
-import { toolMetadata } from '../state/toolMetadata'
+import { PETES_WORLD_TOOLS, toolMetadata } from '../state/toolMetadata'
 import { peteCaption } from './peteCaption'
 import { worldInputBlocked } from '../state/uiMetadata'
 import { collectGift, peaceful } from '../simulation/peace'
@@ -212,7 +212,7 @@ export class FactoryScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.DESTROY, removeToolKeyListener)
     keyboard.on('keydown-P', () => { if (!worldInputBlocked(useGameStore.getState())) useGameStore.getState().togglePowerOverlay() })
     keyboard.on('keydown-R', () => {
-      if (worldInputBlocked(useGameStore.getState())) return
+      if (worldInputBlocked(useGameStore.getState()) || useGameStore.getState().touchPlacement?.contextual) return
       const pending = this.placementRotation.preview()
       if (pending) {
         const direction = rotate(pending.direction)
@@ -298,7 +298,7 @@ export class FactoryScene extends Phaser.Scene {
       if (useGameStore.getState().useWebTool(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
-      if (this.world.miniFactory && tool && !['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'remove', 'clearResource', 'axe'].includes(tool)) return
+      if (this.world.miniFactory && tool && tool !== 'axe' && !PETES_WORLD_TOOLS.includes(tool)) return
       if (tool === 'clearResource' || tool === 'spiderWeb' || tool === 'playfulSpray' || combatTool(tool) || natureTool(tool)) return
       if (!tool) {
         if (peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) { useGameStore.getState().inspectPete(this.world); return }
@@ -365,6 +365,7 @@ export class FactoryScene extends Phaser.Scene {
     if (worldInputBlocked(state)) return
     const worldPoint = this.cameras.main.getWorldPoint(point.x, point.y), tile = { x: Math.floor(worldPoint.x / TILE), y: Math.floor(worldPoint.y / TILE) }
     const position = { x: worldPoint.x / TILE - .5, y: worldPoint.y / TILE - .5 }
+    if (state.touchPlacement?.contextual && buildingAt(this.world, tile.x, tile.y)?.kind !== 'tree') { state.select(null); this.touchTap(point); return }
     if (state.tool === 'playfulSpray') { this.sprayAt(position); return }
     if (state.tool === 'spiderWeb') { state.useWebTool(this.world, position); return }
     if (combatTool(state.tool)) { const impact = attackWalker(this.world, state.tool, position); if (impact) this.revengeVisuals.impact(impact, this.world); return }
@@ -374,18 +375,25 @@ export class FactoryScene extends Phaser.Scene {
       if (peteHit(this.world, position)) { state.inspectPete(this.world); return }
       const gift = collectGift(this.world, tile.y * SIZE + tile.x)
       if (gift) { useGameStore.setState({ message: gift }); return }
-      if (buildingAt(this.world, tile.x, tile.y)?.kind !== 'tree') state.inspect(this.world, tile.x, tile.y); return
+      if (buildingAt(this.world, tile.x, tile.y)?.kind === 'tree') {
+        if (this.world.miniFactory) {
+          state.select('axe')
+          useGameStore.setState({ touchToolsOpen: false, touchAnchor: { x: point.x / this.cameras.main.width * 100, y: point.y / this.cameras.main.height * 100 }, touchPlacement: { tool: 'axe', start: tile, end: tile, contextual: true }, message: 'Baum fällen: denselben Baum erneut antippen. Abbrechen mit × oder Escape.' })
+        }
+        return
+      }
+      state.inspect(this.world, tile.x, tile.y); return
     }
     const previous = state.touchPlacement
     if (previous?.tool === state.tool && previous.end.x === tile.x && previous.end.y === tile.y) { useGameStore.setState({ touchRequest: 'confirm' }); return }
     const route = state.tool === 'belt' || state.tool === 'powerPole' || state.tool === 'footbridge'
-    useGameStore.setState({ touchToolsOpen: false, touchAnchor: { x: point.x / this.cameras.main.width * 100, y: point.y / this.cameras.main.height * 100 }, touchPlacement: { tool: state.tool, start: route && previous?.tool === state.tool ? previous.start : tile, end: tile }, message: state.tool === 'remove' && this.world.miniFactory ? `${demolitionNotice(this.world, tile.y * SIZE + tile.x)} Erneut antippen bestätigt.` : route ? 'Tap an endpoint, then tap it again to build.' : 'Tap the highlighted target again to build.' })
+    useGameStore.setState({ touchToolsOpen: false, touchAnchor: { x: point.x / this.cameras.main.width * 100, y: point.y / this.cameras.main.height * 100 }, touchPlacement: { tool: state.tool, start: route && previous?.tool === state.tool ? previous.start : tile, end: tile, ...(previous?.contextual ? { contextual: true } : {}) }, message: previous?.contextual ? 'Baum fällen: denselben Baum erneut antippen.' : state.tool === 'remove' && this.world.miniFactory ? `${demolitionNotice(this.world, tile.y * SIZE + tile.x)} Erneut antippen bestätigt.` : route ? 'Tap an endpoint, then tap it again to build.' : 'Tap the highlighted target again to build.' })
   }
   private processTouchRequest() {
     const state = useGameStore.getState(), request = state.touchRequest, pending = state.touchPlacement
     if (!request) return
     useGameStore.setState({ touchRequest: null })
-    if (request === 'cancel' || !pending || pending.tool !== state.tool || worldInputBlocked(state)) { useGameStore.setState({ touchPlacement: null }); return }
+    if (request === 'cancel' || !pending || pending.tool !== state.tool || worldInputBlocked(state)) { if (pending?.contextual) state.select(null); useGameStore.setState({ touchPlacement: null }); return }
     const { tool, start, end } = pending
     let error: string | null = null
     if (tool === 'belt' || tool === 'powerPole' || tool === 'footbridge') error = commitConstruction(this.world, start, end, tool, state.direction, true).error
@@ -405,6 +413,7 @@ export class FactoryScene extends Phaser.Scene {
       if (!error && !placeBuilding(this.world, end.x, end.y, tool, state.direction)) error = 'The site changed; choose another target.'
     }
     if (!error) state.recordToolUse(tool)
+    if (pending.contextual && !error) state.select(null)
     useGameStore.setState({ touchPlacement: error ? pending : null, message: error ?? 'Done.' })
   }
   private sprayAt(position: { x: number; y: number }) {
@@ -416,6 +425,8 @@ export class FactoryScene extends Phaser.Scene {
     return pointer.event instanceof MouseEvent ? { x: pointer.event.clientX, y: pointer.event.clientY } : { x: pointer.x, y: pointer.y }
   }
   private cancelConstruction() {
+    const state = useGameStore.getState()
+    if (state.touchPlacement?.contextual && state.tool === 'axe') state.select(null)
     if (useGameStore.getState().touchPlacement) useGameStore.setState({ touchPlacement: null, touchRequest: null })
     this.placementRotation.cancel()
     this.constructionDrag.cancel()
@@ -973,7 +984,7 @@ export class FactoryScene extends Phaser.Scene {
     }
     if (state.tool === null) drawGuidance(this.preview, this.world, TILE, !!state.peteInspection && state.petePathVisible, state.inspected, state.connectionVisible)
     const touchTarget = useGameStore.getState().touchPlacement
-    if (touchTarget) {
+    if (touchTarget && touchTarget.tool !== 'createWater' && touchTarget.tool !== 'restoreLand') {
       const { start, end, tool } = touchTarget
       const cells = ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal'].includes(tool ?? '') ? brushTiles(end, end, 3).map(tile => ({ x: tile % SIZE, y: Math.floor(tile / SIZE) })) : tool === 'belt' || tool === 'powerPole' || tool === 'footbridge' ? planConstruction(this.world, start, end, tool, useGameStore.getState().direction, true).cells : [end]
       for (const cell of cells) this.preview.lineStyle(2, 0xf5d68b).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
@@ -1005,10 +1016,12 @@ export class FactoryScene extends Phaser.Scene {
     this.poleLinks.setVisible(!worldInputBlocked(state) && state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer
     if (state.tool === 'clearResource') { if (this.input.isOver) { const tile = landscapeTile(this.input.activePointer, camera, TILE); this.preview.lineStyle(2, 0xef9b72).strokeRect(tile.x * TILE, tile.y * TILE, TILE, TILE); this.placementTooltip(this.input.activePointer, 'Ein Ressourcenfeld entfernen · kein Ertrag · Vorräte bleiben') }; return }
-    if (!worldInputBlocked(state) && state.tool && !combatTool(state.tool) && this.input.isOver) {
+    const touchWater = state.touchActive && (state.tool === 'createWater' || state.tool === 'restoreLand')
+    if (touchWater && !touchTarget) return
+    if (!worldInputBlocked(state) && state.tool && !combatTool(state.tool) && (this.input.isOver || touchWater)) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const rotation = this.placementRotation.preview()
-      const x = rotation?.x ?? Math.floor(p.x / TILE), y = rotation?.y ?? Math.floor(p.y / TILE)
+      const x = touchWater && touchTarget ? touchTarget.end.x : rotation?.x ?? Math.floor(p.x / TILE), y = touchWater && touchTarget ? touchTarget.end.y : rotation?.y ?? Math.floor(p.y / TILE)
       const direction = rotation?.direction ?? state.direction
       if (state.tool === 'belt' || state.tool === 'footbridge') { this.drawConstructionPlan(pointer, planConstruction(this.world, { x, y }, { x, y }, state.tool, direction)); return }
       if (natureTool(state.tool)) {
@@ -1026,7 +1039,7 @@ export class FactoryScene extends Phaser.Scene {
             if (error) this.preview.lineBetween(px + 8, py + 8, px + 24, py + 24).lineBetween(px + 24, py + 8, px + 8, py + 24)
           }
           if (!paintable && !unchanged && !blocked) reason = 'Choose a tile inside the world.'
-          this.placementTooltip(pointer, `${toolMetadata(state.tool).label} · Free
+          if (!touchWater) this.placementTooltip(pointer, `${toolMetadata(state.tool).label} · Free
 ${paintable} paintable · ${unchanged} unchanged · ${blocked} protected
 ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
           return
