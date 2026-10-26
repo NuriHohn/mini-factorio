@@ -295,14 +295,9 @@ Implemented recurring sleep/egg/meal opportunities, overdue care/planting priori
 
 **Planning only, recorded from testing feedback on 2026-10-26; no gameplay implemented or implementation authorized.** Prioritize the following two small maintenance sprints before the proposed 16.68–16.72 feature sequence. Their final sprint numbers remain unassigned. PR #94's daily-life/access fixes and PR #93's coal/steam roadmap are already merged; retain both. The list below records desired behavior separately from suggested tuning and unresolved details.
 
-### Maintenance A — Direct tree interaction, mouse navigation and sprinkler use
+### Maintenance A — Direct tree interaction, mouse navigation and sprinkler use (implemented)
 
-- With no other tool selected, hovering a choppable tree should show an axe cursor and a click should invoke the existing chopping command, with its normal eligibility/yield/resource accounting. Selecting another tool must suppress this contextual action. Pete/building inspection and gifts retain their interaction priority. Keep the explicit axe tool as an alternative; specify an accessible way to inspect a tree before implementation so contextual chopping does not remove that capability. Do not make an ordinary touch inspection tap destructive; touch needs an explicit action or its existing safe confirmation flow.
-- Holding the right mouse button and dragging should pan the camera as an alternative to WASD. Use a movement threshold: a short right-click retains cancellation, a drag pans without also cancelling/placing/chopping. Pointer release outside the canvas, cancellation and blur must clean up the gesture. Preserve WASD, wheel zoom, existing construction drags and touch pan/pinch.
-- Remove Playful Spray from the build toolbar. Start it only through the selected sprinkler's inspector/menu, using a clear action such as "Mit Wasser spritzen". The selected sprinkler remains the source, rather than silently switching to the currently nearest sprinkler. Show its range/readiness, allow repeated target clicks and exit through Escape/right-click/tool or world changes; removal or loss of power must fail safely.
-- Feedback: the sprinkler cooldown feels too long. **Tuning proposal:** try a one-second cooldown for harmless manual spray. Keep automatic anti-Pete defense separately balanced so it cannot repeatedly interrupt Pete. The current implementation shares the defense cooldown and chooses a nearby ready sprinkler; separation/source binding and persistence need specification before coding. The exact new cooldown is a proposal, not an already implemented or separately confirmed value. Retain harmless water animation for reachable targets, Pete and chickens.
-
-Acceptance should exercise actual mouse hover/click, short-right-click versus right-drag, inspection/tool priority, selected-source spray/range/power/cooldown, cancellation, pause/save behavior and phone/tablet input. PC controls must not regress. Physical iPhone/iPad Safari acceptance remains separate from viewport/synthetic checks.
+Implemented contextual PC chopping with an axe cursor, eight-CSS-pixel right-drag camera navigation and inspector-started, source-bound water play. User clarification removes the tree-inspection requirement; touch chopping remains explicit/confirmed. Manual sprays have a separate one-second simulation cooldown, with unchanged automatic defense. Save 44 retains manual timers and loads earlier schemas. Authoritative behavior: [direct controls](GAME_DESIGN.md#direct-player-controls-maintenance-a) and [water play](GAME_DESIGN.md#treasures-and-flight).
 
 ### Maintenance B — Remove offerings and demolish/reopen Pete projects
 
@@ -315,7 +310,7 @@ Acceptance should exercise actual mouse hover/click, short-right-click versus ri
 
 ### Handoff / next-chat order
 
-1. Specify and implement Maintenance A only after a new implementation request; review unresolved tree-inspection/touch behavior and sprinkler tuning first.
+1. Maintenance A implemented following the user’s implementation request; see above.
 2. Specify Maintenance B's demolition ownership, inventory/reward and migration rules, then implement after authorization.
 3. Continue the existing proposed feature sequence: 16.68 automatic copper mining; 16.69 circuit assembly; 16.70 self-supplied Inventor flights; 16.71 coal entry; 16.72 first boiler/steam engine. Coal/steam construction funding and migration remain open specification work.
 

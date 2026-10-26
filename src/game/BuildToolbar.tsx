@@ -24,7 +24,7 @@ export function BuildToolbar() {
       {hint && (hintUses[hint] ?? 0) < 3 && <span className="tool-hint" role="note">{TOOL_HINTS[hint]}</span>}
     </div>
     <div className="toolbar-tools">
-      <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="tool-icons">{PLAYER_TOOLS.filter(option => playMode === 'petesWorld' ? ['placeGrove', 'placeIron', 'placeCopper'].includes(option.tool) : option.tab === buildTab && !['placeGrove', 'placeIron', 'placeCopper'].includes(option.tool)).map(option => {
+      <div id="build-panel" role="tabpanel" aria-labelledby={`tab-${buildTab}`} className="tool-icons">{PLAYER_TOOLS.filter(option => option.tool !== 'playfulSpray').filter(option => playMode === 'petesWorld' ? ['placeGrove', 'placeIron', 'placeCopper', 'axe'].includes(option.tool) : option.tab === buildTab && !['placeGrove', 'placeIron', 'placeCopper'].includes(option.tool)).map(option => {
         const reason = error(option.tool)
         const fundingOnly = option.tool === 'treehouse' && !peaceful && wood < 20
         const cooldown = combatTool(option.tool) && revenge.playerReadyAtMs > simulationTime ? `${((revenge.playerReadyAtMs - simulationTime) / 1000).toFixed(1)} s cooldown` : ''
