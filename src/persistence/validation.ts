@@ -84,7 +84,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['steamEngine', 'forester', 'sawmill', 'peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['fuelDepot', 'steamWorkshop', 'steamHoist', 'steamEngine', 'forester', 'sawmill', 'peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 47 && ['fuelDepot', 'steamWorkshop', 'steamHoist'].includes(kind)) invalid(path, 'industrial machinery requires save version 47')
   if (version < 46 && kind === 'steamEngine') invalid(path, 'steam engines require save version 46')
   if (version < 39 && (kind === 'forester' || kind === 'sawmill')) invalid(path, 'forestry buildings require version 39')
   if (version < 38 && kind === 'peteDevelopment') invalid(path, 'development requires version 38')
@@ -126,7 +127,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     miner: ['direction', 'elapsed', 'item'], belt: ['direction', 'item', 'progress', 'entry'], storage: ['inventory'],
     furnace: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'input', 'output', 'job'],
     assembler: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'autoWaitElapsedMs', 'input', 'output', 'job'],
-    steamEngine: ['fuel', 'burnRemainingMs', 'cycles'], inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
+    fuelDepot: ['inventory'], steamWorkshop: ['elapsedMs', 'cycles'], steamHoist: ['elapsedMs', 'cycles'],
+    steamEngine: ['fuel', 'burnRemainingMs', 'cycles', ...(version >= 47 ? ['briquettes', 'cycleDurationMs'] : [])], inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
     splitter: ['direction', 'input', 'outputs', 'nextOutput', 'delivered', 'placedAtMs'],
   }
   const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs', ...(version >= 44 && kind === 'sprinkler' ? ['manualReadyAtMs'] : []), ...(version >= 9 && kind === 'belt' ? ['bridge'] : []), ...(version >= 40 && kind === 'supplyCrate' ? ['storeTier'] : [])])
@@ -193,10 +195,21 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       return { ...base, kind, inventory: contents, wood, ...(storeTier === undefined ? {} : { storeTier }) }
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
+    case 'fuelDepot': {
+      const contents = inventory(r.inventory, path)
+      if (inventoryTotal(contents) > 24 || ITEMS.some(i => !['coal', 'coalBriquette'].includes(i) && contents[i])) invalid(path, 'invalid bounded fuel depot')
+      return { ...base, kind, inventory: contents }
+    }
+    case 'steamWorkshop': case 'steamHoist': {
+      const duration = kind === 'steamWorkshop' ? 6000 : 8000, elapsedMs = number(r.elapsedMs, path, 0, duration)
+      if (elapsedMs >= duration) invalid(path, 'completed work must be committed')
+      return { ...base, kind, elapsedMs, cycles: count(r.cycles, path) }
+    }
     case 'steamEngine': {
-      const fuel = count(r.fuel, path, 6), burnRemainingMs = count(r.burnRemainingMs, path, 9950), cycles = count(r.cycles, path)
-      if (burnRemainingMs % 50) invalid(path, 'invalid steam work clock')
-      return { ...base, kind, fuel, burnRemainingMs, cycles }
+      const fuel = count(r.fuel, path, 6), cycles = count(r.cycles, path), briquettes = version < 47 ? 0 : count(r.briquettes, path, 6)
+      const cycleDurationMs = version < 47 ? 10000 : count(r.cycleDurationMs, path, 20000), burnRemainingMs = count(r.burnRemainingMs, path, cycleDurationMs - 50)
+      if (burnRemainingMs % 50 || ![10000, 20000].includes(cycleDurationMs) || fuel + briquettes > 6) invalid(path, 'invalid steam fuel or clock')
+      return { ...base, kind, fuel, briquettes, cycleDurationMs, burnRemainingMs, cycles }
     }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }
     case 'sprinkler': {

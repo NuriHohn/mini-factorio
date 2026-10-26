@@ -307,10 +307,24 @@ Implemented explicit per-tile resource clearing and building demolition in Petes
 
 1. Maintenance A implemented following the user’s implementation request; see above.
 2. Maintenance B implemented; use the authoritative rules linked above.
-3. 16.68–16.72 implemented: automatic copper mining, actual circuit assembly, self-supplied Inventor flights, independent coal entry and the first boiler/steam engine. Save 46 migration and exact rules are documented in Architecture/Game design. Next proposals are automatic coal extraction, driven work machines and later Industrial-project redesign; no new five-sprint sequence is approved.
+3. 16.68–16.72 implemented: automatic copper mining, actual circuit assembly, self-supplied Inventor flights, independent coal entry and the first boiler/steam engine. Save 46 migration and exact rules are documented in Architecture/Game design. Automatic coal extraction and driven work are implemented in 16.73–16.77 below; later gear/module project redesign remains unapproved.
 
 No new offline/install work is scheduled: 16.38 stays deferred. Do not infer merge approval for future implementation from approval of this planning update. This roadmap is the authoritative handoff; no separate context file is needed.
 
 ## Petes Welt water and contextual tools follow-up
 
 New worlds now retain shared generated waterways, and players can use the existing free water/land brushes. Planned construction/repair sites stay protected. The separate Petes Welt Axe button is removed; PC hover/click chopping and contextual confirmed touch chopping remain. Existing saves retain their water exactly. This correction does not consume Sprint 16.68 or change the implemented 16.68–16.72 feature sequence. Rules: [water editing](GAME_DESIGN.md#water-editing-in-petes-welt), [direct controls](GAME_DESIGN.md#direct-player-controls-maintenance-a).
+
+## Implemented Industrial sequence (16.73–16.77)
+
+Implemented under the user's explicit five-sprint implementation and merge request. Existing gear/module projects and the closed water circuit remain intact.
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.73 | Steam-powered coal miner, short belts/pole connections and a bounded shared fuel depot at Industrial 3, with real commissioning stock and retained paid work |
+| 16.74 | Ordinary boiler inserter, physical fuel logistics, bootstrap/restart manual fallback and existing backpressure/outage rules |
+| 16.75 | Shared stampfer recipe: two coal to one briquette, normal crafting electricity and an energy-conserving 20-second fuel value |
+| 16.76 | Industrial-4 steam workshop gated by actual briquette production, visible piston work and completed-work rewards |
+| 16.77 | Industrial-5 driven hoist after ten workshop cycles, full coal-only progression, inspections, Save 47 migration and owned component restoration |
+
+Exact rules and acceptance boundaries: [Industrial automation](GAME_DESIGN.md#industrial-automation-and-driven-work-sprints-1673-1677). Replacing legacy gear/module requirements, explicit pipes and offline/install work are not part of these increments. Further sprint numbering/scope requires a new proposal; physical iPhone/iPad Safari acceptance remains open.

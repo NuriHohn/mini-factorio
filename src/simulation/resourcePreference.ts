@@ -13,8 +13,8 @@ export function resourcePreference(world: World, path: PersonalityPath): number 
   for (let tile = 0; tile < world.buildings.length; tile++) {
     if (Math.max(Math.abs(tile % SIZE - home % SIZE), Math.abs(Math.floor(tile / SIZE) - Math.floor(home / SIZE))) > 11) continue
     const b = world.buildings[tile]
-    if (b?.kind === 'supplyCrate') {
-      if (path === 'eco') supply += b.wood / 6
+    if (b?.kind === 'supplyCrate' || b?.kind === 'fuelDepot') {
+      if (path === 'eco' && b.kind === 'supplyCrate') supply += b.wood / 6
       for (const item of ITEMS) if (item !== 'wood' && MATERIAL_PATH[item] === path) supply += b.inventory[item] / (item === 'copperCable' ? 12 : 6)
     }
     if (path === 'eco' && b?.kind === 'tree' && treeStage(world, b) === 'mature') supply += .1

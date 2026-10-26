@@ -1,3 +1,4 @@
+import { drawFuelDepot, drawSteamWork } from './steamVisuals'
 import { clearResource, demolitionNotice } from '../simulation/rebuilding'
 import { RightPan } from './rightPan'
 import { drawGuidance } from './guidanceVisuals'
@@ -819,6 +820,11 @@ export class FactoryScene extends Phaser.Scene {
         this.machines.fillStyle(status === 'output-full' ? 0xf08172 : active ? 0x79e6a2 : 0x98a2a3).fillCircle(x + 26, y + 5, 2)
         this.machines.fillStyle(0x101b22).fillRect(x + 5, y + 28, 22, 3)
         this.machines.fillStyle(0x79e6a2).fillRect(x + 5, y + 28, 22 * progress, 3)
+        if (building.recipeId === 'coalBriquette') {
+          const stroke = (1 - Math.cos((building.job?.elapsedMs ?? 0) / 4000 * Math.PI * 2)) * 5
+          this.machines.fillStyle(0xb7c4c5).fillRect(x + 10, y + 7 + stroke, 12, 7)
+          this.machines.lineStyle(3, 0x695c45).lineBetween(x + 16, y + 3, x + 16, y + 7 + stroke)
+        }
       } else if (building.kind === 'inserter') {
         const d = offsets[building.direction]
         const arm = inserterArmPoint(building.phase, building.elapsedMs)
@@ -838,8 +844,12 @@ export class FactoryScene extends Phaser.Scene {
         drawFishingDock(this.machines, building)
       } else if (building.kind === 'waterwheel') {
         drawWaterwheel(this.machines, building, waterwheelRunning(this.world, building) ? this.world.remainder : 0)
+      } else if (building.kind === 'fuelDepot') {
+        drawFuelDepot(this.machines, building)
+      } else if (building.kind === 'steamWorkshop' || building.kind === 'steamHoist') {
+        drawSteamWork(this.machines, building)
       } else if (building.kind === 'steamEngine') {
-        const running = sabotageRemaining(this.world, building) === 0 && (building.burnRemainingMs > 0 || building.fuel > 0)
+        const running = sabotageRemaining(this.world, building) === 0 && (building.burnRemainingMs > 0 || building.fuel + building.briquettes > 0)
         const phase = running ? (this.world.timeMs + this.world.remainder) / 180 : 0
         this.machines.fillStyle(0x293d44).fillRoundedRect(x + 2, y + 7, 19, 23, 4)
         this.machines.lineStyle(2, 0xa5b9bb).strokeRoundedRect(x + 2, y + 7, 19, 23, 4)

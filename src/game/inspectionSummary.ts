@@ -19,7 +19,10 @@ const descriptions: Record<Inspection['kind'], string> = {
   supplyCrate: 'Receives materials for Pete. Belts and inserters can deliver; Pete may collect supplied Wood for his secret project.',
   footbridge: 'A wooden crossing for Pete and police. No items or electricity. Remove only when clear.',
   fishingDock: 'A quiet place for peaceful Pete to fish. No items are produced.',
-  steamEngine: 'Integrated coal boiler and steam engine. Closed water circuit; 1 coal powers 10 seconds of shaft work and up to 50 kW through a pole.',
+  fuelDepot: 'Brennstofflager: bis zu 24 Kohle oder Briketts. Förderbänder und Greifer bewegen echte Vorräte.',
+  steamWorkshop: 'Dampfwerkstatt: Kolbenarbeit mit 20 kW. Nur tatsächlich gelieferte Dampfenergie zählt; 6 Sekunden Arbeit je Zyklus.',
+  steamHoist: 'Förderaufzug: hebt einen wiederverwendeten Prüflastkorb mit 30 kW. Nur Dampfenergie zählt; 8 Sekunden Arbeit je Hub.',
+  steamEngine: 'Integrated coal boiler and steam engine. Closed water circuit; 1 coal powers 10 seconds, 1 briquette 20 seconds of shaft work and up to 50 kW through a pole.',
   waterwheel: 'Makes electricity from adjacent water. Connect it to a pole.',
   miner: 'Takes ore from the ground.', belt: 'Carries items in the arrow’s direction.', storage: 'Keeps items until they are needed.',
   furnace: 'Turns ore into metal plates.', assembler: 'Makes parts from ingredients.', inserter: 'Moves one item between neighbors.',
@@ -44,7 +47,9 @@ export function inspectionSummary(i: Inspection) {
   else if (i.kind === 'supplyCrate') state = `${ITEMS.reduce((n, item) => n + i.inventory[item], i.wood)} / ${i.capacity} items${i.inspecting ? ' · Pete is inspecting.' : '.'}`
   else if (i.kind === 'fishingDock') state = !i.waterAvailable ? 'Needs water on the fishing side.' : !i.accessible ? 'Keep the land approach behind the dock clear.' : i.fishing ? 'Pete is fishing.' : 'Ready for peaceful Pete.'
   else if (i.kind === 'waterwheel' && !i.waterAvailable) state = 'Needs water on the facing side.'
-  else if (i.kind === 'steamEngine') state = `${i.fuel}/6 coal · ${i.cycles} completed cycles · ${i.progress > 0 || i.fuel > 0 ? 'Working.' : 'Waiting for coal.'}`
+  else if (i.kind === 'steamWorkshop' || i.kind === 'steamHoist') state = `${i.cycles} Arbeitszyklen · ${Math.round(i.progress * 100)} % · ${i.steamFraction > 0 && i.electrical.speedFraction > 0 ? 'Arbeitet mit Dampfenergie.' : 'Wartet auf Dampfenergie im angeschlossenen Netz.'}`
+  else if (i.kind === 'fuelDepot') state = `${i.inventory.coal} Kohle + ${i.inventory.coalBriquette} Briketts / 24.`
+  else if (i.kind === 'steamEngine') state = `${i.fuel} coal + ${i.briquettes} briquettes / 6 fuel · ${i.cycles} completed cycles · ${i.progress > 0 || i.fuel + i.briquettes > 0 ? 'Working.' : 'Waiting for coal.'}`
   else if (i.kind === 'assembler' && !i.recipeId) state = 'Choose a recipe first.'
   else if ('electrical' in i && ['disconnected', 'no-generation'].includes(i.electrical.state) && i.kind !== 'generator' && i.kind !== 'waterwheel' && i.kind !== 'powerPole') state = 'Needs electricity.'
   else if (i.kind === 'forester') state = i.details
@@ -66,5 +71,5 @@ export function inspectionSummary(i: Inspection) {
   else if (i.kind === 'prison') state = i.occupied ? 'Pete is here.' : 'Empty.'
   else if (i.kind === 'generator' || i.kind === 'waterwheel' || i.kind === 'powerPole') state = i.electrical.networkId === null ? 'Needs a power connection.' : 'Connected.'
   const power = 'electrical' in i ? i.electrical.state === 'sabotaged' ? 'Temporarily disabled' : i.electrical.state === 'disconnected' ? 'No connection' : i.electrical.state === 'no-generation' ? 'No electricity' : i.electrical.state === 'reduced' ? 'Reduced power' : 'Connected' : null
-  return { power, name: i.kind === 'supplyCrate' && i.storeTier !== undefined ? i.storeTier === 2 ? 'Materiallager mit Regalen' : i.storeTier === 1 ? 'Überdachtes Materiallager' : 'Petes Materiallager' : name, icon: metadata?.icon ?? (i.kind === 'tree' ? '♣' : '▥'), description: i.kind === 'supplyCrate' && i.storeTier !== undefined ? 'Pete lagert hier Holz, Erze, Platten und Teile. Er entnimmt vorhandenes Material für seine Projekte.' : descriptions[i.kind], state }
+  return { power, name: i.kind === 'assembler' && i.recipeId === 'coalBriquette' ? 'Kohlestampfer' : i.kind === 'supplyCrate' && i.storeTier !== undefined ? i.storeTier === 2 ? 'Materiallager mit Regalen' : i.storeTier === 1 ? 'Überdachtes Materiallager' : 'Petes Materiallager' : name, icon: metadata?.icon ?? (i.kind === 'tree' ? '♣' : '▥'), description: i.kind === 'supplyCrate' && i.storeTier !== undefined ? 'Pete lagert hier Holz, Erze, Platten und Teile. Er entnimmt vorhandenes Material für seine Projekte.' : descriptions[i.kind], state }
 }

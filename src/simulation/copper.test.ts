@@ -77,7 +77,7 @@ function expectConserved(world: World) {
 }
 describe('central item and recipe definitions', () => {
   it('has unique typed IDs, labels, categories and distinct visual properties for all registered items', () => {
-    expect(new Set(ITEMS).size).toBe(12)
+    expect(new Set(ITEMS).size).toBe(13)
     for (const item of ITEMS) {
       const definition = ITEM_DEFINITIONS[item]
       expect(definition.id).toBe(item)
