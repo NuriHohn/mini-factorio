@@ -285,3 +285,7 @@ This sequence is a planning proposal, not implementation approval. The coal/stea
 | 16.72 | First coal-fuelled boiler/steam engine, visible actual work and Pete-managed closed water circuit; specify fuel/project accounting and integration with existing Industrial progression before coding |
 
 Automatic coal extraction, further driven work machines and the complete Industrial-project redesign may need later increments beyond the first steam engine. Mobile changes must preserve PC controls. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open.
+
+## Post-16.67 maintenance: recurring daily life and yard completion
+
+Implemented recurring sleep/egg/meal opportunities, overdue care/planting priority, early yard reservation and protected fence stock before orchard/nursery expansion. Homestead machine planning/build approaches preserve home access; older idle machine-pocket saves receive bounded recovery. Detailed activity is inspection-only. Save 43 retains the rest deadline and loads earlier schemas. See [authoritative rules](GAME_DESIGN.md#recurring-homestead-life-and-safe-construction-post-1667-fix). This maintenance does not consume a future feature sprint or implement the proposed Industrial entry resource.

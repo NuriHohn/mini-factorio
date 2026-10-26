@@ -161,8 +161,8 @@ function advanceCopper(world: World, delta: number): boolean {
   }
   return true
 }
-function clearForestrySite(world: World): boolean {
-  for (const plan of chainCandidates(world, 'forestry')) {
+function clearChainSite(world: World, kind: 'forestry' | 'crates'): boolean {
+  for (const plan of chainCandidates(world, kind)) {
     const tiles = expansionLayout(plan).map(s => s.tile), buildings = [...world.buildings]
     for (const tile of tiles) { const b = buildings[tile]; if (b?.kind === 'tree' && treeStage(world, b) === 'mature') buildings[tile] = null }
     if (!freeSite({ ...world, buildings, harvestProject: undefined }, tiles)) continue
@@ -198,7 +198,7 @@ export function chooseExpansion(world: World, path: PersonalityPath = 'craftsman
     if ((kind === 'forestry' ? e.forestry : e.assembler) !== null || Object.entries(chainCost(kind)).some(([item, amount]) => (item === 'wood' ? store.wood : store.inventory[item as Item]) < amount)) continue
     const plan = planChain(world, kind)
     if (plan) { e.plan = plan; begin(world, 'buildChain', h.store); return true }
-    if (kind === 'forestry' && clearForestrySite(world)) return true
+    if (clearChainSite(world, kind)) return true
   }
   if (path === 'craftsman' && craftsman >= 3 && e.furnace !== null && e.miner === null && store.inventory.ironPlate >= 8) {
     const plan = planChain(world, 'ironMining')
@@ -244,7 +244,7 @@ export function advanceExpansion(world: World, delta: number): boolean {
       for (const [item, amount] of cost) { if (item === 'wood') store.wood -= amount; else store.inventory[item] -= amount; h.carried[item] = amount }
     }
     const step = expansionLayout(plan)[plan.built]
-    if (!step || world.buildings[step.tile] || world.water[step.tile] || !arrived(world, step.tile, delta) || !freeSite(world, [step.tile])) return true
+    if (!step || world.buildings[step.tile] || world.water[step.tile] || !arrived(world, step.tile, delta, true) || !freeSite(world, [step.tile])) return true
     h.target = step.tile; h.elapsedMs = Math.min(4000, h.elapsedMs + delta)
     if (h.elapsedMs !== 4000 || !placeBuilding(world, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, step.direction)) return true
     if (step.kind === 'assembler') changeCraftingRecipe(world, step.tile % SIZE, Math.floor(step.tile / SIZE), plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')

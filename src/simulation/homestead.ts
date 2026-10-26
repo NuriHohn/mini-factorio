@@ -1,3 +1,4 @@
+import { neighboringTiles, peteReachableTiles, peteWalkableTile, tilePath } from './navigation'
 import { preferredPaths } from './resourcePreference'
 import { emptyInventory, inventoryTotal, ITEMS } from './items'
 import { advanceExpansion, chooseExpansion, createExpansion, expansionSummary } from './homesteadExpansion'
@@ -21,16 +22,31 @@ export interface Homestead {
   carried: Inventory
   elapsedMs: number
   nextAtMs: number
+  nextRestAtMs: number
   millAnchor: number | null
   millBuilt: number
   expansion: HomesteadExpansion
 }
 export function createHomestead(): Homestead {
-  return { store: null, task: null, target: null, treeBornAtMs: null, carried: emptyInventory(), elapsedMs: 0, nextAtMs: 0, millAnchor: null, millBuilt: 0, expansion: createExpansion() }
+  return { store: null, task: null, target: null, treeBornAtMs: null, carried: emptyInventory(), elapsedMs: 0, nextAtMs: 0, nextRestAtMs: 180000, millAnchor: null, millBuilt: 0, expansion: createExpansion() }
 }
 export function materialStore(world: World): SupplyCrate | null {
   const tile = world.homestead?.store, b = tile === null || tile === undefined ? null : world.buildings[tile]
   return b?.kind === 'supplyCrate' && b.storeTier !== undefined ? b : null
+}
+// Older expansion plans could seal Pete in a tiny pocket beside a new machine.
+// Repair only that idle legacy state, without touching buildings, stock or XP.
+export function repairLegacyHomesteadAccess(world: World): void {
+  const h = world.homestead, p = world.pete, home = world.peace.home
+  if (!h || home === null || h.task || currentProject(world)?.selected || p.next !== null || p.mode !== 'WANDERING' || !['walking', 'homeward', 'waving', 'flowers'].includes(world.peace.activity)) return
+  const before = peteReachableTiles(world, p.tile), entrances = neighboringTiles(home).filter(tile => peteWalkableTile(world, tile))
+  if (!entrances.length || entrances.some(tile => before.has(tile)) || before.size > 4) return
+  const safe = peteReachableTiles(world, entrances[0])
+  const distance = (tile: number) => Math.abs(tile % SIZE - p.tile % SIZE) + Math.abs(Math.floor(tile / SIZE) - Math.floor(p.tile / SIZE))
+  const target = [...safe.keys()].filter(tile => !world.buildings[tile] && !world.water[tile] && distance(tile) <= 4 && !world.poultry?.birds.some(b => b.tile === tile || b.next === tile)).sort((a, b) => distance(a) - distance(b) || a - b)[0]
+  if (target === undefined) return
+  Object.assign(p, { tile: target, x: target % SIZE, y: Math.floor(target / SIZE), path: [], pathRevision: -1, travelMs: 0 })
+  Object.assign(world.peace, { activity: 'homeward', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
 }
 export function handMillLayout(anchor: number): { tile: number; kind: BuildingKind }[] {
   return [{ tile: anchor + SIZE, kind: 'powerPole' }, { tile: anchor + SIZE + 1, kind: 'generator' }, { tile: anchor, kind: 'sawmill' }]
@@ -38,7 +54,12 @@ export function handMillLayout(anchor: number): { tile: number; kind: BuildingKi
 export function freeSite(world: World, tiles: number[]): boolean {
   const home = world.peace.home
   if (home === null || tiles.some(i => !inside(i % SIZE, Math.floor(i / SIZE)) || placementError(world, i % SIZE, Math.floor(i / SIZE), 'storage') || miniApproach(world, i) === null)) return false
-  return !projectPlansConflict(world, { home, direction: 'east', tiles, spots: [], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 })
+  if (projectPlansConflict(world, { home, direction: 'east', tiles, spots: [], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 })) return false
+  const before = peteReachableTiles(world, world.pete.tile), buildings = [...world.buildings]
+  for (const tile of tiles) buildings[tile] = { kind: 'storage', x: tile % SIZE, y: Math.floor(tile / SIZE), inventory: emptyInventory() }
+  const candidate = { ...world, buildings }, after = peteReachableTiles(candidate, world.pete.tile)
+  if (!neighboringTiles(home).some(tile => after.has(tile) && peteWalkableTile(candidate, tile))) return false
+  return world.buildings.every((building, tile) => !building || !neighboringTiles(tile).some(i => before.has(i) && peteWalkableTile(world, i)) || neighboringTiles(tile).some(i => after.has(i) && peteWalkableTile(candidate, i)))
 }
 function site(world: World, mill = false): number | null {
   const home = world.peace.home!
@@ -76,8 +97,15 @@ function chooseTree(world: World): number | null {
   choices.sort((a, b) => a.distance - b.distance || a.tile - b.tile)
   return choices[0]?.tile ?? null
 }
-export function arrived(world: World, tile: number | null, delta: number): boolean {
-  const spot = tile === null ? null : miniApproach(world, tile)
+export function arrived(world: World, tile: number | null, delta: number, construction = false): boolean {
+  let spot = tile === null ? null : miniApproach(world, tile)
+  if (construction && tile !== null && world.peace.home !== null) {
+    const buildings = [...world.buildings]
+    buildings[tile] = { kind: 'storage', x: tile % SIZE, y: Math.floor(tile / SIZE), inventory: emptyInventory() }
+    const candidate = { ...world, buildings }, entrance = neighboringTiles(world.peace.home).find(i => peteWalkableTile(candidate, i))
+    const safe = entrance === undefined ? new Map<number, number>() : peteReachableTiles(candidate, entrance), paths = peteReachableTiles(world, world.pete.tile)
+    spot = neighboringTiles(tile).filter(i => safe.has(i) && paths.has(i) && peteWalkableTile(candidate, i)).sort((a, b) => tilePath(paths, a)!.length - tilePath(paths, b)!.length || a - b)[0] ?? null
+  }
   return spot !== null && miniWalk(world, spot, delta)
 }
 function chooseTask(world: World): void {
@@ -118,7 +146,7 @@ function chooseEcoTask(world: World): void {
   const mill = world.buildings[s.millAnchor]
   if (mill?.kind !== 'sawmill' || store.inventory.woodPanel >= 12) return
   if (mill.output.woodPanel && inventoryTotal(store.inventory) + store.wood + 2 <= supplyCapacity(store)) begin(world, 'takePanels', s.millAnchor)
-  else if (!mill.job && mill.input.wood === 0 && inventoryTotal(mill.output) < 4 && store.wood >= 14) begin(world, 'fetchWood', s.store)
+  else if (!mill.job && mill.input.wood === 0 && inventoryTotal(mill.output) < 4 && store.wood >= (store.storeTier === 0 ? 14 : 4)) begin(world, 'fetchWood', s.store)
 }
 // Returns true only while a committed homestead task owns Pete. Otherwise the
 // original project, animal, garden, leisure and sleeping routine runs unchanged.
@@ -126,7 +154,8 @@ export function advanceHomestead(world: World, delta: number, decision = false):
   const s = world.homestead
   if (!s || world.peace.home === null) return false
   if (s.task === null) {
-    if ((world.timeMs < s.nextAtMs && (!decision || s.nextAtMs - world.timeMs > 2000)) || currentProject(world)?.selected || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling || world.leisure?.carried || world.pete.next !== null || !['walking', 'homeward', 'waving', 'flowers'].includes(world.peace.activity)) return false
+    if (!decision) return false
+    if ((world.timeMs < s.nextAtMs && (!decision || s.nextAtMs - world.timeMs > 2000)) || currentProject(world)?.selected || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling || world.leisure?.carried || world.pete.next !== null) return false
     s.nextAtMs = world.timeMs + 2000
     chooseTask(world)
     if (s.task === null) return false
@@ -152,7 +181,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
   }
   const store = materialStore(world)
   if (s.task === 'buildStore') {
-    if (s.target === null || !freeSite(world, [s.target]) || !arrived(world, s.target, delta)) return true
+    if (s.target === null || !freeSite(world, [s.target]) || !arrived(world, s.target, delta, true)) return true
     s.elapsedMs = Math.min(6000, s.elapsedMs + delta)
     if (s.elapsedMs < 6000 || Math.max(s.carried.wood, s.carried.iron, s.carried.copper) < 6) return true
     const tile = s.target
@@ -170,7 +199,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     }
     if (s.millAnchor === null) return true
     const step = handMillLayout(s.millAnchor)[s.millBuilt]
-    if (!step || world.buildings[step.tile] || world.water[step.tile] || !arrived(world, step.tile, delta) || !freeSite(world, [step.tile])) return true
+    if (!step || world.buildings[step.tile] || world.water[step.tile] || !arrived(world, step.tile, delta, true) || !freeSite(world, [step.tile])) return true
     s.elapsedMs = Math.min(4000, s.elapsedMs + delta)
     if (s.elapsedMs < 4000 || !placeBuilding(world, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, 'east')) return true
     s.millBuilt++; s.elapsedMs = 0
@@ -180,7 +209,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
   if (!arrived(world, s.target, delta)) return true
   const mill = s.millAnchor === null ? null : world.buildings[s.millAnchor]
   if (s.task === 'fetchWood') {
-    if (store.wood < 14 || mill?.kind !== 'sawmill') { finish(world); return true }
+    if (store.wood < (store.storeTier === 0 ? 14 : 4) || mill?.kind !== 'sawmill') { finish(world); return true }
     store.wood -= 2; s.carried.wood = 2; begin(world, 'feedMill', s.millAnchor)
   } else if (s.task === 'feedMill') {
     if (mill?.kind !== 'sawmill') { begin(world, 'returnStock', s.store); return true }
