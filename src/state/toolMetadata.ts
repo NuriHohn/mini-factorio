@@ -1,11 +1,12 @@
 import type { NatureTool } from './natureTools'
 import type { BuildingKind } from '../simulation/world'
 export type BuildTab = 'factory' | 'logistics' | 'power' | 'nature' | 'pete'
-export type ToolKind = Exclude<BuildingKind, 'peteDevelopment' | 'peteTreasure' | 'peteFlightpad' | 'prison' | 'tree' | 'peteFence' | 'peteCoop' | 'peteCampfire' | 'peteGate'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam' | 'playfulSpray'
+export type ToolKind = Exclude<BuildingKind, 'peteDevelopment' | 'peteTreasure' | 'peteFlightpad' | 'prison' | 'tree' | 'peteFence' | 'peteCoop' | 'peteCampfire' | 'peteGate'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam' | 'playfulSpray' | 'clearResource'
 export type Tool = ToolKind | null
 export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code?: string; tab: BuildTab }
 export const BUILD_TABS: readonly { id: BuildTab; label: string; icon: string }[] = [{ id: 'factory', label: 'Factory', icon: '⚙' }, { id: 'logistics', label: 'Logistics', icon: '➜' }, { id: 'power', label: 'Power', icon: 'ϟ' }, { id: 'nature', label: 'Nature', icon: '♣' }, { id: 'pete', label: 'Special', icon: '✳' }]
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
+  { tool: 'clearResource', label: 'Ressource entfernen', hint: 'Ein Feld: Baum und Erz entfernen · kein Ertrag · gelagerte Vorräte bleiben', key: 'Click', icon: '◇', tab: 'nature' },
   { tool: 'forester', label: 'Forststation', hint: 'Mature trees within 3 tiles → Wood · 30 kW · replants harvested plots', key: 'Click', icon: '♠', tab: 'factory' },
   { tool: 'sawmill', label: 'Sägewerk', hint: '1 Wood → 2 wood panels · 40 kW', key: 'Click', icon: '▥', tab: 'factory' },
   { tool: 'playfulSpray', label: 'Playful spray', hint: 'Click any target within 3 tiles of a ready powered sprinkler · harmless', key: 'Click', icon: '💦', tab: 'pete' },

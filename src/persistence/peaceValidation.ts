@@ -25,7 +25,8 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
   }
   const home = s.home === null ? null : v.tile(s.home, 'peace.home')
   const homes = world.buildings.filter(b => b?.kind === 'treehouse')
-  if (homes.length !== (home === null ? 0 : 1) || (home !== null && world.buildings[home]?.kind !== 'treehouse')) v.invalid('peace.home', 'treehouse and peace state disagree')
+  const rebuildingHome = version >= 45 && !!world.miniFactory && home !== null && !world.buildings[home] && !!world.rebuilding?.jobs.some(j => j.tile === home && j.owner.type === 'home')
+  if (homes.length !== (home === null || rebuildingHome ? 0 : 1) || (home !== null && !rebuildingHome && world.buildings[home]?.kind !== 'treehouse')) v.invalid('peace.home', 'treehouse and peace state disagree')
   const activity = v.choice(s.activity, 'peace.activity', PEACE_ACTIVITIES.slice(0, version >= 38 ? 41 : version >= 37 ? 37 : version >= 36 ? 30 : version >= 28 ? 26 : version >= 27 ? 24 : version >= 25 ? 22 : version >= 24 ? 21 : version >= 23 ? 19 : version >= 18 ? 17 : version >= 17 ? 14 : version >= 15 ? 12 : version >= 14 ? 11 : version >= 12 ? 9 : version >= 11 ? 8 : 6))
   const sinceMs = clock(s.sinceMs, 'sinceMs', world.timeMs)
   const untilMs = clock(s.untilMs, 'untilMs', world.timeMs + (version >= 11 ? FISHING_MS : 12000))
@@ -70,7 +71,7 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
     if (['entering', 'resting', 'verandaRest'].includes(activity) && !neighboringTiles(home).includes(p.tile)) v.invalid('peace.activity', 'home activity is away from entrance')
     // A pending legacy 5–10-minute deadline remains valid after resaving as version 26.
     const house = world.buildings[home]!
-    if (house.kind === 'treehouse' && (sinceMs < house.placedAtMs || nextGiftAtMs < house.placedAtMs + 300000 || gifts.some(g => g.atMs < house.placedAtMs || nextGiftAtMs < g.atMs + 300000) || (shutdown && shutdown.atMs !== house.placedAtMs))) v.invalid('peace', 'activity predates home')
+    if (house?.kind === 'treehouse' && (sinceMs < house.placedAtMs || nextGiftAtMs < house.placedAtMs + 300000 || gifts.some(g => g.atMs < house.placedAtMs || nextGiftAtMs < g.atMs + 300000) || (shutdown && shutdown.atMs !== house.placedAtMs))) v.invalid('peace', 'activity predates home')
   }
   return { ...createPeace(), ...(boat ? { boat } : {}), home, activity, sinceMs, untilMs, destination, nextProjectCheckAtMs, nextGiftAtMs, nextId, seed: v.count(s.seed, 'peace.seed', 0xffffffff), gifts, shutdown, reactionAtMs }
 }

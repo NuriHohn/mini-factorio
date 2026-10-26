@@ -274,7 +274,7 @@ Petes Welt should initially use a closed water circuit managed by Pete: the chil
 
 ### Proposed feature sequence (16.68–16.72)
 
-This sequence is a planning proposal, not implementation approval. The two player-control maintenance increments below are proposed ahead of this feature sequence without renumbering it. The coal/steam direction above supersedes the earlier gear-pile and gear-production proposals for 16.71/16.72.
+This sequence is a planning proposal, not implementation approval. The two implemented player-control maintenance increments below precede of this feature sequence without renumbering it. The coal/steam direction above supersedes the earlier gear-pile and gear-production proposals for 16.71/16.72.
 
 | Sprint | Proposed scope |
 | --- | --- |
@@ -293,25 +293,20 @@ Implemented recurring sleep/egg/meal opportunities, overdue care/planting priori
 
 ## Planned player controls, resource removal and project rebuilding
 
-**Planning only, recorded from testing feedback on 2026-10-26; no gameplay implemented or implementation authorized.** Prioritize the following two small maintenance sprints before the proposed 16.68–16.72 feature sequence. Their final sprint numbers remain unassigned. PR #94's daily-life/access fixes and PR #93's coal/steam roadmap are already merged; retain both. The list below records desired behavior separately from suggested tuning and unresolved details.
+**Maintenance A and B implemented following the user’s explicit implementation/merge request.** Originally recorded from testing feedback on 2026-10-26; both precede the still-proposed 16.68–16.72 feature sequence. Their final sprint numbers remain unassigned. PR #94's daily-life/access fixes and PR #93's coal/steam roadmap are already merged; retain both. The sections below link the implemented behavior; later feature work still requires its own scope.
 
 ### Maintenance A — Direct tree interaction, mouse navigation and sprinkler use (implemented)
 
 Implemented contextual PC chopping with an axe cursor, eight-CSS-pixel right-drag camera navigation and inspector-started, source-bound water play. User clarification removes the tree-inspection requirement; touch chopping remains explicit/confirmed. Manual sprays have a separate one-second simulation cooldown, with unchanged automatic defense. Save 44 retains manual timers and loads earlier schemas. Authoritative behavior: [direct controls](GAME_DESIGN.md#direct-player-controls-maintenance-a) and [water play](GAME_DESIGN.md#treasures-and-flight).
 
-### Maintenance B — Remove offerings and demolish/reopen Pete projects
+### Maintenance B — Remove offerings and demolish/reopen Pete projects (implemented)
 
-- Let the player remove resource offerings (forest/trees and iron/copper deposits; future coal follows once implemented) and demolish buildings in Petes Welt. Reuse existing removal commands/validation and provide an explicit, understandable action rather than accidental default-click deletion. Retain the Factory mode's established controls and removal rules.
-- Removing an offering changes the actual terrain/tree supply and future resource preference. Already mined/carried/stored goods and earned progression must not be silently erased. Distinguish ordinary chopping with its existing yield from clearing a resource offering; clearing must not manufacture goods or refund already mined deposits.
-- Demolishing a Pete-built project should make that specific project available again, subject to its normal unlocks, materials and a usable site. Rebuilding is Pete's autonomous choice, not an immediate free replacement or forced command. Other intact projects and unrelated earned progression remain intact.
-- **Proposed safeguards, to specify before coding:** rebuilding pays real materials again; original completion rewards remain once-only to prevent demolition/XP farming. Define individual fence-section repair versus complete enclosure reset, multi-building production-chain ownership and surviving components, upgrades attached to a demolished host, and removal/rebuilding of the general store or treehouse. No blanket project-history reset or duplicated surviving machines.
-- Define inventories in a deliberately demolished building separately from already collected materials elsewhere. Preserve existing Factory discard/no-refund policy unless a feature specification explicitly changes it; clarify the Petes Welt policy and show any loss to the player. Handle active paid work, carried loads, machine jobs, reserved routes, animal/egg locations and missing destinations through existing recovery systems without duplicating or silently losing committed cargo.
-- Persistence must distinguish historical reward/completion from present structure availability, load supported older saves, and continue partial rebuilds exactly. Cover demolition during each paid stage, interrupted deliveries, partial fences/chains, resource influence after removal, repeated rebuilds and save/load. Detailed blockage reasons remain inspection-only; preserve the recurring daily-life fixes.
+Implemented explicit per-tile resource clearing and building demolition in Petes Welt, autonomous material-paid component repairs, safe original sites, independent historical completion/rewards and retained paid work/cargo. Missing stores have physical raw-resource bootstrap; missing homes retain peaceful Petes Welt progression. Host upgrades can be paid for again without repeated rewards; intacts and Factory behavior remain unchanged. Save 45 supports older saves and exact partial repair continuation. Authoritative costs, inventory/animal policies and limits: [removal and rebuilding](GAME_DESIGN.md#removal-and-rebuilding-in-petes-welt-maintenance-b).
 
 ### Handoff / next-chat order
 
 1. Maintenance A implemented following the user’s implementation request; see above.
-2. Specify Maintenance B's demolition ownership, inventory/reward and migration rules, then implement after authorization.
-3. Continue the existing proposed feature sequence: 16.68 automatic copper mining; 16.69 circuit assembly; 16.70 self-supplied Inventor flights; 16.71 coal entry; 16.72 first boiler/steam engine. Coal/steam construction funding and migration remain open specification work.
+2. Maintenance B implemented; use the authoritative rules linked above.
+3. Next feature work, after a new request, follows the existing proposed sequence: 16.68 automatic copper mining; 16.69 circuit assembly; 16.70 self-supplied Inventor flights; 16.71 coal entry; 16.72 first boiler/steam engine. Coal/steam construction funding and migration remain open specification work.
 
 No new offline/install work is scheduled: 16.38 stays deferred. Do not infer merge approval for future implementation from approval of this planning update. This roadmap is the authoritative handoff; no separate context file is needed.

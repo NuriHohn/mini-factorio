@@ -1,3 +1,4 @@
+import { rebuildSummary } from './rebuilding'
 import { HOME_TASK_LABELS } from './homestead'
 import { miniStatus } from './petesWorld'
 import { developmentStatus, TASK_LABELS } from './developmentStatus'
@@ -25,7 +26,7 @@ export function peteStatus(world: World): PeteStatus {
   const parents = peteReachableTiles(world, world.pete.tile)
   const crates = world.buildings.flatMap((b, tile) => b?.kind === 'supplyCrate' ? [{ crate: b, reachable: neighboringTiles(tile).some(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !world.buildings.some(p => p?.kind === 'prison' && p.exit === i)) }] : [])
   const quantity = (crate: SupplyCrate, item: ProjectMaterial) => item === 'wood' ? crate.wood : item === 'chickenFeed' || item === 'fruit' || item === 'sapling' ? 0 : crate.inventory[item]
-  const projects = PETE_PROJECTS.flatMap(definition => {
+  const projects: ProjectStatus[] = PETE_PROJECTS.flatMap(definition => {
     const saved = world[definition.state], name = PROJECT_NAMES[definition.id]
     if (!definition.repeatable && saved?.phase === 'complete') return []
     let reason: string
@@ -58,6 +59,7 @@ export function peteStatus(world: World): PeteStatus {
     return [{ id: definition.id, name, reason, ready: !!candidate }]
   })
   const wishes = [...projects].sort((a, b) => Number(b.ready) - Number(a.ready) || Number(world.personality.paths[PETE_PROJECTS.find(p => p.id === b.id)!.path].level >= PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel) - Number(world.personality.paths[PETE_PROJECTS.find(p => p.id === a.id)!.path].level >= PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel) || Number(PETE_PROJECTS.find(p => p.id === b.id)!.path === world.personality.dominant) - Number(PETE_PROJECTS.find(p => p.id === a.id)!.path === world.personality.dominant))
+  for (const [index, reason] of rebuildSummary(world).entries()) projects.push({ id: `rebuild:${index}`, name: 'Wiederaufbau', reason, ready: false })
   const selected = active ? PETE_PROJECTS.find(p => world[p.state] === active) : undefined
   const activity = world.developmentLife?.task && ['developmentward', 'developmentWork'].includes(world.peace.activity) ? `${world.peace.activity === 'developmentward' ? 'On my way:' : 'Now:'} ${TASK_LABELS[world.developmentLife.task]}` : world.peace.home === null ? world.pete.mode.toLowerCase().replaceAll('_', ' ') : world.peace.activity === 'project' && active ? active.kind === 'fell' ? active.carried ? 'Bringing harvested Wood to the supply crate' : 'Felling a mature tree' : active.phase === 'collecting' ? 'Collecting project materials' : active.kind === 'feed' ? 'Feeding the chickens' : active.kind === 'care' ? 'Mulching my garden' : 'Building my project' : ACTIVITY_NAMES[world.peace.activity]
   const materials = Object.entries(projectResources(active)).map(([id, n]) => `${n} ${id === 'wood' ? 'Wood' : id === 'chickenFeed' ? 'chicken feed' : ITEM_DEFINITIONS[id as keyof typeof ITEM_DEFINITIONS]?.label ?? id}`).join(' + ')
@@ -68,5 +70,10 @@ export function peteStatus(world: World): PeteStatus {
     development.carrying = ITEMS.filter(item => h.carried[item]).map(item => `${h.carried[item]} ${ITEM_DEFINITIONS[item].label}`).join(' · ') || 'Nichts getragen'
     development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
   }
-  return { intent: mini ?? intent, ...development, yard: yardSummary(world), activity: world.homestead?.task ? HOME_TASK_LABELS[world.homestead.task] : activity, current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
+  const repair = world.rebuilding?.jobs.find(j => j.tile === world.rebuilding?.active)
+  if (repair) {
+    development.carrying = ITEMS.filter(i => repair.paid[i]).map(i => `${repair.paid[i]} ${ITEM_DEFINITIONS[i].label}`).join(' · ') || 'Noch kein Reparaturmaterial bezahlt'
+    development.progress = repair.elapsedMs ? repair.elapsedMs / (repair.funded ? 4000 : 6000) : null
+  }
+  return { intent: repair ? rebuildSummary(world).find((_, i) => world.rebuilding!.jobs[i] === repair)! : mini ?? intent, ...development, yard: yardSummary(world), activity: repair ? repair.funded && repair.elapsedMs ? 'Ich baue das fehlende Teil wieder auf' : 'Ich hole Material für den Wiederaufbau' : world.homestead?.task ? HOME_TASK_LABELS[world.homestead.task] : activity, current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
 }

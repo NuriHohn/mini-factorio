@@ -1,3 +1,4 @@
+import { awardHomesteadOnce } from './rebuilding'
 import { findBeltRoute } from './beltRouting'
 import type { PersonalityPath } from './personality'
 import { recordProduction } from './analytics'
@@ -212,7 +213,7 @@ export function chooseExpansion(world: World, path: PersonalityPath = 'craftsman
   }
   const assembler = e.assembler === null ? null : world.buildings[e.assembler]
   if (path === 'eco' && assembler?.kind === 'assembler' && assembler.output.woodenCrate && store.inventory.woodenCrate < 8 && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeCrates', e.assembler); return true }
-  if (path === 'craftsman' && e.miner === null && store.inventory.iron < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.ironPlate < 40)) {
+  if (path === 'craftsman' && (e.miner === null || world.buildings[e.miner]?.kind !== 'miner' || furnace?.kind !== 'furnace') && store.inventory.iron < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.ironPlate < 40)) {
     const tile = ironSite(world)
     if (tile !== null) { begin(world, 'mineIron', tile); return true }
   }
@@ -286,7 +287,7 @@ export function advanceExpansion(world: World, delta: number): boolean {
     if (h.elapsedMs === 8000) {
       e.improvements[id] = tile
       if (id === 'storeShelves') store.storeTier = 2
-      h.carried = emptyInventory(); e.improvement = null; awardActivity(world.personality, { path: 'eco', xp: rule.xp }); finish(world)
+      h.carried = emptyInventory(); e.improvement = null; awardHomesteadOnce(world, `improvement:${id}`, { path: 'eco', xp: rule.xp }); finish(world)
     }
     return true
   }
