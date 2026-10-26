@@ -128,7 +128,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
     splitter: ['direction', 'input', 'outputs', 'nextOutput', 'delivered', 'placedAtMs'],
   }
-  const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs', ...(version >= 9 && kind === 'belt' ? ['bridge'] : []), ...(version >= 40 && kind === 'supplyCrate' ? ['storeTier'] : [])])
+  const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs', ...(version >= 44 && kind === 'sprinkler' ? ['manualReadyAtMs'] : []), ...(version >= 9 && kind === 'belt' ? ['bridge'] : []), ...(version >= 40 && kind === 'supplyCrate' ? ['storeTier'] : [])])
   const x = count(r.x, `${path}.x`, SIZE - 1), y = count(r.y, `${path}.y`, SIZE - 1)
   if (y * SIZE + x !== index) invalid(path, 'building position disagrees with its tile')
   const base = { x, y, ...(r.sabotageUntilMs === undefined ? {} : { sabotageUntilMs: count(r.sabotageUntilMs, `${path}.sabotageUntilMs`) }) }
@@ -193,7 +193,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }
-    case 'sprinkler': return { ...base, kind, cooldownUntilMs: count(r.cooldownUntilMs, `${path}.cooldownUntilMs`, timeMs + SPRINKLER_COOLDOWN_MS), sprays: count(r.sprays, `${path}.sprays`) }
+    case 'sprinkler': {
+      const manualReadyAtMs = r.manualReadyAtMs === undefined ? 0 : count(r.manualReadyAtMs, `${path}.manualReadyAtMs`, timeMs + 1000)
+      if (manualReadyAtMs % 50) invalid(path, 'invalid manual spray clock')
+      return { ...base, kind, ...(manualReadyAtMs ? { manualReadyAtMs } : {}), cooldownUntilMs: count(r.cooldownUntilMs, `${path}.cooldownUntilMs`, timeMs + SPRINKLER_COOLDOWN_MS), sprays: count(r.sprays, `${path}.sprays`) }
+    }
     case 'prison': return { ...base, kind, exit: tile(r.exit, `${path}.exit`) }
     case 'inserter': {
       const phase = choice(r.phase, `${path}.phase`, ['idle', 'carrying', 'returning'] as const), item = nullableItem(r.item, `${path}.item`), elapsedMs = number(r.elapsedMs, `${path}.elapsedMs`, 0, 500)

@@ -18,6 +18,7 @@ export class LandscapeStroke {
   private world: World | null = null
   private mode: LandscapeMode = null
   private size: BrushSize = 1
+  get isActive() { return this.previous !== null }
   begin(world: World, point: Position, mode: LandscapeMode, size: BrushSize) {
     this.world = world; this.previous = point; this.mode = mode; this.size = size
     return paint(world, point, point, mode, size)

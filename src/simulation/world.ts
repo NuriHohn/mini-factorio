@@ -111,7 +111,7 @@ export interface FishingDock extends BuildingPosition { kind: 'fishingDock'; dir
 export interface Waterwheel extends BuildingPosition { kind: 'waterwheel'; direction: Direction; rotationMs: number }
 export interface Generator extends BuildingPosition { kind: 'generator' }
 export interface PowerPole extends BuildingPosition { kind: 'powerPole' }
-export interface Sprinkler extends BuildingPosition { kind: 'sprinkler'; cooldownUntilMs: number; sprays: number }
+export interface Sprinkler extends BuildingPosition { kind: 'sprinkler'; manualReadyAtMs?: number; cooldownUntilMs: number; sprays: number }
 export interface Radar extends BuildingPosition { kind: 'radar' }
 export interface Prison extends BuildingPosition { kind: 'prison'; exit: number }
 export interface SplitterPacket { item: Item; progress: number }

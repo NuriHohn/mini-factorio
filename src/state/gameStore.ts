@@ -36,6 +36,8 @@ import type { Direction, World } from '../simulation/world'
 import { inspectBuilding, worldStats } from '../simulation/inspection'
 import type { Inspection, WorldStats } from '../simulation/inspection'
 interface State {
+  spraySource: number | null
+  beginSpray: () => void
   playMode: 'factory' | 'petesWorld'
   miniHint: string | null
   petePathVisible: boolean
@@ -113,6 +115,8 @@ interface State {
   publish: (world: World) => void
 }
 export const useGameStore = create<State>((set, get) => ({
+  spraySource: null,
+  beginSpray: () => { const s = get(); if (s.inspected !== null && s.inspection?.kind === 'sprinkler') set({ spraySource: s.inspected, tool: 'playfulSpray', inspected: null, inspection: null, touchPlacement: null, message: 'Mit Wasser spritzen · 3 Felder · 5 kW · Escape/Rechtsklick beendet.' }) },
   playMode: 'factory', miniHint: null,
   petePathVisible: true, connectionVisible: false,
   goals: [], pinnedGoal: null, machineHelp: null, processes: [], supplies: [], supplyRequest: null,
@@ -178,14 +182,16 @@ export const useGameStore = create<State>((set, get) => ({
   tool: 'miner', direction: 'east', inspected: null, inspection: null,
   message: 'Power first: place a generator (5) and pole (6) within 3 tiles of your machines. P shows electricity.',
   select: requested => set(state => {
-    if (requested && ((state.playMode === 'petesWorld' && !['placeGrove', 'placeIron', 'placeCopper'].includes(requested)) || (state.playMode === 'factory' && ['placeGrove', 'placeIron', 'placeCopper'].includes(requested)))) return { message: 'In Petes Welt platzierst du nur Ressourcen. Pete baut selbst.' }
+    if (requested === 'playfulSpray') return state
+    if (requested && ((state.playMode === 'petesWorld' && !['placeGrove', 'placeIron', 'placeCopper', 'axe'].includes(requested)) || (state.playMode === 'factory' && ['placeGrove', 'placeIron', 'placeCopper'].includes(requested)))) return { message: 'In Petes Welt platzierst du nur Ressourcen. Pete baut selbst.' }
     const technologyError = requested && buildingTechnologyError(state.research, requested)
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
-    return { peteInspection: null, tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, supplyRequest: null, connectionVisible: false, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
+    return { spraySource: null, peteInspection: null, tool, focusRequest: null, buildTab: tool ? toolMetadata(tool).tab : state.buildTab, releaseRequest: null, inspected: null, inspection: null, recipeRequest: null, supplyRequest: null, connectionVisible: false, message: tool === 'treehouse' ? 'Pete’s Treehouse · 20 Wood · one home · peace begins immediately. No demolition refund.' : natureTool(tool) ? `${toolMetadata(tool).label} · ${toolMetadata(tool).hint}` : combatTool(tool) ? `${toolMetadata(tool).label} selected · Click the walker to attack. Ground clicks miss; all combat tools share a cooldown.` : tool === 'spiderWeb' ? 'Spider Web · Click Pete to scare him, or a tile to leave a ground web.' : tool === 'remove' ? 'Click a building to remove it. Contained resources will be discarded.' : tool === 'powerPole' ? 'Place a power pole · 3-tile coverage, 6-tile connections.' : tool === 'generator' ? 'Place a generator within 3 tiles of a pole · 100 kW.' : tool ? `Place ${tool} · R rotates direction.` : 'Exploring · Click a machine, generator, pole or storage chest to inspect it.' }
   }),
   handleToolKey: event => {
+    if (event.code === 'Escape' && get().spraySource !== null) { get().select(null); return }
     if (event.code === 'Escape' && get().dragActive) { set(state => ({ dragActive: false, dragCancelToken: state.dragCancelToken + 1 })); return }
     if (get().uiPanel !== null) { if (event.code === 'Escape') get().closePanel(); return }
     if (get().researchOpen) { if (event.code === 'Escape') get().toggleResearch(); return }

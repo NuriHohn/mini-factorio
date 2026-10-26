@@ -26,6 +26,7 @@ export function BuildingInspection() {
         <p>{summary.description}</p><strong role="status">{summary.state}</strong>
         {summary.power && <p>Power: {summary.power}</p>}
         <MachineHelp /><ProcessCards />
+        {inspection.kind === 'sprinkler' && <><p>Wasserspiel: 3 Felder · 5 kW · {(inspection.manualCooldownMs ?? 0) > 0 ? `${((inspection.manualCooldownMs ?? 0) / 1000).toFixed(1)} s Pause` : 'bereit bei voller Stromversorgung'}</p><button className="building" onClick={() => useGameStore.getState().beginSpray()}>Mit Wasser spritzen</button></>}
         {inspection.kind === 'supplyCrate' && <>
           <SupplyAssistant />
           {inspection.projects?.map(project => <p key={project} className="inspection-note">{project}</p>)}

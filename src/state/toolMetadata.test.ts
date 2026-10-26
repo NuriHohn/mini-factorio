@@ -24,7 +24,7 @@ describe('categorized build menu', () => {
     expect(useGameStore.getState().tool).toBeNull()
   })
   it('auto-selects the correct tab for every hotkey and keeps ESC idempotent', () => {
-    for (const metadata of PLAYER_TOOLS) {
+    for (const metadata of PLAYER_TOOLS.filter(t => t.tool !== 'playfulSpray')) {
       useGameStore.getState().setBuildTab(metadata.tab === 'factory' ? 'pete' : 'factory')
       useGameStore.setState({ playMode: ['placeGrove', 'placeIron', 'placeCopper'].includes(metadata.tool) ? 'petesWorld' : 'factory' })
       if (metadata.code) key(metadata.code)

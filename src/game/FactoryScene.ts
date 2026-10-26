@@ -1,3 +1,4 @@
+import { RightPan } from './rightPan'
 import { drawGuidance } from './guidanceVisuals'
 import { drawAnnexWalkway, drawDevelopment, drawDevelopmentActivity } from './developmentVisuals'
 import { createPetesWorld, groveError, ironError, copperError, miniLayout, placeGrove, placeIron, placeCopper } from '../simulation/petesWorld'
@@ -49,7 +50,7 @@ import { hasTechnology } from '../simulation/research'
 import { WebVisuals } from './webVisuals'
 import { peteHit, sabotageRemaining } from '../simulation/pete'
 import { WaterVisuals, drawSprinkler } from './sprinklerVisuals'
-import { SPRINKLER_RANGE } from '../simulation/sprinklers'
+import { sprinklerPowered, SPRINKLER_RANGE } from '../simulation/sprinklers'
 import { SaveSession, errorMessage } from '../persistence/storage'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import type { LoadedGame, ViewState } from '../persistence/saveGame'
@@ -81,6 +82,7 @@ import { useGameStore } from '../state/gameStore'
 import { moveCamera, updateCameraBounds } from './cameraMovement'
 const TILE = 32
 export class FactoryScene extends Phaser.Scene {
+  private rightPan = new RightPan()
   private natureVisuals = new NatureVisuals()
   private landscapeWater = new LandscapeWater()
   private crateSupply = new CrateSupplyAction()
@@ -117,7 +119,7 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
-    useGameStore.setState({ peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
+    useGameStore.setState({ spraySource: null, peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     useGameStore.setState({ saveStatus: this.saves.initialize() })
@@ -146,6 +148,8 @@ export class FactoryScene extends Phaser.Scene {
         if (this.placementRotation.active) this.placementRotation.setDirection(state.direction)
         else if (!state.touchPlacement) this.cancelConstruction()
       }
+      if (state.tool !== previous.tool || worldInputBlocked(state)) this.rightPan.cancel()
+      if (state.spraySource !== null && worldInputBlocked(state)) useGameStore.getState().select(null)
       if (state.tool !== previous.tool || state.brushSize !== previous.brushSize || worldInputBlocked(state)) this.landscapeStroke.end()
     })
     const destroyTerrain = () => this.terrain.destroy()
@@ -178,8 +182,9 @@ export class FactoryScene extends Phaser.Scene {
     this.game.canvas.addEventListener('pointerdown', onTouchDown)
     this.game.canvas.addEventListener('pointermove', onTouchMove)
     this.game.canvas.addEventListener('pointerup', onTouchUp)
-    this.game.canvas.addEventListener('pointercancel', onTouchCancel)
-    const loseFocus = () => { touch.cancel(); this.cancelConstruction(); this.landscapeStroke.end() }
+    this.game.canvas.addEventListener('pointercancel', losePointer)
+    function losePointer() { onTouchCancel(); loseFocus() }
+    const loseFocus = () => { this.rightPan.cancel(); touch.cancel(); this.cancelConstruction(); this.landscapeStroke.end() }
     const visibility = () => { if (document.hidden) loseFocus() }
     const contextMenu = (event: MouseEvent) => {
       if (this.handledContextMenu || useGameStore.getState().tool !== null) event.preventDefault()
@@ -193,7 +198,7 @@ export class FactoryScene extends Phaser.Scene {
       this.game.canvas.removeEventListener('pointerdown', onTouchDown)
       this.game.canvas.removeEventListener('pointermove', onTouchMove)
       this.game.canvas.removeEventListener('pointerup', onTouchUp)
-      this.game.canvas.removeEventListener('pointercancel', onTouchCancel)
+      this.game.canvas.removeEventListener('pointercancel', losePointer)
       window.removeEventListener('blur', loseFocus)
       document.removeEventListener('visibilitychange', visibility)
       this.game.canvas.removeEventListener('contextmenu', contextMenu)
@@ -221,17 +226,16 @@ export class FactoryScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.wasTouch || pointer.event.target !== this.game.canvas || worldInputBlocked(useGameStore.getState())) return
       if (pointer.rightButtonDown()) {
-        this.landscapeStroke.end()
-        if (this.constructionDrag.active || this.placementRotation.active) this.cancelConstruction()
-        else if (useGameStore.getState().tool !== null) useGameStore.getState().select(null)
-        else return
         this.handledContextMenu = true
+        if (this.constructionDrag.active || this.placementRotation.active || this.landscapeStroke.isActive) { this.cancelConstruction(); this.landscapeStroke.end() }
+        else this.rightPan.begin(this.rotationScreen(pointer))
         return
       }
+      if (this.rightPan.active) return
       if (!pointer.leftButtonDown()) return
       const selected = useGameStore.getState().tool
       if (selected === 'playfulSpray') {
-        useGameStore.setState({ message: playfulSpray(this.world, combatPosition(pointer, this.cameras.main, TILE)) ? 'Splash! Harmless water play.' : 'Needs a ready powered sprinkler within 3 tiles.' })
+        this.sprayAt(combatPosition(pointer, this.cameras.main, TILE))
         return
       }
       if (selected === null) {
@@ -297,6 +301,11 @@ export class FactoryScene extends Phaser.Scene {
         if (peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) { useGameStore.getState().inspectPete(this.world); return }
         const gift = collectGift(this.world, y * SIZE + x)
         if (gift) { useGameStore.setState({ message: gift }); return }
+        if (buildingAt(this.world, x, y)?.kind === 'tree') {
+          const result = chopTree(this.world, x, y)
+          if (result) { this.natureVisuals.fell(this.world, result.tree); useGameStore.setState({ message: `Tree chopped · +${result.wood} Wood (global stock).` }) }
+          return
+        }
         useGameStore.getState().inspect(this.world, x, y)
         return
       }
@@ -311,6 +320,11 @@ export class FactoryScene extends Phaser.Scene {
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (pointer.wasTouch) return
+      if (this.rightPan.active) {
+        const delta = this.rightPan.move(this.rotationScreen(pointer))
+        if (delta) { const rect = this.game.canvas.getBoundingClientRect(), camera = this.cameras.main; camera.scrollX -= delta.x * camera.width / rect.width / camera.zoom; camera.scrollY -= delta.y * camera.height / rect.height / camera.zoom }
+        return
+      }
       if (this.constructionDrag.active) this.constructionDrag.move(landscapeTile(pointer, this.cameras.main, TILE))
       this.placementRotation.move(this.rotationScreen(pointer))
       this.paintDrag(pointer)
@@ -318,7 +332,8 @@ export class FactoryScene extends Phaser.Scene {
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       if (pointer.wasTouch) return
       this.landscapeStroke.end()
-      if ('button' in pointer.event && pointer.event.button !== 0) return
+      if ('button' in pointer.event && pointer.event.button === 2) { if (this.rightPan.end()) useGameStore.getState().select(null); return }
+      if (this.rightPan.active || ('button' in pointer.event && pointer.event.button !== 0)) return
       if (pointer.event.target !== this.game.canvas || !this.input.isOver || worldInputBlocked(useGameStore.getState())) { if (!useGameStore.getState().touchPlacement) this.cancelConstruction(); return }
       if (this.placementRotation.active) {
         this.placementRotation.move(this.rotationScreen(pointer))
@@ -339,7 +354,7 @@ export class FactoryScene extends Phaser.Scene {
         useGameStore.setState({ message: result.error ? `Nothing built. ${result.error}` : result.reversed ? `Belt direction updated · ${result.reversed} rotated · ${result.placed} new · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : result.placed ? `${result.placed} ${tool === 'footbridge' ? 'footbridge tiles' : tool === 'belt' ? 'belt tiles' : 'power poles'} built · ${result.wood ? `${result.wood} Wood` : 'Free'}.` : tool === 'belt' ? 'Belts reused. Nothing changed.' : 'Connection already exists. Nothing changed.' })
       }
     })
-    this.input.on('pointerupoutside', () => { this.landscapeStroke.end(); if (!useGameStore.getState().touchPlacement) this.cancelConstruction() })
+    this.input.on('pointerupoutside', () => { this.rightPan.cancel(); this.landscapeStroke.end(); if (!useGameStore.getState().touchPlacement) this.cancelConstruction() })
     this.input.on('gameout', () => { this.landscapeStroke.end(); if (!useGameStore.getState().touchPlacement) this.cancelConstruction() })
   }
   private touchTap(point: { x: number; y: number }) {
@@ -347,7 +362,7 @@ export class FactoryScene extends Phaser.Scene {
     if (worldInputBlocked(state)) return
     const worldPoint = this.cameras.main.getWorldPoint(point.x, point.y), tile = { x: Math.floor(worldPoint.x / TILE), y: Math.floor(worldPoint.y / TILE) }
     const position = { x: worldPoint.x / TILE - .5, y: worldPoint.y / TILE - .5 }
-    if (state.tool === 'playfulSpray') { useGameStore.setState({ message: playfulSpray(this.world, position) ? 'Splash!' : 'Needs a ready powered sprinkler within 3 tiles.' }); return }
+    if (state.tool === 'playfulSpray') { this.sprayAt(position); return }
     if (state.tool === 'spiderWeb') { state.useWebTool(this.world, position); return }
     if (combatTool(state.tool)) { const impact = attackWalker(this.world, state.tool, position); if (impact) this.revengeVisuals.impact(impact, this.world); return }
     if (state.tool === null) {
@@ -356,7 +371,7 @@ export class FactoryScene extends Phaser.Scene {
       if (peteHit(this.world, position)) { state.inspectPete(this.world); return }
       const gift = collectGift(this.world, tile.y * SIZE + tile.x)
       if (gift) { useGameStore.setState({ message: gift }); return }
-      state.inspect(this.world, tile.x, tile.y); return
+      if (buildingAt(this.world, tile.x, tile.y)?.kind !== 'tree') state.inspect(this.world, tile.x, tile.y); return
     }
     const previous = state.touchPlacement
     if (previous?.tool === state.tool && previous.end.x === tile.x && previous.end.y === tile.y) { useGameStore.setState({ touchRequest: 'confirm' }); return }
@@ -386,6 +401,11 @@ export class FactoryScene extends Phaser.Scene {
     }
     if (!error) state.recordToolUse(tool)
     useGameStore.setState({ touchPlacement: error ? pending : null, message: error ?? 'Done.' })
+  }
+  private sprayAt(position: { x: number; y: number }) {
+    const source = useGameStore.getState().spraySource
+    const message = useSimulationSpeed.getState().speed === 0 ? 'Paused · resume to spray.' : source !== null && playfulSpray(this.world, position, source) ? 'Splash!' : 'Needs this sprinkler at full power, a target within 3 tiles and a ready manual spray (1 s).'
+    useGameStore.setState({ message })
   }
   private rotationScreen(pointer: Phaser.Input.Pointer) {
     return pointer.event instanceof MouseEvent ? { x: pointer.event.clientX, y: pointer.event.clientY } : { x: pointer.x, y: pointer.y }
@@ -456,7 +476,8 @@ export class FactoryScene extends Phaser.Scene {
       updateCameraBounds(this.cameras.main, SIZE * TILE)
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
-      useGameStore.setState({ tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: candidate.world.miniFactory ? 'Petes Welt geladen.' : 'Factory restored · Click a building to inspect it.' })
+      this.rightPan.cancel()
+      useGameStore.setState({ spraySource: null, tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: candidate.world.miniFactory ? 'Petes Welt geladen.' : 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -935,6 +956,20 @@ export class FactoryScene extends Phaser.Scene {
       for (const cell of cells) this.preview.lineStyle(2, 0xf5d68b).strokeRect(cell.x * TILE + 1, cell.y * TILE + 1, TILE - 2, TILE - 2)
     }
     this.constructionLabel.setVisible(false)
+    this.input.setDefaultCursor('default')
+    if (state.spraySource !== null) {
+      const source = this.world.buildings[state.spraySource]
+      if (source?.kind !== 'sprinkler') useGameStore.getState().select(null)
+      else {
+        this.preview.lineStyle(2, 0x72d6ff, .8).strokeCircle((source.x + .5) * TILE, (source.y + .5) * TILE, SPRINKLER_RANGE * TILE)
+        if (this.input.isOver) this.placementTooltip(this.input.activePointer, `Mit Wasser spritzen · 3 Felder · ${sprinklerPowered(this.world, state.spraySource) ? (source.manualReadyAtMs ?? 0) > this.world.timeMs ? '1 s Pause' : 'Bereit' : 'Benötigt 5 kW'} · Escape beendet`)
+      }
+      return
+    }
+    if (!state.touchActive && state.tool === null && !worldInputBlocked(state) && this.input.isOver && !this.rightPan.active) {
+      const point = this.input.activePointer.positionToCamera(camera) as Phaser.Math.Vector2
+      if (!peteHit(this.world, { x: point.x / TILE - .5, y: point.y / TILE - .5 }) && this.crateSupply.hit(this.world, point, TILE, camera.zoom) === null && buildingAt(this.world, Math.floor(point.x / TILE), Math.floor(point.y / TILE))?.kind === 'tree') this.input.setDefaultCursor('url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Ctext y=%2225%22 font-size=%2225%22%3E%F0%9F%AA%93%3C/text%3E%3C/svg%3E") 8 8, crosshair')
+    }
     if (this.constructionDrag.active) { this.drawConstruction(this.input.activePointer); return }
     if (inspected?.kind === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, SPRINKLER_RANGE * TILE)
     if (inspected?.kind === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((inspected.x + .5) * TILE, (inspected.y + .5) * TILE, RADAR_RANGE * TILE)
