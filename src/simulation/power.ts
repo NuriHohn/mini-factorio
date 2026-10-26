@@ -1,3 +1,4 @@
+import { steamRunning, STEAM_KW } from './steam'
 import { WATERWHEEL_KW, waterwheelRunning } from './waterwheel'
 import { SPRINKLER_KW } from './sprinklers'
 import { RADAR_KW } from './police'
@@ -11,11 +12,11 @@ import { MACHINE_DEFINITIONS } from './recipes'
 
 export const GENERATOR_KW = 100
 export function ratedGeneration(building: Building): number {
-  return building.kind === 'generator' ? GENERATOR_KW : building.kind === 'waterwheel' ? WATERWHEEL_KW : 0
+  return building.kind === 'steamEngine' ? STEAM_KW : building.kind === 'generator' ? GENERATOR_KW : building.kind === 'waterwheel' ? WATERWHEEL_KW : 0
 }
 export function generationKw(world: World, building: Building): number {
   if (sabotageRemaining(world, building) > 0) return 0
-  return building.kind === 'waterwheel' ? waterwheelRunning(world, building) ? WATERWHEEL_KW : 0 : ratedGeneration(building)
+  return building.kind === 'steamEngine' ? steamRunning(world, building) ? STEAM_KW : 0 : building.kind === 'waterwheel' ? waterwheelRunning(world, building) ? WATERWHEEL_KW : 0 : ratedGeneration(building)
 }
 export const MINER_KW = 30
 export const FURNACE_KW = MACHINE_DEFINITIONS.furnace.powerKw

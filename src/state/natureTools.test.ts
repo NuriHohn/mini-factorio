@@ -14,7 +14,7 @@ describe('Nature toolbar and copied inventory', () => {
     expect(TOOL_HOTKEYS).toMatchObject({ Digit1: 'miner', Digit9: 'radar', Digit0: 'splitter', KeyX: 'remove', KeyB: 'spiderWeb', KeyG: 'sprinkler' })
     expect(PLAYER_TOOLS.some(t => t.tool === ('tree' as string))).toBe(false)
     for (const tool of NATURE_TOOLS) {
-      useGameStore.setState({ playMode: ['placeGrove', 'placeIron', 'placeCopper'].includes(tool) ? 'petesWorld' : 'factory' })
+      useGameStore.setState({ playMode: ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal'].includes(tool) ? 'petesWorld' : 'factory' })
       useGameStore.getState().select(tool)
       expect(useGameStore.getState()).toMatchObject({ tool, buildTab: 'nature' })
       useGameStore.getState().select(tool); expect(useGameStore.getState().tool).toBe(null)

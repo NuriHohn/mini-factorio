@@ -11,7 +11,7 @@ describe('categorized build menu', () => {
     expect(PLAYER_TOOLS.filter(t => t.tab === 'pete').map(t => t.tool)).toEqual(['playfulSpray', 'radar', 'spiderWeb', 'sprinkler', 'flySwatter', 'drill', 'lightningBeam', 'remove'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'factory').map(t => t.tool)).toEqual(['forester', 'sawmill', 'miner', 'furnace', 'assembler'])
     expect(PLAYER_TOOLS.filter(t => t.tab === 'logistics').map(t => t.tool)).toEqual(['belt', 'footbridge', 'storage', 'inserter', 'splitter'])
-    expect(PLAYER_TOOLS.filter(t => t.tab === 'power').map(t => t.tool)).toEqual(['waterwheel', 'generator', 'powerPole'])
+    expect(PLAYER_TOOLS.filter(t => t.tab === 'power').map(t => t.tool)).toEqual(['steamEngine', 'waterwheel', 'generator', 'powerPole'])
     expect(PLAYER_TOOLS.map(t => t.tool)).not.toContain('prison')
     expect(Object.keys(TOOL_HOTKEYS)).toHaveLength(PLAYER_TOOLS.filter(t => t.code).length)
   })
@@ -26,7 +26,7 @@ describe('categorized build menu', () => {
   it('auto-selects the correct tab for every hotkey and keeps ESC idempotent', () => {
     for (const metadata of PLAYER_TOOLS.filter(t => t.tool !== 'playfulSpray')) {
       useGameStore.getState().setBuildTab(metadata.tab === 'factory' ? 'pete' : 'factory')
-      useGameStore.setState({ playMode: ['placeGrove', 'placeIron', 'placeCopper', 'clearResource'].includes(metadata.tool) ? 'petesWorld' : 'factory' })
+      useGameStore.setState({ playMode: ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource'].includes(metadata.tool) ? 'petesWorld' : 'factory' })
       if (metadata.code) key(metadata.code)
       else useGameStore.getState().select(metadata.tool)
       expect(useGameStore.getState()).toMatchObject({ tool: metadata.tool, buildTab: metadata.tab })
