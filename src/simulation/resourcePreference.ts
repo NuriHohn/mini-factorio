@@ -18,13 +18,14 @@ export function resourcePreference(world: World, path: PersonalityPath): number 
       for (const item of ITEMS) if (item !== 'wood' && MATERIAL_PATH[item] === path) supply += b.inventory[item] / (item === 'copperCable' ? 12 : 6)
     }
     if (path === 'eco' && b?.kind === 'tree' && treeStage(world, b) === 'mature') supply += .1
-    if (!world.water[tile] && !b && ((path === 'craftsman' && world.tiles[tile] === 'iron') || (path === 'inventor' && world.tiles[tile] === 'copper'))) supply += .1
+    if (!world.water[tile] && !b && ((path === 'craftsman' && world.tiles[tile] === 'iron') || (path === 'inventor' && world.tiles[tile] === 'copper') || (path === 'industrial' && world.tiles[tile] === 'coal'))) supply += .1
   }
   return 1 + 2 * supply / (supply + 8)
 }
 
-export function preferredPaths(world: World): ('eco' | 'craftsman' | 'inventor')[] {
-  const paths = ['eco', 'craftsman', 'inventor'] as const
+export function preferredPaths(world: World): PersonalityPath[] {
+  const paths: PersonalityPath[] = ['eco', 'craftsman', 'inventor']
+  if (resourcePreference(world, 'industrial') > 1) paths.push('industrial')
   const weights = paths.map(path => resourcePreference(world, path))
   const available = paths.filter((_, i) => weights[i] > 1)
   if (available.length <= 1) return available.length ? [available[0], ...paths.filter(path => path !== available[0])] : [...paths]

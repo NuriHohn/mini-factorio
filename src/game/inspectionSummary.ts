@@ -19,6 +19,7 @@ const descriptions: Record<Inspection['kind'], string> = {
   supplyCrate: 'Receives materials for Pete. Belts and inserters can deliver; Pete may collect supplied Wood for his secret project.',
   footbridge: 'A wooden crossing for Pete and police. No items or electricity. Remove only when clear.',
   fishingDock: 'A quiet place for peaceful Pete to fish. No items are produced.',
+  steamEngine: 'Integrated coal boiler and steam engine. Closed water circuit; 1 coal powers 10 seconds of shaft work and up to 50 kW through a pole.',
   waterwheel: 'Makes electricity from adjacent water. Connect it to a pole.',
   miner: 'Takes ore from the ground.', belt: 'Carries items in the arrow’s direction.', storage: 'Keeps items until they are needed.',
   furnace: 'Turns ore into metal plates.', assembler: 'Makes parts from ingredients.', inserter: 'Moves one item between neighbors.',
@@ -43,6 +44,7 @@ export function inspectionSummary(i: Inspection) {
   else if (i.kind === 'supplyCrate') state = `${ITEMS.reduce((n, item) => n + i.inventory[item], i.wood)} / ${i.capacity} items${i.inspecting ? ' · Pete is inspecting.' : '.'}`
   else if (i.kind === 'fishingDock') state = !i.waterAvailable ? 'Needs water on the fishing side.' : !i.accessible ? 'Keep the land approach behind the dock clear.' : i.fishing ? 'Pete is fishing.' : 'Ready for peaceful Pete.'
   else if (i.kind === 'waterwheel' && !i.waterAvailable) state = 'Needs water on the facing side.'
+  else if (i.kind === 'steamEngine') state = `${i.fuel}/6 coal · ${i.cycles} completed cycles · ${i.progress > 0 || i.fuel > 0 ? 'Working.' : 'Waiting for coal.'}`
   else if (i.kind === 'assembler' && !i.recipeId) state = 'Choose a recipe first.'
   else if ('electrical' in i && ['disconnected', 'no-generation'].includes(i.electrical.state) && i.kind !== 'generator' && i.kind !== 'waterwheel' && i.kind !== 'powerPole') state = 'Needs electricity.'
   else if (i.kind === 'forester') state = i.details

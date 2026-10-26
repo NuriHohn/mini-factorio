@@ -48,6 +48,10 @@ export function copperError(world: World, x: number, y: number): string | null {
   if (world.tiles.filter(t => t === 'copper').length >= 144) return 'Es gibt schon genug Kupfervorkommen in dieser Welt.'
   return resourceAreaError(world, x, y)
 }
+export function coalError(world: World, x: number, y: number): string | null {
+  if (world.tiles.filter(t => t === 'coal').length >= 144) return 'Es gibt schon genug Kohlevorkommen in dieser Welt.'
+  return resourceAreaError(world, x, y)
+}
 function resourceAreaError(world: World, x: number, y: number): string | null {
   if (!world.miniFactory || world.peace.home === null) return 'Ressourcengruppen gibt es in Petes Welt.'
   if (!Number.isInteger(x) || !Number.isInteger(y) || !inside(x, y)) return 'Wähle eine Fläche innerhalb der Welt.'
@@ -84,6 +88,15 @@ export function placeCopper(world: World, x: number, y: number): string | null {
   if (error) return error
   const changed: number[] = []
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'copper'; changed.push(tile) }
+  invalidateTerrain(world, changed)
+  world.topologyRevision++
+  return null
+}
+export function placeCoal(world: World, x: number, y: number): string | null {
+  const error = coalError(world, x, y)
+  if (error) return error
+  const changed: number[] = []
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'coal'; changed.push(tile) }
   invalidateTerrain(world, changed)
   world.topologyRevision++
   return null

@@ -93,7 +93,7 @@ function circuitFactory() {
 
 describe('assembler definitions and shared crafting', () => {
   it('has non-mineable components and machine-readable assembler rules', () => {
-    expect(RESOURCES).toEqual(['iron', 'copper'])
+    expect(RESOURCES).toEqual(['coal', 'iron', 'copper'])
     expect(MACHINE_DEFINITIONS.assembler).toMatchObject({ craftingSpeed: 1, powerKw: 60, input: { kind: 'per-ingredient', batches: 2 }, outputCapacity: 4, inputSides: ['rear', 'left', 'right'], outputSide: 'front' })
     const world = setup()
     expect(assembler(world).recipeId).toBe('ironGear')

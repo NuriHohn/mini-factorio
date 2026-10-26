@@ -81,6 +81,12 @@ export function BuildingInspection() {
         <div className="stats"><span>Extracting</span><b>{inspection.resource ? ITEM_DEFINITIONS[inspection.resource].label : 'No deposit'}</b></div>
         <div className="stats"><span>Mining progress</span><b>{Math.round(inspection.progress * 100)}%</b></div>
         <div className="stats"><span>Output buffer</span><b>{inspection.buffered ? '1 ore · blocked' : 'Empty'}</b></div>
+      </> : inspection.kind === 'steamEngine' ? <>
+        <div className="stats"><span>Coal</span><b>{inspection.fuel} / 6</b></div>
+        <div className="stats"><span>Completed shaft cycles</span><b>{inspection.cycles}</b></div>
+        <progress aria-label="Steam work" value={inspection.progress} max={1} />
+        <div className="stats"><span>Actual electricity / capacity</span><b>{inspection.actualKw.toFixed(1)} / {inspection.capacityKw} kW</b></div>
+        <p className="inspection-note">1 coal per 10 seconds of shaft work. Closed water circuit; no water placement needed. A pole exports power; the flywheel also runs its test load without one.</p>
       </> : inspection.kind === 'generator' || inspection.kind === 'waterwheel' ? <>
         <div className="stats"><span>Generation capacity</span><b>{inspection.capacityKw} kW</b></div>
         <div className="stats"><span>Actual generation</span><b>{inspection.actualKw.toFixed(1)} kW</b></div>

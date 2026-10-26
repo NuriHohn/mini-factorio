@@ -52,7 +52,7 @@ export const SIZE = 40
 export const INTERVAL = 1000
 export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
 export type Direction = typeof DIRECTIONS[number]
-export type BuildingKind = 'forester' | 'sawmill' | 'peteDevelopment' | 'peteTreasure' | 'peteFlightpad' | 'petePress' | 'peteExperiment' | 'peteWorkshop' | 'peteGarden' | 'peteGate' | 'peteCampfire' | 'peteCoop' | 'peteFence' | 'supplyCrate' | 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
+export type BuildingKind = 'steamEngine' | 'forester' | 'sawmill' | 'peteDevelopment' | 'peteTreasure' | 'peteFlightpad' | 'petePress' | 'peteExperiment' | 'peteWorkshop' | 'peteGarden' | 'peteGate' | 'peteCampfire' | 'peteCoop' | 'peteFence' | 'supplyCrate' | 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
 export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
@@ -111,6 +111,7 @@ export interface SupplyCrate extends BuildingPosition { storeTier?: 0 | 1 | 2; k
 export interface Footbridge extends BuildingPosition { kind: 'footbridge'; direction: 'east' | 'south' }
 export interface FishingDock extends BuildingPosition { kind: 'fishingDock'; direction: Direction }
 export interface Waterwheel extends BuildingPosition { kind: 'waterwheel'; direction: Direction; rotationMs: number }
+export interface SteamEngine extends BuildingPosition { kind: 'steamEngine'; fuel: number; burnRemainingMs: number; cycles: number }
 export interface Generator extends BuildingPosition { kind: 'generator' }
 export interface PowerPole extends BuildingPosition { kind: 'powerPole' }
 export interface Sprinkler extends BuildingPosition { kind: 'sprinkler'; manualReadyAtMs?: number; cooldownUntilMs: number; sprays: number }
@@ -128,7 +129,7 @@ export interface Splitter extends BuildingPosition {
 }
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
-export type Building = Forester | Sawmill | PeteDevelopment | PeteTreasure | PeteFlightpad | PetePress | PeteExperiment | PeteWorkshop | PeteGarden | PeteGate | PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
+export type Building = SteamEngine | Forester | Sawmill | PeteDevelopment | PeteTreasure | PeteFlightpad | PetePress | PeteExperiment | PeteWorkshop | PeteGarden | PeteGate | PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
 export interface World { rebuilding?: Rebuilding; homestead?: Homestead; miniFactory?: MiniFactory; developmentLife?: DevelopmentLife; orchardProject?: SecretProject; bicycleProject?: SecretProject; mechanicProject?: SecretProject; winchProject?: SecretProject; nurseryProject?: SecretProject; houseProject?: SecretProject; treasureProject?: SecretProject; flightProject?: SecretProject; leisure?: PeteLeisure; playfulSpray?: PlayfulSpray; chickenRun?: Yard; harvestProject?: SecretProject; feedingProject?: SecretProject; careProject?: SecretProject; pressProject?: SecretProject; experimentProject?: SecretProject; verandaProject?: SecretProject; workshopProject?: SecretProject; gardenProject?: SecretProject; plantProject?: SecretProject; personality: Personality; gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
@@ -145,7 +146,7 @@ export function buildingAt(world: World, x: number, y: number): Building | null 
 }
 export function createWorld(random = Math.random, options: { nature?: boolean; water?: boolean } = {}): World {
   const tiles: (Resource | null)[] = Array.from({ length: SIZE * SIZE }, () => null)
-  for (const resource of RESOURCES) for (let n = 0; n < 35; n++) {
+  for (const resource of RESOURCES.filter(resource => resource !== 'coal')) for (let n = 0; n < 35; n++) {
     const cx = Math.floor(random() * SIZE), cy = Math.floor(random() * SIZE)
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
       const x = cx + dx, y = cy + dy
@@ -231,6 +232,7 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
     case 'radar': building = { kind, x, y }; break
     case 'prison': building = { kind, x, y, exit: neighboringTiles(y * SIZE + x).find(tile => !world.buildings[tile] && !world.water[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)))! }; break
     case 'inserter': building = { kind, x, y, direction, phase: 'idle', item: null, elapsedMs: 0 }; break
+    case 'steamEngine': building = { kind, x, y, fuel: 0, burnRemainingMs: 0, cycles: 0 }; break
     case 'generator': building = { kind, x, y }; break
     case 'powerPole': building = { kind, x, y }; break
     case 'supplyCrate': building = { kind, x, y, inventory: emptyInventory(), wood: 0 }; break

@@ -45,7 +45,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 45
+export const SAVE_VERSION = 46
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -211,8 +211,23 @@ export function decodeSave(text: string): LoadedGame {
   try { parsed = JSON.parse(text) } catch { throw new Error('Invalid save JSON. Choose a Mini-Factorio JSON save file.') }
   const root = v.object(parsed, 'save', ['format', 'version', 'savedAt', 'map', 'game', 'view'])
   if (root.format !== SAVE_FORMAT) throw new Error('This is not a Mini-Factorio save file.')
-  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== 11 && root.version !== 12 && root.version !== 13 && root.version !== 14 && root.version !== 15 && root.version !== 16 && root.version !== 17 && root.version !== 18 && root.version !== 19 && root.version !== 20 && root.version !== 21 && root.version !== 22 && root.version !== 23 && root.version !== 24 && root.version !== 25 && root.version !== 26 && root.version !== 27 && root.version !== 28 && root.version !== 29 && root.version !== 30 && root.version !== 31 && root.version !== 32 && root.version !== 33 && root.version !== 34 && root.version !== 35 && root.version !== 36 && root.version !== 37 && root.version !== 38 && root.version !== 39 && root.version !== 40 && root.version !== 41 && root.version !== 42 && root.version !== 43 && root.version !== 44 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1–${SAVE_VERSION}.`)
+  if (root.version !== 1 && root.version !== 2 && root.version !== 3 && root.version !== 4 && root.version !== 5 && root.version !== 6 && root.version !== 7 && root.version !== 8 && root.version !== 9 && root.version !== 10 && root.version !== 11 && root.version !== 12 && root.version !== 13 && root.version !== 14 && root.version !== 15 && root.version !== 16 && root.version !== 17 && root.version !== 18 && root.version !== 19 && root.version !== 20 && root.version !== 21 && root.version !== 22 && root.version !== 23 && root.version !== 24 && root.version !== 25 && root.version !== 26 && root.version !== 27 && root.version !== 28 && root.version !== 29 && root.version !== 30 && root.version !== 31 && root.version !== 32 && root.version !== 33 && root.version !== 34 && root.version !== 35 && root.version !== 36 && root.version !== 37 && root.version !== 38 && root.version !== 39 && root.version !== 40 && root.version !== 41 && root.version !== 42 && root.version !== 43 && root.version !== 44 && root.version !== 45 && root.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1–${SAVE_VERSION}.`)
   const version = root.version
+  if (version < 46) {
+    const upgradeCoal = (value: unknown, depth = 0): void => {
+      if (depth > 64) v.invalid('game', 'save nesting exceeds limit')
+      if (value === 'coal') v.invalid('game', 'coal requires save version 46')
+      if (!value || typeof value !== 'object') return
+      if (Array.isArray(value)) { value.forEach(item => upgradeCoal(item, depth + 1)); return }
+      const record = value as Record<string, unknown>
+      if (Object.hasOwn(record, 'iron') && Object.hasOwn(record, 'ironPlate') && Object.hasOwn(record, 'electronicCircuit')) {
+        if (record.coal !== undefined && record.coal !== 0) v.invalid('coal', 'legacy inventories cannot contain coal')
+        record.coal = 0
+      }
+      Object.values(record).forEach(item => upgradeCoal(item, depth + 1))
+    }
+    upgradeCoal(root.game)
+  }
   if (version < 38) normalizeLegacyModules(root.game)
   if (version < 39) {
     const upgrade = (value: unknown): void => {
@@ -260,7 +275,7 @@ export function decodeSave(text: string): LoadedGame {
   }
   if (root.version >= 4) world.analytics = restoreAnalytics(data.analytics, world)
   if (version >= 6) world.revenge = restoreRevenge(data.revenge, world)
-  if (data.rebuilding !== undefined) world.rebuilding = restoreRebuilding(data.rebuilding)
+  if (data.rebuilding !== undefined) world.rebuilding = restoreRebuilding(data.rebuilding, version)
   if (version >= 8) world.peace = restorePeace(data.peace, world, version)
   if (world.miniFactory && (world.peace.home === null || !world.research.unlocked.includes('automation1'))) v.invalid('miniFactory', 'requires home and assembler access')
   world.project = restoreProject(data.project, world, undefined, version)

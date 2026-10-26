@@ -84,7 +84,8 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['forester', 'sawmill', 'peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['steamEngine', 'forester', 'sawmill', 'peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  if (version < 46 && kind === 'steamEngine') invalid(path, 'steam engines require save version 46')
   if (version < 39 && (kind === 'forester' || kind === 'sawmill')) invalid(path, 'forestry buildings require version 39')
   if (version < 38 && kind === 'peteDevelopment') invalid(path, 'development requires version 38')
   if (version < 37 && (kind === 'peteTreasure' || kind === 'peteFlightpad')) invalid(path, 'Inventor leisure structures require save version 37')
@@ -125,7 +126,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     miner: ['direction', 'elapsed', 'item'], belt: ['direction', 'item', 'progress', 'entry'], storage: ['inventory'],
     furnace: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'input', 'output', 'job'],
     assembler: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'autoWaitElapsedMs', 'input', 'output', 'job'],
-    inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
+    steamEngine: ['fuel', 'burnRemainingMs', 'cycles'], inserter: ['direction', 'phase', 'item', 'elapsedMs'], generator: [], powerPole: [], radar: [], sprinkler: ['cooldownUntilMs', 'sprays'], prison: ['exit'],
     splitter: ['direction', 'input', 'outputs', 'nextOutput', 'delivered', 'placedAtMs'],
   }
   const r = object(value, path, ['kind', 'x', 'y', ...fields[kind]], ['sabotageUntilMs', ...(version >= 44 && kind === 'sprinkler' ? ['manualReadyAtMs'] : []), ...(version >= 9 && kind === 'belt' ? ['bridge'] : []), ...(version >= 40 && kind === 'supplyCrate' ? ['storeTier'] : [])])
@@ -192,6 +193,11 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
       return { ...base, kind, inventory: contents, wood, ...(storeTier === undefined ? {} : { storeTier }) }
     }
     case 'storage': return { ...base, kind, inventory: inventory(r.inventory, `${path}.inventory`) }
+    case 'steamEngine': {
+      const fuel = count(r.fuel, path, 6), burnRemainingMs = count(r.burnRemainingMs, path, 9950), cycles = count(r.cycles, path)
+      if (burnRemainingMs % 50) invalid(path, 'invalid steam work clock')
+      return { ...base, kind, fuel, burnRemainingMs, cycles }
+    }
     case 'generator': case 'powerPole': case 'radar': return { ...base, kind }
     case 'sprinkler': {
       const manualReadyAtMs = r.manualReadyAtMs === undefined ? 0 : count(r.manualReadyAtMs, `${path}.manualReadyAtMs`, timeMs + 1000)
