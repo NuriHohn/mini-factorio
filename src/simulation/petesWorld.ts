@@ -26,7 +26,7 @@ export function miniLayout(anchor: number): MiniStep[] {
   return parts.map(([dx, dy, kind, label]) => ({ tile: (y + dy) * SIZE + x + dx, kind, label }))
 }
 export function createPetesWorld(): World {
-  const world = createWorld(() => .42, { nature: false, water: false })
+  const world = createWorld(() => .42, { nature: false })
   world.tiles.fill(null)
   world.nature.wood = 20
   placeBuilding(world, 20, 20, 'treehouse', 'east')

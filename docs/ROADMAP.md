@@ -310,3 +310,7 @@ Implemented explicit per-tile resource clearing and building demolition in Petes
 3. Next feature work, after a new request, follows the existing proposed sequence: 16.68 automatic copper mining; 16.69 circuit assembly; 16.70 self-supplied Inventor flights; 16.71 coal entry; 16.72 first boiler/steam engine. Coal/steam construction funding and migration remain open specification work.
 
 No new offline/install work is scheduled: 16.38 stays deferred. Do not infer merge approval for future implementation from approval of this planning update. This roadmap is the authoritative handoff; no separate context file is needed.
+
+## Petes Welt water and contextual tools follow-up
+
+New worlds now retain shared generated waterways, and players can use the existing free water/land brushes. Planned construction/repair sites stay protected. The separate Petes Welt Axe button is removed; PC hover/click chopping and contextual confirmed touch chopping remain. Existing saves retain their water exactly. This correction does not consume Sprint 16.68 or change the proposed feature sequence. Rules: [water editing](GAME_DESIGN.md#water-editing-in-petes-welt), [direct controls](GAME_DESIGN.md#direct-player-controls-maintenance-a).

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from './gameStore'
 import { brushMode, NATURE_TOOLS, plantingSpecies } from './natureTools'
-import { PLAYER_TOOLS, TOOL_HOTKEYS } from './toolMetadata'
+import { PETES_WORLD_TOOLS, PLAYER_TOOLS, TOOL_HOTKEYS } from './toolMetadata'
 import { createWorld } from '../simulation/world'
 import { chopTree, MATURE_TREE_MS, plantTree } from '../simulation/nature'
 beforeEach(() => {
@@ -9,6 +9,19 @@ beforeEach(() => {
   useGameStore.getState().publish(createWorld(() => .5, { nature: false, water: false }))
 })
 describe('Nature toolbar and copied inventory', () => {
+  it('offers water editing without a separate axe button in Petes Welt, retaining Factory Axe', () => {
+    expect(PETES_WORLD_TOOLS).toContain('createWater')
+    expect(PETES_WORLD_TOOLS).toContain('restoreLand')
+    expect(PETES_WORLD_TOOLS).not.toContain('axe')
+    useGameStore.setState({ playMode: 'petesWorld', tool: null })
+    for (const tool of ['createWater', 'restoreLand'] as const) {
+      useGameStore.getState().select(tool)
+      expect(useGameStore.getState()).toMatchObject({ tool, buildTab: 'nature' })
+    }
+    useGameStore.setState({ playMode: 'factory', tool: null })
+    useGameStore.getState().select('axe')
+    expect(useGameStore.getState().tool).toBe('axe')
+  })
   it('registers Nature controls and the treehouse without replacing any existing shortcut', () => {
     expect(PLAYER_TOOLS.filter(t => t.tab === 'nature').map(t => t.tool)).toEqual(['clearResource', 'fishingDock', 'supplyCrate', 'treehouse', ...NATURE_TOOLS])
     expect(TOOL_HOTKEYS).toMatchObject({ Digit1: 'miner', Digit9: 'radar', Digit0: 'splitter', KeyX: 'remove', KeyB: 'spiderWeb', KeyG: 'sprinkler' })

@@ -19,7 +19,7 @@ import type { ResearchState, TechnologyId } from '../simulation/research'
 import { analyticsSnapshot } from '../simulation/analytics'
 import type { AnalyticsSnapshot } from '../simulation/analytics'
 import type { SaveRequest, SaveStatus } from '../persistence/storage'
-import { TOOL_HOTKEYS, toolMetadata } from './toolMetadata'
+import { PETES_WORLD_TOOLS, TOOL_HOTKEYS, toolMetadata } from './toolMetadata'
 import type { BuildTab, Tool } from './toolMetadata'
 export { TOOL_HOTKEYS } from './toolMetadata'
 export type { Tool } from './toolMetadata'
@@ -52,7 +52,7 @@ interface State {
   touchAnchor: Position
   touchActive: boolean
   touchToolsOpen: boolean
-  touchPlacement: { start: Position; end: Position; tool: NonNullable<Tool> } | null
+  touchPlacement: { start: Position; end: Position; tool: NonNullable<Tool>; contextual?: true } | null
   touchRequest: 'confirm' | 'cancel' | null
   peteInspection: PeteStatus | null
   inspectPete: (world: World) => void
@@ -183,7 +183,7 @@ export const useGameStore = create<State>((set, get) => ({
   message: 'Power first: place a generator (5) and pole (6) within 3 tiles of your machines. P shows electricity.',
   select: requested => set(state => {
     if (requested === 'playfulSpray') return state
-    if (requested && ((state.playMode === 'petesWorld' && !['placeGrove', 'placeIron', 'placeCopper', 'axe', 'remove', 'clearResource'].includes(requested)) || (state.playMode === 'factory' && ['placeGrove', 'placeIron', 'placeCopper', 'clearResource'].includes(requested)))) return { message: 'In Petes Welt platzierst du nur Ressourcen. Pete baut selbst.' }
+    if (requested && ((state.playMode === 'petesWorld' && requested !== 'axe' && !PETES_WORLD_TOOLS.includes(requested)) || (state.playMode === 'factory' && ['placeGrove', 'placeIron', 'placeCopper', 'clearResource'].includes(requested)))) return { message: 'In Petes Welt platzierst du nur Ressourcen. Pete baut selbst.' }
     const technologyError = requested && buildingTechnologyError(state.research, requested)
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested

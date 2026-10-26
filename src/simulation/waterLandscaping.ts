@@ -1,3 +1,7 @@
+import { miniLayout } from './petesWorld'
+import { expansionLayout } from './homesteadExpansion'
+import { handMillLayout } from './homestead'
+import { PETE_PROJECTS } from './projectRegistry'
 import { refreshPress } from './gearPress'
 import { refreshExperiment } from './experiment'
 import { refreshWorkshop } from './workshop'
@@ -17,6 +21,19 @@ export interface WaterProtection { reserved: Set<number>; banks: Set<number> }
 // One bounded reservation scan per brush/preview, never one scan per brush tile.
 export function waterProtection(world: World): WaterProtection {
   const reserved = new Set<number>(), banks = new Set<number>()
+  if (world.miniFactory) {
+    if (world.peace.home !== null) reserved.add(world.peace.home)
+    if (world.miniFactory.anchor !== null && world.miniFactory.built < 11) for (const part of miniLayout(world.miniFactory.anchor)) reserved.add(part.tile)
+    for (const { state } of PETE_PROJECTS) {
+      const project = world[state]
+      if (project && project.phase !== 'complete') for (const tile of [...project.tiles, ...project.spots]) reserved.add(tile)
+    }
+    const h = world.homestead
+    if (h?.task === 'buildStore' && h.target !== null) reserved.add(h.target)
+    if (h?.millAnchor !== null && h?.millAnchor !== undefined && h.millBuilt < 3) for (const part of handMillLayout(h.millAnchor)) reserved.add(part.tile)
+    if (h?.expansion.plan) for (const part of expansionLayout(h.expansion.plan)) reserved.add(part.tile)
+    for (const job of world.rebuilding?.jobs ?? []) reserved.add(job.tile)
+  }
   if (world.chickenRun) reserved.add(world.chickenRun.entrance)
   if (world.yard) reserved.add(world.yard.entrance)
   const actors = [world.pete, ...(world.police.car ? [world.police.car] : []), ...(world.revenge.boss ? [world.revenge.boss] : [])]
@@ -49,7 +66,7 @@ export function waterEditError(world: World, tile: number, mode: WaterBrush, pro
   if (mode === 'land') return null
   const p = protection ?? waterProtection(world)
   if (p.banks.has(tile)) return 'Keep both bridge banks dry.'
-  if (p.reserved.has(tile)) return 'Keep NPC positions, reserved paths, gifts and prison exits dry.'
+  if (p.reserved.has(tile)) return 'Keep NPC positions, reserved paths/construction sites, gifts and prison exits dry.'
   return null
 }
 // Bresenham decoration strokes are diagonally connected. A one-cell water
