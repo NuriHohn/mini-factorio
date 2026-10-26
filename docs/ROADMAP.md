@@ -272,9 +272,9 @@ Coal is consumed as **fuel**, not converted into gears or metal. Coal reserves f
 
 Petes Welt should initially use a closed water circuit managed by Pete: the child offers coal without placing pumps, water supplies or pipes. Explicit water supply and pipe planning are a later option for the more complex Factory edition. Both editions should use shared machines/processes so observation prepares the player for building the chain themselves.
 
-### Proposed next five sprints (16.68–16.72)
+### Proposed feature sequence (16.68–16.72)
 
-This sequence is a planning proposal, not implementation approval. The coal/steam direction above supersedes the earlier gear-pile and gear-production proposals for 16.71/16.72.
+This sequence is a planning proposal, not implementation approval. The two player-control maintenance increments below are proposed ahead of this feature sequence without renumbering it. The coal/steam direction above supersedes the earlier gear-pile and gear-production proposals for 16.71/16.72.
 
 | Sprint | Proposed scope |
 | --- | --- |
@@ -289,3 +289,34 @@ Automatic coal extraction, further driven work machines and the complete Industr
 ## Post-16.67 maintenance: recurring daily life and yard completion
 
 Implemented recurring sleep/egg/meal opportunities, overdue care/planting priority, early yard reservation and protected fence stock before orchard/nursery expansion. Homestead machine planning/build approaches preserve home access; older idle machine-pocket saves receive bounded recovery. Detailed activity is inspection-only. Save 43 retains the rest deadline and loads earlier schemas. See [authoritative rules](GAME_DESIGN.md#recurring-homestead-life-and-safe-construction-post-1667-fix). This maintenance does not consume a future feature sprint or implement the proposed Industrial entry resource.
+
+
+## Planned player controls, resource removal and project rebuilding
+
+**Planning only, recorded from testing feedback on 2026-10-26; no gameplay implemented or implementation authorized.** Prioritize the following two small maintenance sprints before the proposed 16.68–16.72 feature sequence. Their final sprint numbers remain unassigned. PR #94's daily-life/access fixes and PR #93's coal/steam roadmap are already merged; retain both. The list below records desired behavior separately from suggested tuning and unresolved details.
+
+### Maintenance A — Direct tree interaction, mouse navigation and sprinkler use
+
+- With no other tool selected, hovering a choppable tree should show an axe cursor and a click should invoke the existing chopping command, with its normal eligibility/yield/resource accounting. Selecting another tool must suppress this contextual action. Pete/building inspection and gifts retain their interaction priority. Keep the explicit axe tool as an alternative; specify an accessible way to inspect a tree before implementation so contextual chopping does not remove that capability. Do not make an ordinary touch inspection tap destructive; touch needs an explicit action or its existing safe confirmation flow.
+- Holding the right mouse button and dragging should pan the camera as an alternative to WASD. Use a movement threshold: a short right-click retains cancellation, a drag pans without also cancelling/placing/chopping. Pointer release outside the canvas, cancellation and blur must clean up the gesture. Preserve WASD, wheel zoom, existing construction drags and touch pan/pinch.
+- Remove Playful Spray from the build toolbar. Start it only through the selected sprinkler's inspector/menu, using a clear action such as "Mit Wasser spritzen". The selected sprinkler remains the source, rather than silently switching to the currently nearest sprinkler. Show its range/readiness, allow repeated target clicks and exit through Escape/right-click/tool or world changes; removal or loss of power must fail safely.
+- Feedback: the sprinkler cooldown feels too long. **Tuning proposal:** try a one-second cooldown for harmless manual spray. Keep automatic anti-Pete defense separately balanced so it cannot repeatedly interrupt Pete. The current implementation shares the defense cooldown and chooses a nearby ready sprinkler; separation/source binding and persistence need specification before coding. The exact new cooldown is a proposal, not an already implemented or separately confirmed value. Retain harmless water animation for reachable targets, Pete and chickens.
+
+Acceptance should exercise actual mouse hover/click, short-right-click versus right-drag, inspection/tool priority, selected-source spray/range/power/cooldown, cancellation, pause/save behavior and phone/tablet input. PC controls must not regress. Physical iPhone/iPad Safari acceptance remains separate from viewport/synthetic checks.
+
+### Maintenance B — Remove offerings and demolish/reopen Pete projects
+
+- Let the player remove resource offerings (forest/trees and iron/copper deposits; future coal follows once implemented) and demolish buildings in Petes Welt. Reuse existing removal commands/validation and provide an explicit, understandable action rather than accidental default-click deletion. Retain the Factory mode's established controls and removal rules.
+- Removing an offering changes the actual terrain/tree supply and future resource preference. Already mined/carried/stored goods and earned progression must not be silently erased. Distinguish ordinary chopping with its existing yield from clearing a resource offering; clearing must not manufacture goods or refund already mined deposits.
+- Demolishing a Pete-built project should make that specific project available again, subject to its normal unlocks, materials and a usable site. Rebuilding is Pete's autonomous choice, not an immediate free replacement or forced command. Other intact projects and unrelated earned progression remain intact.
+- **Proposed safeguards, to specify before coding:** rebuilding pays real materials again; original completion rewards remain once-only to prevent demolition/XP farming. Define individual fence-section repair versus complete enclosure reset, multi-building production-chain ownership and surviving components, upgrades attached to a demolished host, and removal/rebuilding of the general store or treehouse. No blanket project-history reset or duplicated surviving machines.
+- Define inventories in a deliberately demolished building separately from already collected materials elsewhere. Preserve existing Factory discard/no-refund policy unless a feature specification explicitly changes it; clarify the Petes Welt policy and show any loss to the player. Handle active paid work, carried loads, machine jobs, reserved routes, animal/egg locations and missing destinations through existing recovery systems without duplicating or silently losing committed cargo.
+- Persistence must distinguish historical reward/completion from present structure availability, load supported older saves, and continue partial rebuilds exactly. Cover demolition during each paid stage, interrupted deliveries, partial fences/chains, resource influence after removal, repeated rebuilds and save/load. Detailed blockage reasons remain inspection-only; preserve the recurring daily-life fixes.
+
+### Handoff / next-chat order
+
+1. Specify and implement Maintenance A only after a new implementation request; review unresolved tree-inspection/touch behavior and sprinkler tuning first.
+2. Specify Maintenance B's demolition ownership, inventory/reward and migration rules, then implement after authorization.
+3. Continue the existing proposed feature sequence: 16.68 automatic copper mining; 16.69 circuit assembly; 16.70 self-supplied Inventor flights; 16.71 coal entry; 16.72 first boiler/steam engine. Coal/steam construction funding and migration remain open specification work.
+
+No new offline/install work is scheduled: 16.38 stays deferred. Do not infer merge approval for future implementation from approval of this planning update. This roadmap is the authoritative handoff; no separate context file is needed.
