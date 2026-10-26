@@ -252,3 +252,8 @@ Costs, rules and compatibility: [Product projects and iron](GAME_DESIGN.md#produ
 | 16.67 | Inventor-3 plate-paid shared cable assembler, physical plate/cable logistics, original experiment/treasure projects and level/material/access explanations |
 
 Authoritative rules: [Resource-led paths](GAME_DESIGN.md#resource-led-craftsman-and-inventor-paths-sprints-1663-1667). These increments do not supply circuits or build an automatic copper miner; those, Industrial resource offerings and later expansion remain proposals. Original level-4 flight preparation and level-5 scenic flights keep their existing requirements. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.
+
+
+## Post-16.67 maintenance: recurring daily life and yard completion
+
+Implemented recurring sleep/egg/meal opportunities, overdue care/planting priority, early yard reservation and protected fence stock before orchard/nursery expansion. Homestead machine planning/build approaches preserve home access; older idle machine-pocket saves receive bounded recovery. Detailed activity is inspection-only. Save 43 retains the rest deadline and loads earlier schemas. See [authoritative rules](GAME_DESIGN.md#recurring-homestead-life-and-safe-construction-post-1667-fix). This maintenance does not consume a future feature sprint or implement the proposed Industrial entry resource.

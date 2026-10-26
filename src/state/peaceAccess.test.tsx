@@ -41,7 +41,7 @@ describe('treehouse toolbar and copied peace status', () => {
   })
 })
 
-it('shows one inline construction hint without replacing normal messages or repeating notifications', () => {
+it('keeps construction details out of the HUD without replacing normal messages', () => {
   const w = createBareWorld(() => .5); w.nature.wood = 100
   placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east'); supplyWood(w, 824, 6)
   w.water.fill(true)
@@ -52,7 +52,8 @@ it('shows one inline construction hint without replacing normal messages or repe
   useGameStore.setState({ message: 'Factory restored.' })
   useGameStore.getState().publish(w)
   const html = renderToStaticMarkup(<RevengeHUD />)
-  expect(html.match(/No safe site for Fence/g)).toHaveLength(1)
+  expect(useGameStore.getState().peteConstructionHint).toContain('No safe site for Fence')
+  expect(html).not.toContain('No safe site for Fence')
   useGameStore.getState().publish(w)
   expect(renderToStaticMarkup(<RevengeHUD />)).toBe(html)
   expect(useGameStore.getState().message).toBe('Factory restored.')

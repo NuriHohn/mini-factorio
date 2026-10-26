@@ -10,13 +10,15 @@ import * as v from './validation'
 
 export function restoreHomestead(value: unknown, world: World, version: number): Homestead {
   if (!world.miniFactory || world.peace.home === null) v.invalid('homestead', 'requires Petes Welt and a home')
-  const r = v.object(value, 'homestead', ['store', 'task', 'target', 'treeBornAtMs', 'carried', 'elapsedMs', 'nextAtMs', 'millAnchor', 'millBuilt', ...(version >= 41 ? ['expansion'] : [])])
+  const r = v.object(value, 'homestead', ['store', 'task', 'target', 'treeBornAtMs', 'carried', 'elapsedMs', 'nextAtMs', 'millAnchor', 'millBuilt', ...(version >= 43 ? ['nextRestAtMs'] : []), ...(version >= 41 ? ['expansion'] : [])])
   const expansion = version < 41 ? createExpansion() : restoreExpansion(r.expansion, world, version)
   const nullableTile = (key: string) => r[key] === null ? null : v.tile(r[key], `homestead.${key}`)
   const store = nullableTile('store'), target = nullableTile('target'), millAnchor = nullableTile('millAnchor')
   const task = r.task === null ? null : v.choice(r.task, 'homestead.task', version >= 42 ? HOME_TASKS : HOME_TASKS.filter(t => !['mineCopper', 'fetchCopper', 'feedCopper', 'takeCopper', 'fetchCable', 'feedCable', 'takeCable'].includes(t)))
   const carried = v.inventory(r.carried, 'homestead.carried'), elapsedMs = v.count(r.elapsedMs, 'homestead.elapsedMs', task === 'expandStore' || task === 'improve' ? 8000 : task === 'buildMill' || task === 'buildChain' ? 4000 : 6000)
   const nextAtMs = v.count(r.nextAtMs, 'homestead.nextAtMs', world.timeMs + 10000), millBuilt = v.count(r.millBuilt, 'homestead.millBuilt', 3)
+  const nextRestAtMs = version < 43 ? world.timeMs + 180000 : v.count(r.nextRestAtMs, 'homestead.nextRestAtMs', world.timeMs + 180000)
+  if (nextRestAtMs % 50) v.invalid('homestead.nextRestAtMs', 'invalid rest deadline')
   const treeBornAtMs = r.treeBornAtMs === null ? null : v.number(r.treeBornAtMs, 'homestead.treeBornAtMs', -MATURE_TREE_MS, world.timeMs - MATURE_TREE_MS, true)
   if (elapsedMs % 50 || nextAtMs % 50 || (treeBornAtMs !== null && treeBornAtMs % 50) || ITEMS.some(i => !['wood', 'woodPanel', 'woodenCrate', 'iron', 'ironPlate', 'copper', 'copperPlate', 'copperCable'].includes(i) && carried[i]) || carried.wood > 12 || carried.woodPanel > 12 || carried.woodenCrate > 4 || carried.iron > 6 || carried.ironPlate > 8 || carried.copper > 6 || carried.copperPlate > 8 || carried.copperCable > 2 || (ITEMS.filter(i => carried[i] > 0).length > 1 && !(task === 'buildChain' && expansion.plan?.kind === 'forestry'))) v.invalid('homestead', 'invalid carried stock or clock')
   if (task === null && (elapsedMs || target !== null || treeBornAtMs !== null || inventoryTotal(carried))) v.invalid('homestead', 'idle routine contains committed work')
@@ -51,7 +53,7 @@ export function restoreHomestead(value: unknown, world: World, version: number):
     if (inventoryTotal(carried) && (carried[rule.item] !== rule.amount || inventoryTotal(carried) !== rule.amount)) v.invalid('homestead', 'invalid improvement funding')
     if (elapsedMs && !inventoryTotal(carried)) v.invalid('homestead', 'unfunded improvement work')
   } else if (expansion.improvement) v.invalid('homestead', 'improvement without active work')
-  return { store, target, task, treeBornAtMs, carried, elapsedMs, nextAtMs, millAnchor, millBuilt, expansion }
+  return { store, target, task, treeBornAtMs, carried, elapsedMs, nextAtMs, millAnchor, millBuilt, nextRestAtMs, expansion }
 }
 
 function restoreExpansion(value: unknown, world: World, version: number): HomesteadExpansion {

@@ -10,6 +10,7 @@ import { ConstructionResources } from '../game/ConstructionResources'
 import { HelpContents } from '../game/HelpContents'
 import { UtilityPanels } from '../game/UtilityPanels'
 import App from '../App'
+import { createPetesWorld } from '../simulation/petesWorld'
 vi.mock('../game/GameCanvas', () => ({ GameCanvas: () => <div aria-label="Game canvas" /> }))
 vi.mock('./gameStore', async importOriginal => {
   const actual = await importOriginal<typeof import('./gameStore')>()
@@ -24,6 +25,19 @@ describe('compact navigation and UI-only state', () => {
     expect(html).not.toContain('Import file'); expect(html).not.toContain('Toggle Mining machine')
     expect(html).not.toContain('Resource statistics'); expect(html).not.toContain('role="dialog" aria-modal="false"')
     for (const label of ['Game menu', 'Help', 'Research', 'Factory overview', 'Construction resources', 'Build toolbar']) expect(html).toContain(label)
+  })
+  it('keeps detailed Pete status in inspection instead of covering the playfield', () => {
+    const w = createPetesWorld()
+    useGameStore.setState({ tool: null })
+    useGameStore.getState().publish(w)
+    const hint = useGameStore.getState().miniHint!
+    expect(hint.length).toBeGreaterThan(20)
+    expect(renderToStaticMarkup(<App />)).not.toContain(hint)
+    useGameStore.getState().inspectPete(w)
+    const html = renderToStaticMarkup(<App />)
+    expect(html).toContain('Pete inspection')
+    expect(html).toContain(hint)
+    expect(html).not.toContain('mini-world-hint')
   })
   it.each(['menu', 'help', 'overview'] as const)('opens, switches and closes %s without cancelling the selected tool', panel => {
     const store = useGameStore.getState(); store.select('belt')

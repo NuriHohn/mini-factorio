@@ -49,16 +49,19 @@ export function projectUnlocked(world: World, definition: ProjectDefinition): bo
 export function homesteadProjectDelay(world: World, id: ProjectDefinition['id']): string | null {
   const h = world.homestead
   if (!h) return null
-  const level = world.personality.paths.eco.level
+  if ((id === 'orchard' || id === 'nursery') && world.yard && world.yard.phase !== 'complete') return 'Ich schließe zuerst den geplanten Hofzaun. Danach folgen Obstgarten und Baumschule.'
   if (id === 'yard' || id === 'run') {
     if (world.gardenProject?.phase !== 'complete') return 'Ich baue zuerst meinen Garten. Danach erweitere ich die Zäune.'
-    if (level >= 3 && (world.orchardProject?.phase !== 'complete' || h.millBuilt < 3)) return 'Ich spare zunächst Holz für Obstgarten und Sägewerk. Bezahlte Zaunabschnitte gehen weiter.'
+    const store = h.store === null ? null : world.buildings[h.store]
+    if (h.millBuilt === 3 && store?.kind === 'supplyCrate' && store.storeTier === 0) return 'Ich sammle kurz Holz für das Lagerdach. Bereits bezahlte Zaunabschnitte baue ich fertig.'
   }
   if (id === 'gardenCare' || id === 'reforestation') {
     const stock = world.buildings.reduce((n, b) => n + (b?.kind === 'supplyCrate' && b.storeTier !== undefined ? b.wood : 0), 0)
+    if (world.yard && world.yard.phase !== 'complete' && stock < 4) return 'Ich halte zwei Holz für den nächsten Zaunabschnitt zurück. Pflege und Aufforstung folgen mit dem nächsten Nachschub.'
     const garden = world.gardenProject?.phase === 'complete' ? world.buildings[world.gardenProject.tiles[0]] : null
     if (id === 'gardenCare' && garden?.kind === 'peteGarden' && !garden.feed && stock >= 2) return null
-    const reserve = 12
+    if (id === 'reforestation' && stock >= 2) return null
+    const reserve = 14
     if (stock < reserve) return `Ich sammle zuerst ${reserve} Holz für meine Bauprojekte. Danach folgen Pflege und Aufforstung.`
   }
   return null
