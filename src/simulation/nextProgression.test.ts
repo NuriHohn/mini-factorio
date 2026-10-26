@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { advanceExpansion, chooseExpansion, expansionLayout } from './homesteadExpansion'
 import { begin, materialStore } from './homestead'
@@ -73,18 +73,36 @@ describe('resource-led copper automation, circuits and coal', () => {
     expect(store.inventory.ironPlate + store.inventory.copperCable).toBe(0)
     expect(inventoryTotal(h.carried)).toBe(0)
   })
-  it('reaches practice flights and safe scenic flights from offered raw copper and iron alone', () => {
-    const w = createPetesWorld()
-    expect(placeCopper(w, 24, 20)).toBeNull()
-    expect(placeIron(w, 16, 20)).toBeNull()
-    until(w, () => (w.leisure?.practices ?? 0) > 0, 7200000)
-    expect(w.produced.electronicCircuit).toBeGreaterThan(0)
-    expect(w.homestead!.expansion.copperMiner).not.toBeNull()
-    expect(w.homestead!.expansion.circuitAssembler).not.toBeNull()
-    until(w, () => w.leisure?.flight?.practice === false, 7200000)
-    expect(w.personality.paths.inventor.level).toBe(5)
-    expect(load(w).leisure).toEqual(w.leisure)
-  }, 60000)
+  describe('raw copper and iron through scenic flight', () => {
+    let w: World
+    beforeAll(() => {
+      w = createPetesWorld()
+      expect(placeCopper(w, 24, 20)).toBeNull()
+      expect(placeIron(w, 16, 20)).toBeNull()
+    })
+    // Keep the original two-hour bound to the first practice and all 50 ms
+    // simulation steps. Separate real milestones retain the 60-second CI budget.
+    beforeAll(() => { until(w, () => w.homestead!.expansion.copperFurnace !== null && w.homestead!.expansion.furnace !== null, 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.homestead!.expansion.cableAssembler !== null, 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.homestead!.expansion.copperMiner !== null, 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.produced.electronicCircuit > 0, 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.flightProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => (w.leisure?.practices ?? 0) > 0, 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.leisure?.flight?.practice === false, 7200000) }, 60000)
+    it('funds the real mining and circuit chain from offered raw resources', () => {
+      expect(w.produced.electronicCircuit).toBeGreaterThan(0)
+      expect(w.homestead!.expansion.copperMiner).not.toBeNull()
+      expect(w.homestead!.expansion.circuitAssembler).not.toBeNull()
+    })
+    it('completes practice flights before scenic flights', () => {
+      expect(w.leisure!.practices).toBeGreaterThan(0)
+    })
+    it('reaches Inventor five and preserves its safe scenic flight exactly', () => {
+      expect(w.leisure?.flight?.practice).toBe(false)
+      expect(w.personality.paths.inventor.level).toBe(5)
+      expect(load(w).leisure).toEqual(w.leisure)
+    })
+  })
   it('builds and personally fuels a steam engine from coal alone and resumes a real burn exactly', () => {
     const w = createPetesWorld()
     expect(placeCoal(w, 26, 18)).toBeNull()

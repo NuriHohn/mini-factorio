@@ -383,7 +383,9 @@ export function advanceExpansion(world: World, delta: number): boolean {
   } else {
     const machine = h.task === 'takeIron' ? furnace : assembler, item = h.task === 'takeIron' ? 'ironPlate' : 'woodenCrate'
     if ((machine?.kind !== 'furnace' && machine?.kind !== 'assembler') || !machine.output[item]) { finish(world); return true }
-    const amount = Math.min(2, machine.output[item]); machine.output[item] -= amount; h.carried[item] = amount; begin(world, 'returnStock', h.store)
+    const amount = Math.min(2, machine.output[item]); machine.output[item] -= amount; h.carried[item] = amount
+    if (h.task === 'takeIron') awardActivity(world.personality, { path: 'craftsman', xp: amount })
+    begin(world, 'returnStock', h.store)
   }
   return true
 }
@@ -399,28 +401,37 @@ export function expansionSummary(world: World): string {
   const rule = missing ? IMPROVEMENT_RULES[missing] : null
   return `${rule ? `${rule.label}: ${store?.inventory[rule.item] ?? 0}/${rule.amount} ${rule.item === 'woodPanel' ? 'Holzplatten' : 'Holzkisten'}. ` : ''}Forststation und Holzkisten ab Öko 4 mit freiem Bauplatz am Sägewerk. Eisenabbau ab Stufe 1, Schmelzofen ab Handwerker 2, Erzförderer ab 3 (8 Eisenplatten). Kupferofen ab Erfinder 2 (6 Erz), Kabel-Assembler ab 3 (8 Kupferplatten), Kupferförderer ab 3 (8 Platten), Schaltkreis-Assembler danach (12 Platten). Schaltkreise brauchen echte Eisenplatten und je 3 Kupferkabel; Flugwerkstatt ab 4, Rundflüge ab 5. Mehr passende Vorräte und nahe Ressourcen erhöhen meine Projektchancen.`
 }
-export function expansionProjects(world: World): string[] {
+export function expansionProjectStatuses(world: World): { path: PersonalityPath; name: string; reason: string }[] {
   const h = world.homestead
   if (!h) return []
   const store = materialStore(world)
   const improvements = IMPROVEMENTS.map(id => {
     const rule = IMPROVEMENT_RULES[id]
-    return `${rule.label}: ${h.expansion.improvements[id] !== undefined ? 'fertig' : `${store?.inventory[rule.item] ?? 0}/${rule.amount} ${rule.item === 'woodPanel' ? 'Holzplatten' : 'Holzkisten'}${improvementSite(world, id) === null ? ' · zuerst das Grundprojekt bauen' : ''}`}`
+    return { path: 'eco' as const, name: rule.label, reason: h.expansion.improvements[id] !== undefined ? 'fertig' : `${store?.inventory[rule.item] ?? 0}/${rule.amount} ${rule.item === 'woodPanel' ? 'Holzplatten' : 'Holzkisten'}${improvementSite(world, id) === null ? ' · zuerst das Grundprojekt bauen' : ''}` }
   })
   const e = h.expansion
+  const entry = (path: PersonalityPath, name: string, reason: string) => ({ path, name, reason })
   return [...improvements,
-    `Erzförderer: ${e.miner !== null ? 'gebaut' : `${store?.inventory.ironPlate ?? 0}/8 Eisenplatten · Handwerker 3 · freie Bandstrecke mit höchstens 12 Feldern zum Eisenofen`}`,
-    `Kupferofen: ${e.copperFurnace !== null ? 'gebaut' : `${store?.inventory.copper ?? 0}/6 Kupfererz · Erfinder 2 · freier Bauplatz mit Stromversorgung`}`,
-    `Kupferförderer: ${e.copperMiner !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Erfinder 3 · zuerst Kabel-Assembler · freie Bandstrecke zum Kupferofen`}`,
-    `Schaltkreis-Assembler: ${e.circuitAssembler !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/12 Kupferplatten · Erfinder 3 · zuerst Kupferförderer · freier Bauplatz`}`,
-    `Schaltkreis-Zutaten: ${store?.inventory.ironPlate ?? 0}/1 Eisenplatte und ${store?.inventory.copperCable ?? 0}/3 Kupferkabel pro Stück · Material muss erreichbar sein`,
-    `Flugwerkstatt: Erfinder 4 · vorhandene Schaltkreise und Kupferkabel · Übungsflüge führen zu Rundflügen ab 5`,
-    `Kohleförderung: ${e.coalMiner !== null ? 'gebaut' : 'Industrie 3 · 6 Kohle als Vorrat · freie Bandstrecke zum Brennstofflager am Kessel'}`,
-    `Kesselgreifer: ${e.coalInserter !== null ? 'gebaut' : 'zuerst Kohleförderung · 6 Kohle als Brennstoffreserve · freier Platz zwischen Lager und Kessel'}`,
-    `Kohlestampfer: ${e.briquetteAssembler !== null ? 'gebaut' : 'Industrie 3 · zuerst Kesselgreifer · 6 Kohle Vorrat'} · 2 Kohle → 1 Brikett · 60 kW · 4 Sekunden bei voller Leistung`,
-    `Dampfwerkstatt: ${e.steamWorkshop !== null ? 'gebaut' : `Industrie 4 · ${Math.min(4, world.produced.coalBriquette)}/4 gefertigte Briketts · 6 Kohle Vorrat`} · tatsächliche Dampfenergie nötig`,
-    `Förderaufzug: ${e.steamHoist !== null ? 'gebaut' : 'Industrie 5 · 10 Arbeitszyklen der Dampfwerkstatt · 6 Kohle Vorrat'} · Zugänge und Stromverbindung freihalten`,
-    `Dampfantrieb: ${e.steamEngine !== null ? 'gebaut' : `${store?.inventory.coal ?? 0}/6 Kohle · Industrie 2 · freier Bauplatz`}; danach 2 Kohle je persönlicher Lieferung, 1 Kohle je 10 Sekunden Arbeit · geschlossener Wasserkreislauf`,
-    `Kabel-Assembler: ${e.cableAssembler !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Erfinder 3 · zuerst Kupferofen · freier Bauplatz`}`,
+    entry('eco', 'Sägewerk', h.millBuilt === 3 ? 'gebaut' : `${store?.wood ?? 0}/12 Holz · Eco 3 · freier Bauplatz mit Stromversorgung`),
+    entry('eco', 'Forststation', e.forestry !== null ? 'gebaut' : `${store?.inventory.woodPanel ?? 0}/8 Holzplatten und ${store?.wood ?? 0}/1 Holz · Eco 4 · zuerst Sägewerk und Lagerdach`),
+    entry('eco', 'Kisten-Assembler', e.assembler !== null ? 'gebaut' : `${store?.inventory.woodPanel ?? 0}/12 Holzplatten · Eco 4 · zuerst Forststation`),
+    entry('craftsman', 'Eisenofen', e.furnace !== null ? 'gebaut' : `${store?.inventory.iron ?? 0}/6 Eisenerz · Craftsman 2 · freier Bauplatz mit Stromversorgung`),
+    entry('craftsman', 'Ambossübung', 'Wiederkehrend an der fertigen Werkstatt: 5 Sekunden Arbeit, 60 Sekunden Pause; ab Craftsman 3 je 5 XP. Auch das Abholen echter Eisenplatten bringt XP.'),
+    entry('craftsman', 'Erzförderer', `${e.miner !== null ? 'gebaut' : `${store?.inventory.ironPlate ?? 0}/8 Eisenplatten · Handwerker 3 · freie Bandstrecke mit höchstens 12 Feldern zum Eisenofen`}`),
+    entry('inventor', 'Kupferofen', `${e.copperFurnace !== null ? 'gebaut' : `${store?.inventory.copper ?? 0}/6 Kupfererz · Erfinder 2 · freier Bauplatz mit Stromversorgung`}`),
+    entry('inventor', 'Kupferförderer', `${e.copperMiner !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Erfinder 3 · zuerst Kabel-Assembler · freie Bandstrecke zum Kupferofen`}`),
+    entry('inventor', 'Schaltkreis-Assembler', `${e.circuitAssembler !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/12 Kupferplatten · Erfinder 3 · zuerst Kupferförderer · freier Bauplatz`}`),
+    entry('inventor', 'Schaltkreis-Zutaten', `${store?.inventory.ironPlate ?? 0}/1 Eisenplatte und ${store?.inventory.copperCable ?? 0}/3 Kupferkabel pro Stück · Material muss erreichbar sein`),
+    entry('inventor', 'Flugwerkstatt', `Erfinder 4 · vorhandene Schaltkreise und Kupferkabel · Übungsflüge führen zu Rundflügen ab 5`),
+    entry('industrial', 'Kohleförderung', `${e.coalMiner !== null ? 'gebaut' : 'Industrie 3 · 6 Kohle als Vorrat · freie Bandstrecke zum Brennstofflager am Kessel'}`),
+    entry('industrial', 'Kesselgreifer', `${e.coalInserter !== null ? 'gebaut' : 'zuerst Kohleförderung · 6 Kohle als Brennstoffreserve · freier Platz zwischen Lager und Kessel'}`),
+    entry('industrial', 'Kohlestampfer', `${e.briquetteAssembler !== null ? 'gebaut' : 'Industrie 3 · zuerst Kesselgreifer · 6 Kohle Vorrat'} · 2 Kohle → 1 Brikett · 60 kW · 4 Sekunden bei voller Leistung`),
+    entry('industrial', 'Dampfwerkstatt', `${e.steamWorkshop !== null ? 'gebaut' : `Industrie 4 · ${Math.min(4, world.produced.coalBriquette)}/4 gefertigte Briketts · 6 Kohle Vorrat`} · tatsächliche Dampfenergie nötig`),
+    entry('industrial', 'Förderaufzug', `${e.steamHoist !== null ? 'gebaut' : 'Industrie 5 · 10 Arbeitszyklen der Dampfwerkstatt · 6 Kohle Vorrat'} · Zugänge und Stromverbindung freihalten`),
+    entry('industrial', 'Dampfantrieb', `${e.steamEngine !== null ? 'gebaut' : `${store?.inventory.coal ?? 0}/6 Kohle · Industrie 2 · freier Bauplatz`}; danach 2 Kohle je persönlicher Lieferung, 1 Kohle je 10 Sekunden Arbeit · geschlossener Wasserkreislauf`),
+    entry('inventor', 'Kabel-Assembler', `${e.cableAssembler !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Erfinder 3 · zuerst Kupferofen · freier Bauplatz`}`),
   ]
+}
+export function expansionProjects(world: World): string[] {
+  return expansionProjectStatuses(world).map(project => `${project.name}: ${project.reason}`)
 }

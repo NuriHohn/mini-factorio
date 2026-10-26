@@ -27,6 +27,8 @@ export function miniLayout(anchor: number): MiniStep[] {
 }
 export function createPetesWorld(): World {
   const world = createWorld(() => .42, { nature: false })
+  // Keep the central work approaches dry, but put a pond in the opening view.
+  for (const [x, y] of [[22, 27], [21, 27], [23, 27], [22, 26], [22, 28]]) world.water[y * SIZE + x] = true
   world.tiles.fill(null)
   world.nature.wood = 20
   placeBuilding(world, 20, 20, 'treehouse', 'east')
@@ -34,6 +36,7 @@ export function createPetesWorld(): World {
   world.research.unlocked = ['basicIndustry', 'automation1']
   world.miniFactory = { anchor: null, built: 0, elapsedMs: 0, nextCheckAtMs: 0 }
   world.homestead = createHomestead()
+  world.peace.nextGiftAtMs *= 2
   return world
 }
 export function groveError(world: World, x: number, y: number): string | null {

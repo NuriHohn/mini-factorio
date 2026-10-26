@@ -13,7 +13,8 @@ describe('Petes Welt water and landscaping', () => {
   it('generates persistent ponds/streams while keeping the home and offering area dry', () => {
     const world = createPetesWorld()
     expect(world.water.filter(Boolean).length).toBeGreaterThan(40)
-    for (let y = 10; y <= 30; y++) for (let x = 10; x <= 30; x++) expect(world.water[y * SIZE + x]).toBe(false)
+    for (let y = 17; y <= 23; y++) for (let x = 17; x <= 23; x++) expect(world.water[y * SIZE + x]).toBe(false)
+    for (const [x, y] of [[22, 27], [21, 27], [23, 27], [22, 26], [22, 28]]) expect(world.water[y * SIZE + x]).toBe(true)
     expect(placeGrove(world, 26, 15)).toBeNull()
     expect(load(world).water).toEqual(world.water)
     expect(createPetesWorld().water).toEqual(world.water)

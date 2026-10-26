@@ -519,7 +519,8 @@ export class FactoryScene extends Phaser.Scene {
       else if (request.kind === 'new') {
         if (window.confirm('Neue Spielwelt starten? Ungespeicherter Fortschritt geht verloren. Deine gespeicherten Welten bleiben erhalten.')) {
           const camera = this.cameras.main
-          this.restore({ world: request.mode === 'petesWorld' || (!request.mode && this.world.miniFactory) ? createPetesWorld() : createWorld(), view: { scrollX: SIZE * TILE / 2 - camera.width / 2, scrollY: SIZE * TILE / 2 - camera.height / 2, zoom: 1.3, direction: 'east', powerOverlay: false }, savedAt: new Date().toISOString() })
+          const nextWorld = request.mode === 'petesWorld' || (!request.mode && this.world.miniFactory) ? createPetesWorld() : createWorld()
+          this.restore({ world: nextWorld, view: { scrollX: SIZE * TILE / 2 - camera.width / 2, scrollY: SIZE * TILE / 2 - camera.height / 2 + (nextWorld.miniFactory ? TILE * 2 : 0), zoom: nextWorld.miniFactory ? 1 : 1.3, direction: 'east', powerOverlay: false }, savedAt: new Date().toISOString() })
           this.saves.setMode(this.world.miniFactory ? 'petesWorld' : 'factory')
           useGameStore.getState().setBuildTab(this.world.miniFactory ? 'nature' : 'factory')
           this.saves.feedback('New game started. Browser save slots were kept.')

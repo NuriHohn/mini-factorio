@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-export const SIMULATION_SPEEDS = [0, 1, 2, 4] as const
+export const SIMULATION_SPEEDS = [0, 1, 2, 4, 8, 16] as const
 export type SimulationSpeed = typeof SIMULATION_SPEEDS[number]
 // A session control: importing a factory never changes the player's chosen pace.
 export const useSimulationSpeed = create<{ speed: SimulationSpeed; setSpeed: (speed: SimulationSpeed) => void }>(set => ({

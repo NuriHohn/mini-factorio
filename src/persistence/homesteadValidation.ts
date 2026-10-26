@@ -1,5 +1,5 @@
 import { INDUSTRIAL_CHAINS } from '../simulation/industrialRules'
-import { HOME_TASKS } from '../simulation/homestead'
+import { HOMESTEAD_REST_INTERVAL_MS, HOME_TASKS } from '../simulation/homestead'
 import { CHAIN_KINDS, chainCost, createExpansion, expansionLayout, IMPROVEMENTS, IMPROVEMENT_RULES } from '../simulation/homesteadExpansion'
 import type { HomesteadExpansion } from '../simulation/homesteadExpansion'
 import type { Homestead } from '../simulation/homestead'
@@ -18,7 +18,7 @@ export function restoreHomestead(value: unknown, world: World, version: number):
   const task = r.task === null ? null : v.choice(r.task, 'homestead.task', (version >= 46 ? HOME_TASKS : version >= 42 ? HOME_TASKS.filter(t => !['fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam'].includes(t)) : HOME_TASKS.filter(t => !['fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam', 'mineCopper', 'fetchCopper', 'feedCopper', 'takeCopper', 'fetchCable', 'feedCable', 'takeCable'].includes(t))).filter(t => version >= 47 || !['takeCoal', 'fetchStamp', 'feedStamp', 'takeBriquettes', 'fetchFuel', 'storeFuel'].includes(t)))
   const carried = v.inventory(r.carried, 'homestead.carried'), elapsedMs = v.count(r.elapsedMs, 'homestead.elapsedMs', task === 'expandStore' || task === 'improve' ? 8000 : task === 'buildMill' || task === 'buildChain' ? 4000 : 6000)
   const nextAtMs = v.count(r.nextAtMs, 'homestead.nextAtMs', world.timeMs + 10000), millBuilt = v.count(r.millBuilt, 'homestead.millBuilt', 3)
-  const nextRestAtMs = version < 43 ? world.timeMs + 180000 : v.count(r.nextRestAtMs, 'homestead.nextRestAtMs', world.timeMs + 180000)
+  const nextRestAtMs = version < 43 ? world.timeMs + 180000 : v.count(r.nextRestAtMs, 'homestead.nextRestAtMs', world.timeMs + HOMESTEAD_REST_INTERVAL_MS)
   if (nextRestAtMs % 50) v.invalid('homestead.nextRestAtMs', 'invalid rest deadline')
   const treeBornAtMs = r.treeBornAtMs === null ? null : v.number(r.treeBornAtMs, 'homestead.treeBornAtMs', -MATURE_TREE_MS, world.timeMs - MATURE_TREE_MS, true)
   if (elapsedMs % 50 || nextAtMs % 50 || (treeBornAtMs !== null && treeBornAtMs % 50) || ITEMS.some(i => !['wood', 'woodPanel', 'woodenCrate', 'iron', 'ironPlate', 'copper', 'copperPlate', 'copperCable', 'electronicCircuit', 'coal', 'coalBriquette'].includes(i) && carried[i]) || carried.coalBriquette > 2 || carried.coal > 6 || carried.wood > 12 || carried.woodPanel > 12 || carried.woodenCrate > 4 || carried.iron > 6 || carried.ironPlate > 8 || carried.copper > 6 || carried.copperPlate > 8 || carried.copperCable > 3 || carried.electronicCircuit > 2 || (ITEMS.filter(i => carried[i] > 0).length > 1 && !(task === 'buildChain' && expansion.plan?.kind === 'forestry') && !((task === 'feedCircuits' || task === 'returnStock') && inventoryTotal(carried) === carried.ironPlate + carried.copperCable && carried.ironPlate <= 1))) v.invalid('homestead', 'invalid carried stock or clock')

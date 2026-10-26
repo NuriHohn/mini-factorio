@@ -328,3 +328,8 @@ Implemented under the user's explicit five-sprint implementation and merge reque
 | 16.77 | Industrial-5 driven hoist after ten workshop cycles, full coal-only progression, inspections, Save 47 migration and owned component restoration |
 
 Exact rules and acceptance boundaries: [Industrial automation](GAME_DESIGN.md#industrial-automation-and-driven-work-sprints-1673-1677). Replacing legacy gear/module requirements, explicit pipes and offline/install work are not part of these increments. Further sprint numbering/scope requires a new proposal; physical iPhone/iPad Safari acceptance remains open.
+
+
+## Post-16.77 development balance
+
+Implemented maintenance: a visible near-home pond in new Petes Welt games, whole-world ×8/×16, fewer gifts/rest visits and lower daily-care priority, affordable orchard/nursery construction alongside reserved yard space, recurring Craftsman-3 anvil practice and real iron-plate collection XP. Pete inspection groups original projects and automation requirements by development path, and wishes follow the dominant path. The paid gradual Eco factory remains the current system; existing committed prototypes and saves remain supported. Exact mechanics: [development balance](GAME_DESIGN.md#petes-welt-development-balance).

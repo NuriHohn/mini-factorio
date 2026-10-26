@@ -63,7 +63,7 @@ export function developmentDecision(world: World, overdueOnly = false) {
   }
   add('takeSapling', 'nursery', s.saplings > 0 && ready(world, 'plantSapling') && !!planPlanting(world))
   if (!options.length) return null
-  const eligible = overdueOnly ? options.filter(o => world.timeMs - s.nextAt[o.task] >= 120000) : options
+  const eligible = overdueOnly ? options.filter(o => world.timeMs - s.nextAt[o.task] >= (world.homestead && o.task !== 'cycle' ? 300000 : 120000)) : options
   if (!eligible.length) return null
   // Persisted completion deadlines provide a fair queue without another saved clock.
   const oldest = Math.min(...eligible.map(o => s.nextAt[o.task]))

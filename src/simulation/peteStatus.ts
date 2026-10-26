@@ -9,15 +9,16 @@ import { gardenSpot } from './ecoProjects'
 import { yardSummary } from './yard'
 import { ITEM_DEFINITIONS, ITEMS } from './items'
 import { neighboringTiles, peteReachableTiles } from './navigation'
-import { PATH_LABELS } from './personality'
-import type { Personality } from './personality'
+import { expansionProjectStatuses } from './homesteadExpansion'
+import { PATH_LABELS, PERSONALITY_PATHS } from './personality'
+import type { Personality, PersonalityPath } from './personality'
 import { homesteadProjectDelay, PETE_PROJECTS } from './projectRegistry'
 import type { ProjectMaterial } from './projectRegistry'
 import { currentProject, projectCandidates, projectPlansConflict, projectResources, projectSiteClear } from './secretProject'
 import type { SupplyCrate, World } from './world'
 export const PROJECT_NAMES: Record<string, string> = { ...DEVELOPMENT_NAMES, treasure: 'Treasure chest', flightpad: 'Flight workshop', run: 'Chicken outdoor run', harvesting: 'Harvest a mature tree', feeding: 'Feed the chickens', gardenCare: 'Garden care (mulching)', fence: 'Fence', coop: 'Chicken coop', campfire: 'Campfire', yard: 'Enclosed yard', gate: 'Garden gate', garden: 'Vegetable garden', reforestation: 'Tree planting', workshop: 'Workshop', veranda: 'Treehouse veranda', experiment: 'Experiment table', press: 'Recycling press' }
 const ACTIVITY_NAMES: Record<World['peace']['activity'], string> = { developmentward: 'Walking to my next activity', developmentWork: 'Working on my development', cycling: 'Enjoying a bicycle ride', dismounting: 'Parking my bicycle', treasureward: 'Walking to a little treasure', pickingTreasure: 'Picking up a treasure', treasureHomeward: 'Bringing a treasure home', storingTreasure: 'Adding a treasure to my collection', flightward: 'Going to my flight workshop', flying: 'Flying my propeller backpack', crashRest: 'Recovering from a harmless bumpy landing', coverward: 'Going to cover the coop', covering: 'Covering the coop', uncoverward: 'Going to uncover the coop', uncovering: 'Removing the coop cover', homeward: 'Going home', entering: 'Heading inside', resting: 'Sleeping', walking: 'Taking a walk', waving: 'Waving', flowers: 'Enjoying flowers', dockward: 'Walking to the dock', fishing: 'Fishing', boating: 'Taking a boat trip', crateward: 'Walking to the supply crate', checkingCrate: 'Checking supplies', project: 'Working on a project', eggward: 'Going to collect an egg', collectingEgg: 'Collecting an egg', campfireward: 'Walking to the campfire', cooking: 'Cooking eggs', campfireHappy: 'Enjoying a meal', gardenward: 'Walking to the garden', gardening: 'Watering the garden', workshopward: 'Walking to the workshop', hammering: 'Working at the anvil', verandaRest: 'Resting on the veranda', experimentward: 'Walking to the experiment table', experimenting: 'Trying an experiment', pressward: 'Walking to the recycling press', pressing: 'Recycling a gear' }
-export interface ProjectStatus { id: string; name: string; reason: string; ready: boolean }
+export interface ProjectStatus { id: string; name: string; reason: string; ready: boolean; path: PersonalityPath | null }
 export interface PeteStatus extends ReturnType<typeof developmentStatus> { intent: string; yard: string; activity: string; current: string | null; wish: ProjectStatus | null; projects: ProjectStatus[]; personality: Personality }
 export function peteStatus(world: World): PeteStatus {
   const mini = miniStatus(world)
@@ -56,10 +57,12 @@ export function peteStatus(world: World): PeteStatus {
         reason = `I need ${missing.join(', ')} in one reachable supply crate.`
       }
     }
-    return [{ id: definition.id, name, reason, ready: !!candidate }]
+    return [{ id: definition.id, name, reason, ready: !!candidate, path: definition.path }]
   })
-  const wishes = [...projects].sort((a, b) => Number(b.ready) - Number(a.ready) || Number(world.personality.paths[PETE_PROJECTS.find(p => p.id === b.id)!.path].level >= PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel) - Number(world.personality.paths[PETE_PROJECTS.find(p => p.id === a.id)!.path].level >= PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel) || Number(PETE_PROJECTS.find(p => p.id === b.id)!.path === world.personality.dominant) - Number(PETE_PROJECTS.find(p => p.id === a.id)!.path === world.personality.dominant))
-  for (const [index, reason] of rebuildSummary(world).entries()) projects.push({ id: `rebuild:${index}`, name: 'Wiederaufbau', reason, ready: false })
+  const wishes = projects.filter(p => !world.homestead || p.path === world.personality.dominant).sort((a, b) => Number(b.ready) - Number(a.ready) || Number(world.personality.paths[b.path!].level >= PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel) - Number(world.personality.paths[a.path!].level >= PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel) || Number(b.path === world.personality.dominant) - Number(a.path === world.personality.dominant) || (world.homestead ? PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel - PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel : 0))
+  for (const project of expansionProjectStatuses(world)) projects.push({ ...project, id: `expansion:${project.name}`, ready: false })
+  projects.sort((a, b) => (a.path ? PERSONALITY_PATHS.indexOf(a.path) : PERSONALITY_PATHS.length) - (b.path ? PERSONALITY_PATHS.indexOf(b.path) : PERSONALITY_PATHS.length))
+  for (const [index, reason] of rebuildSummary(world).entries()) projects.push({ id: `rebuild:${index}`, name: 'Wiederaufbau', reason, ready: false, path: null })
   const selected = active ? PETE_PROJECTS.find(p => world[p.state] === active) : undefined
   const activity = world.developmentLife?.task && ['developmentward', 'developmentWork'].includes(world.peace.activity) ? `${world.peace.activity === 'developmentward' ? 'On my way:' : 'Now:'} ${TASK_LABELS[world.developmentLife.task]}` : world.peace.home === null ? world.pete.mode.toLowerCase().replaceAll('_', ' ') : world.peace.activity === 'project' && active ? active.kind === 'fell' ? active.carried ? 'Bringing harvested Wood to the supply crate' : 'Felling a mature tree' : active.phase === 'collecting' ? 'Collecting project materials' : active.kind === 'feed' ? 'Feeding the chickens' : active.kind === 'care' ? 'Mulching my garden' : 'Building my project' : ACTIVITY_NAMES[world.peace.activity]
   const materials = Object.entries(projectResources(active)).map(([id, n]) => `${n} ${id === 'wood' ? 'Wood' : id === 'chickenFeed' ? 'chicken feed' : ITEM_DEFINITIONS[id as keyof typeof ITEM_DEFINITIONS]?.label ?? id}`).join(' + ')

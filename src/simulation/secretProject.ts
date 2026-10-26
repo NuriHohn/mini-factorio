@@ -113,7 +113,7 @@ function layout(world: World, kind: SecretProject['kind']): SecretProject | null
   const home = world.peace.home!, x = home % SIZE, y = Math.floor(home / SIZE)
   for (const outside of (developmentKind(kind) || kind === 'treasure' || kind === 'flightpad' || kind === 'press' || kind === 'workshop' || kind === 'experiment') && world.yard ? [true, false] : [false]) for (const radius of kind === 'house' ? [2, 3, 4, 5, 6] : developmentKind(kind) || kind === 'treasure' || kind === 'flightpad' || kind === 'press' || kind === 'workshop' || kind === 'experiment' ? [3, 2, 4, 5, 6] : kind === 'garden' ? [3, 2, 4, 5] : [3]) for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
     const cells = (kind ? [0] : [-1, 0, 1]).map(n => ({ x: x + dx * radius + (dy ? n : 0), y: y + dy * radius + (dx ? n : 0) }))
-    if (cells.some(p => !inside(p.x, p.y) || (outside && yardInterior(world.yard!, p.y * SIZE + p.x)))) continue
+    if (cells.some(p => !inside(p.x, p.y) || (world.homestead && world.tiles[p.y * SIZE + p.x] !== null) || (outside && yardInterior(world.yard!, p.y * SIZE + p.x)))) continue
     const project: SecretProject = { ...(kind ? { kind } : {}), ...(developmentKind(kind) ? { carriedIron: 0, carriedGears: 0, carriedModules: 0 } : {}), ...((kind === 'treasure' || kind === 'flightpad') ? { carriedCopper: 0, carriedCable: 0, carriedCircuits: 0 } : {}), ...(kind === 'press' ? { carriedIron: 0, carriedGears: 0 } : {}), ...(kind === 'experiment' ? { carriedCopper: 0, carriedCable: 0, carriedGears: 0 } : {}), ...(kind === 'workshop' ? { carriedIron: 0 } : {}), home, direction: dy ? 'east' : 'south', tiles: cells.map(p => p.y * SIZE + p.x), spots: cells.map(p => (p.y - dy) * SIZE + p.x - dx), phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
     if (!projectPlansConflict(world, project) && projectSiteClear(world, project) && source(world, project)) return project
   }
@@ -219,8 +219,14 @@ export function trySecretProject(world: World): boolean {
     placementHints.set(world, candidates.length || !blocked.length ? '' : `No safe site for ${blocked.slice(0, 2).map(id => names[id]).join(' / ')}${blocked.length > 2 ? ' and other projects' : ''}. Clear nearby space.`)
     if (!candidates.length) return false
     if (world.homestead) {
-      const overdue = ['feeding', 'reforestation', 'gardenCare'].find(id => candidates.some(c => c.definition.id === id && world.timeMs >= (world[c.definition.state]?.readyAtMs ?? 0) + 120000))
-      if (overdue) candidates.splice(0, candidates.length, ...candidates.filter(c => c.definition.id === overdue))
+      const overdueFeed = candidates.find(c => c.definition.id === 'feeding' && world.timeMs >= (world.feedingProject?.readyAtMs ?? 0) + 300000)
+      const building = candidates.filter(c => !c.definition.repeatable)
+      if (overdueFeed) candidates.splice(0, candidates.length, overdueFeed)
+      else if (building.length) candidates.splice(0, candidates.length, ...building)
+      else {
+        const overdue = ['feeding', 'reforestation', 'gardenCare'].find(id => candidates.some(c => c.definition.id === id && world.timeMs >= (world[c.definition.state]?.readyAtMs ?? 0) + 300000))
+        if (overdue) candidates.splice(0, candidates.length, ...candidates.filter(c => c.definition.id === overdue))
+      }
     }
     // Reuse the persisted peaceful LCG, consuming exactly one draw per new decision.
     const peace = world.peace
