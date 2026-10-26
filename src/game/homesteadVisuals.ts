@@ -35,7 +35,7 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
     }
   }
   if (!s.elapsedMs) return
-  const phase = Math.sin(s.elapsedMs / 130), axe = s.task === 'gather' || s.task === 'mineIron' || s.task === 'mineCopper'
+  const phase = Math.sin(s.elapsedMs / 130), axe = s.task === 'gather' || s.task === 'mineIron' || s.task === 'mineCopper' || s.task === 'mineCoal'
   g.lineStyle(3, 0x91dd60).lineBetween(x + 5, y + 4, x + 11, y - 3 - phase * 3)
   g.lineStyle(2, 0xa87b4e).lineBetween(x + 10, y - 1, x + 15, y - 12 - phase * 3)
   g.fillStyle(0xc6d3cd).fillRect(x + 12, y - 14 - phase * 3, axe ? 8 : 6, axe ? 6 : 4)

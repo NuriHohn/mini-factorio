@@ -43,7 +43,7 @@ describe('resource-led development and shared iron automation', () => {
     expect(abundant).toBeLessThan(3)
     expect(placeGrove(w, 14, 18)).toBeNull()
     expect(placeCopper(w, 26, 25)).toBeNull()
-    const counts = { eco: 0, craftsman: 0, inventor: 0 }
+    const counts = { eco: 0, craftsman: 0, inventor: 0, industrial: 0 }
     for (let i = 0; i < 4000; i++) counts[preferredPaths(w)[0]]++
     expect(counts.craftsman).toBeGreaterThan(counts.eco)
     expect(counts.craftsman).toBeGreaterThan(counts.inventor)
@@ -110,7 +110,7 @@ describe('resource-led development and shared iron automation', () => {
     save.game.homestead.expansion.plan.route[1] = 0
     expect(() => decodeSave(JSON.stringify(save))).toThrow()
     const old = snapshot(stored()); old.version = 41; delete old.game.homestead.nextRestAtMs
-    for (const key of ['miner', 'copperFurnace', 'cableAssembler']) delete old.game.homestead.expansion[key]
+    for (const key of ['miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine']) delete old.game.homestead.expansion[key]
     const migrated = decodeSave(JSON.stringify(old)).world
     expect(migrated.homestead!.expansion.miner).toBeNull()
     expect(migrated.homestead!.expansion.copperFurnace).toBeNull()

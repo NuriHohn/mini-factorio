@@ -77,7 +77,7 @@ function expectConserved(world: World) {
 }
 describe('central item and recipe definitions', () => {
   it('has unique typed IDs, labels, categories and distinct visual properties for all registered items', () => {
-    expect(new Set(ITEMS).size).toBe(11)
+    expect(new Set(ITEMS).size).toBe(12)
     for (const item of ITEMS) {
       const definition = ITEM_DEFINITIONS[item]
       expect(definition.id).toBe(item)
@@ -87,7 +87,7 @@ describe('central item and recipe definitions', () => {
     }
     expect(ITEM_DEFINITIONS.iron.visual.color).not.toBe(ITEM_DEFINITIONS.copper.visual.color)
     expect(ITEM_DEFINITIONS.ironPlate.visual.color).not.toBe(ITEM_DEFINITIONS.copperPlate.visual.color)
-    expect(RESOURCES).toEqual(['iron', 'copper'])
+    expect(RESOURCES).toEqual(['coal', 'iron', 'copper'])
     const a = emptyInventory(), other = emptyInventory()
     a.copper = 1
     expect(inventoryTotal(other)).toBe(0)
@@ -110,7 +110,7 @@ describe('multi-resource terrain and mining', () => {
     expect(a).toEqual(other)
     expect(a.tiles).toHaveLength(SIZE ** 2)
     expect(a.tiles.every(tile => tile === null || RESOURCES.includes(tile))).toBe(true)
-    for (const resource of RESOURCES) expect(a.tiles.filter(tile => tile === resource).length).toBeGreaterThan(20)
+    for (const resource of RESOURCES.filter(resource => resource !== 'coal')) expect(a.tiles.filter(tile => tile === resource).length).toBeGreaterThan(20)
     expect(depositAt(a, 20, 20)).toBe('iron')
     expect(depositAt(a, 26, 20)).toBe('copper')
     expect(depositAt(a, -1, 20)).toBe(null)

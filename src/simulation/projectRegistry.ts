@@ -2,7 +2,7 @@ import type { Item } from './items'
 import type { PersonalityPath, ProjectReward } from './personality'
 import type { World } from './world'
 export type ProjectMaterial = Item | 'wood' | 'chickenFeed' | 'fruit' | 'sapling'
-export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { woodPanel: 'eco', woodenCrate: 'eco', fruit: 'eco', sapling: 'eco', mechanicModule: 'industrial', chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
+export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { coal: 'industrial', woodPanel: 'eco', woodenCrate: 'eco', fruit: 'eco', sapling: 'eco', mechanicModule: 'industrial', chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
 export interface ProjectDefinition {
   id: ProjectReward | 'reforestation' | 'gardenCare' | 'feeding' | 'harvesting'
   state: 'orchardProject' | 'nurseryProject' | 'bicycleProject' | 'mechanicProject' | 'winchProject' | 'houseProject' | 'treasureProject' | 'flightProject' | 'chickenRun' | 'harvestProject' | 'feedingProject' | 'careProject' | 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'

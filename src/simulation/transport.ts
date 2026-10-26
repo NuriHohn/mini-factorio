@@ -1,3 +1,4 @@
+import { STEAM_FUEL_CAPACITY } from './steam'
 import { forestryOutput } from './forestryStation'
 import { PRESS_INPUT_CAPACITY } from './gearPress'
 import { supplyCapacity } from './supplyCrate'
@@ -19,6 +20,7 @@ function receiver(world: World, source: Building, direction: Direction): Buildin
 }
 export function canReceive(target: Building, item: Item, travel: Direction, reserved: Readonly<Partial<Inventory>> = {}, recipeId: RecipeId | null = target.kind === 'furnace' ? incomingRecipe(target, item) : target.kind === 'assembler' ? target.recipeId : null): boolean {
   switch (target.kind) {
+    case 'steamEngine': return item === 'coal' && target.fuel + (reserved.coal ?? 0) < STEAM_FUEL_CAPACITY
     case 'splitter': return travel === target.direction && target.input === null && inventoryTotal(reserved) === 0
     case 'peteDevelopment': return target.development === 'mechanic' && item === 'ironGear' && target.gears + (reserved.ironGear ?? 0) < 4
     case 'petePress': return item === 'ironGear' && target.gears + (reserved.ironGear ?? 0) < PRESS_INPUT_CAPACITY
@@ -36,6 +38,7 @@ export function canReceive(target: Building, item: Item, travel: Direction, rese
 }
 function accept(target: Building, item: Item, direction: Direction): void {
   switch (target.kind) {
+    case 'steamEngine': target.fuel++; break
     case 'splitter': target.input = { item, progress: 0 }; break
     case 'peteDevelopment': target.gears++; break
     case 'petePress': target.gears++; break

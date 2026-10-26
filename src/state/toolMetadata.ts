@@ -15,6 +15,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'footbridge', label: 'Wooden Footbridge', hint: 'Drag shore to shore · up to 5 water tiles · 3 Wood each · NPC crossing', key: 'Drag', icon: '≋', tab: 'logistics' },
   { tool: 'storage', label: 'Storage chest', hint: 'Stores every item type', key: '3', icon: '▣', code: 'Digit3', tab: 'logistics' },
   { tool: 'furnace', label: 'Furnace', hint: '1 ore → 1 plate · 2 sec at full power', key: '4', icon: '♨', code: 'Digit4', tab: 'factory' },
+  { tool: 'steamEngine', label: 'Dampfmaschine', hint: 'Kessel + Schwungrad · 1 Kohle / 10 s Arbeit · 50 kW · geschlossener Wasserkreislauf', key: 'Click', icon: '♨', tab: 'power' },
   { tool: 'waterwheel', label: 'Waterwheel Generator', hint: '50 kW · 10 Wood · face adjacent water', key: 'Click', icon: '☸', tab: 'power' },
   { tool: 'generator', label: 'Power generator', hint: '100 kW · place near a pole', key: '5', icon: '⚡', code: 'Digit5', tab: 'power' },
   { tool: 'powerPole', label: 'Power pole', hint: '3-tile coverage · 6-tile wires', key: '6', icon: '┬', code: 'Digit6', tab: 'power' },
@@ -32,6 +33,7 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'treehouse', label: 'Pete’s Treehouse', hint: '20 Wood · one home · makes Pete peaceful · no power', key: 'Click', icon: '⌂', tab: 'nature' },
   { tool: 'placeGrove', label: 'Waldgruppe', hint: '3×3 Bäume · 4–10 Felder vom Baumhaus · Pete baut selbst', key: 'Click', icon: '♣', tab: 'nature' },
   { tool: 'placeIron', label: 'Eisenvorkommen', hint: '3×3 Eisenerz · 4–10 Felder vom Baumhaus · Pete baut ab und verarbeitet selbst', key: 'Click', icon: '◆', tab: 'nature' },
+  { tool: 'placeCoal', label: 'Kohlevorkommen', hint: '3×3 Kohle · Industrial · Brennstoff für Petes Dampfantrieb', key: 'Click', icon: '◆', tab: 'nature' },
   { tool: 'placeCopper', label: 'Kupfervorkommen', hint: '3×3 Kupfererz · 4–10 Felder vom Baumhaus · Pete baut ab und verarbeitet selbst', key: 'Click', icon: '◈', tab: 'nature' },
   { tool: 'plantOak', label: 'Plant Oak', hint: 'Free sapling · young at 2 min · mature at 5 min', key: 'Click', icon: '♣', tab: 'nature' },
   { tool: 'plantPine', label: 'Plant Pine', hint: 'Free sapling · trees occupy one tile', key: 'Click', icon: '♠', tab: 'nature' },
@@ -44,6 +46,6 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'restoreLand', label: 'Restore Land', hint: 'Free · drag to remove water · bridges stay protected', key: 'Drag', icon: '▱', tab: 'nature' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'pete' },
 ]
-export const PETES_WORLD_TOOLS: readonly ToolKind[] = ['placeGrove', 'placeIron', 'placeCopper', 'clearResource', 'remove', 'createWater', 'restoreLand']
+export const PETES_WORLD_TOOLS: readonly ToolKind[] = ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource', 'remove', 'createWater', 'restoreLand']
 export const TOOL_HOTKEYS: Readonly<Record<string, ToolKind>> = Object.fromEntries(PLAYER_TOOLS.filter(tool => tool.code).map(tool => [tool.code, tool.tool]))
 export function toolMetadata(tool: ToolKind): ToolMetadata { return PLAYER_TOOLS.find(metadata => metadata.tool === tool)! }

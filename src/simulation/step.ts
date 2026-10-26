@@ -1,3 +1,4 @@
+import { advanceSteam } from './steam'
 import { advanceForestry } from './forestryStation'
 import { advanceGate } from './gardenGate'
 import { advancePoultry } from './poultry'
@@ -59,6 +60,7 @@ export function advanceWorld(world: World, delta: number): void {
       }
     }
     pruneAnalytics(world)
+    advanceSteam(world, STEP_MS)
     advancePoultry(world, STEP_MS)
   }
 }

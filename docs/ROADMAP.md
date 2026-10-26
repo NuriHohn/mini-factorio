@@ -251,11 +251,11 @@ Costs, rules and compatibility: [Product projects and iron](GAME_DESIGN.md#produ
 | 16.66 | Inventor-2 paid shared copper furnace/power, actual ore/plate carrying and bounded stock with a viable route to the next level |
 | 16.67 | Inventor-3 plate-paid shared cable assembler, physical plate/cable logistics, original experiment/treasure projects and level/material/access explanations |
 
-Authoritative rules: [Resource-led paths](GAME_DESIGN.md#resource-led-craftsman-and-inventor-paths-sprints-1663-1667). These increments do not supply circuits or build an automatic copper miner; those, Industrial resource offerings and later expansion remain proposals. Original level-4 flight preparation and level-5 scenic flights keep their existing requirements. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.
+Authoritative rules: [Resource-led paths](GAME_DESIGN.md#resource-led-craftsman-and-inventor-paths-sprints-1663-1667). These increments were extended by 16.68–16.72 below, which add automatic copper mining, circuits and the coal starter. Original level-4 flight preparation and level-5 scenic flights keep their existing requirements. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.
 
-## Planned direction — Coal and steam for the Industrial path
+## Coal and steam for the Industrial path
 
-**Concept agreed with the user; not implemented.** Coal replaces the proposed gear-pile entry into the Industrial path. Oil, plastics and plastic gears are not the chosen direction. The four independent entry resources are:
+**Entry and first steam work implemented in 16.71/16.72; later expansion remains proposed.** Coal replaces the proposed gear-pile entry into the Industrial path. Oil, plastics and plastic gears are not the chosen direction. The four independent entry resources are:
 
 | Path | Entry offering |
 | --- | --- |
@@ -266,23 +266,23 @@ Authoritative rules: [Resource-led paths](GAME_DESIGN.md#resource-led-craftsman-
 
 The child places nearby resources; Pete collects, stores and develops his own machinery. Industrial entry must work without supplies from the other paths. Gears are no longer the proposed entry resource. Each resource/product belongs to one development family, and Pete's projects require only their own family's supplies. Shared factory processing may combine families, as with the existing circuit recipe; this must not make the coal starter depend on another path. More nearby coal and matching stored supplies increase Industrial project chances through the same diminishing resource influence as the other paths. Other projects, animal care and daily life remain active.
 
-The intended progression is personal coal mining and carrying into the same general store at level 1, then a small boiler/steam engine at level 2, followed by automated coal extraction and a first driven work machine around level 3. Later projects can include a steam workshop, conveyor installation and hoist. Heavy machinery, pistons, flywheels and visible steam give the path its identity. Exact unlocks, costs, working times and rewards still require a feature specification.
+The intended progression is personal coal mining and carrying into the same general store at level 1, then a small boiler/steam engine at level 2, followed by automated coal extraction and a first driven work machine around level 3. Later projects can include a steam workshop, conveyor installation and hoist. Heavy machinery, pistons, flywheels and visible steam give the path its identity. The implemented entry/engine values are specified in [Game design](GAME_DESIGN.md#copper-flight-and-coal-steam-progression-sprints-1668-1672); later stages require their own specification.
 
-Coal is consumed as **fuel**, not converted into gears or metal. Coal reserves for commissioning and actual completed machine work can advance Industrial projects. How construction is funded and what Industrial products/work milestones replace the current gear/module project requirements must be specified before implementation, without silently manufacturing metal from coal or requiring iron/wood to bootstrap. Existing gear press, mechanic workshop, hoist, inventories and saves must be accounted for in that redesign; they retain their implemented rules until an explicit feature change.
+Coal is consumed as **fuel**, not converted into gears or metal. Coal reserves for commissioning and actual completed machine work can advance Industrial projects. Commissioning uses six real coal as initial fuel with free machinery hardware, and completed shaft cycles reward Industrial work. Replacing later gear/module project requirements remains future scope. Existing gear press, mechanic workshop, hoist, inventories and saves must be accounted for in that redesign; they retain their implemented rules until an explicit feature change.
 
 Petes Welt should initially use a closed water circuit managed by Pete: the child offers coal without placing pumps, water supplies or pipes. Explicit water supply and pipe planning are a later option for the more complex Factory edition. Both editions should use shared machines/processes so observation prepares the player for building the chain themselves.
 
-### Proposed feature sequence (16.68–16.72)
+### Implemented feature sequence (16.68–16.72)
 
-This sequence is a planning proposal, not implementation approval. The two implemented player-control maintenance increments below precede of this feature sequence without renumbering it. The coal/steam direction above supersedes the earlier gear-pile and gear-production proposals for 16.71/16.72.
+Implemented following the explicit request to implement and merge the next five sprints. The two player-control maintenance increments below precede this sequence without renumbering it. The coal/steam direction above supersedes the earlier gear-pile and gear-production proposals for 16.71/16.72.
 
-| Sprint | Proposed scope |
+| Sprint | Implemented scope |
 | --- | --- |
 | 16.68 | Automatic copper miner and a short belt to Pete's existing copper furnace, with bounded stock and retained paid work |
 | 16.69 | Shared circuit assembly from actual iron plates and copper cables, supplying the existing Inventor flight-workshop requirements |
 | 16.70 | Complete and balance the self-supplied Inventor route through the existing practice crashes and scenic flights, retaining levels 4/5 and clear shortages/access explanations |
-| 16.71 | Coal offering, personal mining/carrying and a viable Industrial-only start in the same general store; specify early Industrial projects and compatibility before coding |
-| 16.72 | First coal-fuelled boiler/steam engine, visible actual work and Pete-managed closed water circuit; specify fuel/project accounting and integration with existing Industrial progression before coding |
+| 16.71 | Coal offering, personal mining/carrying and a viable Industrial-only start in the same general store; six-coal commissioning and preserved legacy projects |
+| 16.72 | First coal-fuelled boiler/steam engine, visible actual work and Pete-managed closed water circuit, real fuel consumption, shaft-work rewards and ordinary power integration |
 
 Automatic coal extraction, further driven work machines and the complete Industrial-project redesign may need later increments beyond the first steam engine. Mobile changes must preserve PC controls. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open.
 
@@ -293,7 +293,7 @@ Implemented recurring sleep/egg/meal opportunities, overdue care/planting priori
 
 ## Planned player controls, resource removal and project rebuilding
 
-**Maintenance A and B implemented following the user’s explicit implementation/merge request.** Originally recorded from testing feedback on 2026-10-26; both precede the still-proposed 16.68–16.72 feature sequence. Their final sprint numbers remain unassigned. PR #94's daily-life/access fixes and PR #93's coal/steam roadmap are already merged; retain both. The sections below link the implemented behavior; later feature work still requires its own scope.
+**Maintenance A and B implemented following the user’s explicit implementation/merge request.** Originally recorded from testing feedback on 2026-10-26; both precede the 16.68–16.72 feature sequence. Their final sprint numbers remain unassigned. PR #94's daily-life/access fixes and PR #93's coal/steam roadmap are already merged; retain both. The sections below link the implemented behavior; later feature work still requires its own scope.
 
 ### Maintenance A — Direct tree interaction, mouse navigation and sprinkler use (implemented)
 
@@ -307,10 +307,10 @@ Implemented explicit per-tile resource clearing and building demolition in Petes
 
 1. Maintenance A implemented following the user’s implementation request; see above.
 2. Maintenance B implemented; use the authoritative rules linked above.
-3. Next feature work, after a new request, follows the existing proposed sequence: 16.68 automatic copper mining; 16.69 circuit assembly; 16.70 self-supplied Inventor flights; 16.71 coal entry; 16.72 first boiler/steam engine. Coal/steam construction funding and migration remain open specification work.
+3. 16.68–16.72 implemented: automatic copper mining, actual circuit assembly, self-supplied Inventor flights, independent coal entry and the first boiler/steam engine. Save 46 migration and exact rules are documented in Architecture/Game design. Next proposals are automatic coal extraction, driven work machines and later Industrial-project redesign; no new five-sprint sequence is approved.
 
 No new offline/install work is scheduled: 16.38 stays deferred. Do not infer merge approval for future implementation from approval of this planning update. This roadmap is the authoritative handoff; no separate context file is needed.
 
 ## Petes Welt water and contextual tools follow-up
 
-New worlds now retain shared generated waterways, and players can use the existing free water/land brushes. Planned construction/repair sites stay protected. The separate Petes Welt Axe button is removed; PC hover/click chopping and contextual confirmed touch chopping remain. Existing saves retain their water exactly. This correction does not consume Sprint 16.68 or change the proposed feature sequence. Rules: [water editing](GAME_DESIGN.md#water-editing-in-petes-welt), [direct controls](GAME_DESIGN.md#direct-player-controls-maintenance-a).
+New worlds now retain shared generated waterways, and players can use the existing free water/land brushes. Planned construction/repair sites stay protected. The separate Petes Welt Axe button is removed; PC hover/click chopping and contextual confirmed touch chopping remain. Existing saves retain their water exactly. This correction does not consume Sprint 16.68 or change the implemented 16.68–16.72 feature sequence. Rules: [water editing](GAME_DESIGN.md#water-editing-in-petes-welt), [direct controls](GAME_DESIGN.md#direct-player-controls-maintenance-a).
