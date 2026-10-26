@@ -68,7 +68,7 @@ export function projectResources(project: SecretProject | null): Partial<Record<
 export function projectWood(project: SecretProject | null): number { return projectResources(project).wood ?? 0 }
 export function projectBuildMs(project: SecretProject): number { return developmentKind(project.kind) ? (project.kind === 'house' ? 24000 : 15000) : project.kind === 'treasure' ? 12000 : project.kind === 'flightpad' ? 18000 : project.kind === 'fell' ? HARVEST_MS : project.kind === 'feed' ? FEED_MS : project.kind === 'care' ? 4000 : project.kind === 'press' ? PRESS_BUILD_MS : project.kind === 'experiment' ? EXPERIMENT_BUILD_MS : project.kind === 'veranda' ? VERANDA_BUILD_MS : project.kind === 'workshop' ? WORKSHOP_BUILD_MS : project.kind === 'garden' ? 12000 : project.kind === 'plant' ? 5000 : project.kind === 'campfire' ? CAMPFIRE_BUILD_MS : project.kind === 'coop' ? COOP_BUILD_MS : FENCE_SEGMENT_MS }
 function worldYard(project: SecretProject): Yard { return project as Yard }
-function projectBuilding(project: SecretProject, i: number): PeteDevelopment | PeteTreasure | PeteFlightpad | PetePress | PeteExperiment | PeteWorkshop | PeteGarden | Tree | PeteGate | PeteCampfire | PeteCoop | PeteFence {
+export function projectBuilding(project: SecretProject, i: number): PeteDevelopment | PeteTreasure | PeteFlightpad | PetePress | PeteExperiment | PeteWorkshop | PeteGarden | Tree | PeteGate | PeteCampfire | PeteCoop | PeteFence {
   const position = { x: i % SIZE, y: Math.floor(i / SIZE) }
   return developmentKind(project.kind) ? { ...position, kind: 'peteDevelopment', development: project.kind, gears: 0, modules: 0, fruit: 0, readyAtMs: 0 } : project.kind === 'treasure' ? { ...position, kind: 'peteTreasure' } : project.kind === 'flightpad' ? { ...position, kind: 'peteFlightpad' } : project.kind === 'press' ? { ...position, kind: 'petePress', plates: 0, gears: 0 } : project.kind === 'experiment' ? { ...position, kind: 'peteExperiment' } : project.kind === 'workshop' ? { ...position, kind: 'peteWorkshop' } : project.kind === 'garden' ? { ...position, kind: 'peteGarden', feed: 0 } : project.kind === 'plant' ? { ...position, kind: 'tree', species: 'oak', origin: 'manual', bornAtMs: 0, nextReproductionAtMs: 600000 } : project.kind === 'gate' ? { ...position, kind: 'peteGate', direction: project.direction, openMs: 0, holdUntilMs: 0 } : project.kind === 'campfire' ? { ...position, kind: 'peteCampfire' } : project.kind === 'coop' ? { ...position, kind: 'peteCoop' } : { ...position, kind: 'peteFence', direction: (project.kind === 'yard' || project.kind === 'run') ? yardDirection(worldYard(project), i) : project.direction }
 }
@@ -167,6 +167,7 @@ function availableMaterials(world: World, project: SecretProject | null, definit
   return weight
 }
 export function projectPlansConflict(world: World, project: SecretProject, ignored?: SecretProject): boolean {
+  if (world.rebuilding?.jobs.some(job => project.tiles.slice(project.built).includes(job.tile) || project.spots.slice(project.built).includes(job.tile))) return true
   if (project.kind !== 'gate' && project.tiles.some(i => i === world.yard?.entrance || i === world.chickenRun?.entrance)) return true
   return PETE_PROJECTS.some(({ state }) => {
     const other = world[state]

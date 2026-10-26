@@ -56,6 +56,7 @@ function resourceAreaError(world: World, x: number, y: number): string | null {
   if (distance < 4 || distance > 10) return 'Wähle eine Fläche 4–10 Felder vom Baumhaus entfernt.'
   const anchor = world.miniFactory.anchor
   const reserved = anchor === null ? [] : Array.from({ length: 28 }, (_, i) => anchor + Math.floor(i / 7) * SIZE + i % 7)
+  reserved.push(...(world.rebuilding?.jobs.map(j => j.tile) ?? []))
   const h = world.homestead
   if (h?.expansion.plan) reserved.push(...expansionLayout(h.expansion.plan).map(s => s.tile))
   if (h?.task === 'buildStore' && h.target !== null) reserved.push(h.target)

@@ -1,3 +1,4 @@
+import { chooseRebuild, awardHomesteadOnce } from './rebuilding'
 import { neighboringTiles, peteReachableTiles, peteWalkableTile, tilePath } from './navigation'
 import { preferredPaths } from './resourcePreference'
 import { emptyInventory, inventoryTotal, ITEMS } from './items'
@@ -125,6 +126,7 @@ function chooseTask(world: World): void {
   if (!store) return
   // Committed material deliveries are never abandoned for another project.
   if (inventoryTotal(s.carried)) { begin(world, 'returnStock', s.store); return }
+  if (chooseRebuild(world)) return
   if (s.expansion.plan) { begin(world, 'buildChain', s.store); return }
   for (const path of preferredPaths(world)) {
     if (chooseExpansion(world, path)) return
@@ -153,6 +155,7 @@ function chooseEcoTask(world: World): void {
 export function advanceHomestead(world: World, delta: number, decision = false): boolean {
   const s = world.homestead
   if (!s || world.peace.home === null) return false
+  if (world.rebuilding?.jobs.some(j => j.owner.type === 'store') && !materialStore(world)) return false
   if (s.task === null) {
     if (!decision) return false
     if ((world.timeMs < s.nextAtMs && (!decision || s.nextAtMs - world.timeMs > 2000)) || currentProject(world)?.selected || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling || world.leisure?.carried || world.pete.next !== null) return false
@@ -188,7 +191,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     world.buildings[tile] = { kind: 'supplyCrate', x: tile % SIZE, y: Math.floor(tile / SIZE), wood: 0, inventory: emptyInventory(), storeTier: 0 }
     const path = s.carried.iron >= 6 ? 'craftsman' : s.carried.copper >= 6 ? 'inventor' : 'eco'
     s.carried = emptyInventory(); s.store = tile; world.topologyRevision++
-    awardActivity(world.personality, { path, xp: 5 }); finish(world)
+    awardHomesteadOnce(world, 'store', { path, xp: 5 }); finish(world)
     return true
   }
   if (!store) return true
@@ -203,7 +206,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     s.elapsedMs = Math.min(4000, s.elapsedMs + delta)
     if (s.elapsedMs < 4000 || !placeBuilding(world, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, 'east')) return true
     s.millBuilt++; s.elapsedMs = 0
-    if (s.millBuilt === 3) { s.carried.wood = 0; awardActivity(world.personality, { path: 'eco', xp: 12 }); finish(world) }
+    if (s.millBuilt === 3) { s.carried.wood = 0; awardHomesteadOnce(world, 'mill', { path: 'eco', xp: 12 }); finish(world) }
     return true
   }
   if (!arrived(world, s.target, delta)) return true
@@ -234,7 +237,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
       store.inventory.woodPanel -= 8; s.carried.woodPanel = 8
     }
     s.elapsedMs = Math.min(8000, s.elapsedMs + delta)
-    if (s.elapsedMs === 8000) { store.storeTier = 1; s.carried.woodPanel = 0; awardActivity(world.personality, { path: 'eco', xp: 8 }); finish(world) }
+    if (s.elapsedMs === 8000) { store.storeTier = 1; s.carried.woodPanel = 0; awardHomesteadOnce(world, 'roof', { path: 'eco', xp: 8 }); finish(world) }
   }
   return true
 }

@@ -1,3 +1,4 @@
+import { clearResource, demolitionNotice } from '../simulation/rebuilding'
 import { RightPan } from './rightPan'
 import { drawGuidance } from './guidanceVisuals'
 import { drawAnnexWalkway, drawDevelopment, drawDevelopmentActivity } from './developmentVisuals'
@@ -234,6 +235,7 @@ export class FactoryScene extends Phaser.Scene {
       if (this.rightPan.active) return
       if (!pointer.leftButtonDown()) return
       const selected = useGameStore.getState().tool
+      if (selected === 'clearResource') { const tile = landscapeTile(pointer, this.cameras.main, TILE); useGameStore.setState({ message: clearResource(this.world, tile.x, tile.y) ?? 'Ressource entfernt · kein Ertrag, gelagerte Vorräte bleiben.' }); return }
       if (selected === 'playfulSpray') {
         this.sprayAt(combatPosition(pointer, this.cameras.main, TILE))
         return
@@ -295,8 +297,8 @@ export class FactoryScene extends Phaser.Scene {
       if (useGameStore.getState().useWebTool(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) return
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
-      if (this.world.miniFactory && tool && !['placeGrove', 'placeIron', 'placeCopper'].includes(tool)) return
-      if (tool === 'spiderWeb' || tool === 'playfulSpray' || combatTool(tool) || natureTool(tool)) return
+      if (this.world.miniFactory && tool && !['placeGrove', 'placeIron', 'placeCopper', 'remove', 'clearResource', 'axe'].includes(tool)) return
+      if (tool === 'clearResource' || tool === 'spiderWeb' || tool === 'playfulSpray' || combatTool(tool) || natureTool(tool)) return
       if (!tool) {
         if (peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) { useGameStore.getState().inspectPete(this.world); return }
         const gift = collectGift(this.world, y * SIZE + x)
@@ -316,7 +318,7 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.getState().recordToolUse(tool)
       if (tool === 'remove') removeBuilding(this.world, x, y)
       else placeBuilding(this.world, x, y, tool, direction)
-      useGameStore.setState({ message: tool === 'treehouse' ? wasBoss ? 'A home for Pete! The walker sighs, powers down, and Pete moves in. ♥' : 'Welcome home, Pete! Peace begins · -20 Wood. ♥' : wasHome ? 'Pete looks confused… back to mischief. Revenge preserved; no Wood refund.' : tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'supplyCrate' ? 'Pete’s Supply Crate' : tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
+      useGameStore.setState({ message: tool === 'treehouse' ? wasBoss ? 'A home for Pete! The walker sighs, powers down, and Pete moves in. ♥' : 'Welcome home, Pete! Peace begins · -20 Wood. ♥' : wasHome && this.world.miniFactory ? 'Baumhaus abgerissen. Pete bleibt friedlich und kann es für 20 Lager-Holz wieder aufbauen.' : wasHome ? 'Pete looks confused… back to mischief. Revenge preserved; no Wood refund.' : tool === 'remove' ? 'Building removed · Contained resources discarded.' : `${tool === 'supplyCrate' ? 'Pete’s Supply Crate' : tool === 'belt' ? 'Conveyor' : tool === 'miner' ? 'Miner' : tool === 'furnace' ? 'Furnace' : tool === 'assembler' ? 'Assembler' : tool === 'inserter' ? 'Inserter' : tool === 'generator' ? 'Generator' : tool === 'powerPole' ? 'Power pole' : tool === 'sprinkler' ? 'Anti-Goblin Sprinkler' : tool === 'radar' ? 'Radar trap' : tool === 'splitter' ? 'Splitter' : 'Storage'} placed.` })
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (pointer.wasTouch) return
@@ -376,7 +378,7 @@ export class FactoryScene extends Phaser.Scene {
     const previous = state.touchPlacement
     if (previous?.tool === state.tool && previous.end.x === tile.x && previous.end.y === tile.y) { useGameStore.setState({ touchRequest: 'confirm' }); return }
     const route = state.tool === 'belt' || state.tool === 'powerPole' || state.tool === 'footbridge'
-    useGameStore.setState({ touchToolsOpen: false, touchAnchor: { x: point.x / this.cameras.main.width * 100, y: point.y / this.cameras.main.height * 100 }, touchPlacement: { tool: state.tool, start: route && previous?.tool === state.tool ? previous.start : tile, end: tile }, message: route ? 'Tap an endpoint, then tap it again to build.' : 'Tap the highlighted target again to build.' })
+    useGameStore.setState({ touchToolsOpen: false, touchAnchor: { x: point.x / this.cameras.main.width * 100, y: point.y / this.cameras.main.height * 100 }, touchPlacement: { tool: state.tool, start: route && previous?.tool === state.tool ? previous.start : tile, end: tile }, message: state.tool === 'remove' && this.world.miniFactory ? `${demolitionNotice(this.world, tile.y * SIZE + tile.x)} Erneut antippen bestätigt.` : route ? 'Tap an endpoint, then tap it again to build.' : 'Tap the highlighted target again to build.' })
   }
   private processTouchRequest() {
     const state = useGameStore.getState(), request = state.touchRequest, pending = state.touchPlacement
@@ -394,7 +396,8 @@ export class FactoryScene extends Phaser.Scene {
       else if (tool === 'placeGrove') error = placeGrove(this.world, end.x, end.y)
       else if (species) { if (!plantTree(this.world, end.x, end.y, species)) error = 'This planting site is blocked.' }
       else { const result = chopTree(this.world, end.x, end.y); if (result) this.natureVisuals.fell(this.world, result.tree); else error = 'Choose a tree.' }
-    } else if (tool === 'remove') { error = removalError(this.world, end.x, end.y); if (!error) removeBuilding(this.world, end.x, end.y) }
+    } else if (tool === 'clearResource') error = clearResource(this.world, end.x, end.y)
+    else if (tool === 'remove') { error = removalError(this.world, end.x, end.y); if (!error) removeBuilding(this.world, end.x, end.y) }
     else if (tool !== 'spiderWeb' && tool !== 'playfulSpray' && !combatTool(tool)) {
       error = placementError(this.world, end.x, end.y, tool, state.direction)
       if (!error && !placeBuilding(this.world, end.x, end.y, tool, state.direction)) error = 'The site changed; choose another target.'
@@ -913,6 +916,12 @@ export class FactoryScene extends Phaser.Scene {
     drawPoultry(this.peteEffects, this.world, TILE, view)
     drawPeace(this.peteEffects, this.world, TILE, view)
     drawDevelopmentActivity(this.peteEffects, this.world, TILE)
+    const repair = this.world.rebuilding?.jobs.find(j => j.tile === this.world.rebuilding?.active)
+    if (repair?.funded && repair.elapsedMs) {
+      const x = (repair.tile % SIZE + .1) * TILE, y = (Math.floor(repair.tile / SIZE) - .15) * TILE
+      this.peteEffects.lineStyle(3, 0xe7bd71).strokeRect(x, y, TILE * .8, 4)
+      this.peteEffects.fillStyle(0x8dd59a).fillRect(x, y, TILE * .8 * repair.elapsedMs / 4000, 4)
+    }
     drawLeisure(this.peteEffects, this.world, TILE, view)
     drawPlayfulSpray(this.peteEffects, this.world, TILE, view)
     this.crateSupply.draw(this.peteEffects, this.world, view, TILE, camera.zoom, useGameStore.getState().tool === null && !worldInputBlocked(useGameStore.getState()))
@@ -981,6 +990,7 @@ export class FactoryScene extends Phaser.Scene {
     }
     this.poleLinks.setVisible(!worldInputBlocked(state) && state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer
+    if (state.tool === 'clearResource') { if (this.input.isOver) { const tile = landscapeTile(this.input.activePointer, camera, TILE); this.preview.lineStyle(2, 0xef9b72).strokeRect(tile.x * TILE, tile.y * TILE, TILE, TILE); this.placementTooltip(this.input.activePointer, 'Ein Ressourcenfeld entfernen · kein Ertrag · Vorräte bleiben') }; return }
     if (!worldInputBlocked(state) && state.tool && !combatTool(state.tool) && this.input.isOver) {
       const p = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       const rotation = this.placementRotation.preview()
@@ -1034,6 +1044,7 @@ ${reason || 'Drag to paint. Protected tiles are skipped.'}`)
       if (state.tool === 'sprinkler') this.preview.lineStyle(1, 0x72d6ff, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, SPRINKLER_RANGE * TILE)
       if (state.tool === 'radar') this.preview.lineStyle(1, 0x9ad4ed, .7).strokeCircle((x + .5) * TILE, (y + .5) * TILE, RADAR_RANGE * TILE)
       const removalTarget = state.tool === 'remove' ? buildingAt(this.world, x, y) : null
+      if (state.tool === 'remove' && this.world.miniFactory) this.placementTooltip(pointer, demolitionNotice(this.world, y * SIZE + x))
       if (removalTarget?.kind === 'footbridge') this.placementTooltip(pointer, removalError(this.world, x, y) ?? 'Remove entire wooden footbridge. No Wood refund.')
       if (removalTarget?.kind === 'belt' && removalTarget.bridge) this.placementTooltip(pointer, 'Remove entire bridge crossing. Items are lost; no Wood refund.')
       if (state.tool === 'powerPole') this.showCoverage({ x, y }, null)

@@ -32,6 +32,8 @@ import type { RevengeState } from './revenge'
 import { buildingTechnologyError, createResearch } from './research'
 import type { ResearchState } from './research'
 import { createAnalytics } from './analytics'
+import { rememberDemolition } from './rebuilding'
+import type { Rebuilding } from './rebuilding'
 import type { AnalyticsState } from './analytics'
 import { createWebs } from './webs'
 import type { WebState } from './webs'
@@ -127,7 +129,7 @@ export interface Splitter extends BuildingPosition {
 export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; origin: 'natural' | 'manual'; bornAtMs: number; nextReproductionAtMs: number; sabotageUntilMs?: never }
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
 export type Building = Forester | Sawmill | PeteDevelopment | PeteTreasure | PeteFlightpad | PetePress | PeteExperiment | PeteWorkshop | PeteGarden | PeteGate | PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
-export interface World { homestead?: Homestead; miniFactory?: MiniFactory; developmentLife?: DevelopmentLife; orchardProject?: SecretProject; bicycleProject?: SecretProject; mechanicProject?: SecretProject; winchProject?: SecretProject; nurseryProject?: SecretProject; houseProject?: SecretProject; treasureProject?: SecretProject; flightProject?: SecretProject; leisure?: PeteLeisure; playfulSpray?: PlayfulSpray; chickenRun?: Yard; harvestProject?: SecretProject; feedingProject?: SecretProject; careProject?: SecretProject; pressProject?: SecretProject; experimentProject?: SecretProject; verandaProject?: SecretProject; workshopProject?: SecretProject; gardenProject?: SecretProject; plantProject?: SecretProject; personality: Personality; gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
+export interface World { rebuilding?: Rebuilding; homestead?: Homestead; miniFactory?: MiniFactory; developmentLife?: DevelopmentLife; orchardProject?: SecretProject; bicycleProject?: SecretProject; mechanicProject?: SecretProject; winchProject?: SecretProject; nurseryProject?: SecretProject; houseProject?: SecretProject; treasureProject?: SecretProject; flightProject?: SecretProject; leisure?: PeteLeisure; playfulSpray?: PlayfulSpray; chickenRun?: Yard; harvestProject?: SecretProject; feedingProject?: SecretProject; careProject?: SecretProject; pressProject?: SecretProject; experimentProject?: SecretProject; verandaProject?: SecretProject; workshopProject?: SecretProject; gardenProject?: SecretProject; plantProject?: SecretProject; personality: Personality; gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
 export const offsets: Record<Direction, Position> = {
   north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
 }
@@ -274,7 +276,8 @@ export function removeBuilding(world: World, x: number, y: number): boolean {
   removePoliceBuilding(world, world.buildings[y * SIZE + x]!)
   removeSprinkler(world, world.buildings[y * SIZE + x]!)
   delete world.analytics.machines[y * SIZE + x]
-  if (world.buildings[y * SIZE + x]?.kind === 'treehouse') endPeace(world)
+  rememberDemolition(world, y * SIZE + x)
+  if (world.buildings[y * SIZE + x]?.kind === 'treehouse' && !world.miniFactory) endPeace(world)
   world.buildings[y * SIZE + x] = null
   refreshFishing(world, previousDock)
   refreshSupplyVisit(world)

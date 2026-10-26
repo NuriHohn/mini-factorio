@@ -1,3 +1,4 @@
+import { advanceRebuilding } from './rebuilding'
 import { advanceHomestead, createHomestead } from './homestead'
 import { advanceMiniFactory } from './petesWorld'
 import { beginDevelopmentWork, developmentDecision, finishDevelopment, refreshDevelopment } from './peteDevelopments'
@@ -165,7 +166,8 @@ function move(world: World, delta: number): void {
           else activity(world, 'fishing', FISHING_MS, world.peace.destination)
         }
         else if (world.peace.activity === 'homeward') {
-          if (neighboringTiles(world.peace.home!).includes(p.tile)) {
+          if (world.miniFactory && world.buildings[world.peace.home!]?.kind !== 'treehouse') { activity(world, 'walking'); nextActivity(world) }
+          else if (neighboringTiles(world.peace.home!).includes(p.tile)) {
             const flock = world.poultry, spot = flock ? coverSpot(world) : null
             if (flock && !flock.cover && spot !== null) {
               flock.cover = { stage: random(world) < .4 ? 'covering' : 'skipped', atMs: world.timeMs }
@@ -229,7 +231,7 @@ function tryConstruction(world: World): boolean {
 function homesteadDaily(world: World): boolean {
   const h = world.homestead
   if (!h || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling || world.leisure?.carried) return false
-  if (world.timeMs >= h.nextRestAtMs) { activity(world, 'homeward'); return true }
+  if (world.timeMs >= h.nextRestAtMs && world.buildings[world.peace.home!]?.kind === 'treehouse') { activity(world, 'homeward'); return true }
   const egg = reachableEgg(world)
   if (egg !== null && world.timeMs - eggAt(world, egg)!.laidAtMs >= 60000) { activity(world, 'eggward', 0, egg); return true }
   const fire = world.poultry && world.poultry.collected - world.poultry.eaten >= 2 ? reachableCampfire(world) : null
@@ -279,9 +281,14 @@ function nextActivity(world: World): void {
   }
 }
 export function advancePeace(world: World, delta: number): void {
+  if (world.rebuilding && peaceful(world) && world.timeMs >= world.peace.nextGiftAtMs) {
+    if (world.buildings[world.peace.home!]?.kind === 'treehouse') spawnGift(world)
+    scheduleGift(world)
+  }
   if (world.miniFactory) {
     world.homestead ??= createHomestead()
     if (world.miniFactory.anchor !== null && world.miniFactory.built < 11) { advanceMiniFactory(world, delta); return }
+    if (advanceRebuilding(world, delta)) return
     if (advanceHomestead(world, delta)) return
   }
   const s = world.peace, p = world.pete

@@ -10,7 +10,7 @@ beforeEach(() => {
 })
 describe('Nature toolbar and copied inventory', () => {
   it('registers Nature controls and the treehouse without replacing any existing shortcut', () => {
-    expect(PLAYER_TOOLS.filter(t => t.tab === 'nature').map(t => t.tool)).toEqual(['fishingDock', 'supplyCrate', 'treehouse', ...NATURE_TOOLS])
+    expect(PLAYER_TOOLS.filter(t => t.tab === 'nature').map(t => t.tool)).toEqual(['clearResource', 'fishingDock', 'supplyCrate', 'treehouse', ...NATURE_TOOLS])
     expect(TOOL_HOTKEYS).toMatchObject({ Digit1: 'miner', Digit9: 'radar', Digit0: 'splitter', KeyX: 'remove', KeyB: 'spiderWeb', KeyG: 'sprinkler' })
     expect(PLAYER_TOOLS.some(t => t.tool === ('tree' as string))).toBe(false)
     for (const tool of NATURE_TOOLS) {
