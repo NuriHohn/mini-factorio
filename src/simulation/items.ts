@@ -5,6 +5,7 @@ interface ItemDefinition {
   readonly visual: { readonly shape: 'ore' | 'plate' | 'gear' | 'cable' | 'circuit' | 'component'; readonly color: number; readonly highlight: number; readonly accent: number; readonly shade: number }
 }
 export const ITEM_DEFINITIONS = {
+  coalBriquette: { id: 'coalBriquette', label: 'Coal briquette', category: 'component', visual: { shape: 'component', color: 0x252b35, highlight: 0xa1a7ae, accent: 0x79715e, shade: 0x161d25 } },
   coal: { id: 'coal', label: 'Coal', category: 'ore', visual: { shape: 'ore', color: 0x34383d, highlight: 0x858c92, accent: 0x565e66, shade: 0x20262b } },
   wood: { id: 'wood', label: 'Wood', category: 'component', visual: { shape: 'component', color: 0x9a673b, highlight: 0xd4aa72, accent: 0x78502f, shade: 0x4c3220 } },
   woodPanel: { id: 'woodPanel', label: 'Wood panel', category: 'plate', visual: { shape: 'plate', color: 0xc39858, highlight: 0xf1cd8b, accent: 0x956d3d, shade: 0x71502f } },

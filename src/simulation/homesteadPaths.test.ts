@@ -110,7 +110,7 @@ describe('resource-led development and shared iron automation', () => {
     save.game.homestead.expansion.plan.route[1] = 0
     expect(() => decodeSave(JSON.stringify(save))).toThrow()
     const old = snapshot(stored()); old.version = 41; delete old.game.homestead.nextRestAtMs
-    for (const key of ['miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine']) delete old.game.homestead.expansion[key]
+    for (const key of ['miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]
     const migrated = decodeSave(JSON.stringify(old)).world
     expect(migrated.homestead!.expansion.miner).toBeNull()
     expect(migrated.homestead!.expansion.copperFurnace).toBeNull()

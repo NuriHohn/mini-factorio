@@ -100,7 +100,7 @@ describe('explicit removal and autonomous paid rebuilding', () => {
   })
   it('migrates old missing sections without replaying completion and rejects invalid ownership/funding', () => {
     const w = setup(); w.buildings[700] = null
-    const old = snapshot(w); old.version = 44; for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine']) delete old.game.homestead.expansion[key]
+    const old = snapshot(w); old.version = 44; for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]
     const migrated = decodeSave(JSON.stringify(old)).world
     expect(migrated.rebuilding!.jobs[0].tile).toBe(700); expect(migrated.personality).toEqual(w.personality)
     const bad = snapshot(migrated); bad.game.rebuilding.jobs[0].paid.wood = 2

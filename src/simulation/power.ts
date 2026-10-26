@@ -1,3 +1,4 @@
+import { steamShare } from './steamWork'
 import { steamRunning, STEAM_KW } from './steam'
 import { WATERWHEEL_KW, waterwheelRunning } from './waterwheel'
 import { SPRINKLER_KW } from './sprinklers'
@@ -74,10 +75,11 @@ export function polePlacementPreview(world: World, position: Position): PolePlac
   return { state: connections.length ? 'connected' : 'disconnected', error: null, connections }
 }
 export function powerRequirement(building: Building): number {
-  return building.kind === 'sprinkler' ? SPRINKLER_KW : building.kind === 'radar' ? RADAR_KW : building.kind === 'inserter' ? INSERTER_KW : building.kind === 'forester' ? 30 : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' || building.kind === 'sawmill' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
+  return building.kind === 'steamWorkshop' ? 20 : building.kind === 'steamHoist' ? 30 : building.kind === 'sprinkler' ? SPRINKLER_KW : building.kind === 'radar' ? RADAR_KW : building.kind === 'inserter' ? INSERTER_KW : building.kind === 'forester' ? 30 : building.kind === 'miner' ? MINER_KW : building.kind === 'furnace' || building.kind === 'assembler' || building.kind === 'sawmill' ? MACHINE_DEFINITIONS[building.kind].powerKw : 0
 }
 export function workingDemand(building: Building, world?: World, frame?: InserterFrame): number {
   if (world && sabotageRemaining(world, building) > 0) return 0
+  if (building.kind === 'steamWorkshop' || building.kind === 'steamHoist') return world && building.cycles < Number.MAX_SAFE_INTEGER && steamShare(world, building) > 0 ? powerRequirement(building) : 0
   if (building.kind === 'sprinkler') return SPRINKLER_KW
   if (building.kind === 'radar') return RADAR_KW
   if (building.kind === 'inserter') return world ? inserterDemand(world, building, frame) : 0

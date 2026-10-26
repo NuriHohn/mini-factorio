@@ -31,7 +31,7 @@ function sourceCount(source: Building, inserter: Inserter, item: Item, requireRe
     }
     case 'peteDevelopment': return item === 'mechanicModule' ? source.modules : 0
     case 'petePress': return item === 'ironPlate' ? source.plates : 0
-    case 'storage': return source.inventory[item]
+    case 'fuelDepot': case 'storage': return source.inventory[item]
     case 'belt': return source.item === item && (!requireReady || source.progress >= 1 - 1e-8) ? 1 : 0
     case 'miner': return source.direction === inserter.direction && source.item === item ? 1 : 0
     case 'forester': return source.direction === inserter.direction && item === 'wood' ? forestryOutput(source, world) : 0
@@ -98,7 +98,7 @@ function pickup(world: World, inserter: Inserter, frame: InserterFrame): void {
     }
     case 'peteDevelopment': source.modules--; break
     case 'petePress': source.plates--; break
-    case 'storage': source.inventory[item]--; break
+    case 'fuelDepot': case 'storage': source.inventory[item]--; break
     case 'forester':
     case 'sawmill':
     case 'furnace':

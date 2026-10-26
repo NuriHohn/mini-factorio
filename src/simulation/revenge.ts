@@ -1,3 +1,4 @@
+import { steamShare } from './steamWork'
 import { generationKw, ratedGeneration } from './power'
 import { peaceful } from './peace'
 import { reachableTiles, tilePath, edgeTile, neighboringTiles } from './navigation'
@@ -95,7 +96,7 @@ export function damageWalker(world: World, damage: number): boolean {
 }
 function pursuitTarget(world: World, index: number): boolean {
   const kind = world.buildings[index]?.kind
-  return kind === 'miner' || kind === 'furnace' || kind === 'assembler' || kind === 'generator' || kind === 'waterwheel' || kind === 'steamEngine'
+  return kind === 'miner' || kind === 'furnace' || kind === 'assembler' || kind === 'generator' || kind === 'waterwheel' || kind === 'steamEngine' || kind === 'steamWorkshop' || kind === 'steamHoist'
 }
 export function productiveTarget(world: World, index: number): boolean {
   const b = world.buildings[index]
@@ -103,6 +104,7 @@ export function productiveTarget(world: World, index: number): boolean {
   if (ratedGeneration(b) > 0) return generationKw(world, b) > 0
   const speed = world.power?.consumers[index]?.speedFraction ?? 0
   if (speed <= 0) return false
+  if (b.kind === 'steamWorkshop' || b.kind === 'steamHoist') return steamShare(world, b) > 0
   if (b.kind === 'miner') return !b.item && !!world.tiles[index]
   return (b.kind === 'furnace' || b.kind === 'assembler') && !!b.job && b.job.elapsedMs < RECIPES[b.job.recipeId].durationMs
 }
@@ -113,8 +115,8 @@ export function empTargetEligible(world: World, index: number): boolean {
   return productiveTarget(world, index) && !!target && world.buildings.every(b => !b || !isSabotageable(b) || Math.hypot(b.x - target.x, b.y - target.y) > 3 || !b.sabotageUntilMs || world.timeMs >= b.sabotageUntilMs + EMP_RECOVERY_MS)
 }
 function chooseTarget(world: World, boss: Pick<Walker, 'tile' | 'x' | 'y' | 'lastTarget'>, parents?: Map<number, number>): number | null {
-  const priority = { assembler: 0, furnace: 1, miner: 2, generator: 3, waterwheel: 3, steamEngine: 3 }
-  const candidates = world.buildings.flatMap((b, i) => b && productiveTarget(world, i) && (b.kind === 'assembler' || b.kind === 'furnace' || b.kind === 'miner' || b.kind === 'generator' || b.kind === 'waterwheel' || b.kind === 'steamEngine') ? [{ index: i, rank: priority[b.kind], distance: (b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 }] : [])
+  const priority = { steamWorkshop: 0, steamHoist: 0, assembler: 0, furnace: 1, miner: 2, generator: 3, waterwheel: 3, steamEngine: 3 }
+  const candidates = world.buildings.flatMap((b, i) => b && productiveTarget(world, i) && (b.kind === 'assembler' || b.kind === 'furnace' || b.kind === 'miner' || b.kind === 'generator' || b.kind === 'waterwheel' || b.kind === 'steamEngine' || b.kind === 'steamWorkshop' || b.kind === 'steamHoist') ? [{ index: i, rank: priority[b.kind], distance: (b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 }] : [])
   if (!candidates.length) return null
   const reachable = parents ?? reachableTiles(world, boss.tile, false)
   const canApproach = (index: number) => [...reachable.keys()].some(tile => (tile % SIZE - index % SIZE) ** 2 + (Math.floor(tile / SIZE) - Math.floor(index / SIZE)) ** 2 <= 36)

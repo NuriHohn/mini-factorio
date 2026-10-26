@@ -1,3 +1,4 @@
+import { INDUSTRIAL_CHAINS } from './industrialRules'
 import { findBeltRoute } from './beltRouting'
 import { recordProduction } from './analytics'
 import { changeCraftingRecipe } from './crafting'
@@ -22,7 +23,7 @@ export interface Rebuilding { jobs: RebuildJob[]; active: number | null; rewarde
 export function ensureRebuilding(world: World): Rebuilding {
   if (world.rebuilding) return world.rebuilding
   const h = world.homestead
-  const rewarded = h ? [ ...(h.store !== null ? ['store'] : []), ...(h.millBuilt === 3 ? ['mill'] : []), ...(materialStore(world)?.storeTier ? ['roof'] : []), ...Object.keys(h.expansion.improvements).map(id => `improvement:${id}`), ...(['forestry', 'assembler', 'furnace', 'miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine'] as const).filter(key => h.expansion[key] !== null).map(key => `chain:${key}`) ] : []
+  const rewarded = h ? [ ...(h.store !== null ? ['store'] : []), ...(h.millBuilt === 3 ? ['mill'] : []), ...(materialStore(world)?.storeTier ? ['roof'] : []), ...Object.keys(h.expansion.improvements).map(id => `improvement:${id}`), ...(['forestry', 'assembler', 'furnace', 'miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist'] as const).filter(key => h.expansion[key] !== null).map(key => `chain:${key}`) ] : []
   return world.rebuilding = { jobs: [], active: null, rewarded }
 }
 export function awardHomesteadOnce(world: World, id: string, reward: Parameters<typeof awardActivity>[1]): void {
@@ -33,13 +34,14 @@ export function awardHomesteadOnce(world: World, id: string, reward: Parameters<
   awardActivity(world.personality, reward)
 }
 function existingChain(world: World, kind: ExpansionPlan['kind'], anchor: number): ExpansionPlan {
+  if (kind === 'coalFeed') { const e = world.homestead!.expansion, delta = e.steamEngine! - e.fuelStore!; return { kind, anchor, direction: delta === 2 ? 'east' : delta === -2 ? 'west' : delta > 0 ? 'south' : 'north', built: 0 } }
   if (kind === 'forestry') {
     const b = world.buildings[anchor]
     return { kind, anchor, direction: b && 'direction' in b ? b.direction : 'east', built: 0 }
   }
   const candidates: ExpansionPlan[] = (['north', 'south'] as const).map(direction => ({ kind, anchor, direction, built: 0 }))
-  if (kind === 'ironMining' || kind === 'copperMining') {
-    const route = [anchor], end = (kind === 'copperMining' ? world.homestead!.expansion.copperFurnace! : world.homestead!.expansion.furnace!) - 1
+  if (kind === 'ironMining' || kind === 'copperMining' || kind === 'coalMining') {
+    const route = [anchor], end = kind === 'coalMining' ? world.homestead!.expansion.fuelStore! : (kind === 'copperMining' ? world.homestead!.expansion.copperFurnace! : world.homestead!.expansion.furnace!) - 1
     while (route.length < 13 && route.at(-1) !== end) {
       const tile = route.at(-1)!, b = world.buildings[tile]
       if (!b || !('direction' in b)) break
@@ -48,7 +50,7 @@ function existingChain(world: World, kind: ExpansionPlan['kind'], anchor: number
       route.push(next)
     }
     if (route.at(-1) !== end) {
-      const result = findBeltRoute({ x: anchor % SIZE, y: Math.floor(anchor / SIZE) }, { x: end % SIZE, y: Math.floor(end / SIZE) }, 'east', (x, y) => { const tile = y * SIZE + x; return !world.water[tile] && (tile === anchor || !world.buildings[tile] || world.buildings[tile]?.kind === 'belt') }, 400, (x, y) => world.buildings[y * SIZE + x]?.kind === 'belt')
+      const result = findBeltRoute({ x: anchor % SIZE, y: Math.floor(anchor / SIZE) }, { x: end % SIZE, y: Math.floor(end / SIZE) }, 'east', (x, y) => { const tile = y * SIZE + x; return !world.water[tile] && (tile === anchor || kind === 'coalMining' && tile === end || !world.buildings[tile] || world.buildings[tile]?.kind === 'belt') }, 400, (x, y) => world.buildings[y * SIZE + x]?.kind === 'belt')
       if (result.points && result.points.length <= 13) route.splice(0, route.length, ...result.points.map(p => p.y * SIZE + p.x))
     }
     for (const p of candidates) p.route = route
@@ -61,7 +63,7 @@ function owners(world: World): RebuildOwner[] {
   if (h) {
     for (const job of world.rebuilding?.jobs ?? []) if (job.owner.type === 'chain') result.push(job.owner)
     if (h.expansion.plan) result.push({ type: 'chain', plan: structuredClone(h.expansion.plan) })
-    for (const [kind, key] of [['forestry', 'forestry'], ['crates', 'assembler'], ['iron', 'furnace'], ['ironMining', 'miner'], ['copper', 'copperFurnace'], ['cables', 'cableAssembler'], ['copperMining', 'copperMiner'], ['circuits', 'circuitAssembler'], ['steam', 'steamEngine']] as const) {
+    for (const [kind, key] of [['forestry', 'forestry'], ['crates', 'assembler'], ['iron', 'furnace'], ['ironMining', 'miner'], ['copper', 'copperFurnace'], ['cables', 'cableAssembler'], ['copperMining', 'copperMiner'], ['circuits', 'circuitAssembler'], ['steam', 'steamEngine'], ['coalMining', 'coalMiner'], ['coalFeed', 'coalInserter'], ['briquettes', 'briquetteAssembler'], ['steamWorkshop', 'steamWorkshop'], ['steamHoist', 'steamHoist']] as const) {
       const anchor = h.expansion[key]
       if (anchor !== null) result.push({ type: 'chain', plan: existingChain(world, kind, anchor) })
     }
@@ -86,6 +88,7 @@ export function rebuildCost(_world: World, job: RebuildJob): Inventory {
   else if (owner.type === 'mill') cost.wood = 4
   else if (owner.type === 'prototype') cost.woodPanel = 2
   else if (owner.type === 'chain') {
+    if (INDUSTRIAL_CHAINS.some(k => k === owner.plan.kind)) { if (expansionLayout(owner.plan).find(p => p.tile === job.tile)?.kind === 'fuelDepot') cost.coal = 6; return cost }
     if (owner.plan.kind === 'steam') { if (job.tile === owner.plan.anchor) cost.coal = 6; return cost }
     const count = expansionLayout(owner.plan).length
     for (const [item, amount] of Object.entries(chainCost(owner.plan.kind))) cost[item as Item] = Math.ceil(amount / count)
@@ -113,7 +116,7 @@ export function clearResource(world: World, x: number, y: number): string | null
   const b = buildingAt(world, x, y), tile = y * SIZE + x
   if (b && b.kind !== 'tree') return 'Zuerst das Gebäude ausdrücklich abreißen.'
   const miningPlan = world.homestead?.expansion.plan
-  if (world.tiles[tile] && (((miningPlan?.kind === 'ironMining' || miningPlan?.kind === 'copperMining') && miningPlan.anchor === tile) || world.rebuilding?.jobs.some(j => j.owner.type === 'chain' && (j.owner.plan.kind === 'ironMining' || j.owner.plan.kind === 'copperMining') && j.owner.plan.anchor === tile))) return 'Dieser Erzplatz ist für den bezahlten Minenbau oder Wiederaufbau reserviert. Andere Erzfelder können entfernt werden.'
+  if (world.tiles[tile] && (((miningPlan?.kind === 'ironMining' || miningPlan?.kind === 'copperMining' || miningPlan?.kind === 'coalMining') && miningPlan.anchor === tile) || world.rebuilding?.jobs.some(j => j.owner.type === 'chain' && (j.owner.plan.kind === 'ironMining' || j.owner.plan.kind === 'copperMining' || j.owner.plan.kind === 'coalMining') && j.owner.plan.anchor === tile))) return 'Dieser Erzplatz ist für den bezahlten Minenbau oder Wiederaufbau reserviert. Andere Erzfelder können entfernt werden.'
   if (b?.kind !== 'tree' && !world.tiles[tile]) return 'Wähle einen Baum oder ein Erzfeld.'
   if (b?.kind === 'tree') chopTree(world, x, y, false)
   world.tiles[tile] = null
@@ -196,7 +199,8 @@ export function advanceRebuilding(world: World, delta: number): boolean {
   else {
     if (!placeBuilding(world, position.x, position.y, part.kind, part.direction)) return true
     if (part.kind === 'steamEngine') { const engine = world.buildings[job.tile]; if (engine?.kind === 'steamEngine') engine.fuel = job.paid.coal }
-    if (part.kind === 'assembler') changeCraftingRecipe(world, position.x, position.y, job.owner.type === 'chain' && job.owner.plan.kind === 'circuits' ? 'electronicCircuit' : job.owner.type === 'chain' && job.owner.plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
+    if (part.kind === 'fuelDepot') { const depot = world.buildings[job.tile]; if (depot?.kind === 'fuelDepot') depot.inventory.coal = job.paid.coal }
+    if (part.kind === 'assembler') changeCraftingRecipe(world, position.x, position.y, job.owner.type === 'chain' && job.owner.plan.kind === 'briquettes' ? 'coalBriquette' : job.owner.type === 'chain' && job.owner.plan.kind === 'circuits' ? 'electronicCircuit' : job.owner.type === 'chain' && job.owner.plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
   }
   r.jobs = r.jobs.filter(j => j !== job); r.active = null
   // Resume through existing navigation rather than retaining a repair destination.
@@ -224,7 +228,7 @@ export function demolitionNotice(world: World, tile: number): string {
   const b = world.buildings[tile]
   if (!b) return 'Wähle ein Gebäude zum Abreißen.'
   let items = 'inventory' in b ? inventoryTotal(b.inventory) : 0
-  if (b.kind === 'steamEngine') items += b.fuel
+  if (b.kind === 'steamEngine') items += b.fuel + b.briquettes + Number(b.burnRemainingMs > 0)
   if (b.kind === 'supplyCrate') items += b.wood
   if (b.kind === 'splitter') items += Number(b.input !== null) + b.outputs.filter(Boolean).length
   if (b.kind === 'petePress') items += b.plates + b.gears

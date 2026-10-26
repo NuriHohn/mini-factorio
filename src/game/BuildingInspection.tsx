@@ -77,16 +77,20 @@ export function BuildingInspection() {
         <div className="stats"><span>Radar</span><b>{inspection.active ? 'Active' : 'Inactive · needs full 5 kW'}</b></div>
         <div className="stats"><span>Police operation</span><b>{inspection.operation}</b></div>
         <p className="inspection-note">One police operation at a time. {inspection.prison ? `Prison at ${inspection.prison.x}, ${inspection.prison.y}.` : 'A prison appears at a reachable map edge on first dispatch.'}</p>
-      </> : inspection.kind === 'forester' ? <><p>{inspection.details}</p><InventoryView inventory={inspection.inventory} /><progress aria-label="Felling progress" value={inspection.progress} max={1} /></> : inspection.kind === 'storage' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
+      </> : inspection.kind === 'forester' ? <><p>{inspection.details}</p><InventoryView inventory={inspection.inventory} /><progress aria-label="Felling progress" value={inspection.progress} max={1} /></> : inspection.kind === 'storage' || inspection.kind === 'fuelDepot' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
         <div className="stats"><span>Extracting</span><b>{inspection.resource ? ITEM_DEFINITIONS[inspection.resource].label : 'No deposit'}</b></div>
         <div className="stats"><span>Mining progress</span><b>{Math.round(inspection.progress * 100)}%</b></div>
         <div className="stats"><span>Output buffer</span><b>{inspection.buffered ? '1 ore · blocked' : 'Empty'}</b></div>
+      </> : inspection.kind === 'steamWorkshop' || inspection.kind === 'steamHoist' ? <>
+        <div className="stats"><span>Abgeschlossene Arbeitszyklen</span><b>{inspection.cycles}</b></div>
+        <progress aria-label="Dampfarbeit" value={inspection.progress} max={1} />
+        <p className="inspection-note">{Math.round(inspection.steamFraction * 100)} % Dampfanteil im Netz. Arbeit pausiert bei Brennstoffmangel, Sabotage oder fehlender Verbindung. Werkstatt und Aufzug verwenden ihre Prüflast wieder und erzeugen keine Materialien.</p>
       </> : inspection.kind === 'steamEngine' ? <>
-        <div className="stats"><span>Coal</span><b>{inspection.fuel} / 6</b></div>
+        <div className="stats"><span>Coal</span><b>{inspection.fuel} Kohle + {inspection.briquettes} Briketts / 6</b></div>
         <div className="stats"><span>Completed shaft cycles</span><b>{inspection.cycles}</b></div>
         <progress aria-label="Steam work" value={inspection.progress} max={1} />
         <div className="stats"><span>Actual electricity / capacity</span><b>{inspection.actualKw.toFixed(1)} / {inspection.capacityKw} kW</b></div>
-        <p className="inspection-note">1 coal per 10 seconds of shaft work. Closed water circuit; no water placement needed. A pole exports power; the flywheel also runs its test load without one.</p>
+        <p className="inspection-note">1 coal = 10 seconds, 1 briquette = 20 seconds of shaft work. Closed water circuit; no water placement needed. A pole exports power; the flywheel also runs its test load without one.</p>
       </> : inspection.kind === 'generator' || inspection.kind === 'waterwheel' ? <>
         <div className="stats"><span>Generation capacity</span><b>{inspection.capacityKw} kW</b></div>
         <div className="stats"><span>Actual generation</span><b>{inspection.actualKw.toFixed(1)} kW</b></div>

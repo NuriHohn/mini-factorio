@@ -121,7 +121,7 @@ describe('resource-led copper automation, circuits and coal', () => {
   it('upgrades a genuine version-45 routine without adding fuel, stock or completed projects', () => {
     const w = stored(), old = snapshot(w)
     old.version = 45
-    for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine']) delete old.game.homestead.expansion[key]
+    for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]
     const strip = (value: unknown): void => {
       if (!value || typeof value !== 'object') return
       if (!Array.isArray(value)) delete (value as Record<string, unknown>).coal

@@ -1,6 +1,7 @@
 import type { Building, BuildingKind } from './world'
 
 export const BUILDING_CAPABILITIES: Readonly<Record<BuildingKind, { sabotageable: boolean }>> = {
+  fuelDepot: { sabotageable: false }, steamWorkshop: { sabotageable: true }, steamHoist: { sabotageable: true },
   steamEngine: { sabotageable: true },
   forester: { sabotageable: true }, sawmill: { sabotageable: true },
   peteDevelopment: { sabotageable: false },
