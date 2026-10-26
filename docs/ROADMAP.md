@@ -253,6 +253,38 @@ Costs, rules and compatibility: [Product projects and iron](GAME_DESIGN.md#produ
 
 Authoritative rules: [Resource-led paths](GAME_DESIGN.md#resource-led-craftsman-and-inventor-paths-sprints-1663-1667). These increments do not supply circuits or build an automatic copper miner; those, Industrial resource offerings and later expansion remain proposals. Original level-4 flight preparation and level-5 scenic flights keep their existing requirements. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open. PC controls are retained.
 
+## Planned direction — Coal and steam for the Industrial path
+
+**Concept agreed with the user; not implemented.** Coal replaces the proposed gear-pile entry into the Industrial path. Oil, plastics and plastic gears are not the chosen direction. The four independent entry resources are:
+
+| Path | Entry offering |
+| --- | --- |
+| Eco | Wood from a grove |
+| Craftsman | Iron ore from an iron deposit |
+| Inventor | Copper ore from a copper deposit |
+| Industrial | Coal from a coal deposit |
+
+The child places nearby resources; Pete collects, stores and develops his own machinery. Industrial entry must work without supplies from the other paths. Gears are no longer the proposed entry resource. Each resource/product belongs to one development family, and Pete's projects require only their own family's supplies. Shared factory processing may combine families, as with the existing circuit recipe; this must not make the coal starter depend on another path. More nearby coal and matching stored supplies increase Industrial project chances through the same diminishing resource influence as the other paths. Other projects, animal care and daily life remain active.
+
+The intended progression is personal coal mining and carrying into the same general store at level 1, then a small boiler/steam engine at level 2, followed by automated coal extraction and a first driven work machine around level 3. Later projects can include a steam workshop, conveyor installation and hoist. Heavy machinery, pistons, flywheels and visible steam give the path its identity. Exact unlocks, costs, working times and rewards still require a feature specification.
+
+Coal is consumed as **fuel**, not converted into gears or metal. Coal reserves for commissioning and actual completed machine work can advance Industrial projects. How construction is funded and what Industrial products/work milestones replace the current gear/module project requirements must be specified before implementation, without silently manufacturing metal from coal or requiring iron/wood to bootstrap. Existing gear press, mechanic workshop, hoist, inventories and saves must be accounted for in that redesign; they retain their implemented rules until an explicit feature change.
+
+Petes Welt should initially use a closed water circuit managed by Pete: the child offers coal without placing pumps, water supplies or pipes. Explicit water supply and pipe planning are a later option for the more complex Factory edition. Both editions should use shared machines/processes so observation prepares the player for building the chain themselves.
+
+### Proposed next five sprints (16.68–16.72)
+
+This sequence is a planning proposal, not implementation approval. The coal/steam direction above supersedes the earlier gear-pile and gear-production proposals for 16.71/16.72.
+
+| Sprint | Proposed scope |
+| --- | --- |
+| 16.68 | Automatic copper miner and a short belt to Pete's existing copper furnace, with bounded stock and retained paid work |
+| 16.69 | Shared circuit assembly from actual iron plates and copper cables, supplying the existing Inventor flight-workshop requirements |
+| 16.70 | Complete and balance the self-supplied Inventor route through the existing practice crashes and scenic flights, retaining levels 4/5 and clear shortages/access explanations |
+| 16.71 | Coal offering, personal mining/carrying and a viable Industrial-only start in the same general store; specify early Industrial projects and compatibility before coding |
+| 16.72 | First coal-fuelled boiler/steam engine, visible actual work and Pete-managed closed water circuit; specify fuel/project accounting and integration with existing Industrial progression before coding |
+
+Automatic coal extraction, further driven work machines and the complete Industrial-project redesign may need later increments beyond the first steam engine. Mobile changes must preserve PC controls. Installation/offline 16.38 remains deferred; physical iPhone/iPad Safari acceptance remains open.
 
 ## Post-16.67 maintenance: recurring daily life and yard completion
 
