@@ -16,7 +16,7 @@ const stamp = '2026-10-24T19:00:00.000Z'
 const snapshot = (w: World) => JSON.parse(encodeSave(w, view, stamp))
 function until(w: World, ready: () => boolean, limit = 1200000) {
   for (let t = 0; t < limit && !ready(); t += 50) advanceWorld(w, 50)
-  expect(ready(), JSON.stringify({ time: w.timeMs, h: w.homestead, stock: materialStore(w), levels: w.personality.paths })).toBe(true)
+  expect(ready(), JSON.stringify({ time: w.timeMs, h: w.homestead, stock: materialStore(w), levels: w.personality.paths, activity: w.peace, pete: w.pete, cover: w.poultry?.cover, selected: [w.yard, w.coopProject, w.gardenProject, w.harvestProject, w.plantProject].filter(p => p?.selected) })).toBe(true)
 }
 function stored() {
   const w = createPetesWorld(), h = w.homestead!
@@ -109,7 +109,7 @@ describe('resource-led development and shared iron automation', () => {
     const save = snapshot(w)
     save.game.homestead.expansion.plan.route[1] = 0
     expect(() => decodeSave(JSON.stringify(save))).toThrow()
-    const old = snapshot(stored()); old.version = 41
+    const old = snapshot(stored()); old.version = 41; delete old.game.homestead.nextRestAtMs
     for (const key of ['miner', 'copperFurnace', 'cableAssembler']) delete old.game.homestead.expansion[key]
     const migrated = decodeSave(JSON.stringify(old)).world
     expect(migrated.homestead!.expansion.miner).toBeNull()

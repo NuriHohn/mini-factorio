@@ -175,7 +175,7 @@ export function projectPlansConflict(world: World, project: SecretProject, ignor
   })
 }
 function projectWeight(world: World, project: SecretProject, definition: ProjectDefinition, ignored?: SecretProject): number {
-  return (project.kind !== 'plant' || project.phase !== 'collecting' || nearbyPlanting(project)) && projectUnlocked(world, definition) && !projectPlansConflict(world, project, ignored) && projectSiteClear(world, project) ? availableMaterials(world, project, definition) : 0
+  return (project.kind !== 'plant' || project.phase !== 'collecting' || nearbyPlanting(project, world)) && projectUnlocked(world, definition) && !projectPlansConflict(world, project, ignored) && projectSiteClear(world, project) ? availableMaterials(world, project, definition) : 0
 }
 export function projectPriority(definition: ProjectDefinition, project: SecretProject): number {
   if (project.phase === 'building' && project.kind !== 'fell') return 4
@@ -191,7 +191,7 @@ export function projectCandidates(world: World, blocked: string[] = []): { defin
     if (!availableMaterials(world, saved?.phase !== 'complete' && saved ? saved : null, definition)) return []
     let project = saved?.phase !== 'complete' && saved ? saved : definition.id === 'coop' || definition.id === 'campfire' ? followUpLayout(world, definition.id) : definition.id === 'harvesting' ? planHarvest(world) : definition.id === 'feeding' ? planFeeding(world) : definition.id === 'gardenCare' ? planGardenCare(world) : definition.id === 'veranda' ? planVeranda(world) : definition.id === 'reforestation' ? planPlanting(world) : definition.id === 'garden' ? layout(world, 'garden') : definition.id === 'run' ? planYard(world, true) : definition.id === 'yard' ? planYard(world) : definition.id === 'gate' ? planGate(world) : layout(world, definition.id === 'fence' ? undefined : definition.id)
     if (saved?.phase === 'collecting' && (definition.id === 'coop' || definition.id === 'campfire') && (!project || !projectSiteClear(world, project) || projectPlansConflict(world, project))) project = followUpLayout(world, definition.id, saved)
-    if (saved?.phase === 'collecting' && definition.id === 'reforestation' && (!nearbyPlanting(saved) || !projectSiteClear(world, saved))) project = planPlanting(world)
+    if (saved?.phase === 'collecting' && definition.id === 'reforestation' && (!nearbyPlanting(saved, world) || !projectSiteClear(world, saved))) project = planPlanting(world)
     if ((definition.id === 'yard' || definition.id === 'run') && saved?.built === 0 && saved.phase === 'collecting' && !yardSiteClear(world, worldYard(saved))) project = planYard(world, definition.id === 'run')
     if (definition.id === 'harvesting' && saved && saved.carried === 0 && !harvestTreeReady(world, saved)) project = planHarvest(world)
     if (project && (project.kind === 'yard' || project.kind === 'run')) {
@@ -217,6 +217,10 @@ export function trySecretProject(world: World): boolean {
     const names: Record<string, string> = { orchard: 'Orchard', nursery: 'Tree nursery', bicycle: 'Bicycle', mechanic: 'Mechanic workshop', winch: 'Workshop hoist', house: 'Treehouse annex', treasure: 'Treasure chest', flightpad: 'Flight workshop', run: 'Chicken outdoor run', harvesting: 'Mature tree harvesting', feeding: 'Chicken feeding', gardenCare: 'Garden care', coop: 'Chicken Coop', campfire: 'Campfire', fence: 'Fence', yard: 'Yard', gate: 'Garden Gate', garden: 'Garden', reforestation: 'Tree planting', workshop: 'Workshop', veranda: 'Veranda', experiment: 'Experiment table', press: 'Gear press' }
     placementHints.set(world, candidates.length || !blocked.length ? '' : `No safe site for ${blocked.slice(0, 2).map(id => names[id]).join(' / ')}${blocked.length > 2 ? ' and other projects' : ''}. Clear nearby space.`)
     if (!candidates.length) return false
+    if (world.homestead) {
+      const overdue = ['feeding', 'reforestation', 'gardenCare'].find(id => candidates.some(c => c.definition.id === id && world.timeMs >= (world[c.definition.state]?.readyAtMs ?? 0) + 120000))
+      if (overdue) candidates.splice(0, candidates.length, ...candidates.filter(c => c.definition.id === overdue))
+    }
     // Reuse the persisted peaceful LCG, consuming exactly one draw per new decision.
     const peace = world.peace
     peace.seed = (Math.imul(1664525, peace.seed) + 1013904223) >>> 0

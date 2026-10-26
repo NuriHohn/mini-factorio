@@ -150,7 +150,7 @@ describe('gradual homestead products and iron development', () => {
   })
   it('migrates version 40 without changing paid work and rejects malformed expansion state', () => {
     const w = forest(); advanceWorld(w, 15000)
-    const old = snapshot(w); old.version = 40; delete old.game.homestead.expansion
+    const old = snapshot(w); old.version = 40; delete old.game.homestead.nextRestAtMs; delete old.game.homestead.expansion
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.homestead?.carried).toEqual(w.homestead?.carried)
     expect(restored.homestead?.expansion).toEqual(w.homestead?.expansion)
@@ -160,7 +160,9 @@ describe('gradual homestead products and iron development', () => {
     bad.game.homestead.expansion.plan = null
     bad.game.homestead.carried.copper = 1
     expect(() => decodeSave(JSON.stringify(bad))).toThrow()
-    expect(snapshot(w)).toEqual(snapshot(restored))
+    const current = snapshot(w), migrated = snapshot(restored)
+    delete current.game.homestead.nextRestAtMs; delete migrated.game.homestead.nextRestAtMs
+    expect(current).toEqual(migrated)
   })
   it('continues mixed paid forestry work and crate improvement work without repeating costs', () => {
     const w = forest(); until(w, () => materialStore(w) !== null)

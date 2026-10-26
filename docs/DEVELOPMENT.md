@@ -309,3 +309,12 @@ Windows Chromium browser checks use the real menu/new-world/copper-tool/canvas p
 Temporary fixtures are removed before delivery. Physical iPhone/iPad Safari acceptance remains open; installation/offline 16.38 remains deferred. The existing Vite large-bundle warning remains; no dependencies, hosting settings or PC controls change.
 
 Final lint and production build passed after removing all review fixtures. The known Vite large-chunk warning remains. No app errors were recorded in the successful review scenarios.
+
+
+## Post-16.67 daily-life/access maintenance
+
+`homesteadDaily.test.ts` advances a real four-grove game for an additional simulation hour in six fixed-step preparation phases. It checks late repeated rest, egg collection/meals, feeding, repeated planting, a completed enclosure and exact save continuation. Other cases cover decision-only task starts, home-band planting versus unchanged Factory clearance, strict version-42 migration/deadline rejection, rejected trapping footprints and bounded recovery of an old idle machine pocket. Existing mixed/iron/copper and expansion regressions remain active. UI tests require long status only in Pete inspection and retain short HUD/messages.
+
+Full suite: 1,617 passed and one obsolete HUD assertion failed (1,618 total, 137 files). The HUD test was updated to assert that its copied construction hint remains available but is absent from the HUD; all three tests in that file then passed. Unchanged full-suite successes are reused. Lint and TypeScript/production build passed; the existing Vite large-chunk warning remains.
+
+Windows Chromium production-build checks exercised menu/save/new Petes Welt, pause, actual Pete click/inspection and closing it. The long status appeared only in inspection; the removed floating hint had zero DOM instances and no browser errors were recorded. A 390-pixel viewport also exercised closing inspection, but this was not touch-input or physical Safari acceptance. Physical iPhone/iPad checks remain open. Local socket restrictions required starting the preview with approved network access. The initial new-world confirmation was stopped by automatic review; saving the temporary test world first removed the data-loss concern and the world switch completed. No review fixtures or dependencies were added.

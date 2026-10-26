@@ -11,17 +11,18 @@ export const CARE_XP = 4
 const distance = (a: number, b: number) => Math.max(Math.abs(a % SIZE - b % SIZE), Math.abs(Math.floor(a / SIZE) - Math.floor(b / SIZE)))
 export function plantingSite(world: World, tile: number): boolean {
   const x = tile % SIZE, y = Math.floor(tile / SIZE)
-  if (placementError(world, x, y, 'tree') || world.tiles[tile] || nearFactory(world, x, y)) return false
+  if (placementError(world, x, y, 'tree') || world.tiles[tile] || (world.homestead ? neighboringTiles(tile).some(i => world.buildings[i] && world.buildings[i]?.kind !== 'tree') || world.buildings.some(b => b && ['miner', 'belt', 'furnace', 'assembler', 'sawmill', 'forester', 'generator', 'powerPole'].includes(b.kind) && Math.max(Math.abs(b.x - x), Math.abs(b.y - y)) <= 3) : nearFactory(world, x, y))) return false
   const trees = world.buildings.flatMap((b, i) => b?.kind === 'tree' ? [i] : [])
   return trees.length < naturalTreeCap() && !trees.some(i => distance(i, tile) < 3) && trees.filter(i => distance(i, tile) <= 6).length < 8
 }
-export function nearbyPlanting(project: SecretProject): boolean { return distance(project.home, project.tiles[0]) >= 4 && distance(project.home, project.tiles[0]) <= 6 }
+export function nearbyPlanting(project: SecretProject, world?: World): boolean { return distance(project.home, project.tiles[0]) >= 4 && distance(project.home, project.tiles[0]) <= (world?.homestead ? 8 : 6) }
 export function planPlanting(world: World): SecretProject | null {
   const home = world.peace.home
   if (home === null) return null
   const trees = world.buildings.flatMap((b, i) => b?.kind === 'tree' ? [i] : []), parents = peteReachableTiles(world, world.pete.tile)
   const candidates: { tile: number; spot: number; steps: number }[] = []
-  for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) {
+  const radius = world.homestead ? 8 : 6
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
     const x = home % SIZE + dx, y = Math.floor(home / SIZE) + dy, tile = y * SIZE + x
     if (Math.max(Math.abs(dx), Math.abs(dy)) < 4 || !inside(x, y) || !plantingSite(world, tile)) continue
     for (const spot of neighboringTiles(tile)) {
@@ -29,8 +30,8 @@ export function planPlanting(world: World): SecretProject | null {
       candidates.push({ tile, spot, steps: tilePath(parents, spot)!.length })
     }
   }
-  // Walking distance wins; forest edges only break equally short route ties.
-  candidates.sort((a, b) => a.steps - b.steps || Number(!trees.some(i => distance(i, a.tile) <= 5)) - Number(!trees.some(i => distance(i, b.tile) <= 5)) || distance(home, a.tile) - distance(home, b.tile) || a.tile - b.tile || a.spot - b.spot)
+  // Prefer the inner home band, then walking distance and nearby forest edges.
+  candidates.sort((a, b) => Number(distance(home, a.tile) > 6) - Number(distance(home, b.tile) > 6) || a.steps - b.steps || Number(!trees.some(i => distance(i, a.tile) <= 5)) - Number(!trees.some(i => distance(i, b.tile) <= 5)) || distance(home, a.tile) - distance(home, b.tile) || a.tile - b.tile || a.spot - b.spot)
   for (const { tile, spot } of candidates) {
     const plan: SecretProject = { kind: 'plant', home, direction: 'east', tiles: [tile], spots: [spot], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
     if (!projectPlansConflict(world, plan, world.plantProject) && projectSiteClear(world, plan)) return plan
