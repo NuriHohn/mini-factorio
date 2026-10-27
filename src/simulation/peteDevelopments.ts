@@ -25,7 +25,10 @@ export function approach(world: World, tile: number): number | null {
   const parents = peteReachableTiles(world, world.pete.tile)
   return neighboringTiles(tile).filter(i => !world.water[i] && !world.buildings[i] && parents.has(i)).sort((a, b) => tilePath(parents, a)!.length - tilePath(parents, b)!.length || a - b)[0] ?? null
 }
-function atBuilding(world: World, kind: DevelopmentKind): number | null { const b = developmentBuilding(world, kind); return b ? approach(world, b.y * SIZE + b.x) : null }
+function atBuilding(world: World, kind: DevelopmentKind): number | null {
+  const h = world.homestead
+  if (kind === 'bicycle' && h?.cargoBicycle && h.bikeTile !== null && developmentBuilding(world, kind)) return peteReachableTiles(world, world.pete.tile).has(h.bikeTile) ? h.bikeTile : null
+  const b = developmentBuilding(world, kind); return b ? approach(world, b.y * SIZE + b.x) : null }
 function ready(world: World, task: DevelopmentTask): boolean { return world.timeMs >= world.developmentLife!.nextAt[task] }
 export function developmentDuration(task: DevelopmentTask): number { return task === 'cycle' ? 1000 : task === 'pickFruit' ? 2000 : task === 'storeFruit' ? 1500 : task === 'collectNurseryWood' || task === 'takeSapling' ? 1000 : task === 'annexRest' ? 12000 : task === 'winching' ? 4000 : 6000 }
 function begin(world: World, task: DevelopmentTask, target: number, plant: number | null = null) {
@@ -85,13 +88,14 @@ export function finishDevelopment(world: World): boolean {
   const task = s.task
   if (task === 'cycle' && world.peace.activity === 'developmentWork') {
     const parents = peteReachableTiles(world, world.pete.tile), origin = world.pete.tile
-    const destinations = [...parents.keys()].filter(i => { const path = tilePath(parents, i)!; return path.length >= 3 && path.length <= 6 && path.every(t => !world.water[t] && !world.buildings[t]) })
+    const destinations = [...parents.keys()].filter(i => { const path = tilePath(parents, i)!; return path.length >= 3 && path.length <= 6 && path.every(t => !world.water[t] && !world.buildings[t] || world.homestead?.cargoBicycle && world.buildings[t]?.kind === 'footbridge') })
     const destination = destinations[(s.seed >>> 8) % Math.max(1, destinations.length)]
     if (destination !== undefined) {
       const out = tilePath(parents, destination)!, back = [...out.slice(0, -1).reverse(), origin]
       Object.assign(world.pete, { path: [...out, ...back], pathRevision: world.topologyRevision })
       Object.assign(world.peace, { activity: 'cycling', sinceMs: world.timeMs, untilMs: world.timeMs, destination: origin })
       s.target = origin
+      if (world.homestead?.cargoBicycle) world.homestead.bikeTile = null
       return true
     }
   } else if (task === 'tendOrchard') {
@@ -114,7 +118,10 @@ export function finishDevelopment(world: World): boolean {
     if (plantTree(world, s.plant % SIZE, Math.floor(s.plant / SIZE), 'oak')) { s.carriedSapling = 0; reward(world, 'eco', 5) }
   } else if (task === 'winching') reward(world, 'industrial', 2)
   else if (task === 'annexRest') reward(world, 'craftsman', 2)
-  if (world.peace.activity === 'dismounting') reward(world, 'craftsman', 3)
+  if (world.peace.activity === 'dismounting') {
+    reward(world, 'craftsman', 3)
+    if (world.homestead?.cargoBicycle) world.homestead.bikeTile = world.pete.tile
+  }
   s.nextAt[task] = world.timeMs + (task === 'cycle' || task === 'annexRest' ? 60000 : 30000)
   s.task = null; s.target = null; s.plant = null
   return false
@@ -122,7 +129,7 @@ export function finishDevelopment(world: World): boolean {
 export function developmentTargetValid(world: World): boolean {
   const s = world.developmentLife
   if (!s?.task || s.target === null || world.peace.home === null) return false
-  if (world.water[s.target] || world.buildings[s.target]) return false
+  if ((world.water[s.target] || world.buildings[s.target]) && !(s.task === 'cycle' && world.homestead?.cargoBicycle && world.buildings[s.target]?.kind === 'footbridge')) return false
   if (s.task === 'storeFruit') return neighboringTiles(world.peace.home).includes(s.target) && s.carriedFruit > 0
   if (s.task === 'collectNurseryWood') return !!developmentBuilding(world, 'nursery') && neighboringTiles(s.target).some(i => { const b = world.buildings[i]; return b?.kind === 'supplyCrate' && b.wood >= 2 })
   if (s.task === 'cookFruit') return s.fruit > 0 && neighboringTiles(s.target).some(i => world.buildings[i]?.kind === 'peteCampfire')
@@ -131,6 +138,7 @@ export function developmentTargetValid(world: World): boolean {
   const b = developmentBuilding(world, kind)
   if (!b) return false
   if (s.task === 'cycle' && ['cycling', 'dismounting'].includes(world.peace.activity)) return true
+  if (s.task === 'cycle' && world.homestead?.cargoBicycle) return s.target === world.homestead.bikeTile && peteReachableTiles(world, world.pete.tile).has(s.target)
   if (!neighboringTiles(b.y * SIZE + b.x).includes(s.target)) return false
   return s.task === 'mechanics' ? b.gears >= 2 && b.modules < 4 : s.task === 'takeSapling' ? s.saplings > 0 : s.task === 'pickFruit' ? b.fruit >= 2 : s.task === 'nursing' ? s.carriedWood === 2 && s.saplings < 3 : true
 }
@@ -140,6 +148,7 @@ export function refreshDevelopment(world: World): void {
   if (!['developmentward', 'developmentWork', 'cycling', 'dismounting'].includes(world.peace.activity)) { s.task = null; s.target = null; s.plant = null; return }
   if (developmentTargetValid(world)) return
   s.task = null; s.target = null; s.plant = null
+  if (world.homestead?.cargoBicycle && world.homestead.bikeTile === null) world.homestead.bikeTile = world.pete.tile
   Object.assign(world.pete, { next: null, travelMs: 0, x: world.pete.tile % SIZE, y: Math.floor(world.pete.tile / SIZE), path: [], pathRevision: -1 })
   Object.assign(world.peace, { activity: 'homeward', sinceMs: world.timeMs, untilMs: world.timeMs, destination: null })
 }

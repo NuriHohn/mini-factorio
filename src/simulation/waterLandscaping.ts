@@ -1,3 +1,4 @@
+import { shoreTiles, shoreApproaches } from './shoreline'
 import { miniLayout } from './petesWorld'
 import { expansionLayout } from './homesteadExpansion'
 import { handMillLayout } from './homestead'
@@ -29,6 +30,8 @@ export function waterProtection(world: World): WaterProtection {
       if (project && project.phase !== 'complete') for (const tile of [...project.tiles, ...project.spots]) reserved.add(tile)
     }
     const h = world.homestead
+    if (h?.bikeTile !== null && h?.bikeTile !== undefined) reserved.add(h.bikeTile)
+    if (h?.waterworks.plan) for (const tile of [...shoreTiles(h.waterworks.plan), ...shoreApproaches(h.waterworks.plan)]) reserved.add(tile)
     if (h?.task === 'buildStore' && h.target !== null) reserved.add(h.target)
     if (h?.millAnchor !== null && h?.millAnchor !== undefined && h.millBuilt < 3) for (const part of handMillLayout(h.millAnchor)) reserved.add(part.tile)
     if (h?.expansion.plan) for (const part of expansionLayout(h.expansion.plan)) reserved.add(part.tile)
@@ -63,7 +66,7 @@ export function waterEditError(world: World, tile: number, mode: WaterBrush, pro
   if (world.water[tile] === (mode === 'water')) return null
   const building = world.buildings[tile]
   if (building) return building.kind === 'footbridge' ? 'Keep water beneath footbridges. Remove the crossing first.' : building.kind === 'belt' && building.bridge ? 'Keep water beneath bridges. Remove the crossing first.' : 'Keep buildings and trees on dry land.'
-  if (mode === 'land') return null
+  if (mode === 'land') return world.homestead?.waterworks.plan && shoreTiles(world.homestead.waterworks.plan).includes(tile) ? 'Keep paid water construction sites unchanged.' : null
   const p = protection ?? waterProtection(world)
   if (p.banks.has(tile)) return 'Keep both bridge banks dry.'
   if (p.reserved.has(tile)) return 'Keep NPC positions, reserved paths/construction sites, gifts and prison exits dry.'

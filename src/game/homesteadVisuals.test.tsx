@@ -5,12 +5,28 @@ import { emptyInventory, ITEM_DEFINITIONS } from '../simulation/items'
 import type { SupplyCrate } from '../simulation/world'
 import { drawHomestead } from './homesteadVisuals'
 import { drawSupplyCrate, visibleStoreStock } from './supplyCrateVisuals'
+import { projectBuilding } from '../simulation/secretProject'
 
 function graphics() {
   const calls: { name: string; args: unknown[] }[] = []
   const g = new Proxy({}, { get: (_target, name) => (...args: unknown[]) => { calls.push({ name: String(name), args }); return g } }) as Phaser.GameObjects.Graphics
   return { g, calls }
 }
+it('draws the parked cargo bicycle and paid crossing preview without changing authority or ignoring culling', () => {
+  const w = createPetesWorld(), h = w.homestead!
+  w.bicycleProject = { kind: 'bicycle', home: 820, direction: 'south', tiles: [823], spots: [822], phase: 'complete', built: 1, crate: null, carried: 0, carriedIron: 0, carriedGears: 0, carriedModules: 0, elapsedMs: 0 }
+  w.buildings[823] = projectBuilding(w.bicycleProject, 823)
+  h.cargoBicycle = true; h.bikeTile = 822
+  h.task = 'buildBridge'; h.target = 1061; h.elapsedMs = 2000; h.carried.wood = 3
+  h.waterworks.plan = { kind: 'bridge', start: 1061, end: 1063 }
+  const before = structuredClone(w), { g, calls } = graphics()
+  drawHomestead(g, w, 32)
+  expect(calls.filter(c => c.name === 'strokeCircle').length).toBe(2)
+  expect(calls.some(c => c.name === 'strokeRect')).toBe(true)
+  expect(w).toEqual(before)
+  calls.length = 0; drawHomestead(g, w, 32, { x: 5000, y: 5000, width: 10, height: 10 })
+  expect(calls).toEqual([])
+})
 it('shows real positive materials in stable order and bounded filling stages', () => {
   const crate: SupplyCrate = { kind: 'supplyCrate', x: 10, y: 10, inventory: emptyInventory(), wood: 24, storeTier: 0 }
   crate.inventory.iron = 8; crate.inventory.copper = 3; crate.inventory.woodPanel = 1

@@ -20,7 +20,7 @@ export function restoreRebuilding(value: unknown, version: number): Rebuilding {
     } else if (type === 'chain') {
       if (o.id !== undefined) v.invalid('rebuilding.owner', 'unexpected project id')
       const p = v.object(o.plan, 'rebuilding.plan', ['kind', 'anchor', 'direction', 'built'], ['route'])
-      const plan = { kind: v.choice(p.kind, 'rebuilding.plan.kind', version >= 46 ? CHAIN_KINDS.filter(k => version >= 47 || !INDUSTRIAL_CHAINS.some(i => i === k)) : CHAIN_KINDS.filter(k => !['copperMining', 'circuits', 'steam', ...INDUSTRIAL_CHAINS].includes(k))), anchor: v.tile(p.anchor, 'rebuilding.plan.anchor'), direction: v.direction(p.direction, 'rebuilding.plan.direction'), built: v.count(p.built, 'rebuilding.plan.built', version >= 47 ? 32 : 15), ...(p.route === undefined ? {} : { route: v.array(p.route, 'rebuilding.plan.route', undefined, 13).map(i => v.tile(i, 'rebuilding.plan.route.tile')) }) }
+      const plan = { kind: v.choice(p.kind, 'rebuilding.plan.kind', version >= 46 ? CHAIN_KINDS.filter(k => (version >= 48 || k !== 'gears') && (version >= 47 || !INDUSTRIAL_CHAINS.some(i => i === k))) : CHAIN_KINDS.filter(k => !['gears', 'copperMining', 'circuits', 'steam', ...INDUSTRIAL_CHAINS].includes(k))), anchor: v.tile(p.anchor, 'rebuilding.plan.anchor'), direction: v.direction(p.direction, 'rebuilding.plan.direction'), built: v.count(p.built, 'rebuilding.plan.built', version >= 47 ? 32 : 15), ...(p.route === undefined ? {} : { route: v.array(p.route, 'rebuilding.plan.route', undefined, 13).map(i => v.tile(i, 'rebuilding.plan.route.tile')) }) }
       if (plan.route && (plan.kind !== 'ironMining' && plan.kind !== 'copperMining' && plan.kind !== 'coalMining' || plan.route.length < 2 || plan.route[0] !== plan.anchor || new Set(plan.route).size !== plan.route.length || plan.route.some((tile, i) => i && Math.abs(tile % SIZE - plan.route![i - 1] % SIZE) + Math.abs(Math.floor(tile / SIZE) - Math.floor(plan.route![i - 1] / SIZE)) !== 1))) v.invalid('rebuilding.plan.route', 'invalid route')
       const parts = expansionLayout(plan)
       if (((plan.kind === 'ironMining' || plan.kind === 'copperMining' || plan.kind === 'coalMining') && !plan.route) || (plan.kind !== 'forestry' && plan.kind !== 'coalFeed' && !['north', 'south'].includes(plan.direction)) || parts.some(p => p.tile < 0 || p.tile >= SIZE * SIZE || Math.abs(p.tile % SIZE - plan.anchor % SIZE) > ((plan.kind === 'ironMining' || plan.kind === 'copperMining' || plan.kind === 'coalMining') ? 13 : 2)) || new Set(parts.map(p => p.tile)).size !== parts.length || plan.built > parts.length) v.invalid('rebuilding.plan', 'invalid geometry')
@@ -36,9 +36,9 @@ export function restoreRebuilding(value: unknown, version: number): Rebuilding {
   })
   const active = r.active === null ? null : v.tile(r.active, 'rebuilding.active')
   if (new Set(jobs.map(j => j.tile)).size !== jobs.length || (active !== null && !jobs.some(j => j.tile === active))) v.invalid('rebuilding', 'duplicate targets or missing active job')
-  const rewardIds = ['store', 'mill', 'roof', ...IMPROVEMENTS.map(id => `improvement:${id}`), ...['forestry', 'assembler', 'furnace', 'miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist'].map(id => `chain:${id}`)]
+  const rewardIds = [...(version >= 48 ? ['cargoBicycle', 'shore:dock', 'chain:gearAssembler'] : []), 'store', 'mill', 'roof', ...IMPROVEMENTS.map(id => `improvement:${id}`), ...['forestry', 'assembler', 'furnace', 'miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist'].map(id => `chain:${id}`)]
   const legacyRewardIds = rewardIds.filter(id => !['chain:copperMiner', 'chain:circuitAssembler', 'chain:steamEngine'].includes(id))
-  const rewarded = v.array(r.rewarded, 'rebuilding.rewarded', undefined, rewardIds.length).map(id => v.choice(id, 'rebuilding.rewarded.id', (version >= 46 ? rewardIds : legacyRewardIds).filter(id => version >= 47 || !['chain:coalMiner', 'chain:coalInserter', 'chain:briquetteAssembler', 'chain:steamWorkshop', 'chain:steamHoist'].includes(id))))
+  const rewarded = v.array(r.rewarded, 'rebuilding.rewarded', undefined, rewardIds.length + (version >= 48 ? 8 : 0)).map(id => typeof id === 'string' && version >= 48 && /^shore:\d+:\d+$/.test(id) ? id : v.choice(id, 'rebuilding.rewarded.id', (version >= 46 ? rewardIds : legacyRewardIds).filter(id => version >= 47 || !['chain:coalMiner', 'chain:coalInserter', 'chain:briquetteAssembler', 'chain:steamWorkshop', 'chain:steamHoist'].includes(id))))
   if (new Set(rewarded).size !== rewarded.length) v.invalid('rebuilding.rewarded', 'duplicate historical rewards')
   return { jobs, active, rewarded }
 }
@@ -46,12 +46,13 @@ export function validateRebuilding(world: World): void {
   const r = world.rebuilding, h = world.homestead
   if (!r) return
   if (!world.miniFactory || !h) v.invalid('rebuilding', 'requires Petes Welt')
+  for (const id of r.rewarded) if (id.startsWith('shore:') && id !== 'shore:dock' && !h.waterworks.bridges.some(p => id === `shore:${p.start}:${p.end}`)) v.invalid('rebuilding.rewarded', 'unknown bridge reward')
   for (const job of r.jobs) {
     const part = rebuildParts(world, job.owner).find(p => p.tile === job.tile)
     if (!part || world.buildings[job.tile]) v.invalid('rebuilding', 'target must be a missing owned component')
     if (job.owner.type === 'chain') {
       const p = job.owner.plan, e = h.expansion
-      const key = ({ forestry: 'forestry', crates: 'assembler', iron: 'furnace', ironMining: 'miner', copper: 'copperFurnace', cables: 'cableAssembler', copperMining: 'copperMiner', circuits: 'circuitAssembler', steam: 'steamEngine', coalMining: 'coalMiner', coalFeed: 'coalInserter', briquettes: 'briquetteAssembler', steamWorkshop: 'steamWorkshop', steamHoist: 'steamHoist' } as const)[p.kind]
+      const key = ({ gears: 'gearAssembler', forestry: 'forestry', crates: 'assembler', iron: 'furnace', ironMining: 'miner', copper: 'copperFurnace', cables: 'cableAssembler', copperMining: 'copperMiner', circuits: 'circuitAssembler', steam: 'steamEngine', coalMining: 'coalMiner', coalFeed: 'coalInserter', briquettes: 'briquetteAssembler', steamWorkshop: 'steamWorkshop', steamHoist: 'steamHoist' } as const)[p.kind]
       if (e[key] !== p.anchor && !(e.plan?.kind === p.kind && e.plan.anchor === p.anchor)) v.invalid('rebuilding', 'unknown chain owner')
       if (p.kind === 'coalMining' && p.route?.at(-1) !== e.fuelStore) v.invalid('rebuilding', 'coal route must retain its depot')
       if ((p.kind === 'ironMining' || p.kind === 'copperMining') && ((p.kind === 'copperMining' ? e.copperFurnace : e.furnace) === null || p.route?.at(-1) !== (p.kind === 'copperMining' ? e.copperFurnace! : e.furnace!) - 1)) v.invalid('rebuilding', 'miner route must retain its furnace')

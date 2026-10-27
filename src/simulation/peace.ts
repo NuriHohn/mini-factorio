@@ -1,4 +1,5 @@
 import { advanceRebuilding } from './rebuilding'
+import { scheduledShoreVisit } from './shoreline'
 import { advanceHomestead, createHomestead, HOMESTEAD_REST_INTERVAL_MS } from './homestead'
 import { advanceMiniFactory } from './petesWorld'
 import { beginDevelopmentWork, developmentDecision, finishDevelopment, refreshDevelopment } from './peteDevelopments'
@@ -12,7 +13,7 @@ import { gardenSpot, refreshGardening, TEND_MS, TEND_COOLDOWN_MS } from './ecoPr
 import { preparePeteGate } from './gardenGate'
 import { CAMPFIRE_HAPPY_MS, COOKING_MS, finishCooking, reachableCampfire, refreshCooking } from './campfire'
 import { collectEgg, eggAt, EGG_COLLECT_MS, reachableEgg, refreshPoultry } from './poultry'
-import { advanceSecretProject, currentProject, projectPlansConflict, trySecretProject } from './secretProject'
+import { advanceSecretProject, currentProject, projectCandidates, projectPlansConflict, trySecretProject } from './secretProject'
 import { planYard } from './yard'
 import { crateAtSpot, reachableCrateSpot, SUPPLY_INSPECTION_MS } from './supplyCrate'
 import { BOARDING_MS, moveRowboat, planRowboat, rowboatValid } from './rowboat'
@@ -72,6 +73,8 @@ function resetPete(world: World): void {
 }
 function activity(world: World, name: PeaceActivity, duration = 0, destination: number | null = null): void {
   Object.assign(world.peace, { activity: name, sinceMs: world.timeMs, untilMs: world.timeMs + duration, destination })
+  const water = world.homestead?.waterworks, dock = name === 'dockward' ? dockAtSpot(world, destination) : null
+  if (water?.dock && dock && water.dock.tile === dock.y * SIZE + dock.x) water.nextVisitAtMs = world.timeMs + 300000
   world.pete.path = []; world.pete.pathRevision = -1
 }
 export function beginPeace(world: World, home: number): void {
@@ -162,8 +165,14 @@ function move(world: World, delta: number): void {
         else if (world.peace.activity === 'crateward') activity(world, 'checkingCrate', SUPPLY_INSPECTION_MS, world.peace.destination)
         else if (world.peace.activity === 'dockward') {
           const dock = dockAtSpot(world, world.peace.destination), boat = dock ? planRowboat(world, dock) : null
-          if (boat && random(world) < 1 / 3) { world.peace.boat = boat; activity(world, 'boating', BOARDING_MS, world.peace.destination) }
-          else activity(world, 'fishing', FISHING_MS, world.peace.destination)
+          const water = world.homestead?.waterworks, owned = dock && water?.dock?.tile === dock.y * SIZE + dock.x ? water : undefined
+          if (boat && (owned ? owned.preferBoat : random(world) < 1 / 3)) {
+            if (owned) owned.preferBoat = false
+            world.peace.boat = boat; activity(world, 'boating', BOARDING_MS, world.peace.destination)
+          } else {
+            if (owned) owned.preferBoat = true
+            activity(world, 'fishing', FISHING_MS, world.peace.destination)
+          }
         }
         else if (world.peace.activity === 'homeward') {
           if (world.miniFactory && world.buildings[world.peace.home!]?.kind !== 'treehouse') { activity(world, 'walking'); nextActivity(world) }
@@ -248,6 +257,12 @@ function nextActivity(world: World): void {
   }
   if (!committed?.carried && committed?.phase !== 'building' && homesteadDaily(world)) return
   if (world.homestead && random(world) < .5 && advanceHomestead(world, 0, true)) return
+  if (world.homestead && !committed?.carried && committed?.phase !== 'building' && world.flightProject?.phase === 'complete' && world.timeMs >= (world.leisure?.nextFlightAtMs ?? 0) + 120000 && !projectCandidates(world).some(c => !c.definition.repeatable && !['yard', 'run'].includes(c.definition.id))) {
+    const visit = leisureDecision(world)
+    if (visit) { if (committed) delete committed.selected; activity(world, visit.activity, 0, visit.destination); return }
+  }
+  const shore = !committed?.carried && committed?.phase !== 'building' ? scheduledShoreVisit(world) : null
+  if (shore !== null) { if (committed) delete committed.selected; activity(world, 'dockward', 0, shore); return }
   if (world.homestead && tryConstruction(world)) return
   if (world.developmentLife && committed?.phase !== 'building' && !committed?.carried) {
     const overdue = developmentDecision(world, true)
@@ -276,7 +291,7 @@ function nextActivity(world: World): void {
   if (egg !== null && random(world) < .5) { activity(world, 'eggward', 0, egg); return }
   const p = world.pete
   const spot = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableFishingSpot(world) : null
-  if (spot !== null && random(world) < .5) activity(world, 'dockward', 0, spot)
+  if (spot !== null && (!world.homestead?.waterworks.dock || world.timeMs >= world.homestead.waterworks.nextVisitAtMs) && random(world) < .5) activity(world, 'dockward', 0, spot)
   else {
     const crate = p.mode === 'WANDERING' && !world.police.car && !world.revenge.boss ? reachableCrateSpot(world) : null
     if (crate !== null && random(world) < 1 / 3) activity(world, 'crateward', 0, crate)

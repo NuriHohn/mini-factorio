@@ -23,7 +23,7 @@ export interface Rebuilding { jobs: RebuildJob[]; active: number | null; rewarde
 export function ensureRebuilding(world: World): Rebuilding {
   if (world.rebuilding) return world.rebuilding
   const h = world.homestead
-  const rewarded = h ? [ ...(h.store !== null ? ['store'] : []), ...(h.millBuilt === 3 ? ['mill'] : []), ...(materialStore(world)?.storeTier ? ['roof'] : []), ...Object.keys(h.expansion.improvements).map(id => `improvement:${id}`), ...(['forestry', 'assembler', 'furnace', 'miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist'] as const).filter(key => h.expansion[key] !== null).map(key => `chain:${key}`) ] : []
+  const rewarded = h ? [ ...(h.store !== null ? ['store'] : []), ...(h.millBuilt === 3 ? ['mill'] : []), ...(materialStore(world)?.storeTier ? ['roof'] : []), ...Object.keys(h.expansion.improvements).map(id => `improvement:${id}`), ...(['gearAssembler', 'forestry', 'assembler', 'furnace', 'miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist'] as const).filter(key => h.expansion[key] !== null).map(key => `chain:${key}`) ] : []
   return world.rebuilding = { jobs: [], active: null, rewarded }
 }
 export function awardHomesteadOnce(world: World, id: string, reward: Parameters<typeof awardActivity>[1]): void {
@@ -63,7 +63,7 @@ function owners(world: World): RebuildOwner[] {
   if (h) {
     for (const job of world.rebuilding?.jobs ?? []) if (job.owner.type === 'chain') result.push(job.owner)
     if (h.expansion.plan) result.push({ type: 'chain', plan: structuredClone(h.expansion.plan) })
-    for (const [kind, key] of [['forestry', 'forestry'], ['crates', 'assembler'], ['iron', 'furnace'], ['ironMining', 'miner'], ['copper', 'copperFurnace'], ['cables', 'cableAssembler'], ['copperMining', 'copperMiner'], ['circuits', 'circuitAssembler'], ['steam', 'steamEngine'], ['coalMining', 'coalMiner'], ['coalFeed', 'coalInserter'], ['briquettes', 'briquetteAssembler'], ['steamWorkshop', 'steamWorkshop'], ['steamHoist', 'steamHoist']] as const) {
+    for (const [kind, key] of [['gears', 'gearAssembler'], ['forestry', 'forestry'], ['crates', 'assembler'], ['iron', 'furnace'], ['ironMining', 'miner'], ['copper', 'copperFurnace'], ['cables', 'cableAssembler'], ['copperMining', 'copperMiner'], ['circuits', 'circuitAssembler'], ['steam', 'steamEngine'], ['coalMining', 'coalMiner'], ['coalFeed', 'coalInserter'], ['briquettes', 'briquetteAssembler'], ['steamWorkshop', 'steamWorkshop'], ['steamHoist', 'steamHoist']] as const) {
       const anchor = h.expansion[key]
       if (anchor !== null) result.push({ type: 'chain', plan: existingChain(world, kind, anchor) })
     }
@@ -200,7 +200,7 @@ export function advanceRebuilding(world: World, delta: number): boolean {
     if (!placeBuilding(world, position.x, position.y, part.kind, part.direction)) return true
     if (part.kind === 'steamEngine') { const engine = world.buildings[job.tile]; if (engine?.kind === 'steamEngine') engine.fuel = job.paid.coal }
     if (part.kind === 'fuelDepot') { const depot = world.buildings[job.tile]; if (depot?.kind === 'fuelDepot') depot.inventory.coal = job.paid.coal }
-    if (part.kind === 'assembler') changeCraftingRecipe(world, position.x, position.y, job.owner.type === 'chain' && job.owner.plan.kind === 'briquettes' ? 'coalBriquette' : job.owner.type === 'chain' && job.owner.plan.kind === 'circuits' ? 'electronicCircuit' : job.owner.type === 'chain' && job.owner.plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
+    if (part.kind === 'assembler') changeCraftingRecipe(world, position.x, position.y, job.owner.type === 'chain' && job.owner.plan.kind === 'gears' ? 'ironGear' : job.owner.type === 'chain' && job.owner.plan.kind === 'briquettes' ? 'coalBriquette' : job.owner.type === 'chain' && job.owner.plan.kind === 'circuits' ? 'electronicCircuit' : job.owner.type === 'chain' && job.owner.plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
   }
   r.jobs = r.jobs.filter(j => j !== job); r.active = null
   // Resume through existing navigation rather than retaining a repair destination.

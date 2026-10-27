@@ -3,6 +3,12 @@ import type { PersonalityPath, ProjectReward } from './personality'
 import type { World } from './world'
 export type ProjectMaterial = Item | 'wood' | 'chickenFeed' | 'fruit' | 'sapling'
 export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { coalBriquette: 'industrial', coal: 'industrial', woodPanel: 'eco', woodenCrate: 'eco', fruit: 'eco', sapling: 'eco', mechanicModule: 'industrial', chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
+export function materialPath(world: World, item: ProjectMaterial): PersonalityPath { return world.homestead && item === 'ironGear' ? 'craftsman' : MATERIAL_PATH[item] }
+export function retiredIndustrial(world: World, definition: ProjectDefinition): boolean { return !!world.homestead && ['press', 'mechanic', 'winch'].includes(definition.id) && !world.pressProject && !world.mechanicProject && !world.winchProject }
+export function wantsShoreDock(world: World): boolean {
+  const h = world.homestead, home = world.peace.home, width = Math.sqrt(world.water.length)
+  return !!h && home !== null && !h.waterworks.dock && h.expansion.assembler !== null && world.orchardProject?.phase === 'complete' && !world.buildings.some(b => b?.kind === 'fishingDock') && world.water.some((water, tile) => water && Math.max(Math.abs(tile % width - home % width), Math.abs(Math.floor(tile / width) - Math.floor(home / width))) <= 11)
+}
 export interface ProjectDefinition {
   id: ProjectReward | 'reforestation' | 'gardenCare' | 'feeding' | 'harvesting'
   state: 'orchardProject' | 'nurseryProject' | 'bicycleProject' | 'mechanicProject' | 'winchProject' | 'houseProject' | 'treasureProject' | 'flightProject' | 'chickenRun' | 'harvestProject' | 'feedingProject' | 'careProject' | 'pressProject' | 'experimentProject' | 'project' | 'coopProject' | 'campfireProject' | 'yard' | 'gateProject' | 'gardenProject' | 'plantProject' | 'workshopProject' | 'verandaProject'
@@ -40,7 +46,7 @@ export const PETE_PROJECTS: readonly ProjectDefinition[] = [
   { id: 'house', state: 'houseProject', path: 'craftsman', minimumLevel: 4, resources: { ironPlate: 32 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: ['veranda'] },
 ]
 export function projectUnlocked(world: World, definition: ProjectDefinition): boolean {
-  return (!definition.repeatable || (world[definition.state]?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= (world.homestead && definition.id === 'harvesting' ? 1 : definition.minimumLevel) && definition.prerequisites.every(id => {
+  return !retiredIndustrial(world, definition) && (!definition.repeatable || (world[definition.state]?.readyAtMs ?? 0) <= world.timeMs) && world.personality.paths[definition.path].level >= (world.homestead && definition.id === 'harvesting' ? 1 : definition.minimumLevel) && definition.prerequisites.every(id => {
     const prerequisite = PETE_PROJECTS.find(p => p.id === id)!
     return world[prerequisite.state]?.phase === 'complete'
   }) && (definition.repeatable || world[definition.state]?.phase !== 'complete')
@@ -56,6 +62,7 @@ export function homesteadProjectDelay(world: World, id: ProjectDefinition['id'])
     if (h.millBuilt === 3 && store?.kind === 'supplyCrate' && store.storeTier === 0) return 'Ich sammle kurz Holz für das Lagerdach. Bereits bezahlte Zaunabschnitte baue ich fertig.'
     if (world.personality.paths.eco.level >= 3 && world.orchardProject?.phase !== 'complete' && store?.kind === 'supplyCrate' && store.wood < 20) return 'Ich spare 18 Holz für den Obstgarten. Neue Zaunabschnitte folgen mit zusätzlichem Holz; bezahlte Arbeit bleibt erhalten.'
     if (world.personality.paths.eco.level >= 3 && h.expansion.assembler === null && store?.kind === 'supplyCrate' && store.wood < 14) return 'Ich halte zwölf Holz für Sägewerk und Produktionsausbau zurück. Zusätzliche Vorräte finanzieren neue Zaunabschnitte.'
+    if (wantsShoreDock(world) && store?.kind === 'supplyCrate' && store.wood < 10) return 'Ich halte acht Holz für Angelsteg und Ruderboot zurück. Zusätzliche Vorräte bleiben für neue Zaunabschnitte frei.'
   }
   if (id === 'gardenCare' || id === 'reforestation') {
     const stock = world.buildings.reduce((n, b) => n + (b?.kind === 'supplyCrate' && b.storeTier !== undefined ? b.wood : 0), 0)

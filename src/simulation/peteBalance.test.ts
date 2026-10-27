@@ -46,7 +46,7 @@ it('reaches Craftsman four from iron alone, without waiting for an Eco fence or 
 })
 it('keeps offered ore free when locating a new bicycle or other personal building', () => {
   const w = structuredClone(craftsman)
-  for (const tile of w.bicycleProject!.tiles) w.buildings[tile] = null
+  for (const tile of w.bicycleProject?.tiles ?? []) w.buildings[tile] = null
   Reflect.deleteProperty(w, 'bicycleProject')
   materialStore(w)!.inventory.ironPlate = 24
   w.tiles[823] = 'copper'

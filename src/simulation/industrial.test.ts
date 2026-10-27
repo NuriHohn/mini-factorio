@@ -1,3 +1,4 @@
+import { stripVersion48Homestead } from './testFixtures'
 import { advanceRebuilding, chooseRebuild, rebuildCost } from './rebuilding'
 import { resourcePreference } from './resourcePreference'
 import { describe, expect, it } from 'vitest'
@@ -117,7 +118,7 @@ describe('Industrial coal automation and driven work', () => {
   },60000)
   it('upgrades a genuine Save 46 engine without changing fuel, timers, stock or progression', () => {
     const w = stored(), old = snapshot(w)
-    old.version = 46
+    old.version = 46; stripVersion48Homestead(old.game)
     for (const key of ['coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]
     delete old.game.buildings[706].briquettes; delete old.game.buildings[706].cycleDurationMs
     const strip = (value: unknown): void => {

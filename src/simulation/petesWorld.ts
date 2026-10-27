@@ -10,6 +10,7 @@ import { createWorld, inside, placeBuilding, SIZE } from './world'
 import type { BuildingKind, World } from './world'
 import { expansionLayout } from './homesteadExpansion'
 import { invalidateTerrain } from './waterTerrain'
+import { planNeededBridge, shoreTiles, shoreApproaches } from './shoreline'
 
 export interface MiniFactory { anchor: number | null; built: number; elapsedMs: number; nextCheckAtMs: number }
 export interface MiniStep { tile: number; kind: BuildingKind; label: string }
@@ -28,7 +29,7 @@ export function miniLayout(anchor: number): MiniStep[] {
 export function createPetesWorld(): World {
   const world = createWorld(() => .42, { nature: false })
   // Keep the central work approaches dry, but put a pond in the opening view.
-  for (const [x, y] of [[22, 27], [21, 27], [23, 27], [22, 26], [22, 28]]) world.water[y * SIZE + x] = true
+  for (const [x, y] of [[22, 27], [21, 27], [23, 27], [22, 26], [22, 28], [23, 28], [24, 28]]) world.water[y * SIZE + x] = true
   world.tiles.fill(null)
   world.nature.wood = 20
   placeBuilding(world, 20, 20, 'treehouse', 'east')
@@ -65,6 +66,8 @@ function resourceAreaError(world: World, x: number, y: number): string | null {
   const reserved = anchor === null ? [] : Array.from({ length: 28 }, (_, i) => anchor + Math.floor(i / 7) * SIZE + i % 7)
   reserved.push(...(world.rebuilding?.jobs.map(j => j.tile) ?? []))
   const h = world.homestead
+  if (h?.bikeTile !== null && h?.bikeTile !== undefined) reserved.push(h.bikeTile)
+  if (h?.waterworks.plan) reserved.push(...shoreTiles(h.waterworks.plan), ...shoreApproaches(h.waterworks.plan))
   if (h?.expansion.plan) reserved.push(...expansionLayout(h.expansion.plan).map(s => s.tile))
   if (h?.task === 'buildStore' && h.target !== null) reserved.push(h.target)
   if (h?.millAnchor !== null && h?.millAnchor !== undefined && h.millBuilt < 3) reserved.push(h.millAnchor, h.millAnchor + SIZE, h.millAnchor + SIZE + 1)
@@ -74,7 +77,11 @@ function resourceAreaError(world: World, x: number, y: number): string | null {
     if (!inside(tx, ty) || world.water[tile] || world.tiles[tile] || world.buildings[tile] || reserved.includes(tile) || world.pete.tile === tile || world.pete.next === tile || world.poultry?.birds.some(b => b.tile === tile || b.next === tile)) return 'Die ganze 3×3-Fläche braucht freie, trockene Felder ohne andere Ressourcen.'
   }
   const parents = peteReachableTiles(world, world.pete.tile)
-  if (!neighboringTiles(y * SIZE + x).some(i => parents.has(i))) return 'Pete braucht einen erreichbaren Weg zum Wald.'
+  if (!neighboringTiles(y * SIZE + x).some(i => parents.has(i))) {
+    const tiles = [...world.tiles]
+    tiles[y * SIZE + x] = 'iron'
+    if (!planNeededBridge({ ...world, tiles })) return 'Pete braucht einen Weg oder Platz für eine Fußbrücke mit höchstens fünf Wasserfeldern.'
+  }
   return null
 }
 export function placeIron(world: World, x: number, y: number): string | null {
@@ -140,7 +147,7 @@ function planMini(world: World): number | null {
   }
   return null
 }
-export function miniWalk(world: World, destination: number, delta: number): boolean {
+export function miniWalk(world: World, destination: number, delta: number, cargoRide = false): boolean {
   const p = world.pete
   if (world.peace.activity !== 'walking') { world.peace.sinceMs = world.timeMs; world.peace.untilMs = world.timeMs }
   world.peace.activity = 'walking'; world.peace.destination = destination
@@ -152,7 +159,7 @@ export function miniWalk(world: World, destination: number, delta: number): bool
   }
   if (p.next === null) return p.tile === destination
   if (!preparePeteGate(world, p.next)) return false
-  p.travelMs = Math.min(PETE_WALK_MS, p.travelMs + delta)
+  p.travelMs = Math.min(PETE_WALK_MS, p.travelMs + delta * (cargoRide ? 2 : 1))
   const t = p.travelMs / PETE_WALK_MS
   p.x = p.tile % SIZE + (p.next % SIZE - p.tile % SIZE) * t
   p.y = Math.floor(p.tile / SIZE) + (Math.floor(p.next / SIZE) - Math.floor(p.tile / SIZE)) * t
