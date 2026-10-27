@@ -348,3 +348,17 @@ Implemented under the explicit five-sprint implementation and merge request. Fac
 | 16.82 | Paid Eco dock/rowboat after orchard/crate production, reserved Wood, recurring subordinate fishing/boat visits and safe saved round trips |
 
 Authoritative mechanics: [Craftsman transport and water access](GAME_DESIGN.md#craftsman-transport-and-water-access-sprints-1678-1682). Save 48 preserves old worlds and their exact water. The near-home pond changes only for newly created worlds. Installation/offline 16.38 and physical iPhone/iPad Safari acceptance remain deferred/open; the Pete-free complex Factory edition and explicit pipes remain future work.
+
+## Sprints 16.83–16.87 — Connected supplies and later work
+
+Implemented following the explicit five-sprint implementation and merge request:
+
+| Sprint | Scope |
+| --- | --- |
+| 16.83 | Four read-only next-step summaries, actual requirements/paid work/blockage and Petes-Welt camera focus without Analytics research |
+| 16.84 | Paid ordinary iron-to-store logistics, bounded stock, powered pickup, personal fallback and original-route component repairs |
+| 16.85 | Paid store/gear input and output connections, physical filtered store extraction, finite buffers/reserves and no transfer XP |
+| 16.86 | Paid Eco waterwheel and up to two ordinary connecting poles after the existing orchard/production/dock milestones, with original-site restoration |
+| 16.87 | Three product-funded coop/workshop furnishing stages per path, visible results, real work/XP/cooldown and saved paid continuation |
+
+Save 49 preserves previous worlds. Owned ground logistics support Pete's service crossings and physical bicycle re-parking; new source layouts preserve future ports, while compact existing layouts retain personal delivery fallbacks. Exact costs, gates and limits: [connected supplies and later work](GAME_DESIGN.md#connected-supplies-and-visible-later-work-sprints-1683-1687). Installation/offline 16.38, physical Safari acceptance, pipes and the Pete-free complex Factory edition retain their previous deferred/future status.

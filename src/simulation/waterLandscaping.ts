@@ -1,3 +1,4 @@
+import { infrastructureReserved } from './infrastructure'
 import { shoreTiles, shoreApproaches } from './shoreline'
 import { miniLayout } from './petesWorld'
 import { expansionLayout } from './homesteadExpansion'
@@ -29,6 +30,7 @@ export function waterProtection(world: World): WaterProtection {
       const project = world[state]
       if (project && project.phase !== 'complete') for (const tile of [...project.tiles, ...project.spots]) reserved.add(tile)
     }
+    for (const tile of infrastructureReserved(world)) reserved.add(tile)
     const h = world.homestead
     if (h?.bikeTile !== null && h?.bikeTile !== undefined) reserved.add(h.bikeTile)
     if (h?.waterworks.plan) for (const tile of [...shoreTiles(h.waterworks.plan), ...shoreApproaches(h.waterworks.plan)]) reserved.add(tile)

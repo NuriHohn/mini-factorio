@@ -1,3 +1,4 @@
+import { nextDevelopments } from './nextDevelopment'
 import { shoreTiles, shoreCost } from './shoreline'
 import { rebuildSummary } from './rebuilding'
 import { HOME_TASK_LABELS } from './homestead'
@@ -9,7 +10,7 @@ import { feedGarden } from './feeding'
 import { gardenSpot } from './ecoProjects'
 import { yardSummary } from './yard'
 import { ITEM_DEFINITIONS, ITEMS } from './items'
-import { neighboringTiles, peteReachableTiles } from './navigation'
+import { serviceCrossing, neighboringTiles, peteReachableTiles } from './navigation'
 import { expansionProjectStatuses } from './homesteadExpansion'
 import { PATH_LABELS, PERSONALITY_PATHS } from './personality'
 import type { Personality, PersonalityPath } from './personality'
@@ -20,13 +21,13 @@ import type { SupplyCrate, World } from './world'
 export const PROJECT_NAMES: Record<string, string> = { ...DEVELOPMENT_NAMES, treasure: 'Treasure chest', flightpad: 'Flight workshop', run: 'Chicken outdoor run', harvesting: 'Harvest a mature tree', feeding: 'Feed the chickens', gardenCare: 'Garden care (mulching)', fence: 'Fence', coop: 'Chicken coop', campfire: 'Campfire', yard: 'Enclosed yard', gate: 'Garden gate', garden: 'Vegetable garden', reforestation: 'Tree planting', workshop: 'Workshop', veranda: 'Treehouse veranda', experiment: 'Experiment table', press: 'Recycling press' }
 const ACTIVITY_NAMES: Record<World['peace']['activity'], string> = { developmentward: 'Walking to my next activity', developmentWork: 'Working on my development', cycling: 'Enjoying a bicycle ride', dismounting: 'Parking my bicycle', treasureward: 'Walking to a little treasure', pickingTreasure: 'Picking up a treasure', treasureHomeward: 'Bringing a treasure home', storingTreasure: 'Adding a treasure to my collection', flightward: 'Going to my flight workshop', flying: 'Flying my propeller backpack', crashRest: 'Recovering from a harmless bumpy landing', coverward: 'Going to cover the coop', covering: 'Covering the coop', uncoverward: 'Going to uncover the coop', uncovering: 'Removing the coop cover', homeward: 'Going home', entering: 'Heading inside', resting: 'Sleeping', walking: 'Taking a walk', waving: 'Waving', flowers: 'Enjoying flowers', dockward: 'Walking to the dock', fishing: 'Fishing', boating: 'Taking a boat trip', crateward: 'Walking to the supply crate', checkingCrate: 'Checking supplies', project: 'Working on a project', eggward: 'Going to collect an egg', collectingEgg: 'Collecting an egg', campfireward: 'Walking to the campfire', cooking: 'Cooking eggs', campfireHappy: 'Enjoying a meal', gardenward: 'Walking to the garden', gardening: 'Watering the garden', workshopward: 'Walking to the workshop', hammering: 'Working at the anvil', verandaRest: 'Resting on the veranda', experimentward: 'Walking to the experiment table', experimenting: 'Trying an experiment', pressward: 'Walking to the recycling press', pressing: 'Recycling a gear' }
 export interface ProjectStatus { id: string; name: string; reason: string; ready: boolean; path: PersonalityPath | null }
-export interface PeteStatus extends ReturnType<typeof developmentStatus> { intent: string; yard: string; activity: string; current: string | null; wish: ProjectStatus | null; projects: ProjectStatus[]; personality: Personality }
+export interface PeteStatus extends ReturnType<typeof developmentStatus> { next?: ReturnType<typeof nextDevelopments>; intent: string; yard: string; activity: string; current: string | null; wish: ProjectStatus | null; projects: ProjectStatus[]; personality: Personality }
 export function peteStatus(world: World): PeteStatus {
   const mini = miniStatus(world)
   if (mini && !world.homestead) return { ...developmentStatus(world), intent: mini, yard: '', activity: world.miniFactory?.elapsedMs ? 'Ich baue meine Öko-Fabrik' : 'Ich kümmere mich um meine Öko-Fabrik', current: 'Öko-Mini-Fabrik', wish: null, projects: [], personality: structuredClone(world.personality) }
   const active = currentProject(world), candidates = projectCandidates(world)
   const parents = peteReachableTiles(world, world.pete.tile)
-  const crates = world.buildings.flatMap((b, tile) => b?.kind === 'supplyCrate' ? [{ crate: b, reachable: neighboringTiles(tile).some(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !world.buildings.some(p => p?.kind === 'prison' && p.exit === i)) }] : [])
+  const crates = world.buildings.flatMap((b, tile) => b?.kind === 'supplyCrate' ? [{ crate: b, reachable: neighboringTiles(tile).some(i => parents.has(i) && !world.water[i] && (!world.buildings[i] || serviceCrossing(world, i)) && !world.buildings.some(p => p?.kind === 'prison' && p.exit === i)) }] : [])
   const quantity = (crate: SupplyCrate, item: ProjectMaterial) => item === 'wood' ? crate.wood : item === 'chickenFeed' || item === 'fruit' || item === 'sapling' ? 0 : crate.inventory[item]
   const projects: ProjectStatus[] = PETE_PROJECTS.flatMap(definition => {
     if (retiredIndustrial(world, definition)) return []
@@ -78,12 +79,12 @@ export function peteStatus(world: World): PeteStatus {
   if (world.homestead?.task) {
     const h = world.homestead
     development.carrying = ITEMS.filter(item => h.carried[item]).map(item => `${h.carried[item]} ${ITEM_DEFINITIONS[item].label}`).join(' · ') || 'Nichts getragen'
-    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'buildBridge' && h.waterworks.plan ? Math.max(1, shoreTiles(h.waterworks.plan).length) * 4000 : h.task === 'buildDock' || h.task === 'upgradeBicycle' || h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
+    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'buildBridge' && h.waterworks.plan ? Math.max(1, shoreTiles(h.waterworks.plan).length) * 4000 : h.task === 'finishOrder' || h.task === 'buildDock' || h.task === 'upgradeBicycle' || h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildConnection' || h.task === 'buildWheel' || h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
   }
   const repair = world.rebuilding?.jobs.find(j => j.tile === world.rebuilding?.active)
   if (repair) {
     development.carrying = ITEMS.filter(i => repair.paid[i]).map(i => `${repair.paid[i]} ${ITEM_DEFINITIONS[i].label}`).join(' · ') || 'Noch kein Reparaturmaterial bezahlt'
     development.progress = repair.elapsedMs ? repair.elapsedMs / (repair.funded ? 4000 : 6000) : null
   }
-  return { intent: repair ? rebuildSummary(world).find((_, i) => world.rebuilding!.jobs[i] === repair)! : mini ?? intent, ...development, yard: yardSummary(world), activity: repair ? repair.funded && repair.elapsedMs ? 'Ich baue das fehlende Teil wieder auf' : 'Ich hole Material für den Wiederaufbau' : world.homestead?.task ? HOME_TASK_LABELS[world.homestead.task] : activity, current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
+  return { next: nextDevelopments(world, projects), intent: repair ? rebuildSummary(world).find((_, i) => world.rebuilding!.jobs[i] === repair)! : mini ?? intent, ...development, yard: yardSummary(world), activity: repair ? repair.funded && repair.elapsedMs ? 'Ich baue das fehlende Teil wieder auf' : 'Ich hole Material für den Wiederaufbau' : world.homestead?.task ? HOME_TASK_LABELS[world.homestead.task] : activity, current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
 }

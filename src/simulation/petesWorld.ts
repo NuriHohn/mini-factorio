@@ -1,3 +1,4 @@
+import { infrastructureReserved } from './infrastructure'
 import { createHomestead, homesteadHint } from './homestead'
 import { preparePeteGate } from './gardenGate'
 import { PETE_PROJECTS } from './projectRegistry'
@@ -64,6 +65,7 @@ function resourceAreaError(world: World, x: number, y: number): string | null {
   if (distance < 4 || distance > 10) return 'Wähle eine Fläche 4–10 Felder vom Baumhaus entfernt.'
   const anchor = world.miniFactory.anchor
   const reserved = anchor === null ? [] : Array.from({ length: 28 }, (_, i) => anchor + Math.floor(i / 7) * SIZE + i % 7)
+  reserved.push(...infrastructureReserved(world))
   reserved.push(...(world.rebuilding?.jobs.map(j => j.tile) ?? []))
   const h = world.homestead
   if (h?.bikeTile !== null && h?.bikeTile !== undefined) reserved.push(h.bikeTile)

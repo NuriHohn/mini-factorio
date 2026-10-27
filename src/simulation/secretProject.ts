@@ -17,7 +17,7 @@ import { awardActivity, PROJECT_REWARDS, rewardProject } from './personality'
 import { gateSiteClear, planGate, preparePeteGate } from './gardenGate'
 import type { Yard } from './yard'
 import { planYard, prepareYardSection, yardDirection, yardSiteClear } from './yard'
-import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from './navigation'
+import { serviceCrossing, neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from './navigation'
 import { footbridgeBank } from './footbridge'
 import { PETE_WALK_MS } from './pete'
 import { inside, SIZE } from './world'
@@ -88,7 +88,7 @@ function hasStock(crate: SupplyCrate, project: SecretProject | null, wood = proj
 }
 function source(world: World, project = currentProject(world), wood = projectWood(project)): { crate: number; spot: number } | null {
   const parents = reachableTiles(navigationWorld(world, project), world.pete.tile)
-  const candidates = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && hasStock(b, project, wood) ? neighboringTiles(crate).filter(spot => !world.water[spot] && !world.buildings[spot] && parents.has(spot) && !world.buildings.some(b => b?.kind === 'prison' && b.exit === spot)).map(spot => ({ crate, spot })) : [])
+  const candidates = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && hasStock(b, project, wood) ? neighboringTiles(crate).filter(spot => !world.water[spot] && (!world.buildings[spot] || serviceCrossing(world, spot)) && parents.has(spot) && !world.buildings.some(b => b?.kind === 'prison' && b.exit === spot)).map(spot => ({ crate, spot })) : [])
   return candidates.sort((a, b) => (tilePath(parents, a.spot)?.length ?? Infinity) - (tilePath(parents, b.spot)?.length ?? Infinity) || a.crate - b.crate || a.spot - b.spot)[0] ?? null
 }
 export function projectSiteClear(world: World, project: SecretProject): boolean {
@@ -160,18 +160,20 @@ function availableMaterials(world: World, project: SecretProject | null, definit
   let weight = 0
   for (let i = 0; i < world.buildings.length; i++) {
     const b = world.buildings[i]
-    if (b?.kind !== 'supplyCrate' || !neighboringTiles(i).some(spot => !world.water[spot] && !world.buildings[spot] && parents.has(spot) && !world.buildings.some(b => b?.kind === 'prison' && b.exit === spot))) continue
+    if (b?.kind !== 'supplyCrate' || !neighboringTiles(i).some(spot => !world.water[spot] && (!world.buildings[spot] || serviceCrossing(world, spot)) && parents.has(spot) && !world.buildings.some(b => b?.kind === 'prison' && b.exit === spot))) continue
     const quantity = (item: ProjectMaterial) => item === 'wood' ? b.wood : item === 'chickenFeed' || item === 'fruit' || item === 'sapling' ? 0 : b.inventory[item]
     if (resources.every(([item, amount]) => quantity(item) >= amount)) weight += definition.primaryMaterial ? Math.floor(quantity(definition.primaryMaterial) / definition.resources[definition.primaryMaterial]!) : Math.min(...resources.map(([item, amount]) => Math.floor(quantity(item) / amount)))
   }
   return weight
 }
-export function projectPlansConflict(world: World, project: SecretProject, ignored?: SecretProject): boolean {
+export function projectPlansConflict(world: World, project: SecretProject, ignored?: SecretProject, crossings: number[] = []): boolean {
+  const e = world.homestead?.expansion
+  if (project.phase === 'collecting' && project.kind && e && [e.furnace, e.gearAssembler].some(tile => tile !== null && project.tiles.some(t => t === tile + 1 || t === tile + 2))) return true
   if (world.rebuilding?.jobs.some(job => project.tiles.slice(project.built).includes(job.tile) || project.spots.slice(project.built).includes(job.tile))) return true
   if (project.kind !== 'gate' && project.tiles.some(i => i === world.yard?.entrance || i === world.chickenRun?.entrance)) return true
   return PETE_PROJECTS.some(({ state }) => {
     const other = world[state]
-    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i))) return true
+    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i) && !(other.kind === 'workshop' && crossings.includes(i)))) return true
     return other && other !== project && other !== ignored && other.phase !== 'complete' && (project.tiles.some(i => other.tiles.includes(i) || other.spots.includes(i)) || project.spots.some(i => other.tiles.includes(i)))
   })
 }
@@ -309,7 +311,7 @@ export function advanceSecretProject(world: World, delta: number): void {
   if (project.phase === 'collecting') {
     const stored = project.crate === null ? null : world.buildings[project.crate], spot = world.peace.destination
     // Keep an in-flight pickup stable when another crate receives Wood.
-    const pickup = stored?.kind === 'supplyCrate' && hasStock(stored, project, wood) && spot !== null && !world.water[spot] && !world.buildings[spot] && neighboringTiles(project.crate!).includes(spot) ? { crate: project.crate!, spot } : source(world)
+    const pickup = stored?.kind === 'supplyCrate' && hasStock(stored, project, wood) && spot !== null && !world.water[spot] && (!world.buildings[spot] || serviceCrossing(world, spot)) && neighboringTiles(project.crate!).includes(spot) ? { crate: project.crate!, spot } : source(world)
     if (!pickup || !projectSiteClear(world, project)) { project.crate = null; stop(world); return }
     project.crate = pickup.crate
     if (!moveTo(world, pickup.spot, delta)) return

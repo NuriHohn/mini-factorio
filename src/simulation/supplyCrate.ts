@@ -1,13 +1,13 @@
 import { inventoryTotal } from './items'
-import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
+import { neighboringTiles, peteReachableTiles as reachableTiles, serviceCrossing, tilePath } from './navigation'
 import type { SupplyCrate, World } from './world'
 export const SUPPLY_CRATE_WOOD = 6
 export const SUPPLY_CRATE_CAPACITY = 200
 export function supplyCapacity(crate: Pick<SupplyCrate, 'storeTier'>): number { return crate.storeTier === 2 ? 600 : crate.storeTier === 1 ? 400 : SUPPLY_CRATE_CAPACITY }
 export const SUPPLY_INSPECTION_MS = 4000
-// The existing peace destination is an empty adjacent land approach, never the crate.
+// Pete uses adjacent land or his owned service crossing, never the crate itself.
 export function crateAtSpot(world: World, spot: number | null): SupplyCrate | null {
-  if (spot === null || world.water[spot] || world.buildings[spot] || world.buildings.some(b => b?.kind === 'prison' && b.exit === spot)) return null
+  if (spot === null || world.water[spot] || world.buildings[spot] && !serviceCrossing(world, spot) || world.buildings.some(b => b?.kind === 'prison' && b.exit === spot)) return null
   for (const i of neighboringTiles(spot)) {
     const b = world.buildings[i]
     if (b?.kind === 'supplyCrate') return b

@@ -1,3 +1,4 @@
+import { serviceCrossing } from './navigation'
 import { awardActivity } from './personality'
 import { recordProduction } from './analytics'
 import { neighboringTiles, peteReachableTiles, tilePath } from './navigation'
@@ -88,7 +89,7 @@ export function finishDevelopment(world: World): boolean {
   const task = s.task
   if (task === 'cycle' && world.peace.activity === 'developmentWork') {
     const parents = peteReachableTiles(world, world.pete.tile), origin = world.pete.tile
-    const destinations = [...parents.keys()].filter(i => { const path = tilePath(parents, i)!; return path.length >= 3 && path.length <= 6 && path.every(t => !world.water[t] && !world.buildings[t] || world.homestead?.cargoBicycle && world.buildings[t]?.kind === 'footbridge') })
+    const destinations = [...parents.keys()].filter(i => { const path = tilePath(parents, i)!; return path.length >= 3 && path.length <= 6 && path.every(t => !world.water[t] && !world.buildings[t] || world.homestead?.cargoBicycle && (world.buildings[t]?.kind === 'footbridge' || serviceCrossing(world, t))) })
     const destination = destinations[(s.seed >>> 8) % Math.max(1, destinations.length)]
     if (destination !== undefined) {
       const out = tilePath(parents, destination)!, back = [...out.slice(0, -1).reverse(), origin]
@@ -129,7 +130,7 @@ export function finishDevelopment(world: World): boolean {
 export function developmentTargetValid(world: World): boolean {
   const s = world.developmentLife
   if (!s?.task || s.target === null || world.peace.home === null) return false
-  if ((world.water[s.target] || world.buildings[s.target]) && !(s.task === 'cycle' && world.homestead?.cargoBicycle && world.buildings[s.target]?.kind === 'footbridge')) return false
+  if ((world.water[s.target] || world.buildings[s.target]) && !(s.task === 'cycle' && world.homestead?.cargoBicycle && (world.buildings[s.target]?.kind === 'footbridge' || serviceCrossing(world, s.target)))) return false
   if (s.task === 'storeFruit') return neighboringTiles(world.peace.home).includes(s.target) && s.carriedFruit > 0
   if (s.task === 'collectNurseryWood') return !!developmentBuilding(world, 'nursery') && neighboringTiles(s.target).some(i => { const b = world.buildings[i]; return b?.kind === 'supplyCrate' && b.wood >= 2 })
   if (s.task === 'cookFruit') return s.fruit > 0 && neighboringTiles(s.target).some(i => world.buildings[i]?.kind === 'peteCampfire')

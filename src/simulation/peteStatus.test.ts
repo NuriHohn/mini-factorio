@@ -11,6 +11,19 @@ import { createElement } from 'react'
 import { PeteInspection } from '../game/PeteInspection'
 function world() { const w = createBareWorld(() => .5); w.nature.wood = 100; placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east'); return w }
 describe('Pete project inspection', () => {
+  it('exposes four next steps and project focus without unlocking Factory analytics', () => {
+    const w = createPetesWorld(), status = peteStatus(w)
+    expect(status.next?.map(s => s.path)).toEqual(PERSONALITY_PATHS)
+    const html = renderToStaticMarkup(createElement(PeteInspection, { status }))
+    expect(html).toContain('Nächste Entwicklung')
+    expect(html).toContain('Ort zeigen:')
+    useGameStore.setState({ playMode: 'petesWorld', focusRequest: null })
+    useGameStore.getState().focusPeteProject(w.peace.home!)
+    expect(useGameStore.getState().focusRequest).toBe(w.peace.home)
+    useGameStore.setState({ playMode: 'factory', focusRequest: null })
+    useGameStore.getState().focusPeteProject(820)
+    expect(useGameStore.getState().focusRequest).toBeNull()
+  })
   it('retains ready cross-path wishes in Factory', () => {
     const w = world(), crate = w.buildings[824] as SupplyCrate
     crate.inventory.ironPlate = 12

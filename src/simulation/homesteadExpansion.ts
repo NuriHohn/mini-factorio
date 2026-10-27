@@ -1,3 +1,4 @@
+import { connectionRunning } from './infrastructure'
 import { chooseCraftsman, advanceCraftsman } from './craftsman'
 import { advanceIndustrial, chooseIndustrial, industrialLayout, planIndustrial } from './industrial'
 import { INDUSTRIAL_CHAINS } from './industrialRules'
@@ -99,8 +100,8 @@ function chainCandidates(world: World, kind: ChainKind): ExpansionPlan[] {
       if (x > 0 && x < SIZE - 2 && y > 0 && y < SIZE - 2) for (const direction of ['north', 'south'] as const) candidates.push({ kind, anchor: y * SIZE + x, direction, built: 0 })
     }
   }
-  if (kind === 'copper' || kind === 'steam') {
-    const deposits = world.tiles.flatMap((ore, tile) => ore === (kind === 'steam' ? 'coal' : 'copper') && !world.water[tile] ? [tile] : [])
+  if (kind === 'iron' || kind === 'copper' || kind === 'steam') {
+    const deposits = world.tiles.flatMap((ore, tile) => ore === (kind === 'steam' ? 'coal' : kind === 'iron' ? 'iron' : 'copper') && !world.water[tile] ? [tile] : [])
     const distance = (plan: ExpansionPlan) => Math.min(...deposits.map(tile => Math.abs(tile % SIZE - (plan.anchor % SIZE - 1)) + Math.abs(Math.floor(tile / SIZE) - Math.floor(plan.anchor / SIZE))))
     candidates.sort((a, b) => distance(a) - distance(b))
   }
@@ -109,7 +110,15 @@ function chainCandidates(world: World, kind: ChainKind): ExpansionPlan[] {
 export function planChain(world: World, kind: ChainKind): ExpansionPlan | null {
   if (INDUSTRIAL_CHAINS.some(k => k === kind)) return planIndustrial(world, kind)
   if (kind === 'ironMining' || kind === 'copperMining') return planOreMining(world, kind === 'copperMining' ? 'copper' : 'iron')
-  return chainCandidates(world, kind).find(p => (kind !== 'gears' || expansionLayout(p).every(s => world.tiles[s.tile] === null)) && freeSite(world, expansionLayout(p).map(s => s.tile))) ?? null
+  return chainCandidates(world, kind).find(p => {
+    if (kind === 'iron' || kind === 'gears') {
+      const store = world.homestead!.store
+      if (store !== null && Math.abs(p.anchor % SIZE - store % SIZE) + Math.abs(Math.floor(p.anchor / SIZE) - Math.floor(store / SIZE)) < 4) return false
+      if (p.anchor % SIZE >= SIZE - 2 || [p.anchor + 1, p.anchor + 2].some(t => world.buildings[t] || world.water[t] || world.tiles[t])) return false
+      if (!expansionLayout(p).every(s => world.tiles[s.tile] === null)) return false
+    }
+    return freeSite(world, expansionLayout(p).map(s => s.tile))
+  }) ?? null
 }
 function planOreMining(world: World, resource: 'iron' | 'copper'): ExpansionPlan | null {
   const furnace = resource === 'copper' ? world.homestead!.expansion.copperFurnace : world.homestead!.expansion.furnace
@@ -266,7 +275,7 @@ export function chooseExpansion(world: World, path: PersonalityPath = 'craftsman
   if (path === 'industrial') return chooseIndustrial(world)
   const furnace = e.furnace === null ? null : world.buildings[e.furnace]
   if (path === 'craftsman' && furnace?.kind === 'furnace' && store.inventory.ironPlate < 40) {
-    if (furnace.output.ironPlate && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeIron', e.furnace); return true }
+    if (!connectionRunning(world, 'iron') && furnace.output.ironPlate && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeIron', e.furnace); return true }
     if (!furnace.job && !furnace.input.iron && store.inventory.iron >= 2) { begin(world, 'fetchIron', h.store); return true }
   }
   const assembler = e.assembler === null ? null : world.buildings[e.assembler]

@@ -26,7 +26,7 @@ export function createBareWorld(random = Math.random) { return createWorld(rando
 export function stripVersion48Homestead(game: Pick<World, 'homestead'>): void {
   const h = game.homestead
   if (!h) return
-  for (const key of ['cargoBicycle', 'bikeTile', 'waterworks']) Reflect.deleteProperty(h, key)
+  for (const key of ['infrastructure', 'cargoBicycle', 'bikeTile', 'waterworks']) Reflect.deleteProperty(h, key)
   if (h.expansion) Reflect.deleteProperty(h.expansion, 'gearAssembler')
 }
 

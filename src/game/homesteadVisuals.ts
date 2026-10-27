@@ -5,6 +5,7 @@ import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
+import { wheelParts } from '../simulation/infrastructure'
 import { cargoBicycleAvailable } from '../simulation/craftsman'
 import { shoreTiles } from '../simulation/shoreline'
 
@@ -16,6 +17,16 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
   if (s?.waterworks.plan) for (const at of shoreTiles(s.waterworks.plan)) {
     const x = at % SIZE * tile, y = Math.floor(at / SIZE) * tile
     if (visiblePoint(view, x + tile / 2, y + tile / 2, tile)) g.lineStyle(2, 0xd9c58a, .8).strokeRect(x + 3, y + 3, tile - 6, tile - 6)
+  }
+  if (s) for (const path of ['eco', 'craftsman'] as const) {
+    const project = path === 'eco' ? world.coopProject : world.workshopProject
+    if (!project || project.phase !== 'complete' || !world.buildings[project.tiles[0]]) continue
+    const at = project.tiles[0], x = (at % SIZE + .5) * tile, y = (Math.floor(at / SIZE) + .5) * tile
+    if (!visiblePoint(view, x, y, tile)) continue
+    for (let n = 0; n < s.infrastructure[path]; n++) {
+      g.fillStyle(path === 'eco' ? 0xb9a06b : 0x98afb4).fillRect(x - 12 + n * 8, y + 7, 6, 8)
+      g.lineStyle(1, 0xe5ce93).strokeRect(x - 12 + n * 8, y + 7, 6, 8)
+    }
   }
   if (s) for (const [id, at] of Object.entries(s.expansion.improvements)) {
     const b = world.buildings[at]
@@ -49,11 +60,11 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
   g.lineStyle(3, 0x91dd60).lineBetween(x + 5, y + 4, x + 11, y - 3 - phase * 3)
   g.lineStyle(2, 0xa87b4e).lineBetween(x + 10, y - 1, x + 15, y - 12 - phase * 3)
   g.fillStyle(0xc6d3cd).fillRect(x + 12, y - 14 - phase * 3, axe ? 8 : 6, axe ? 6 : 4)
-  const target = s.task === 'buildMill' && s.millAnchor !== null ? handMillLayout(s.millAnchor)[s.millBuilt]?.tile : s.target
+  const target = s.task === 'buildConnection' && s.infrastructure.plan ? s.infrastructure.plan.parts[s.infrastructure.built]?.tile : s.task === 'buildWheel' && s.infrastructure.wheelPlan ? wheelParts(s.infrastructure.wheelPlan)[s.infrastructure.built]?.tile : s.task === 'buildMill' && s.millAnchor !== null ? handMillLayout(s.millAnchor)[s.millBuilt]?.tile : s.target
   if (target === null || target === undefined || axe) return
   const tx = target % SIZE * tile, ty = Math.floor(target / SIZE) * tile
   g.lineStyle(2, 0xd7bd85, .8).strokeRect(tx + 2, ty + 3, tile - 4, tile - 5)
-  const duration = s.task === 'buildBridge' && s.waterworks.plan ? shoreTiles(s.waterworks.plan).length * 4000 : s.task === 'buildMill' || s.task === 'buildChain' ? 4000 : ['buildDock', 'upgradeBicycle', 'expandStore', 'improve'].includes(s.task) ? 8000 : 6000
+  const duration = s.task === 'buildBridge' && s.waterworks.plan ? shoreTiles(s.waterworks.plan).length * 4000 : s.task === 'buildConnection' || s.task === 'buildWheel' || s.task === 'buildMill' || s.task === 'buildChain' ? 4000 : ['finishOrder', 'buildDock', 'upgradeBicycle', 'expandStore', 'improve'].includes(s.task) ? 8000 : 6000
   g.fillStyle(0x91bb78, .6).fillRect(tx + 3, ty + tile - 7, (tile - 6) * Math.min(1, s.elapsedMs / duration), 4)
 }
 function drawCargoBike(g: Phaser.GameObjects.Graphics, x: number, y: number): void {

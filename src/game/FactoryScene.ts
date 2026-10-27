@@ -649,9 +649,9 @@ export class FactoryScene extends Phaser.Scene {
     const focus = useGameStore.getState().focusRequest
     if (focus !== null) {
       const building = this.world.buildings[focus]
-      if (building && hasTechnology(this.world.research, 'analytics1')) {
-        useGameStore.getState().inspect(this.world, building.x, building.y)
-        camera.centerOn((building.x + .5) * TILE, (building.y + .5) * TILE)
+      if (this.world.miniFactory || building && hasTechnology(this.world.research, 'analytics1')) {
+        if (building) useGameStore.getState().inspect(this.world, building.x, building.y)
+        camera.centerOn((focus % SIZE + .5) * TILE, (Math.floor(focus / SIZE) + .5) * TILE)
       }
       useGameStore.setState({ focusRequest: null })
     }
