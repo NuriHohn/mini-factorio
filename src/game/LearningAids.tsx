@@ -11,9 +11,9 @@ export function ProcessCards() {
 export function MachineHelp() {
   const { machineHelp, connectionVisible } = useGameStore()
   if (!machineHelp) return null
-  return <section className="learning-card" aria-label="Machine guidance"><h3>What is happening?</h3><p>{machineHelp.reason}</p><p>{machineHelp.action}</p>
+  return <section className="learning-card" aria-label="Machine guidance"><h3>What is happening?</h3><p>{machineHelp.reason}</p><p>{machineHelp.action}</p>{machineHelp.source !== undefined && <button className="save-action" onClick={() => useGameStore.getState().focusPeteProject(machineHelp.source!)}>Quelle zeigen</button>}{machineHelp.target !== undefined && <button className="save-action" onClick={() => useGameStore.getState().focusPeteProject(machineHelp.target!)}>Ziel zeigen</button>}
     <button className="save-action" aria-pressed={connectionVisible} onClick={() => useGameStore.setState({ connectionVisible: !connectionVisible })}>{connectionVisible ? 'Hide connection' : 'Highlight connection'}</button>
-    {connectionVisible && <p>Amber outlines mark the machine and relevant input, output or power connection.</p>}
+    {connectionVisible && <p>Amber marks the route; blue marks its source and green its destination when available.</p>}
   </section>
 }
 export function SupplyAssistant() {

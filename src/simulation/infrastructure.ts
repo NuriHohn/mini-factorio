@@ -8,6 +8,8 @@ import { awardActivity } from './personality'
 import { projectCandidates } from './secretProject'
 import { DIRECTIONS, inside, offsets, placeBuilding, SIZE } from './world'
 import type { Direction, World } from './world'
+import { copperLink, feedLink, linkMaterial } from './infrastructureRules'
+import { chooseLoading, advanceLoading, loadingParts } from './loading'
 import type { Connection, InfrastructurePart, LinkKind, WheelSite } from './infrastructureRules'
 
 function next(tile: number, d: Direction, n = 1): number | null {
@@ -17,9 +19,10 @@ function next(tile: number, d: Direction, n = 1): number | null {
 export function facing(a: number, b: number): Direction { return b === a + 1 ? 'east' : b === a - 1 ? 'west' : b > a ? 'south' : 'north' }
 export function linkEndpoints(world: World, kind: LinkKind): [number | null, number | null] {
   const h = world.homestead!
-  return kind === 'iron' ? [h.expansion.furnace, h.store] : kind === 'gearFeed' ? [h.store, h.expansion.gearAssembler] : [h.expansion.gearAssembler, h.store]
+  const machine = copperLink(kind) ? h.expansion.cableAssembler : h.expansion.gearAssembler
+  return kind === 'iron' || kind === 'copper' ? [copperLink(kind) ? h.expansion.copperFurnace : h.expansion.furnace, h.store] : feedLink(kind) ? [h.store, machine] : [machine, h.store]
 }
-function open(world: World, tile: number): boolean { return !world.buildings[tile] && !world.water[tile] && world.tiles[tile] === null }
+function open(world: World, tile: number): boolean { return !world.buildings[tile] && !world.water[tile] && world.tiles[tile] === null && !infrastructureReserved(world).includes(tile) }
 function accessibleLayout(world: World, plan: Connection): boolean {
   const h = world.homestead!
   return freeSite({ ...world, homestead: { ...h, infrastructure: { ...h.infrastructure, plan } } }, plan.parts.map(p => p.tile), true)
@@ -34,33 +37,34 @@ export function planConnection(world: World, kind: LinkKind): Connection | null 
   const revision = `${world.topologyRevision}:${world.pete.tile}:${world.homestead!.bikeTile}`
   if (old?.revision === revision) return old.plan
   let chosen: Connection | null = null
-  const gear = world.homestead!.expansion.gearAssembler
+  const gear = copperLink(kind) ? world.homestead!.expansion.cableAssembler : world.homestead!.expansion.gearAssembler
   const gearArm = gear === null ? null : next(gear, 'east')
-  const reserved = kind !== 'gearReturn' && gearArm !== null ? [gearArm, next(gearArm, 'east'), next(gearArm, 'north'), next(gearArm, 'south')] : []
-  if (kind !== 'gearFeed' && gear !== null) reserved.push(next(gear, 'west'))
-  if (kind !== 'gearFeed') reserved.push(next(target, 'east'), next(target, 'east', 2), ...(gear === null ? [] : [next(gear, 'south')]))
+  const reserved = kind !== 'gearReturn' && kind !== 'cableReturn' && gearArm !== null ? [gearArm, next(gearArm, 'east'), next(gearArm, 'north'), next(gearArm, 'south')] : []
+  if (!feedLink(kind) && gear !== null) reserved.push(next(gear, 'west'))
+  if (!feedLink(kind)) reserved.push(next(target, 'east'), next(target, 'east', 2), ...(gear === null ? [] : [next(gear, 'south')]))
   const available = (tile: number) => !reserved.includes(tile) && open(world, tile)
-  outer: for (const d of kind === 'gearFeed' ? ['east', 'south', 'west', 'north'] as const : ['east'] as const) {
+  const terminals = [target, ...(!feedLink(kind) ? world.homestead!.infrastructure.links.filter(p => !feedLink(p.kind) && p.target === target && p.receiver === undefined).flatMap(p => p.parts.filter(p => p.kind === 'belt').map(p => p.tile)) : [])]
+  outer: for (const receiver of terminals) for (const d of feedLink(kind) ? ['east', 'south', 'west', 'north'] as const : ['east'] as const) {
     const arm = next(source, d), start = next(source, d, 2)
     if (arm === null || start === null || !available(arm) || !available(start)) continue
-    const ends = neighboringTiles(target).filter(tile => kind !== 'gearFeed' || tile !== next(target, 'east'))
-    if (kind === 'iron') ends.sort((a, b) => Number(b === next(target, 'west')) - Number(a === next(target, 'west')))
+    const ends = neighboringTiles(receiver).filter(tile => (!feedLink(kind) || tile !== next(target, 'east')) && (receiver === target || facing(tile, receiver) !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[world.buildings[receiver]?.kind === 'belt' ? world.buildings[receiver].direction : 'east']))
+    if (kind === 'iron' || kind === 'copper') ends.sort((a, b) => Number(b === next(target, 'west')) - Number(a === next(target, 'west')))
     for (const end of ends) {
       if (!available(end)) continue
-      const route = findBeltRoute({ x: start % SIZE, y: Math.floor(start / SIZE) }, { x: end % SIZE, y: Math.floor(end / SIZE) }, facing(end, target), (x, y, outgoing) => {
+      const route = findBeltRoute({ x: start % SIZE, y: Math.floor(start / SIZE) }, { x: end % SIZE, y: Math.floor(end / SIZE) }, facing(end, receiver), (x, y, outgoing) => {
         const tile = y * SIZE + x
         const besideArm = d === 'east' || d === 'west' ? [next(arm, 'north'), next(arm, 'south')] : [next(arm, 'east'), next(arm, 'west')]
         return tile !== arm && !besideArm.includes(tile) && available(tile) && (tile !== start || outgoing !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[d])
       }, 500).points
       if (!route || route.length > 18) continue
       const tiles = route.map(p => p.y * SIZE + p.x)
-      const parts: InfrastructurePart[] = [{ tile: arm, kind: 'inserter', direction: d }, ...tiles.map((tile, i) => ({ tile, kind: 'belt' as const, direction: facing(tile, tiles[i + 1] ?? target) }))]
+      const parts: InfrastructurePart[] = [{ tile: arm, kind: 'inserter', direction: d }, ...tiles.map((tile, i) => ({ tile, kind: 'belt' as const, direction: facing(tile, tiles[i + 1] ?? receiver) }))]
       // A local ordinary generator/pole powers the pickup arm; belts need no power.
       const poles = world.buildings.flatMap((_, tile) => Math.max(Math.abs(tile % SIZE - arm % SIZE), Math.abs(Math.floor(tile / SIZE) - Math.floor(arm / SIZE))) <= 3 ? [tile] : [])
       poles.sort((a, b) => Math.abs(a - arm) - Math.abs(b - arm))
       for (const pole of poles) for (const generator of neighboringTiles(pole)) {
         if (!available(pole) || !available(generator) || pole === generator || parts.some(p => p.tile === pole || p.tile === generator)) continue
-        const plan: Connection = { kind, source, target, parts: [{ tile: pole, kind: 'powerPole', direction: 'east' }, { tile: generator, kind: 'generator', direction: 'east' }, ...parts] }
+        const plan: Connection = { kind, source, target, ...(receiver === target ? {} : { receiver }), parts: [{ tile: pole, kind: 'powerPole', direction: 'east' }, { tile: generator, kind: 'generator', direction: 'east' }, ...parts] }
         if (accessibleLayout(world, plan)) { chosen = plan; break outer }
       }
     }
@@ -91,27 +95,50 @@ export function planWheel(world: World): WheelSite | null {
   }
   return null
 }
-export function connectionComplete(world: World, link: Connection): boolean { return link.parts.every(p => { const b = world.buildings[p.tile]; return b?.kind === p.kind && (!('direction' in b) || b.direction === p.direction) }) }
+function partComplete(world: World, p: InfrastructurePart): boolean { const b = world.buildings[p.tile]; return b?.kind === p.kind && (!('direction' in b) || b.direction === p.direction) }
+export function connectionComplete(world: World, link: Connection): boolean {
+  const intact = (p: InfrastructurePart) => partComplete(world, p)
+  if (!link.parts.every(intact)) return false
+  if (link.receiver === undefined) return true
+  const owner = world.homestead?.infrastructure.links.find(p => p.receiver === undefined && p.target === link.target && p.parts.some(b => b.kind === 'belt' && b.tile === link.receiver))
+  return !!owner && owner.parts.slice(owner.parts.findIndex(p => p.tile === link.receiver)).every(intact)
+}
 export function connectionRunning(world: World, kind: LinkKind): boolean {
   const link = world.homestead?.infrastructure.links.find(p => p.kind === kind)
   if (!link || !connectionComplete(world, link)) return false
   const arm = link.parts.find(p => p.kind === 'inserter')!, assignment = world.power?.assignments[arm.tile]
   return assignment !== undefined && (world.power?.networks.find(n => n.id === assignment)?.capacityKw ?? 0) > 0
 }
-export function orderTarget(world: World, path: 'eco' | 'craftsman'): number | null {
-  const p = path === 'eco' ? world.coopProject : world.workshopProject
+export function orderTarget(world: World, path: 'eco' | 'craftsman' | 'inventor'): number | null {
+  const p = path === 'eco' ? world.coopProject : path === 'inventor' ? (world.homestead!.infrastructure.inventor === 0 ? world.experimentProject : world.flightProject) : world.workshopProject
   return p?.phase === 'complete' && world.buildings[p.tiles[0]] ? p.tiles[0] : null
+}
+function parkForConnection(world: World, sources: (number | null)[]): boolean {
+  const h = world.homestead!
+  if (!sources.some(tile => tile !== null && next(tile, 'east', 2) !== null && !world.buildings[next(tile, 'east')!] && !world.buildings[next(tile, 'east', 2)!])) return false
+  if (!h.cargoBicycle || h.bikeTile === null || !(sources.some(tile => tile !== null && next(tile, 'east') === h.bikeTile) || h.store !== null && neighboringTiles(h.store).includes(h.bikeTile))) return false
+  const home = world.peace.home!
+  const parking = [home + SIZE + 1, home + SIZE - 1, home - SIZE - 1].find(tile => tile >= 0 && tile < SIZE * SIZE && open(world, tile) && miniApproach(world, tile) !== null)
+  if (parking === undefined) return false
+  begin(world, 'parkBicycle', parking); return true
 }
 export function chooseInfrastructure(world: World, path: string): boolean {
   const h = world.homestead!, s = h.infrastructure, store = materialStore(world)
   if (!store) return false
-  if (path === 'craftsman' && h.cargoBicycle) {
-    if (s.links.length < 3 && h.bikeTile !== null && ([h.expansion.furnace, h.expansion.gearAssembler].some(tile => tile !== null && next(tile, 'east') === h.bikeTile) || h.store !== null && neighboringTiles(h.store).includes(h.bikeTile))) {
-      const home = world.peace.home!
-      const parking = [home + SIZE + 1, home + SIZE - 1, home - SIZE - 1].find(tile => tile >= 0 && tile < SIZE * SIZE && open(world, tile) && miniApproach(world, tile) !== null)
-      if (parking !== undefined) { begin(world, 'parkBicycle', parking); return true }
+  if (path === 'industrial' && chooseLoading(world)) return true
+  if (path === 'inventor' && world.personality.paths.inventor.level >= 4 && h.expansion.copperMiner !== null) {
+    if (store.inventory.copperPlate >= (world.flightProject?.phase === 'complete' ? 8 : 32) && parkForConnection(world, (['copper', 'cableFeed', 'cableReturn'] as const).filter(kind => !s.links.some(p => p.kind === kind)).map(kind => linkEndpoints(world, kind)[0]))) return true
+    const missing = s.links.find(p => copperLink(p.kind) && p.parts.some(part => !partComplete(world, part)))
+    if (missing && store.inventory.copperPlate >= 1) { s.plan = structuredClone(missing); s.built = 0; s.repair = true; begin(world, 'buildConnection', h.store); return true }
+    for (const kind of ['copper', 'cableFeed', 'cableReturn'] as const) {
+      if (s.links.some(p => p.kind === kind) || store.inventory.copperPlate < (world.flightProject?.phase === 'complete' ? 8 : 32) || kind !== 'copper' && !s.links.some(p => p.kind === 'copper')) continue
+      const plan = planConnection(world, kind)
+      if (plan) { s.plan = plan; s.built = 0; s.repair = false; begin(world, 'buildConnection', h.store); return true }
     }
-    const missing = s.links.find(p => !connectionComplete(world, p))
+  }
+  if (path === 'craftsman' && h.cargoBicycle) {
+    if (parkForConnection(world, (['iron', 'gearFeed', 'gearReturn'] as const).filter(kind => !s.links.some(p => p.kind === kind)).map(kind => linkEndpoints(world, kind)[0]))) return true
+    const missing = s.links.find(p => !copperLink(p.kind) && p.parts.some(part => !partComplete(world, part)))
     if (missing && store.inventory.ironPlate >= 1) { s.plan = structuredClone(missing); s.built = 0; s.repair = true; begin(world, 'buildConnection', h.store); return true }
     for (const kind of ['iron', 'gearFeed', 'gearReturn'] as const) {
       if (s.links.some(p => p.kind === kind) || store.inventory.ironPlate < 8 || kind !== 'iron' && !s.links.some(p => p.kind === 'iron')) continue
@@ -123,13 +150,14 @@ export function chooseInfrastructure(world: World, path: string): boolean {
     const site = s.wheel ?? (store.wood >= 10 ? planWheel(world) : null)
     if (site && !wheelParts(site).every(p => world.buildings[p.tile]?.kind === p.kind) && store.wood >= (world.buildings[site.tile]?.kind === 'waterwheel' ? 0 : 10)) { s.wheelPlan = site; s.built = 0; begin(world, 'buildWheel', h.store); return true }
   }
-  if ((path !== 'eco' && path !== 'craftsman') || s[path] >= 3 || world.personality.paths[path].level < 4 || world.timeMs < s.nextOrderAtMs || orderTarget(world, path) === null) return false
+  if ((path !== 'eco' && path !== 'craftsman' && path !== 'inventor') || s[path] >= 3 || world.personality.paths[path].level < 4 || world.timeMs < s.nextOrderAtMs || orderTarget(world, path) === null) return false
   if (projectCandidates(world).some(c => !c.definition.repeatable && !['yard', 'run'].includes(c.definition.id))) return false
-  if (path === 'eco' ? h.expansion.assembler === null || !s.wheel || store.inventory.woodenCrate < 2 : !h.cargoBicycle || s.links.length < 3 || store.inventory.ironGear < 4) return false
+  if (path === 'eco' ? h.expansion.assembler === null || !s.wheel || store.inventory.woodenCrate < 2 : path === 'inventor' ? world.flightProject?.phase !== 'complete' || store.inventory.copperCable < 4 || store.inventory.electronicCircuit < 2 : !h.cargoBicycle || s.links.filter(p => !copperLink(p.kind)).length < 3 || store.inventory.ironGear < 4) return false
   s.order = path; begin(world, 'finishOrder', orderTarget(world, path)); return true
 }
 export function advanceInfrastructure(world: World, delta: number): boolean {
   const h = world.homestead!, s = h.infrastructure, store = materialStore(world)
+  if (advanceLoading(world, delta)) return true
   if (!['parkBicycle', 'buildConnection', 'buildWheel', 'finishOrder'].includes(h.task ?? '')) return false
   if (h.task === 'parkBicycle') {
     if (h.bikeTile !== null && !miniWalk(world, h.bikeTile, delta)) return true
@@ -141,14 +169,15 @@ export function advanceInfrastructure(world: World, delta: number): boolean {
     const path = s.order!
     if (!inventoryTotal(h.carried)) {
       if (!store || !arrived(world, h.store, delta)) return true
-      if (path === 'eco' ? store.inventory.woodenCrate < 2 : store.inventory.ironGear < 4) { s.order = null; finish(world); return true }
+      if (path === 'eco' ? store.inventory.woodenCrate < 2 : path === 'inventor' ? store.inventory.copperCable < 4 || store.inventory.electronicCircuit < 2 : store.inventory.ironGear < 4) { s.order = null; finish(world); return true }
       if (path === 'eco') { store.inventory.woodenCrate -= 2; h.carried.woodenCrate = 2 }
+      else if (path === 'inventor') { store.inventory.copperCable -= 4; store.inventory.electronicCircuit -= 2; h.carried.copperCable = 4; h.carried.electronicCircuit = 2 }
       else { store.inventory.ironGear -= 4; h.carried.ironGear = 4 }
     }
     if (orderTarget(world, path) !== h.target || !arrived(world, h.target, delta)) return true
     h.elapsedMs = Math.min(8000, h.elapsedMs + delta)
     if (h.elapsedMs === 8000) {
-      h.carried.woodPanel = 0; h.carried.woodenCrate = 0; h.carried.ironGear = 0
+      h.carried.woodPanel = 0; h.carried.woodenCrate = 0; h.carried.ironGear = 0; h.carried.copperCable = 0; h.carried.electronicCircuit = 0
       s[path]++; s.order = null; s.nextOrderAtMs = world.timeMs + 300000
       awardActivity(world.personality, { path, xp: 8 }); finish(world)
     }
@@ -168,16 +197,16 @@ export function advanceInfrastructure(world: World, delta: number): boolean {
     if (wheel) { s.wheel = site; s.wheelPlan = null }
     else if (!s.links.some(p => p.kind === plan!.kind)) s.links.push(plan!)
     s.plan = null; s.built = 0; s.repair = false
-    h.carried.wood = 0; h.carried.ironPlate = 0; finish(world); return true
+    h.carried.wood = 0; h.carried.ironPlate = 0; h.carried.copperPlate = 0; finish(world); return true
   }
-  const item = wheel ? 'wood' : 'ironPlate', cost = wheel ? (world.buildings[site!.tile]?.kind === 'waterwheel' ? 0 : 10) : s.repair ? 1 : 8
+  const item = wheel ? 'wood' : copperLink(plan!.kind) ? 'copperPlate' : 'ironPlate', cost = wheel ? (world.buildings[site!.tile]?.kind === 'waterwheel' ? 0 : 10) : s.repair ? 1 : 8
   if (!h.carried[item] && cost) {
     if (!store || !arrived(world, h.store, delta)) return true
-    if ((item === 'wood' ? store.wood : store.inventory.ironPlate) < cost) {
+    if ((item === 'wood' ? store.wood : store.inventory[item]) < cost) {
       if (!s.built || s.repair || wheel && s.wheel) { s.plan = null; s.wheelPlan = null; s.built = 0; s.repair = false; finish(world) }
       return true
     }
-    if (item === 'wood') store.wood -= cost; else store.inventory.ironPlate -= cost
+    if (item === 'wood') store.wood -= cost; else store.inventory[item] -= cost
     h.carried[item] = cost
   }
   if (world.buildings[part.tile] || world.water[part.tile] || !arrived(world, part.tile, delta, true)) return true
@@ -187,7 +216,7 @@ export function advanceInfrastructure(world: World, delta: number): boolean {
   if (part.kind === 'inserter' && !world.research.unlocked.includes('logistics1')) world.research.unlocked.push('logistics1')
   if (!placeBuilding(funded, part.tile % SIZE, Math.floor(part.tile / SIZE), part.kind, part.direction)) return true
   world.topologyRevision = funded.topologyRevision
-  if (s.repair && !wheel) h.carried.ironPlate = 0
+  if (s.repair && !wheel) h.carried[item] = 0
   s.built++; h.elapsedMs = 0
   return true
 }
@@ -199,16 +228,19 @@ export function infrastructurePickupAllowed(world: World, tile: number, item: st
   if (!connectionComplete(world, link)) return false
   const store = materialStore(world)
   if (!store) return false
-  const inflight = (kind: LinkKind) => s!.links.filter(p => p.kind === kind).flatMap(p => p.parts).reduce((n, p) => { const b = world.buildings[p.tile]; return n + Number((b?.kind === 'belt' || b?.kind === 'inserter') && !!b.item) }, 0)
-  if (link.kind === 'iron') return item === 'ironPlate' && store.inventory.ironPlate + inflight('iron') < 40
-  if (link.kind === 'gearReturn') return item === 'ironGear' && store.inventory.ironGear + inflight('gearReturn') < 12
+  const material = linkMaterial(link.kind)
+  if (item !== material) return false
+  const quota = link.kind === 'iron' || link.kind === 'copper' ? 40 : link.kind === 'cableReturn' ? 16 : 12
+  const inflight = (item: string) => s!.links.flatMap(p => p.parts).reduce((n, p) => { const b = world.buildings[p.tile]; return n + Number((b?.kind === 'belt' || b?.kind === 'inserter') && b.item === item) }, 0)
+  if (!feedLink(link.kind)) return store.inventory[material] + inflight(material) < quota
+  if (link.kind === 'cableFeed') return store.inventory.copperPlate > (world.flightProject?.phase === 'complete' ? 2 : 24) && store.inventory.copperCable + inflight('copperCable') < 16
   const reserve = world.bicycleProject?.phase !== 'complete' ? 24 : !h!.cargoBicycle ? 12 : 2
-  return item === 'ironPlate' && store.inventory.ironPlate > reserve && store.inventory.ironGear + inflight('gearReturn') < 12
+  return store.inventory.ironPlate > reserve && store.inventory.ironGear + inflight('ironGear') < 12
 }
-export function ownedStorePickup(world: World, tile: number): boolean { return !!world.homestead?.infrastructure.links.some(p => p.kind === 'gearFeed' && p.parts.some(part => part.tile === tile && part.kind === 'inserter')) }
+export function ownedStorePickup(world: World, tile: number): boolean { return !!world.homestead?.infrastructure.links.some(p => feedLink(p.kind) && p.parts.some(part => part.tile === tile && part.kind === 'inserter')) }
 export function infrastructureReserved(world: World): number[] {
   const s = world.homestead?.infrastructure
-  return s ? [...s.links.flatMap(p => p.parts.map(p => p.tile)), ...(s.plan?.parts.map(p => p.tile) ?? []), ...(s.wheel ? wheelParts(s.wheel).map(p => p.tile) : []), ...(s.wheelPlan ? wheelParts(s.wheelPlan).map(p => p.tile) : [])] : []
+  return s ? [...(s.loading ? loadingParts(s.loading).map(p => p.tile) : []), ...(s.loadingPlan ? loadingParts(s.loadingPlan).map(p => p.tile) : []), ...s.links.flatMap(p => p.parts.map(p => p.tile)), ...(s.plan?.parts.map(p => p.tile) ?? []), ...(s.wheel ? wheelParts(s.wheel).map(p => p.tile) : []), ...(s.wheelPlan ? wheelParts(s.wheelPlan).map(p => p.tile) : [])] : []
 }
 export function infrastructureBlockage(world: World): string | null {
   const h = world.homestead, s = h?.infrastructure

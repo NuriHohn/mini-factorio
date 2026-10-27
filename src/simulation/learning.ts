@@ -1,3 +1,4 @@
+import { connectionGuide, loadingGuide } from './connectionGuide'
 import { ITEM_DEFINITIONS, ITEMS } from './items'
 import { inspectBuilding } from './inspection'
 import { DIRECTIONS, inside, offsets, SIZE } from './world'
@@ -38,8 +39,10 @@ export function processGuides(world: World, index: number | null = null): Proces
     return []
   })
 }
-export interface MachineGuide { reason: string; action: string; tiles: number[] }
+export interface MachineGuide { source?: number; target?: number; reason: string; action: string; tiles: number[] }
 export function machineGuide(world: World, index: number): MachineGuide | null {
+  const connection = connectionGuide(world, index) ?? loadingGuide(world, index)
+  if (connection) return connection
   const b = world.buildings[index], i = inspectBuilding(world, index)
   if (!b || !i || !['forester', 'sawmill', 'miner', 'furnace', 'assembler', 'belt', 'inserter'].includes(b.kind)) return null
   const tile = (dx: number, dy: number) => inside(b.x + dx, b.y + dy) ? [(b.y + dy) * SIZE + b.x + dx] : []

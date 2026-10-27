@@ -109,6 +109,7 @@ export function rememberDemolition(world: World, tile: number): void {
   }
   if (b.kind === 'treehouse' && ['entering', 'resting', 'verandaRest'].includes(world.peace.activity)) { world.peace.activity = 'walking'; world.peace.sinceMs = world.timeMs; world.peace.untilMs = world.timeMs; world.peace.destination = null }
   const h = world.homestead
+  if (h?.expansion.steamHoist === tile) h.infrastructure.loadingCargo = null
   if (h) for (const id of IMPROVEMENTS) if (h.expansion.improvements[id] === tile) delete h.expansion.improvements[id]
 }
 export function clearResource(world: World, x: number, y: number): string | null {
