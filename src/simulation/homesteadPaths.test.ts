@@ -119,7 +119,7 @@ describe('resource-led development and shared iron automation', () => {
   it('reaches iron automation from a real iron-only start while funding the original workshop and veranda', () => {
     const w = createPetesWorld()
     expect(placeIron(w, 26, 18)).toBeNull()
-    until(w, () => w.homestead!.expansion.miner !== null, 1800000)
+    until(w, () => w.homestead!.expansion.miner !== null && w.workshopProject?.phase === 'complete' && w.verandaProject?.phase === 'complete', 1800000)
     expect(w.workshopProject?.phase).toBe('complete')
     expect(w.verandaProject?.phase).toBe('complete')
     expect(w.personality.paths.craftsman.level).toBeGreaterThanOrEqual(3)

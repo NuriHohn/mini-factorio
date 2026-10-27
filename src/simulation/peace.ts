@@ -1,5 +1,5 @@
 import { advanceRebuilding } from './rebuilding'
-import { advanceHomestead, createHomestead } from './homestead'
+import { advanceHomestead, createHomestead, HOMESTEAD_REST_INTERVAL_MS } from './homestead'
 import { advanceMiniFactory } from './petesWorld'
 import { beginDevelopmentWork, developmentDecision, finishDevelopment, refreshDevelopment } from './peteDevelopments'
 import { beginLeisureWork, finishLeisure, leisureDecision, leisureSpot, refreshLeisure } from './peteLeisure'
@@ -57,7 +57,7 @@ function random(world: World): number {
   return p.seed / 4294967296
 }
 function scheduleGift(world: World): void {
-  world.peace.nextGiftAtMs = world.timeMs + GIFT_MIN_MS + Math.floor(random(world) * ((GIFT_MAX_MS - GIFT_MIN_MS) / 50 + 1)) * 50
+  world.peace.nextGiftAtMs = world.timeMs + (GIFT_MIN_MS + Math.floor(random(world) * ((GIFT_MAX_MS - GIFT_MIN_MS) / 50 + 1)) * 50) * (world.homestead ? 2 : 1)
 }
 function reserved(world: World, tile: number): boolean {
   return world.buildings.some(b => b?.kind === 'prison' && b.exit === tile)
@@ -192,7 +192,7 @@ function move(world: World, delta: number): void {
 }
 function spawnGift(world: World): void {
   const s = world.peace
-  if (s.gifts.length >= MAX_GIFTS || s.nextId === Number.MAX_SAFE_INTEGER) return
+  if (s.gifts.length >= (world.homestead ? 2 : MAX_GIFTS) || s.nextId === Number.MAX_SAFE_INTEGER) return
   const tiles = localTiles(world, reachableTiles(world, world.pete.tile)).filter(i => i !== world.pete.tile && i !== world.pete.next && !s.gifts.some(g => g.tile === i))
   if (!tiles.length) return
   const tile = tiles[Math.floor(random(world) * tiles.length)], flowers = random(world) < 1 / 3
@@ -233,8 +233,8 @@ function homesteadDaily(world: World): boolean {
   if (!h || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling || world.leisure?.carried) return false
   if (world.timeMs >= h.nextRestAtMs && world.buildings[world.peace.home!]?.kind === 'treehouse') { activity(world, 'homeward'); return true }
   const egg = reachableEgg(world)
-  if (egg !== null && world.timeMs - eggAt(world, egg)!.laidAtMs >= 60000) { activity(world, 'eggward', 0, egg); return true }
-  const fire = world.poultry && world.poultry.collected - world.poultry.eaten >= 2 ? reachableCampfire(world) : null
+  if (egg !== null && world.timeMs - eggAt(world, egg)!.laidAtMs >= 180000) { activity(world, 'eggward', 0, egg); return true }
+  const fire = world.poultry && world.poultry.collected - world.poultry.eaten >= 4 ? reachableCampfire(world) : null
   if (fire !== null) { activity(world, 'campfireward', 0, fire); return true }
   return false
 }
@@ -248,17 +248,20 @@ function nextActivity(world: World): void {
   }
   if (!committed?.carried && committed?.phase !== 'building' && homesteadDaily(world)) return
   if (world.homestead && random(world) < .5 && advanceHomestead(world, 0, true)) return
+  if (world.homestead && tryConstruction(world)) return
   if (world.developmentLife && committed?.phase !== 'building' && !committed?.carried) {
     const overdue = developmentDecision(world, true)
     if (overdue) { activity(world, overdue.activity, 0, overdue.destination); return }
   }
-  if (tryConstruction(world)) return
+  if (!world.homestead && tryConstruction(world)) return
+  const practice = world.homestead && world.personality.paths.craftsman.level >= 3 && world.workshopProject && world.timeMs >= (world.workshopProject.readyAtMs ?? 0) ? workshopSpot(world) : null
+  if (practice !== null) { activity(world, 'workshopward', 0, practice); return }
   if (world.homestead && advanceHomestead(world, 0, true)) return
   const development = (world.orchardProject || world.bicycleProject || world.mechanicProject || world.nurseryProject || world.winchProject || world.houseProject) && random(world) < .4 ? developmentDecision(world) : null
   if (development) { activity(world, development.activity, 0, development.destination); return }
   const leisure = leisureDecision(world)
   if (leisure) { activity(world, leisure.activity, 0, leisure.destination); return }
-  if (random(world) < .2) { activity(world, 'homeward'); return }
+  if (random(world) < (world.homestead ? .03 : .2)) { activity(world, 'homeward'); return }
   const press = pressReady(world) ? pressSpot(world) : null
   if (press !== null && random(world) < .25) { activity(world, 'pressward', 0, press); return }
   const experiment = experimentSpot(world)
@@ -354,7 +357,7 @@ export function advancePeace(world: World, delta: number): void {
     else if (s.activity === 'cooking') { if (finishCooking(world)) activity(world, 'campfireHappy', CAMPFIRE_HAPPY_MS); else activity(world, 'homeward') }
     else if (s.activity === 'collectingEgg') { collectEgg(world); nextActivity(world) }
     else if (s.activity === 'entering') {
-      if (world.homestead) world.homestead.nextRestAtMs = world.timeMs + 180000
+      if (world.homestead) world.homestead.nextRestAtMs = world.timeMs + HOMESTEAD_REST_INTERVAL_MS
       activity(world, hasVeranda(world) && random(world) < .25 ? 'verandaRest' : 'resting', VERANDA_REST_MS)
     }
     else if (s.activity === 'resting' || s.activity === 'verandaRest') {

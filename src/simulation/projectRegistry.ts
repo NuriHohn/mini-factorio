@@ -49,11 +49,13 @@ export function projectUnlocked(world: World, definition: ProjectDefinition): bo
 export function homesteadProjectDelay(world: World, id: ProjectDefinition['id']): string | null {
   const h = world.homestead
   if (!h) return null
-  if ((id === 'orchard' || id === 'nursery') && world.yard && world.yard.phase !== 'complete') return 'Ich schließe zuerst den geplanten Hofzaun. Danach folgen Obstgarten und Baumschule.'
+  if ((id === 'orchard' || id === 'nursery') && !world.yard && [world.coopProject, world.campfireProject, world.gardenProject].some(p => p?.phase !== 'complete')) return 'Ich reserviere zuerst den Platz für Garten, Hühnerstall und Hof. Danach kann ich den Obstgarten parallel zu den Zaunarbeiten bauen.'
   if (id === 'yard' || id === 'run') {
     if (world.gardenProject?.phase !== 'complete') return 'Ich baue zuerst meinen Garten. Danach erweitere ich die Zäune.'
     const store = h.store === null ? null : world.buildings[h.store]
     if (h.millBuilt === 3 && store?.kind === 'supplyCrate' && store.storeTier === 0) return 'Ich sammle kurz Holz für das Lagerdach. Bereits bezahlte Zaunabschnitte baue ich fertig.'
+    if (world.personality.paths.eco.level >= 3 && world.orchardProject?.phase !== 'complete' && store?.kind === 'supplyCrate' && store.wood < 20) return 'Ich spare 18 Holz für den Obstgarten. Neue Zaunabschnitte folgen mit zusätzlichem Holz; bezahlte Arbeit bleibt erhalten.'
+    if (world.personality.paths.eco.level >= 3 && h.expansion.assembler === null && store?.kind === 'supplyCrate' && store.wood < 14) return 'Ich halte zwölf Holz für Sägewerk und Produktionsausbau zurück. Zusätzliche Vorräte finanzieren neue Zaunabschnitte.'
   }
   if (id === 'gardenCare' || id === 'reforestation') {
     const stock = world.buildings.reduce((n, b) => n + (b?.kind === 'supplyCrate' && b.storeTier !== undefined ? b.wood : 0), 0)

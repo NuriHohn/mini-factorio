@@ -120,7 +120,7 @@ Garden care grows one Eco-only chicken-feed portion (up to four stored at the ga
 At Eco level 2, Pete can fell nearby fully grown trees and carry **3 Wood** to a Supply Crate after six seconds of chopping. Delivery earns **3 Eco XP**, with two minutes between harvests. Young trees remain untouched; returned Wood can fund reforestation and other Eco projects.
 
 
-Use Pause/×1/×2/×4 above the world to control the whole game's pace. After his gate, Eco level 2 Pete can build a separate chicken outdoor run, and sometimes covers the coop before resting and removes the cover afterward. See [outdoor run](docs/GAME_DESIGN.md#chicken-outdoor-run-sprint-1621), [coop cover](docs/GAME_DESIGN.md#occasional-coop-cover-sprint-1622) and [game speed](docs/GAME_DESIGN.md#game-speed-sprint-1623).
+Use Pause/×1/×2/×4/×8/×16 above the world to control the whole game's pace. After his gate, Eco level 2 Pete can build a separate chicken outdoor run, and sometimes covers the coop before resting and removes the cover afterward. See [outdoor run](docs/GAME_DESIGN.md#chicken-outdoor-run-sprint-1621), [coop cover](docs/GAME_DESIGN.md#occasional-coop-cover-sprint-1622) and [game speed](docs/GAME_DESIGN.md#game-speed-sprint-1623).
 
 
 ## Collecting, flying and touch controls
@@ -138,7 +138,7 @@ With no selected tool, click a tree on PC to chop it (axe cursor); in Petes Welt
 
 In **Petes Welt**, explicitly choose **Ressource entfernen** to clear a resource tile without yield, or **Remove building (X)** to demolish a building and discard its contents. Pete can pay for missing parts and rebuild them autonomously, preserving other projects and once-only rewards. Touch requires confirmation. See [removal and rebuilding](docs/GAME_DESIGN.md#removal-and-rebuilding-in-petes-welt-maintenance-b) for costs, lost host upgrades, store bootstrap and peaceful home reconstruction.
 
-New **Petes Welt** games include natural waterways outside the dry home clearing. Use **Create Water** / **Restore Land** and the shared brush sizes to shape your own ponds and channels. Existing saved terrain stays unchanged when loading; older dry worlds can be landscaped with those tools too. Petes Welt no longer has a separate Axe button. See [water editing](docs/GAME_DESIGN.md#water-editing-in-petes-welt).
+New **Petes Welt** games include natural waterways and a small pond visible near the treehouse; the central work area stays dry. Use **Create Water** / **Restore Land** and the shared brush sizes to shape your own ponds and channels. Existing saved terrain stays unchanged when loading; older dry worlds can be landscaped with those tools too. Petes Welt no longer has a separate Axe button. See [water editing](docs/GAME_DESIGN.md#water-editing-in-petes-welt).
 
 Petes Welt now supports the resource-led copper-to-flight route and an independent coal start (Sprints 16.68–16.72): automatic copper mining, actual circuit assembly, practice/scenic flights, personal coal deliveries and a coal-fired closed-loop steam engine. See [progression and accounting](docs/GAME_DESIGN.md#copper-flight-and-coal-steam-progression-sprints-1668-1672).
 

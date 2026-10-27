@@ -14,7 +14,7 @@ export function finishWorkshop(world: World): boolean {
   const project = world.workshopProject, peace = world.peace
   if (!project || peace.home === null || peace.activity !== 'hammering' || world.timeMs < peace.untilMs || world.timeMs < project.readyAtMs! || world.pete.next !== null || workshopSpot(world) !== world.pete.tile || peace.destination !== world.pete.tile) return false
   project.readyAtMs = world.timeMs + WORKSHOP_COOLDOWN_MS
-  awardActivity(world.personality, { path: 'craftsman', xp: 3 })
+  awardActivity(world.personality, { path: 'craftsman', xp: world.homestead && world.personality.paths.craftsman.level >= 3 ? 5 : 3 })
   return true
 }
 export function refreshWorkshop(world: World): void {

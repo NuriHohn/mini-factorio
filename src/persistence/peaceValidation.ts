@@ -34,7 +34,7 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
   const boat = Object.hasOwn(s, 'boat') ? restoreRowboat(s.boat, world, destination, sinceMs, untilMs) : undefined
   if ((activity === 'boating') !== !!boat) v.invalid('peace.boat', 'boat and activity disagree')
   const nextProjectCheckAtMs = version >= 26 ? clock(s.nextProjectCheckAtMs, 'nextProjectCheckAtMs', world.timeMs + PROJECT_CHECK_MS) : 0
-  const nextGiftAtMs = clock(s.nextGiftAtMs, 'nextGiftAtMs', world.timeMs + (version >= 26 ? GIFT_MAX_MS : 600000))
+  const nextGiftAtMs = clock(s.nextGiftAtMs, 'nextGiftAtMs', world.timeMs + (version >= 26 ? GIFT_MAX_MS * (world.miniFactory ? 2 : 1) : 600000))
   const nextId = v.number(s.nextId, 'peace.nextId', 1, Number.MAX_SAFE_INTEGER, true)
   let previous = 0
   const occupied = new Set<number>()

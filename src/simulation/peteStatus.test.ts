@@ -4,8 +4,34 @@ import { createBareWorld } from './testFixtures'
 import { placeBuilding } from './world'
 import type { SupplyCrate } from './world'
 import { useGameStore } from '../state/gameStore'
+import { createPetesWorld } from './petesWorld'
+import { awardActivity, PERSONALITY_PATHS } from './personality'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { createElement } from 'react'
+import { PeteInspection } from '../game/PeteInspection'
 function world() { const w = createBareWorld(() => .5); w.nature.wood = 100; placeBuilding(w, 20, 20, 'treehouse', 'east'); placeBuilding(w, 24, 20, 'supplyCrate', 'east'); return w }
 describe('Pete project inspection', () => {
+  it('retains ready cross-path wishes in Factory', () => {
+    const w = world(), crate = w.buildings[824] as SupplyCrate
+    crate.inventory.ironPlate = 12
+    expect(w.personality.dominant).toBe('eco')
+    expect(peteStatus(w).wish?.id).toBe('workshop')
+  })
+  it('groups projects and actual automation by path, with Craftsman wishes independent of missing Eco Wood', () => {
+    const w = createPetesWorld()
+    awardActivity(w.personality, { path: 'craftsman', xp: 80 })
+    const before = structuredClone(w), status = peteStatus(w)
+    expect(status.wish?.path).toBe('craftsman')
+    expect(status.projects.find(p => p.id === 'fence')?.path).toBe('eco')
+    expect(status.projects.find(p => p.name === 'Erzförderer')?.path).toBe('craftsman')
+    expect(status.projects.find(p => p.name === 'Sägewerk')?.path).toBe('eco')
+    const paths = status.projects.map(p => PERSONALITY_PATHS.indexOf(p.path!))
+    expect(paths).toEqual([...paths].sort((a, b) => a - b))
+    const html = renderToStaticMarkup(createElement(PeteInspection, { status }))
+    for (const path of ['Eco', 'Craftsman', 'Inventor', 'Industrial']) expect(html).toContain(`aria-label="${path} projects"`)
+    expect(html.indexOf('Eco projects')).toBeLessThan(html.indexOf('Craftsman projects'))
+    expect(w).toEqual(before)
+  })
   it('reports exact shortages in one reachable crate, prerequisites and path levels without changing the world', () => {
     const w = world(), crate = w.buildings[824] as SupplyCrate
     crate.wood = 2; crate.inventory.copperPlate = 8; crate.inventory.copperCable = 3

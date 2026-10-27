@@ -83,7 +83,7 @@ it('migrates a real version-42 rest deadline without altering its stock or paid 
   expect(loaded.homestead!.nextRestAtMs).toBe(w.timeMs + 180000)
   expect(loaded.homestead!.carried).toEqual(w.homestead!.carried)
   expect(materialStore(loaded)).toEqual(materialStore(w))
-  const malformed = snapshot(w); malformed.game.homestead.nextRestAtMs = w.timeMs + 180050
+  const malformed = snapshot(w); malformed.game.homestead.nextRestAtMs = w.timeMs + 360050
   expect(() => decodeSave(JSON.stringify(malformed))).toThrow()
 })
 

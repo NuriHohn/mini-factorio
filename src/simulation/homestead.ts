@@ -28,8 +28,9 @@ export interface Homestead {
   millBuilt: number
   expansion: HomesteadExpansion
 }
+export const HOMESTEAD_REST_INTERVAL_MS = 360000
 export function createHomestead(): Homestead {
-  return { store: null, task: null, target: null, treeBornAtMs: null, carried: emptyInventory(), elapsedMs: 0, nextAtMs: 0, nextRestAtMs: 180000, millAnchor: null, millBuilt: 0, expansion: createExpansion() }
+  return { store: null, task: null, target: null, treeBornAtMs: null, carried: emptyInventory(), elapsedMs: 0, nextAtMs: 0, nextRestAtMs: HOMESTEAD_REST_INTERVAL_MS, millAnchor: null, millBuilt: 0, expansion: createExpansion() }
 }
 export function materialStore(world: World): SupplyCrate | null {
   const tile = world.homestead?.store, b = tile === null || tile === undefined ? null : world.buildings[tile]
@@ -83,7 +84,7 @@ export function begin(world: World, task: HomeTask, target: number | null): void
 }
 export function finish(world: World): void {
   const s = world.homestead!, p = world.pete
-  s.task = null; s.target = null; s.elapsedMs = 0; s.treeBornAtMs = null; s.nextAtMs = world.timeMs + 10000
+  s.task = null; s.target = null; s.elapsedMs = 0; s.treeBornAtMs = null; s.nextAtMs = world.timeMs + 5000
   Object.assign(p, { next: null, travelMs: 0, path: [], pathRevision: -1, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
   Object.assign(world.peace, { activity: 'walking', sinceMs: world.timeMs, untilMs: world.timeMs, destination: null })
 }
