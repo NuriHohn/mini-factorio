@@ -259,7 +259,7 @@ describe('paid water access', () => {
 it('upgrades genuine Save 47 and rejects new or malformed state in detached candidates', () => {
   const w = stored(), old = snapshot(w)
   old.version = 47
-  for (const key of ['cargoBicycle', 'bikeTile', 'waterworks']) delete old.game.homestead[key]
+  for (const key of ['infrastructure', 'cargoBicycle', 'bikeTile', 'waterworks']) delete old.game.homestead[key]
   delete old.game.homestead.expansion.gearAssembler
   const restored = decodeSave(JSON.stringify(old)).world
   expect(restored.homestead!.cargoBicycle).toBe(false)

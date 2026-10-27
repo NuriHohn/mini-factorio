@@ -1,3 +1,4 @@
+import { connectionRunning } from './infrastructure'
 import { arrived, begin, finish, materialStore } from './homestead'
 import { planChain } from './homesteadExpansion'
 import { inventoryTotal } from './items'
@@ -23,9 +24,9 @@ export function chooseCraftsman(world: World): boolean {
   }
   const machine = e.gearAssembler === null ? null : world.buildings[e.gearAssembler]
   if (machine?.kind !== 'assembler' || store.inventory.ironGear >= 12) return false
-  if (machine.output.ironGear && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeGear', e.gearAssembler); return true }
+  if (!connectionRunning(world, 'gearReturn') && machine.output.ironGear && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeGear', e.gearAssembler); return true }
   const reserve = world.verandaProject?.phase !== 'complete' ? 20 : bike?.phase !== 'complete' ? 24 : !h.cargoBicycle ? 12 : 2
-  if (!machine.job && machine.input.ironPlate < 2 && store.inventory.ironPlate >= reserve + 2) { begin(world, 'fetchGear', h.store); return true }
+  if (!connectionRunning(world, 'gearFeed') && !machine.job && machine.input.ironPlate < 2 && store.inventory.ironPlate >= reserve + 2) { begin(world, 'fetchGear', h.store); return true }
   return false
 }
 export function advanceCraftsman(world: World, delta: number): boolean {

@@ -7,7 +7,12 @@ export function neighboringTiles(tile: number): number[] {
   return [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]].filter(([a, b]) => inside(a, b)).map(([a, b]) => b * SIZE + a)
 }
 export function walkableTile(world: World, tile: number, peteGates = false): boolean {
+  if (peteGates && serviceCrossing(world, tile)) return true
   return tile >= 0 && tile < SIZE * SIZE && (world.water[tile] && world.buildings[tile]?.kind === 'footbridge' || (!world.water[tile] && (!world.buildings[tile] || (world.buildings[tile]?.kind === 'peteFence' && world.chickenRun?.tiles.slice(0, world.chickenRun.built).includes(tile)) || (world.buildings[tile]?.kind === 'peteGate' && (peteGates || world.buildings[tile].openMs === GATE_OPEN_MS)))))
+}
+export function serviceCrossing(world: World, tile: number): boolean {
+  const s = world.homestead?.infrastructure, b = world.buildings[tile]
+  return !!s && !world.water[tile] && (b?.kind === 'belt' || b?.kind === 'inserter') && [...s.links, ...(s.plan ? [s.plan] : [])].some(link => link.parts.some(p => p.tile === tile && p.kind === b.kind))
 }
 export function reachableTiles(world: World, start: number, footbridges = true, peteGates = false): Map<number, number> {
   const queue = [start], parents = new Map<number, number>([[start, -1]])

@@ -1,8 +1,9 @@
+import { restoreInfrastructure, validateInfrastructureTask } from './infrastructureValidation'
 import { restoreWaterworks } from './shorelineValidation'
 import { shoreTiles, shoreCost } from '../simulation/shoreline'
 import { peteWalkableTile } from '../simulation/navigation'
 import { INDUSTRIAL_CHAINS } from '../simulation/industrialRules'
-import { HOMESTEAD_REST_INTERVAL_MS, HOME_TASKS, NEW_HOME_TASKS } from '../simulation/homestead'
+import { HOMESTEAD_REST_INTERVAL_MS, HOME_TASKS, NEW_HOME_TASKS, INFRASTRUCTURE_TASKS } from '../simulation/homestead'
 import { CHAIN_KINDS, chainCost, createExpansion, expansionLayout, IMPROVEMENTS, IMPROVEMENT_RULES } from '../simulation/homesteadExpansion'
 import type { HomesteadExpansion } from '../simulation/homesteadExpansion'
 import type { Homestead } from '../simulation/homestead'
@@ -14,29 +15,29 @@ import * as v from './validation'
 
 export function restoreHomestead(value: unknown, world: World, version: number): Homestead {
   if (!world.miniFactory || world.peace.home === null) v.invalid('homestead', 'requires Petes Welt and a home')
-  const r = v.object(value, 'homestead', ['store', 'task', 'target', ...(version >= 48 ? ['cargoBicycle', 'bikeTile', 'waterworks'] : []), 'treeBornAtMs', 'carried', 'elapsedMs', 'nextAtMs', 'millAnchor', 'millBuilt', ...(version >= 43 ? ['nextRestAtMs'] : []), ...(version >= 41 ? ['expansion'] : [])])
+  const r = v.object(value, 'homestead', ['store', 'task', 'target', ...(version >= 49 ? ['infrastructure'] : []), ...(version >= 48 ? ['cargoBicycle', 'bikeTile', 'waterworks'] : []), 'treeBornAtMs', 'carried', 'elapsedMs', 'nextAtMs', 'millAnchor', 'millBuilt', ...(version >= 43 ? ['nextRestAtMs'] : []), ...(version >= 41 ? ['expansion'] : [])])
   const expansion = version < 41 ? createExpansion() : restoreExpansion(r.expansion, world, version)
   const nullableTile = (key: string) => r[key] === null ? null : v.tile(r[key], `homestead.${key}`)
   const store = nullableTile('store'), target = nullableTile('target'), millAnchor = nullableTile('millAnchor')
-  const task = r.task === null ? null : v.choice(r.task, 'homestead.task', (version >= 46 ? HOME_TASKS : version >= 42 ? HOME_TASKS.filter(t => !['fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam'].includes(t)) : HOME_TASKS.filter(t => !['fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam', 'mineCopper', 'fetchCopper', 'feedCopper', 'takeCopper', 'fetchCable', 'feedCable', 'takeCable'].includes(t))).filter(t => version >= 47 || !['takeCoal', 'fetchStamp', 'feedStamp', 'takeBriquettes', 'fetchFuel', 'storeFuel'].includes(t)).filter(t => version >= 48 || !NEW_HOME_TASKS.some(n => n === t)))
+  const task = r.task === null ? null : v.choice(r.task, 'homestead.task', (version >= 46 ? HOME_TASKS : version >= 42 ? HOME_TASKS.filter(t => !['fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam'].includes(t)) : HOME_TASKS.filter(t => !['fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam', 'mineCopper', 'fetchCopper', 'feedCopper', 'takeCopper', 'fetchCable', 'feedCable', 'takeCable'].includes(t))).filter(t => version >= 47 || !['takeCoal', 'fetchStamp', 'feedStamp', 'takeBriquettes', 'fetchFuel', 'storeFuel'].includes(t)).filter(t => version >= 48 || !NEW_HOME_TASKS.some(n => n === t)).filter(t => version >= 49 || !INFRASTRUCTURE_TASKS.some(n => n === t)))
   const cargoBicycle = version >= 48 ? v.boolean(r.cargoBicycle, 'homestead.cargoBicycle') : false
   const bikeTile = version < 48 || r.bikeTile === null ? null : v.tile(r.bikeTile, 'homestead.bikeTile')
   const waterworks = version >= 48 ? restoreWaterworks(r.waterworks, world) : { plan: null, bridges: [], dock: null, nextVisitAtMs: 0, preferBoat: true }
-  if ((!cargoBicycle && bikeTile !== null) || (bikeTile !== null && !peteWalkableTile(world, bikeTile))) v.invalid('homestead.bikeTile', 'invalid parked cargo bicycle')
+  if ((!cargoBicycle && bikeTile !== null) || (bikeTile !== null && !peteWalkableTile(world, bikeTile) && !(version >= 49 && ['belt', 'inserter'].includes(world.buildings[bikeTile]?.kind ?? '')))) v.invalid('homestead.bikeTile', 'invalid parked cargo bicycle')
   if (cargoBicycle && world.bicycleProject?.phase !== 'complete') v.invalid('homestead.cargoBicycle', 'requires the original bicycle')
   if (cargoBicycle && bikeTile === null && task === null && !['cycling', 'dismounting'].includes(world.peace.activity)) v.invalid('homestead.bikeTile', 'missing parked bicycle')
-  const carried = v.inventory(r.carried, 'homestead.carried'), elapsedMs = v.count(r.elapsedMs, 'homestead.elapsedMs', task === 'buildBridge' ? 20000 : task === 'buildDock' || task === 'upgradeBicycle' || task === 'expandStore' || task === 'improve' ? 8000 : task === 'buildMill' || task === 'buildChain' ? 4000 : 6000)
+  const carried = v.inventory(r.carried, 'homestead.carried'), elapsedMs = v.count(r.elapsedMs, 'homestead.elapsedMs', task === 'buildBridge' ? 20000 : task === 'finishOrder' || task === 'buildDock' || task === 'upgradeBicycle' || task === 'expandStore' || task === 'improve' ? 8000 : task === 'buildConnection' || task === 'buildWheel' || task === 'buildMill' || task === 'buildChain' ? 4000 : 6000)
   const nextAtMs = v.count(r.nextAtMs, 'homestead.nextAtMs', world.timeMs + 10000), millBuilt = v.count(r.millBuilt, 'homestead.millBuilt', 3)
   const nextRestAtMs = version < 43 ? world.timeMs + 180000 : v.count(r.nextRestAtMs, 'homestead.nextRestAtMs', world.timeMs + HOMESTEAD_REST_INTERVAL_MS)
   if (nextRestAtMs % 50) v.invalid('homestead.nextRestAtMs', 'invalid rest deadline')
   const treeBornAtMs = r.treeBornAtMs === null ? null : v.number(r.treeBornAtMs, 'homestead.treeBornAtMs', -MATURE_TREE_MS, world.timeMs - MATURE_TREE_MS, true)
   const bridgeRefund = version >= 48 && task === 'returnStock' && waterworks.bridges.length > 0 && inventoryTotal(carried) === carried.wood
-  if (elapsedMs % 50 || nextAtMs % 50 || (treeBornAtMs !== null && treeBornAtMs % 50) || ITEMS.some(i => !['ironGear', 'wood', 'woodPanel', 'woodenCrate', 'iron', 'ironPlate', 'copper', 'copperPlate', 'copperCable', 'electronicCircuit', 'coal', 'coalBriquette'].includes(i) && carried[i]) || carried.coalBriquette > 2 || carried.coal > 6 || carried.wood > (task === 'buildBridge' || bridgeRefund ? 15 : 12) || carried.woodPanel > 12 || carried.woodenCrate > 4 || carried.iron > 6 || carried.ironPlate > (task === 'upgradeBicycle' ? 12 : 8) || carried.ironGear > (task === 'upgradeBicycle' ? 6 : 2) || carried.copper > 6 || carried.copperPlate > 8 || carried.copperCable > 3 || carried.electronicCircuit > 2 || (ITEMS.filter(i => carried[i] > 0).length > 1 && task !== 'upgradeBicycle' && !(task === 'buildChain' && expansion.plan?.kind === 'forestry') && !((task === 'feedCircuits' || task === 'returnStock') && inventoryTotal(carried) === carried.ironPlate + carried.copperCable && carried.ironPlate <= 1))) v.invalid('homestead', 'invalid carried stock or clock')
+  if (elapsedMs % 50 || nextAtMs % 50 || (treeBornAtMs !== null && treeBornAtMs % 50) || ITEMS.some(i => !['ironGear', 'wood', 'woodPanel', 'woodenCrate', 'iron', 'ironPlate', 'copper', 'copperPlate', 'copperCable', 'electronicCircuit', 'coal', 'coalBriquette'].includes(i) && carried[i]) || carried.coalBriquette > 2 || carried.coal > 6 || carried.wood > (task === 'buildBridge' || bridgeRefund ? 15 : 12) || carried.woodPanel > 12 || carried.woodenCrate > 4 || carried.iron > 6 || carried.ironPlate > (task === 'upgradeBicycle' ? 12 : 8) || carried.ironGear > (task === 'upgradeBicycle' ? 6 : task === 'finishOrder' ? 4 : 2) || carried.copper > 6 || carried.copperPlate > 8 || carried.copperCable > 3 || carried.electronicCircuit > 2 || (ITEMS.filter(i => carried[i] > 0).length > 1 && task !== 'upgradeBicycle' && task !== 'finishOrder' && !(task === 'buildChain' && expansion.plan?.kind === 'forestry') && !((task === 'feedCircuits' || task === 'returnStock') && inventoryTotal(carried) === carried.ironPlate + carried.copperCable && carried.ironPlate <= 1))) v.invalid('homestead', 'invalid carried stock or clock')
   if (version < 48 && carried.ironGear) v.invalid('homestead.carried', 'legacy routine cannot carry gears')
   if (task === 'upgradeBicycle' && (cargoBicycle || target !== world.bicycleProject?.tiles[0] || (inventoryTotal(carried) > 0 && (carried.ironPlate !== 12 || carried.ironGear !== 6 || inventoryTotal(carried) !== 18)) || (elapsedMs > 0 && inventoryTotal(carried) !== 18))) v.invalid('homestead', 'invalid paid cargo bicycle upgrade')
   if (['fetchGear', 'takeGear'].includes(task ?? '') && (inventoryTotal(carried) || target !== (task === 'fetchGear' ? store : expansion.gearAssembler))) v.invalid('homestead', 'invalid gear pickup')
   if (task === 'feedGear' && (carried.ironPlate < 1 || carried.ironPlate > 2 || inventoryTotal(carried) !== carried.ironPlate || target !== expansion.gearAssembler)) v.invalid('homestead', 'invalid gear ingredient delivery')
-  if (carried.ironGear && !['upgradeBicycle', 'returnStock'].includes(task ?? '')) v.invalid('homestead.carried', 'gear cargo requires a delivery')
+  if (carried.ironGear && !['finishOrder', 'upgradeBicycle', 'returnStock'].includes(task ?? '')) v.invalid('homestead.carried', 'gear cargo requires a delivery')
   const shore = waterworks.plan
   if (task === 'buildBridge' || task === 'buildDock') {
     if (!shore || (task === 'buildBridge') !== (shore.kind === 'bridge') || target !== (shore.kind === 'bridge' ? shore.start : shore.tile) || inventoryTotal(carried) !== carried.wood || (carried.wood > 0 && carried.wood < shoreCost(world, shore)) || (elapsedMs > 0 && !carried.wood) || (shore.kind === 'bridge' && shoreTiles(shore).some(t => !world.water[t]))) v.invalid('homestead', 'invalid paid shoreline construction')
@@ -81,7 +82,12 @@ export function restoreHomestead(value: unknown, world: World, version: number):
     if (inventoryTotal(carried) && (carried[rule.item] !== rule.amount || inventoryTotal(carried) !== rule.amount)) v.invalid('homestead', 'invalid improvement funding')
     if (elapsedMs && !inventoryTotal(carried)) v.invalid('homestead', 'unfunded improvement work')
   } else if (expansion.improvement) v.invalid('homestead', 'improvement without active work')
-  return { cargoBicycle, bikeTile, waterworks, store, target, task, treeBornAtMs, carried, elapsedMs, nextAtMs, millAnchor, millBuilt, nextRestAtMs, expansion }
+  const infrastructure = restoreInfrastructure(r.infrastructure, world, version, store, expansion)
+  const restored = { infrastructure, cargoBicycle, bikeTile, waterworks, store, target, task, treeBornAtMs, carried, elapsedMs, nextAtMs, millAnchor, millBuilt, nextRestAtMs, expansion }
+  world.homestead = restored
+  if (bikeTile !== null && !peteWalkableTile(world, bikeTile)) v.invalid('homestead.bikeTile', 'parking on an unowned transport component')
+  validateInfrastructureTask(restored, world)
+  return restored
 }
 
 function restoreExpansion(value: unknown, world: World, version: number): HomesteadExpansion {

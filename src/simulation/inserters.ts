@@ -1,3 +1,4 @@
+import { infrastructurePickupAllowed, ownedStorePickup } from './infrastructure'
 import { forestryOutput } from './forestryStation'
 import { splitterDirections } from './splitters'
 import { emptyInventory, ITEMS } from './items'
@@ -31,6 +32,7 @@ function sourceCount(source: Building, inserter: Inserter, item: Item, requireRe
     }
     case 'peteDevelopment': return item === 'mechanicModule' ? source.modules : 0
     case 'petePress': return item === 'ironPlate' ? source.plates : 0
+    case 'supplyCrate': return world && ownedStorePickup(world, inserter.y * SIZE + inserter.x) ? source.inventory[item] : 0
     case 'fuelDepot': case 'storage': return source.inventory[item]
     case 'belt': return source.item === item && (!requireReady || source.progress >= 1 - 1e-8) ? 1 : 0
     case 'miner': return source.direction === inserter.direction && source.item === item ? 1 : 0
@@ -68,7 +70,7 @@ function accepts(target: Building | null, item: Item, inserter: Inserter, frame?
 function pickupCandidate(world: World, inserter: Inserter, frame?: InserterFrame): Item | null {
   const { source, target } = neighbors(world, inserter)
   if (!source) return null
-  return ITEMS.find(item => sourceCount(source, inserter, item, true, world) > 0
+  return ITEMS.find(item => infrastructurePickupAllowed(world, inserter.y * SIZE + inserter.x, item) && sourceCount(source, inserter, item, true, world) > 0
     && (!frame || (frame.sources.get(source)?.[item] ?? 0) > 0)
     && accepts(target, item, inserter, frame)) ?? null
 }
@@ -98,7 +100,7 @@ function pickup(world: World, inserter: Inserter, frame: InserterFrame): void {
     }
     case 'peteDevelopment': source.modules--; break
     case 'petePress': source.plates--; break
-    case 'fuelDepot': case 'storage': source.inventory[item]--; break
+    case 'supplyCrate': case 'fuelDepot': case 'storage': source.inventory[item]--; break
     case 'forester':
     case 'sawmill':
     case 'furnace':

@@ -1,6 +1,6 @@
 import { inventoryTotal } from './items'
 import { treeStage } from './nature'
-import { neighboringTiles, peteReachableTiles, tilePath } from './navigation'
+import { neighboringTiles, peteReachableTiles, serviceCrossing, tilePath } from './navigation'
 import { projectPlansConflict } from './secretProject'
 import type { SecretProject } from './secretProject'
 import { supplyCapacity } from './supplyCrate'
@@ -12,7 +12,7 @@ export const HARVEST_XP = 3
 export const HARVEST_WOOD = 3
 export function woodDestination(world: World): { crate: number; spot: number } | null {
   const paths = peteReachableTiles(world, world.pete.tile)
-  const options = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && b.wood + inventoryTotal(b.inventory) + HARVEST_WOOD <= supplyCapacity(b) ? neighboringTiles(crate).filter(spot => paths.has(spot) && !world.water[spot] && !world.buildings[spot] && !world.buildings.some(p => p?.kind === 'prison' && p.exit === spot)).map(spot => ({ crate, spot })) : [])
+  const options = world.buildings.flatMap((b, crate) => b?.kind === 'supplyCrate' && b.wood + inventoryTotal(b.inventory) + HARVEST_WOOD <= supplyCapacity(b) ? neighboringTiles(crate).filter(spot => paths.has(spot) && !world.water[spot] && (!world.buildings[spot] || serviceCrossing(world, spot)) && !world.buildings.some(p => p?.kind === 'prison' && p.exit === spot)).map(spot => ({ crate, spot })) : [])
   return options.sort((a, b) => tilePath(paths, a.spot)!.length - tilePath(paths, b.spot)!.length || a.crate - b.crate || a.spot - b.spot)[0] ?? null
 }
 export function harvestTreeReady(world: World, project: SecretProject): boolean {
