@@ -1,4 +1,4 @@
-import { peteReachableTiles } from './navigation'
+import { peteReachableTiles, serviceCrossing } from './navigation'
 import { awardActivity } from './personality'
 import type { World } from './world'
 import { SIZE } from './world'
@@ -7,7 +7,7 @@ export const EXPERIMENT_ACTIVITY_MS = 5000
 export const EXPERIMENT_COOLDOWN_MS = 60000
 export function experimentSpot(world: World): number | null {
   const project = world.experimentProject
-  if (project?.phase !== 'complete' || world.buildings[project.tiles[0]]?.kind !== 'peteExperiment' || world.water[project.spots[0]] || world.buildings[project.spots[0]]) return null
+  if (project?.phase !== 'complete' || world.buildings[project.tiles[0]]?.kind !== 'peteExperiment' || world.water[project.spots[0]] || world.buildings[project.spots[0]] && !serviceCrossing(world, project.spots[0])) return null
   return peteReachableTiles(world, world.pete.tile).has(project.spots[0]) ? project.spots[0] : null
 }
 export function finishExperiment(world: World): boolean {

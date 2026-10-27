@@ -168,12 +168,12 @@ function availableMaterials(world: World, project: SecretProject | null, definit
 }
 export function projectPlansConflict(world: World, project: SecretProject, ignored?: SecretProject, crossings: number[] = []): boolean {
   const e = world.homestead?.expansion
-  if (project.phase === 'collecting' && project.kind && e && [e.furnace, e.gearAssembler].some(tile => tile !== null && project.tiles.some(t => t === tile + 1 || t === tile + 2))) return true
+  if (project.phase === 'collecting' && project.kind && e && [e.furnace, e.gearAssembler, e.copperFurnace, e.cableAssembler].some(tile => tile !== null && project.tiles.some(t => t === tile + 1 || t === tile + 2))) return true
   if (world.rebuilding?.jobs.some(job => project.tiles.slice(project.built).includes(job.tile) || project.spots.slice(project.built).includes(job.tile))) return true
   if (project.kind !== 'gate' && project.tiles.some(i => i === world.yard?.entrance || i === world.chickenRun?.entrance)) return true
   return PETE_PROJECTS.some(({ state }) => {
     const other = world[state]
-    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i) && !(other.kind === 'workshop' && crossings.includes(i)))) return true
+    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i) && !(['workshop', 'experiment'].includes(other.kind ?? '') && crossings.includes(i)))) return true
     return other && other !== project && other !== ignored && other.phase !== 'complete' && (project.tiles.some(i => other.tiles.includes(i) || other.spots.includes(i)) || project.spots.some(i => other.tiles.includes(i)))
   })
 }

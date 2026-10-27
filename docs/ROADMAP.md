@@ -362,3 +362,18 @@ Implemented following the explicit five-sprint implementation and merge request:
 | 16.87 | Three product-funded coop/workshop furnishing stages per path, visible results, real work/XP/cooldown and saved paid continuation |
 
 Save 49 preserves previous worlds. Owned ground logistics support Pete's service crossings and physical bicycle re-parking; new source layouts preserve future ports, while compact existing layouts retain personal delivery fallbacks. Exact costs, gates and limits: [connected supplies and later work](GAME_DESIGN.md#connected-supplies-and-visible-later-work-sprints-1683-1687). Installation/offline 16.38, physical Safari acceptance, pipes and the Pete-free complex Factory edition retain their previous deferred/future status.
+
+
+## Sprints 16.88–16.92 — Later logistics and real loading
+
+Implemented following the explicit implementation and merge request:
+
+| Sprint | Scope |
+| --- | --- |
+| 16.88 | Material/source/destination guidance, actual stop reasons, focus and optional highlighting |
+| 16.89 | Paid copper-to-store transport, quotas, repairs and personal fallback |
+| 16.90 | Paid cable input/return links, actual recipe output, reserves and shared incoming belt merges |
+| 16.91 | Three visible cable/circuit-funded Inventor furnishing stages, saved paid work and cooldown |
+| 16.92 | Actual typed fuel cargo on the existing powered hoist cycle, finite buffers, physical stocking/return and restoration |
+
+[Game design](GAME_DESIGN.md#later-logistics-and-real-loading-sprints-1688-1692) owns exact rules. Save 50 preserves old worlds and paid work. Installation/offline 16.38, physical Safari acceptance, explicit pipes and the Pete-free complex Factory edition retain their prior deferred/future status. Later sprint scope remains a proposal until approved.

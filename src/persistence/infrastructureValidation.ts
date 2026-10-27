@@ -1,5 +1,7 @@
-import { createInfrastructure, LINK_KINDS } from '../simulation/infrastructureRules'
+import { createInfrastructure, LINK_KINDS, copperLink, feedLink } from '../simulation/infrastructureRules'
 import type { Connection, Infrastructure, WheelSite } from '../simulation/infrastructureRules'
+import type { LoadingSite } from '../simulation/infrastructureRules'
+import { loadingParts } from '../simulation/loading'
 import { facing, wheelParts } from '../simulation/infrastructure'
 import { inventoryTotal, ITEMS } from '../simulation/items'
 import type { Homestead } from '../simulation/homestead'
@@ -10,26 +12,29 @@ import * as v from './validation'
 
 export function restoreInfrastructure(value: unknown, world: World, version: number, store: number | null, e: HomesteadExpansion): Infrastructure {
   if (version < 49) return createInfrastructure()
-  const r = v.object(value, 'infrastructure', ['links', 'plan', 'built', 'repair', 'wheel', 'wheelPlan', 'eco', 'craftsman', 'order', 'nextOrderAtMs'])
+  const r = v.object(value, 'infrastructure', [...(version >= 50 ? ['inventor', 'loading', 'loadingPlan', 'loadingCargo'] : []), 'links', 'plan', 'built', 'repair', 'wheel', 'wheelPlan', 'eco', 'craftsman', 'order', 'nextOrderAtMs'])
   function connection(value: unknown): Connection {
-    const p = v.object(value, 'connection', ['kind', 'source', 'target', 'parts'])
-    const kind = v.choice(p.kind, 'connection.kind', LINK_KINDS), source = v.tile(p.source, 'connection.source'), target = v.tile(p.target, 'connection.target')
+    const p = v.object(value, 'connection', ['kind', 'source', 'target', 'parts'], version >= 50 ? ['receiver'] : [])
+    const kind = v.choice(p.kind, 'connection.kind', version >= 50 ? LINK_KINDS : LINK_KINDS.slice(0, 3)), source = v.tile(p.source, 'connection.source'), target = v.tile(p.target, 'connection.target')
     const parts = v.array(p.parts, 'connection.parts', undefined, 21).map(value => {
       const b = v.object(value, 'connection.part', ['tile', 'kind', 'direction'])
       return { tile: v.tile(b.tile, 'connection.tile'), kind: v.choice(b.kind, 'connection.part.kind', ['belt', 'inserter', 'generator', 'powerPole'] as const), direction: v.direction(b.direction, 'connection.direction') }
     })
     if (parts.length < 4 || parts[0].kind !== 'powerPole' || parts[1].kind !== 'generator' || parts[2].kind !== 'inserter' || parts.slice(3).some(p => p.kind !== 'belt') || new Set(parts.map(p => p.tile)).size !== parts.length || parts.some(p => p.tile === source || p.tile === target)) v.invalid('connection', 'invalid ordered components')
-    const expectedSource = kind === 'iron' ? e.furnace : kind === 'gearFeed' ? store : e.gearAssembler, expectedTarget = kind === 'gearFeed' ? e.gearAssembler : store
+    const machine = copperLink(kind) ? e.cableAssembler : e.gearAssembler
+    const expectedSource = kind === 'iron' || kind === 'copper' ? (copperLink(kind) ? e.copperFurnace : e.furnace) : feedLink(kind) ? store : machine, expectedTarget = feedLink(kind) ? machine : store
     if (source !== expectedSource || target !== expectedTarget || source === target) v.invalid('connection', 'connection must retain its original machines')
     const distance = (a: number, b: number) => Math.abs(a % SIZE - b % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(b / SIZE))
     const arm = parts[2], start = parts[3]
-    if (distance(source, arm.tile) !== 1 || distance(arm.tile, start.tile) !== 1 || facing(source, arm.tile) !== arm.direction || facing(arm.tile, start.tile) !== arm.direction || kind !== 'gearFeed' && arm.direction !== 'east' || Math.max(Math.abs(parts[0].tile % SIZE - arm.tile % SIZE), Math.abs(Math.floor(parts[0].tile / SIZE) - Math.floor(arm.tile / SIZE))) > 3 || distance(parts[0].tile, parts[1].tile) !== 1) v.invalid('connection', 'invalid pickup or electrical geometry')
+    if (distance(source, arm.tile) !== 1 || distance(arm.tile, start.tile) !== 1 || facing(source, arm.tile) !== arm.direction || facing(arm.tile, start.tile) !== arm.direction || !feedLink(kind) && arm.direction !== 'east' || Math.max(Math.abs(parts[0].tile % SIZE - arm.tile % SIZE), Math.abs(Math.floor(parts[0].tile / SIZE) - Math.floor(arm.tile / SIZE))) > 3 || distance(parts[0].tile, parts[1].tile) !== 1) v.invalid('connection', 'invalid pickup or electrical geometry')
+    const receiver = p.receiver === undefined ? target : v.tile(p.receiver, 'connection.receiver')
+    if (receiver !== target && (feedLink(kind) || parts.some(p => p.tile === receiver))) v.invalid('connection.receiver', 'only incoming connections can reuse a terminal')
     for (let i = 3; i < parts.length; i++) {
-      const b = parts[i], end = parts[i + 1]?.tile ?? target
+      const b = parts[i], end = parts[i + 1]?.tile ?? receiver
       if (distance(b.tile, end) !== 1 || b.direction !== facing(b.tile, end)) v.invalid('connection', 'invalid cardinal belt route')
     }
-    if (kind === 'gearFeed' && parts.at(-1)!.tile === target + 1) v.invalid('connection', 'gear ingredients cannot enter against the assembler output')
-    return { kind, source, target, parts }
+    if (feedLink(kind) && parts.at(-1)!.tile === target + 1) v.invalid('connection', 'gear ingredients cannot enter against the assembler output')
+    return { kind, source, target, ...(receiver === target ? {} : { receiver }), parts }
   }
   function wheel(value: unknown): WheelSite | null {
     if (value === null) return null
@@ -39,29 +44,53 @@ export function restoreInfrastructure(value: unknown, world: World, version: num
     if (tile % SIZE + dx < 0 || tile % SIZE + dx >= SIZE || Math.floor(tile / SIZE) + dy < 0 || Math.floor(tile / SIZE) + dy >= SIZE || poles.includes(tile) || new Set(poles).size !== poles.length || poles.some((p, i) => i === poles.length - 1 ? Math.abs(tile % SIZE - p % SIZE) + Math.abs(Math.floor(tile / SIZE) - Math.floor(p / SIZE)) !== 1 : Math.max(Math.abs(p % SIZE - poles[i + 1] % SIZE), Math.abs(Math.floor(p / SIZE) - Math.floor(poles[i + 1] / SIZE))) > 6)) v.invalid('wheel', 'invalid shore geometry')
     return { tile, direction, poles }
   }
-  const links = v.array(r.links, 'infrastructure.links', undefined, 3).map(connection)
+  const links = v.array(r.links, 'infrastructure.links', undefined, version >= 50 ? 6 : 3).map(connection)
+  const validReceiver = (p: Connection) => p.receiver === undefined || links.some(l => l !== p && l.receiver === undefined && !feedLink(l.kind) && l.target === p.target && l.parts.some(b => b.kind === 'belt' && b.tile === p.receiver && p.parts.at(-1)!.direction !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[b.direction]))
+  if (links.some(p => !validReceiver(p))) v.invalid('connection.receiver', 'shared terminal needs an original incoming connection')
   const occupied = links.flatMap(p => p.parts.map(p => p.tile)), ownedWheel = wheel(r.wheel)
   if (new Set(links.map(p => p.kind)).size !== links.length || new Set(occupied).size !== occupied.length || ownedWheel && wheelParts(ownedWheel).some(p => occupied.includes(p.tile))) v.invalid('infrastructure', 'overlapping or duplicate ownership')
   const plan = r.plan === null ? null : connection(r.plan), wheelPlan = wheel(r.wheelPlan), repair = v.boolean(r.repair, 'infrastructure.repair')
+  if (plan && !validReceiver(plan)) v.invalid('connection.receiver', 'unknown shared terminal')
   if (plan && (repair ? !links.some(p => JSON.stringify(p) === JSON.stringify(plan)) : links.some(p => p.kind === plan.kind || p.parts.some(b => plan.parts.some(a => a.tile === b.tile))))) v.invalid('infrastructure.plan', 'unknown repair or duplicate new connection')
   if (wheelPlan && ownedWheel && JSON.stringify(wheelPlan) !== JSON.stringify(ownedWheel)) v.invalid('wheelPlan', 'repair must retain the original wheel')
   if (plan && ownedWheel && plan.parts.some(p => wheelParts(ownedWheel).some(w => w.tile === p.tile)) || wheelPlan && wheelParts(wheelPlan).some(p => occupied.includes(p.tile))) v.invalid('infrastructure', 'overlapping wheel and transport plans')
-  const built = v.count(r.built, 'infrastructure.built', plan ? plan.parts.length : wheelPlan ? wheelParts(wheelPlan).length : 0)
+  function loading(value: unknown): LoadingSite | null {
+    if (value === null || version < 50) return null
+    const l = v.object(value, 'loading', ['input', 'output', 'pole'])
+    const input = v.tile(l.input, 'loading.input'), output = v.tile(l.output, 'loading.output'), pole = v.tile(l.pole, 'loading.pole'), hoist = e.steamHoist
+    const adjacent = (t: number) => hoist !== null && Math.abs(t % SIZE - hoist % SIZE) + Math.abs(Math.floor(t / SIZE) - Math.floor(hoist / SIZE)) === 1
+    const reachableBuffer = (t: number) => hoist !== null && (t % SIZE === hoist % SIZE || Math.floor(t / SIZE) === Math.floor(hoist / SIZE)) && Math.abs(t % SIZE - hoist % SIZE) + Math.abs(Math.floor(t / SIZE) - Math.floor(hoist / SIZE)) >= 1 && Math.abs(t % SIZE - hoist % SIZE) + Math.abs(Math.floor(t / SIZE) - Math.floor(hoist / SIZE)) <= 2
+    if (hoist === null || input === output || !reachableBuffer(input) || !reachableBuffer(output) || !adjacent(pole) || pole === input || pole === output || [input, output, pole].some(t => occupied.includes(t) || ownedWheel && wheelParts(ownedWheel).some(p => p.tile === t))) v.invalid('loading', 'invalid owned hoist geometry')
+    return { input, output, pole }
+  }
+  const ownedLoading = version >= 50 ? loading(r.loading) : null, loadingPlan = version >= 50 ? loading(r.loadingPlan) : null
+  if (ownedLoading && plan && plan.parts.some(p => loadingParts(ownedLoading).some(l => l.tile === p.tile))) v.invalid('loading', 'connection overlaps owned loading footprint')
+  if (ownedLoading && wheelPlan && wheelParts(wheelPlan).some(p => loadingParts(ownedLoading).some(l => l.tile === p.tile))) v.invalid('loading', 'wheel overlaps owned loading footprint')
+  if (loadingPlan && ownedLoading && JSON.stringify(loadingPlan) !== JSON.stringify(ownedLoading)) v.invalid('loading', 'repair must preserve original geometry')
+  const loadingCargo = version < 50 || r.loadingCargo === null ? null : v.choice(r.loadingCargo, 'loadingCargo', ['coal', 'coalBriquette'] as const)
+  if (loadingCargo && (!ownedLoading || e.steamHoist === null || world.buildings[e.steamHoist]?.kind !== 'steamHoist')) v.invalid('loadingCargo', 'requires an owned standing hoist')
+  const built = v.count(r.built, 'infrastructure.built', plan ? plan.parts.length : wheelPlan ? wheelParts(wheelPlan).length : loadingPlan ? 3 : 0)
   const nextOrderAtMs = v.count(r.nextOrderAtMs, 'infrastructure.nextOrderAtMs', world.timeMs + 300000)
   if (nextOrderAtMs % 50 || repair && !plan) v.invalid('infrastructure', 'invalid work clock')
-  return { links, plan, wheel: ownedWheel, wheelPlan, built, repair, eco: v.count(r.eco, 'infrastructure.eco', 3), craftsman: v.count(r.craftsman, 'infrastructure.craftsman', 3), order: r.order === null ? null : v.choice(r.order, 'infrastructure.order', ['eco', 'craftsman'] as const), nextOrderAtMs }
+  return { inventor: version >= 50 ? v.count(r.inventor, 'infrastructure.inventor', 3) : 0, loading: ownedLoading, loadingPlan, loadingCargo, links, plan, wheel: ownedWheel, wheelPlan, built, repair, eco: v.count(r.eco, 'infrastructure.eco', 3), craftsman: v.count(r.craftsman, 'infrastructure.craftsman', 3), order: r.order === null ? null : v.choice(r.order, 'infrastructure.order', version >= 50 ? ['eco', 'craftsman', 'inventor'] as const : ['eco', 'craftsman'] as const), nextOrderAtMs }
 }
 export function validateInfrastructureTask(h: Homestead, world: World): void {
   const s = h.infrastructure, task = h.task
-  if ((task === 'buildConnection') !== (s.plan !== null) || (task === 'buildWheel') !== (s.wheelPlan !== null) || (task === 'finishOrder') !== (s.order !== null)) v.invalid('infrastructure', 'plan must match active task')
+  if ((task === 'buildConnection') !== (s.plan !== null) || (task === 'buildWheel') !== (s.wheelPlan !== null) || (task === 'finishOrder') !== (s.order !== null) || (task === 'buildLoading') !== (s.loadingPlan !== null)) v.invalid('infrastructure', 'plan must match active task')
   const amount = inventoryTotal(h.carried)
   if (s.eco > 0 && world.coopProject?.phase !== 'complete' || s.craftsman > 0 && world.workshopProject?.phase !== 'complete') v.invalid('infrastructure', 'development stages require their original host')
   if (task === 'parkBicycle' && (!h.cargoBicycle || amount || h.elapsedMs || h.target === null)) v.invalid('infrastructure', 'invalid physical parking task')
   const validInvoice = (invoice: Partial<Homestead['carried']>) => !amount || ITEMS.every(i => h.carried[i] === (invoice[i] ?? 0))
-  if (task === 'buildConnection' && (h.target !== h.store || !validInvoice({ ironPlate: s.repair ? 1 : 8 }) || h.elapsedMs > 4000 || h.elapsedMs > 0 && !amount || !s.repair && s.built > 0 && !amount)) v.invalid('infrastructure', 'invalid paid connection work')
+  if (task === 'buildConnection' && (h.target !== h.store || !validInvoice({ [copperLink(s.plan!.kind) ? 'copperPlate' : 'ironPlate']: s.repair ? 1 : 8 }) || h.elapsedMs > 4000 || h.elapsedMs > 0 && !amount || !s.repair && s.built > 0 && !amount)) v.invalid('infrastructure', 'invalid paid connection work')
   if (task === 'buildWheel' && (h.target !== h.store || !validInvoice({ wood: 10 }) || h.elapsedMs > 4000 || h.elapsedMs > 0 && !amount && world.buildings[s.wheelPlan!.tile]?.kind !== 'waterwheel' && s.wheel?.tile !== s.wheelPlan!.tile)) v.invalid('infrastructure', 'invalid paid wheel work')
+  if (s.inventor > 0 && world.experimentProject?.phase !== 'complete' || s.inventor > 1 && world.flightProject?.phase !== 'complete') v.invalid('infrastructure', 'inventor stages require their original hosts')
+  if (task === 'buildLoading' && (h.target !== h.store || !validInvoice({ coal: 6 }) || h.elapsedMs > 4000 || h.elapsedMs > 0 && !amount && world.buildings[s.loadingPlan!.input]?.kind !== 'fuelDepot')) v.invalid('loading', 'invalid commissioning stock')
+  if (task === 'fetchLoading' || task === 'takeLoading') {
+    if (!s.loading || amount || h.elapsedMs || h.target !== (task === 'fetchLoading' ? h.expansion.fuelStore : s.loading.output)) v.invalid('loading', 'invalid pickup')
+  }
+  if (task === 'feedLoading' && (!s.loading || h.target !== s.loading.input || amount < 1 || amount > 2 || amount !== h.carried.coal + h.carried.coalBriquette || h.elapsedMs)) v.invalid('loading', 'invalid fuel delivery')
   if (task === 'finishOrder') {
-    const path = s.order!, project = path === 'eco' ? world.coopProject : world.workshopProject
-    if (s[path] >= 3 || h.target !== project?.tiles[0] || project.phase !== 'complete' || !validInvoice(path === 'eco' ? { woodenCrate: 2 } : { ironGear: 4 }) || h.elapsedMs > 8000 || h.elapsedMs > 0 && !amount) v.invalid('infrastructure', 'invalid paid development order')
+    const path = s.order!, project = path === 'eco' ? world.coopProject : path === 'inventor' ? (s.inventor === 0 ? world.experimentProject : world.flightProject) : world.workshopProject
+    if (s[path] >= 3 || h.target !== project?.tiles[0] || project.phase !== 'complete' || !validInvoice(path === 'eco' ? { woodenCrate: 2 } : path === 'inventor' ? { copperCable: 4, electronicCircuit: 2 } : { ironGear: 4 }) || h.elapsedMs > 8000 || h.elapsedMs > 0 && !amount) v.invalid('infrastructure', 'invalid paid development order')
   }
 }

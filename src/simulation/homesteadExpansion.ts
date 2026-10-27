@@ -111,7 +111,7 @@ export function planChain(world: World, kind: ChainKind): ExpansionPlan | null {
   if (INDUSTRIAL_CHAINS.some(k => k === kind)) return planIndustrial(world, kind)
   if (kind === 'ironMining' || kind === 'copperMining') return planOreMining(world, kind === 'copperMining' ? 'copper' : 'iron')
   return chainCandidates(world, kind).find(p => {
-    if (kind === 'iron' || kind === 'gears') {
+    if (kind === 'iron' || kind === 'gears' || kind === 'copper' || kind === 'cables') {
       const store = world.homestead!.store
       if (store !== null && Math.abs(p.anchor % SIZE - store % SIZE) + Math.abs(Math.floor(p.anchor / SIZE) - Math.floor(store / SIZE)) < 4) return false
       if (p.anchor % SIZE >= SIZE - 2 || [p.anchor + 1, p.anchor + 2].some(t => world.buildings[t] || world.water[t] || world.tiles[t])) return false
@@ -165,11 +165,11 @@ function chooseCopper(world: World): boolean {
   const assembler = e.cableAssembler === null ? null : world.buildings[e.cableAssembler]
   const room = store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)
   if (assembler?.kind === 'assembler' && store.inventory.copperCable < 16) {
-    if (assembler.output.copperCable && room) { begin(world, 'takeCable', e.cableAssembler); return true }
-    if (!assembler.job && !assembler.input.copperPlate && store.inventory.copperPlate >= 2) { begin(world, 'fetchCable', h.store); return true }
+    if (!connectionRunning(world, 'cableReturn') && assembler.output.copperCable && room) { begin(world, 'takeCable', e.cableAssembler); return true }
+    if (!connectionRunning(world, 'cableFeed') && !assembler.job && !assembler.input.copperPlate && store.inventory.copperPlate >= 2) { begin(world, 'fetchCable', h.store); return true }
   }
   if (furnace?.kind === 'furnace' && store.inventory.copperPlate < 40) {
-    if (furnace.output.copperPlate && room) { begin(world, 'takeCopper', e.copperFurnace); return true }
+    if (!connectionRunning(world, 'copper') && furnace.output.copperPlate && room) { begin(world, 'takeCopper', e.copperFurnace); return true }
     if ((e.copperMiner === null || world.buildings[e.copperMiner]?.kind !== 'miner') && !furnace.job && !furnace.input.copper && store.inventory.copper >= 2) { begin(world, 'fetchCopper', h.store); return true }
   }
   if ((e.copperMiner === null || world.buildings[e.copperMiner]?.kind !== 'miner' || furnace?.kind !== 'furnace') && store.inventory.copper < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.copperPlate < 40 || level < 3)) {

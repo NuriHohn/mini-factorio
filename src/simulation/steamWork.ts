@@ -1,3 +1,4 @@
+import { prepareLoading, completeLoading } from './loading'
 import { awardActivity } from './personality'
 import { generationKw } from './power'
 import { SIZE } from './world'
@@ -14,9 +15,12 @@ export function advanceSteamWork(world: World, delta: number): void {
   for (const index of Object.keys(world.power?.consumers ?? {})) {
     const b = world.buildings[Number(index)]
     if (b?.kind !== 'steamWorkshop' && b?.kind !== 'steamHoist' || b.cycles === Number.MAX_SAFE_INTEGER) continue
+    const tile = b.y * SIZE + b.x
+    if (b.kind === 'steamHoist' && !prepareLoading(world, tile, b.elapsedMs === 0)) continue
     const fraction = (world.power?.consumers[b.y * SIZE + b.x]?.speedFraction ?? 0) * steamShare(world, b)
     b.elapsedMs = Math.min(steamWorkDuration(b.kind), b.elapsedMs + delta * fraction)
     if (b.elapsedMs >= steamWorkDuration(b.kind) - 1e-8) {
+      if (b.kind === 'steamHoist') completeLoading(world, tile)
       b.elapsedMs = 0; b.cycles++
       if (world.homestead?.expansion[b.kind] === b.y * SIZE + b.x) awardActivity(world.personality, { path: 'industrial', xp: 3 })
     }
