@@ -1,3 +1,4 @@
+import { stripVersion48Homestead } from './testFixtures'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, placeCopper, placeGrove, placeIron } from './petesWorld'
 import { advanceWorld } from './step'
@@ -109,7 +110,7 @@ describe('resource-led development and shared iron automation', () => {
     const save = snapshot(w)
     save.game.homestead.expansion.plan.route[1] = 0
     expect(() => decodeSave(JSON.stringify(save))).toThrow()
-    const old = snapshot(stored()); old.version = 41; delete old.game.homestead.nextRestAtMs
+    const old = snapshot(stored()); old.version = 41; stripVersion48Homestead(old.game); delete old.game.homestead.nextRestAtMs
     for (const key of ['miner', 'copperFurnace', 'cableAssembler', 'copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]
     const migrated = decodeSave(JSON.stringify(old)).world
     expect(migrated.homestead!.expansion.miner).toBeNull()

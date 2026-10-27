@@ -188,6 +188,7 @@ export function placementError(world: World, x: number, y: number, kind: Buildin
   if (policeOccupiesTile(world, x, y)) return 'Keep the police route and prison exit clear.'
   if (kind === 'prison' && (!edgeTile(y * SIZE + x) || !neighboringTiles(y * SIZE + x).some(tile => !world.buildings[tile] && !world.water[tile] && !peteOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE)) && !policeOccupiesTile(world, tile % SIZE, Math.floor(tile / SIZE))))) return 'Prisons need an edge tile and an empty exit.'
   if (footbridgeBank(world, y * SIZE + x)) return 'Keep footbridge landings clear. Remove the footbridge first.'
+  if (world.homestead?.cargoBicycle && world.homestead.bikeTile === y * SIZE + x) return 'Keep the parked cargo bicycle clear.'
   if (peteOccupiesTile(world, x, y)) return 'Pete is walking through this tile.'
   const existing = buildingAt(world, x, y)
   if (isWater(world, x, y) && !(kind === 'belt' && bridge)) return 'Water needs a complete belt bridge. Drag from land to land.'

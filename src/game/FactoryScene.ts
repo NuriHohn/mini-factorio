@@ -726,7 +726,7 @@ export class FactoryScene extends Phaser.Scene {
         drawInventorStructure(this.machines, building.kind === 'peteTreasure' ? 'treasure' : 'flightpad', building.x, building.y, TILE, 1, this.world.peace.activity === 'storingTreasure')
       } else if (building.kind === 'peteDevelopment') {
         if (building.development === 'house') drawAnnexWalkway(this.machines, this.world, TILE)
-        drawDevelopment(this.machines, building.development, building.x, building.y, TILE, this.world.timeMs, 1, building.fruit, this.world.peace.activity === 'developmentWork' && Math.abs(this.world.pete.tile % SIZE - building.x) + Math.abs(Math.floor(this.world.pete.tile / SIZE) - building.y) === 1, this.world.peace.activity !== 'cycling' && this.world.peace.activity !== 'dismounting')
+        drawDevelopment(this.machines, building.development, building.x, building.y, TILE, this.world.timeMs, 1, building.fruit, this.world.peace.activity === 'developmentWork' && Math.abs(this.world.pete.tile % SIZE - building.x) + Math.abs(Math.floor(this.world.pete.tile / SIZE) - building.y) === 1, this.world.peace.activity !== 'cycling' && this.world.peace.activity !== 'dismounting' && !(building.development === 'bicycle' && this.world.homestead?.cargoBicycle))
       } else if (building.kind === 'petePress') {
         drawGearPress(this.machines, building, TILE)
       } else if (building.kind === 'peteExperiment') {

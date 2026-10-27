@@ -54,8 +54,18 @@ export function commitFootbridge(world: World, start: Position, end: Position) {
 export function footbridgeRemovalError(world: World, index: number): string | null {
   const span = footbridgeSpan(world, index)
   if (!span) return 'Choose a complete footbridge.'
+  const h = world.homestead
+  if (h?.bikeTile !== null && h?.bikeTile !== undefined && span.includes(h.bikeTile)) return 'Das Lastenrad steht auf der Brücke. Pete muss es zuerst abholen.'
+  if (h?.task && world.pete.path.some(tile => span.includes(tile))) return 'Pete nutzt die Brücke für seinen Materialweg. Bitte kurz warten.'
   const actors = [world.pete, ...(world.police.car ? [world.police.car] : [])]
   return actors.some(a => span.includes(a.tile) || (a.next !== null && span.includes(a.next))) ? 'Footbridge in use. Wait until Pete and the police have cleared it.' : null
+}
+export function commitFundedFootbridge(world: World, start: Position, end: Position, wood: number) {
+  if (!Number.isSafeInteger(wood) || wood < 0 || wood > 15) return { error: 'Invalid paid bridge stock.', placed: 0 }
+  const funded = { ...world, nature: { ...world.nature, wood } }
+  const result = commitFootbridge(funded, start, end)
+  if (!result.error) world.topologyRevision = funded.topologyRevision
+  return result
 }
 export function removeFootbridge(world: World, index: number): void {
   const span = footbridgeSpan(world, index)!

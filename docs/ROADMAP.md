@@ -255,7 +255,7 @@ Authoritative rules: [Resource-led paths](GAME_DESIGN.md#resource-led-craftsman-
 
 ## Coal and steam for the Industrial path
 
-**Entry and first steam work implemented in 16.71/16.72; later expansion remains proposed.** Coal replaces the proposed gear-pile entry into the Industrial path. Oil, plastics and plastic gears are not the chosen direction. The four independent entry resources are:
+**Entry and first steam work implemented in 16.71/16.72; coal automation in 16.73–16.77 and modern/legacy project separation in 16.78 below.** Coal replaces the proposed gear-pile entry into the Industrial path. Oil, plastics and plastic gears are not the chosen direction. The four independent entry resources are:
 
 | Path | Entry offering |
 | --- | --- |
@@ -307,7 +307,7 @@ Implemented explicit per-tile resource clearing and building demolition in Petes
 
 1. Maintenance A implemented following the user’s implementation request; see above.
 2. Maintenance B implemented; use the authoritative rules linked above.
-3. 16.68–16.72 implemented: automatic copper mining, actual circuit assembly, self-supplied Inventor flights, independent coal entry and the first boiler/steam engine. Save 46 migration and exact rules are documented in Architecture/Game design. Automatic coal extraction and driven work are implemented in 16.73–16.77 below; later gear/module project redesign remains unapproved.
+3. 16.68–16.72 implemented: automatic copper mining, actual circuit assembly, self-supplied Inventor flights, independent coal entry and the first boiler/steam engine. Save 46 migration and exact rules are documented in Architecture/Game design. Automatic coal extraction and driven work are implemented in 16.73–16.77 below; modern/legacy gear-project separation follows in 16.78 below.
 
 No new offline/install work is scheduled: 16.38 stays deferred. Do not infer merge approval for future implementation from approval of this planning update. This roadmap is the authoritative handoff; no separate context file is needed.
 
@@ -333,3 +333,18 @@ Exact rules and acceptance boundaries: [Industrial automation](GAME_DESIGN.md#in
 ## Post-16.77 development balance
 
 Implemented maintenance: a visible near-home pond in new Petes Welt games, whole-world ×8/×16, fewer gifts/rest visits and lower daily-care priority, affordable orchard/nursery construction alongside reserved yard space, recurring Craftsman-3 anvil practice and real iron-plate collection XP. Pete inspection groups original projects and automation requirements by development path, and wishes follow the dominant path. The paid gradual Eco factory remains the current system; existing committed prototypes and saves remain supported. Exact mechanics: [development balance](GAME_DESIGN.md#petes-welt-development-balance).
+
+
+## Sprints 16.78–16.82 — Craftsman transport and autonomous water access
+
+Implemented under the explicit five-sprint implementation and merge request. Factory and retained old-world projects keep their established rules.
+
+| Sprint | Implemented scope |
+| --- | --- |
+| 16.78 | New Petes Welt Industrial choices use coal/steam; any existing legacy gear project retains the original complete chain, paid work and inventories |
+| 16.79 | Craftsman-3 paid shared gear assembler after miner/veranda, real plate/gear carrying, bounded stock, power and original-component repairs; mode-specific gear affinity |
+| 16.80 | Craftsman-4 paid cargo bicycle, actual bike pickup/parking, faster real material routes, retained leisure cycling, visual basket and exact saved vehicle/work state |
+| 16.81 | Paid autonomous footbridges opening resource access across one-to-five water tiles, bounded ownership, terrain protection and real-cost restoration |
+| 16.82 | Paid Eco dock/rowboat after orchard/crate production, reserved Wood, recurring subordinate fishing/boat visits and safe saved round trips |
+
+Authoritative mechanics: [Craftsman transport and water access](GAME_DESIGN.md#craftsman-transport-and-water-access-sprints-1678-1682). Save 48 preserves old worlds and their exact water. The near-home pond changes only for newly created worlds. Installation/offline 16.38 and physical iPhone/iPad Safari acceptance remain deferred/open; the Pete-free complex Factory edition and explicit pipes remain future work.

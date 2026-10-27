@@ -1,3 +1,4 @@
+import { shoreTiles, shoreCost } from './shoreline'
 import { rebuildSummary } from './rebuilding'
 import { HOME_TASK_LABELS } from './homestead'
 import { miniStatus } from './petesWorld'
@@ -12,7 +13,7 @@ import { neighboringTiles, peteReachableTiles } from './navigation'
 import { expansionProjectStatuses } from './homesteadExpansion'
 import { PATH_LABELS, PERSONALITY_PATHS } from './personality'
 import type { Personality, PersonalityPath } from './personality'
-import { homesteadProjectDelay, PETE_PROJECTS } from './projectRegistry'
+import { homesteadProjectDelay, PETE_PROJECTS, retiredIndustrial } from './projectRegistry'
 import type { ProjectMaterial } from './projectRegistry'
 import { currentProject, projectCandidates, projectPlansConflict, projectResources, projectSiteClear } from './secretProject'
 import type { SupplyCrate, World } from './world'
@@ -28,6 +29,7 @@ export function peteStatus(world: World): PeteStatus {
   const crates = world.buildings.flatMap((b, tile) => b?.kind === 'supplyCrate' ? [{ crate: b, reachable: neighboringTiles(tile).some(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !world.buildings.some(p => p?.kind === 'prison' && p.exit === i)) }] : [])
   const quantity = (crate: SupplyCrate, item: ProjectMaterial) => item === 'wood' ? crate.wood : item === 'chickenFeed' || item === 'fruit' || item === 'sapling' ? 0 : crate.inventory[item]
   const projects: ProjectStatus[] = PETE_PROJECTS.flatMap(definition => {
+    if (retiredIndustrial(world, definition)) return []
     const saved = world[definition.state], name = PROJECT_NAMES[definition.id]
     if (!definition.repeatable && saved?.phase === 'complete') return []
     let reason: string
@@ -61,6 +63,11 @@ export function peteStatus(world: World): PeteStatus {
   })
   const wishes = projects.filter(p => !world.homestead || p.path === world.personality.dominant).sort((a, b) => Number(b.ready) - Number(a.ready) || Number(world.personality.paths[b.path!].level >= PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel) - Number(world.personality.paths[a.path!].level >= PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel) || Number(b.path === world.personality.dominant) - Number(a.path === world.personality.dominant) || (world.homestead ? PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel - PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel : 0))
   for (const project of expansionProjectStatuses(world)) projects.push({ ...project, id: `expansion:${project.name}`, ready: false })
+  if (world.homestead) {
+    const water = world.homestead.waterworks, plan = water.plan
+    projects.push({ id: 'shore:bridge', path: 'eco', name: 'Fußbrücken', ready: false, reason: plan?.kind === 'bridge' ? `${shoreTiles(plan).length} Wasserfelder · ${shoreCost(world, plan)} Holz · bezahlte Arbeit bleibt erhalten` : `${water.bridges.length}/8 Übergänge · Eco 2 · 3 Holz je Wasserfeld · nur für neu erreichbare Ressourcen` })
+    projects.push({ id: 'shore:dock', path: 'eco', name: 'Angelsteg und Ruderboot', ready: false, reason: water.dock ? 'gebaut · Ausflüge folgen zwischen Ausbau und Versorgung' : '8 Holz · nach Obstgarten und Holzkistenproduktion · freies erreichbares Ufer und mindestens drei Wasserfelder für die Bootsstrecke' })
+  }
   projects.sort((a, b) => (a.path ? PERSONALITY_PATHS.indexOf(a.path) : PERSONALITY_PATHS.length) - (b.path ? PERSONALITY_PATHS.indexOf(b.path) : PERSONALITY_PATHS.length))
   for (const [index, reason] of rebuildSummary(world).entries()) projects.push({ id: `rebuild:${index}`, name: 'Wiederaufbau', reason, ready: false, path: null })
   const selected = active ? PETE_PROJECTS.find(p => world[p.state] === active) : undefined
@@ -71,7 +78,7 @@ export function peteStatus(world: World): PeteStatus {
   if (world.homestead?.task) {
     const h = world.homestead
     development.carrying = ITEMS.filter(item => h.carried[item]).map(item => `${h.carried[item]} ${ITEM_DEFINITIONS[item].label}`).join(' · ') || 'Nichts getragen'
-    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
+    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'buildBridge' && h.waterworks.plan ? Math.max(1, shoreTiles(h.waterworks.plan).length) * 4000 : h.task === 'buildDock' || h.task === 'upgradeBicycle' || h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
   }
   const repair = world.rebuilding?.jobs.find(j => j.tile === world.rebuilding?.active)
   if (repair) {

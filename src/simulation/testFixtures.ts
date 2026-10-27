@@ -21,6 +21,15 @@ export function createUnlockedWorld(random = Math.random) {
 
 export function createBareWorld(random = Math.random) { return createWorld(random, { nature: false, water: false }) }
 
+// Build genuine older-schema fixtures from a current snapshot without hiding
+// unsupported new state in the production decoder.
+export function stripVersion48Homestead(game: Pick<World, 'homestead'>): void {
+  const h = game.homestead
+  if (!h) return
+  for (const key of ['cargoBicycle', 'bikeTile', 'waterworks']) Reflect.deleteProperty(h, key)
+  if (h.expansion) Reflect.deleteProperty(h.expansion, 'gearAssembler')
+}
+
 // Conservation checks in initially treeless construction fixtures include Wood
 // legitimately spent on the new Eco activities, separately from the project under test.
 export function ecoProjectWood(world: World): number {

@@ -5,9 +5,18 @@ import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
+import { cargoBicycleAvailable } from '../simulation/craftsman'
+import { shoreTiles } from '../simulation/shoreline'
 
 export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
   const s = world.homestead, p = world.pete
+  if (s && cargoBicycleAvailable(world) && s.bikeTile !== null && visiblePoint(view, (s.bikeTile % SIZE + .5) * tile, (Math.floor(s.bikeTile / SIZE) + .5) * tile, tile)) {
+    drawCargoBike(g, (s.bikeTile % SIZE + .5) * tile, (Math.floor(s.bikeTile / SIZE) + .5) * tile)
+  }
+  if (s?.waterworks.plan) for (const at of shoreTiles(s.waterworks.plan)) {
+    const x = at % SIZE * tile, y = Math.floor(at / SIZE) * tile
+    if (visiblePoint(view, x + tile / 2, y + tile / 2, tile)) g.lineStyle(2, 0xd9c58a, .8).strokeRect(x + 3, y + 3, tile - 6, tile - 6)
+  }
   if (s) for (const [id, at] of Object.entries(s.expansion.improvements)) {
     const b = world.buildings[at]
     if (!b || !visiblePoint(view, (b.x + .5) * tile, (b.y + .5) * tile, tile)) continue
@@ -26,6 +35,7 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
   }
   if (!s?.task || !visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, tile)) return
   const x = (p.x + .5) * tile, y = (p.y + .5) * tile
+  if (s.cargoBicycle && s.bikeTile === null && cargoBicycleAvailable(world)) drawCargoBike(g, x, y + 8)
   if (inventoryTotal(s.carried)) {
     const item = ITEMS.find(i => s.carried[i])!, visual = ITEM_DEFINITIONS[item].visual
     for (let n = 0; n < Math.min(3, s.carried[item]); n++) {
@@ -43,5 +53,12 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
   if (target === null || target === undefined || axe) return
   const tx = target % SIZE * tile, ty = Math.floor(target / SIZE) * tile
   g.lineStyle(2, 0xd7bd85, .8).strokeRect(tx + 2, ty + 3, tile - 4, tile - 5)
-  g.fillStyle(0x91bb78, .6).fillRect(tx + 3, ty + tile - 7, (tile - 6) * s.elapsedMs / (s.task === 'buildMill' || s.task === 'buildChain' ? 4000 : s.task === 'expandStore' || s.task === 'improve' ? 8000 : 6000), 4)
+  const duration = s.task === 'buildBridge' && s.waterworks.plan ? shoreTiles(s.waterworks.plan).length * 4000 : s.task === 'buildMill' || s.task === 'buildChain' ? 4000 : ['buildDock', 'upgradeBicycle', 'expandStore', 'improve'].includes(s.task) ? 8000 : 6000
+  g.fillStyle(0x91bb78, .6).fillRect(tx + 3, ty + tile - 7, (tile - 6) * Math.min(1, s.elapsedMs / duration), 4)
+}
+function drawCargoBike(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
+  g.lineStyle(2, 0xd8d7b1).strokeCircle(x - 10, y + 6, 6).strokeCircle(x + 10, y + 6, 6)
+  g.lineStyle(2, 0x6da5ad).strokeTriangle(x - 10, y + 6, x, y - 4, x + 10, y + 6)
+  g.fillStyle(0xb98c50).fillRect(x + 5, y - 6, 12, 8)
+  g.lineStyle(1, 0xe0bd84).strokeRect(x + 5, y - 6, 12, 8)
 }

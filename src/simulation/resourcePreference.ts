@@ -1,4 +1,4 @@
-import { MATERIAL_PATH } from './projectRegistry'
+import { materialPath } from './projectRegistry'
 import { ITEMS } from './items'
 import { treeStage } from './nature'
 import type { PersonalityPath } from './personality'
@@ -15,7 +15,7 @@ export function resourcePreference(world: World, path: PersonalityPath): number 
     const b = world.buildings[tile]
     if (b?.kind === 'supplyCrate' || b?.kind === 'fuelDepot') {
       if (path === 'eco' && b.kind === 'supplyCrate') supply += b.wood / 6
-      for (const item of ITEMS) if (item !== 'wood' && MATERIAL_PATH[item] === path) supply += b.inventory[item] / (item === 'copperCable' ? 12 : 6)
+      for (const item of ITEMS) if (item !== 'wood' && materialPath(world, item) === path) supply += b.inventory[item] / (item === 'copperCable' ? 12 : 6)
     }
     if (path === 'eco' && b?.kind === 'tree' && treeStage(world, b) === 'mature') supply += .1
     if (!world.water[tile] && !b && ((path === 'craftsman' && world.tiles[tile] === 'iron') || (path === 'inventor' && world.tiles[tile] === 'copper') || (path === 'industrial' && world.tiles[tile] === 'coal'))) supply += .1
