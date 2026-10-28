@@ -1,3 +1,5 @@
+import { connectionRunning } from './infrastructure'
+import { fuelAutomation, mainFuel, fuelDeliveryAllowed } from './productionLogistics'
 import { arrived, begin, finish, freeSite, materialStore } from './homestead'
 import { inventoryTotal } from './items'
 import { deliverItem } from './transport'
@@ -9,7 +11,7 @@ export function loadingParts(site: LoadingSite) { return [{ tile: site.pole, kin
 export function planLoading(world: World): LoadingSite | null {
   const hoist = world.homestead!.expansion.steamHoist
   if (hoist === null) return null
-  const reaches = [1, 2].flatMap(n => DIRECTIONS.map(d => ({ d, n })))
+  const reaches = [2, 1].flatMap(n => DIRECTIONS.map(d => ({ d, n })))
   for (const { d, n } of reaches) {
     const step = (offsets[d].y * SIZE + offsets[d].x) * n, input = hoist + step
     const outputs = [hoist - step, ...reaches.map(({ d, n }) => hoist + (offsets[d].y * SIZE + offsets[d].x) * n)]
@@ -34,7 +36,13 @@ export function chooseLoading(world: World): boolean {
   if (!s.loading || e.fuelStore === null) return false
   const input = world.buildings[s.loading.input], output = world.buildings[s.loading.output], depot = world.buildings[e.fuelStore]
   if (input?.kind !== 'fuelDepot' || output?.kind !== 'fuelDepot' || depot?.kind !== 'fuelDepot') return false
-  if (inventoryTotal(output.inventory) && inventoryTotal(depot.inventory) <= 22) { begin(world, 'takeLoading', s.loading.output); return true }
+  const returning = output.inventory.coalBriquette ? 'coalBriquette' : 'coal'
+  if (!connectionRunning(world, 'loadingReturn') && inventoryTotal(output.inventory) && fuelDeliveryAllowed(world, depot, returning) && inventoryTotal(depot.inventory) <= 22) { begin(world, 'takeLoading', s.loading.output); return true }
+  if (s.links.some(p => p.kind === 'loadingFeed')) {
+    const stamp = e.briquetteAssembler === null ? null : world.buildings[e.briquetteAssembler]
+    if (mainFuel(world) >= 8 && !connectionRunning(world, 'loadingFeed') && inventoryTotal(input.inventory) < 6 && stamp?.kind === 'assembler' && stamp.output.coalBriquette) { begin(world, 'fetchLoading', e.briquetteAssembler); return true }
+    return false
+  }
   if (inventoryTotal(input.inventory) < 6 && inventoryTotal(depot.inventory) >= 10) { begin(world, 'fetchLoading', e.fuelStore); return true }
   return false
 }
@@ -68,6 +76,11 @@ export function advanceLoading(world: World, delta: number): boolean {
     for (const item of ['coal', 'coalBriquette'] as const) while (h.carried[item] && deliverItem(target, item, 'east')) h.carried[item]--
     if (inventoryTotal(h.carried)) begin(world, 'returnStock', h.store); else finish(world)
   } else {
+    if (h.task === 'fetchLoading' && target?.kind === 'assembler') {
+      const count = Math.min(2, target.output.coalBriquette)
+      if (!count) { finish(world); return true }
+      target.output.coalBriquette -= count; h.carried.coalBriquette = count; begin(world, 'feedLoading', s.loading.input); return true
+    }
     if (target?.kind !== 'fuelDepot') { finish(world); return true }
     if (h.task === 'fetchLoading' && inventoryTotal(target.inventory) < 10) { finish(world); return true }
     const item = target.inventory.coalBriquette ? 'coalBriquette' : 'coal', count = Math.min(2, target.inventory[item])
@@ -83,6 +96,7 @@ export function prepareLoading(world: World, tile: number, start: boolean): bool
   if (!h || !s || !site || h.expansion.steamHoist !== tile) return true
   const input = world.buildings[site.input], output = world.buildings[site.output]
   if (input?.kind !== 'fuelDepot' || output?.kind !== 'fuelDepot' || world.buildings[site.pole]?.kind !== 'powerPole') return false
+  if (fuelAutomation(world) && mainFuel(world) < 8) return false
   if (s.loadingCargo || inventoryTotal(input.inventory)) {
     if (inventoryTotal(output.inventory) >= 24) return false
     if (!s.loadingCargo && start) { const item = input.inventory.coalBriquette ? 'coalBriquette' : 'coal'; input.inventory[item]--; s.loadingCargo = item }
@@ -93,5 +107,5 @@ export function completeLoading(world: World, tile: number): void {
   const h = world.homestead, s = h?.infrastructure, site = s?.loading
   if (!h || !s?.loadingCargo || !site || h.expansion.steamHoist !== tile) return
   const output = world.buildings[site.output]
-  if (output?.kind === 'fuelDepot') { output.inventory[s.loadingCargo]++; s.loadingCargo = null }
+  if (output?.kind === 'fuelDepot') { output.inventory[s.loadingCargo]++; s.loadingCargo = null; s.cargoCycles = Math.min(Number.MAX_SAFE_INTEGER, s.cargoCycles + 1) }
 }

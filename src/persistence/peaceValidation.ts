@@ -67,11 +67,16 @@ export function restorePeace(value: unknown, world: World, version: number): Pea
     if (duration ? untilMs <= world.timeMs || (activity === 'waving' ? ![4000, 5000].includes(untilMs - sinceMs) : untilMs - sinceMs !== duration) : untilMs !== sinceMs) v.invalid('peace.activity', 'invalid activity clock')
     if (!['developmentward', 'cycling', 'treasureward', 'treasureHomeward', 'flightward', 'coverward', 'uncoverward', 'homeward', 'walking', 'dockward', 'crateward', 'project', 'eggward', 'campfireward', 'gardenward', 'workshopward', 'experimentward', 'pressward'].includes(activity) && ((!['developmentWork', 'dismounting', 'pickingTreasure', 'storingTreasure', 'covering', 'uncovering', 'fishing', 'boating', 'checkingCrate', 'collectingEgg', 'cooking', 'gardening', 'hammering', 'experimenting', 'pressing'].includes(activity) && destination !== null) || p.next !== null || p.path.length || p.travelMs !== 0)) v.invalid('peace.activity', 'stationary activity contains movement')
     if (['dockward', 'fishing', 'boating'].includes(activity) && (!dockAtSpot(world, destination) || (['fishing', 'boating'].includes(activity) && p.tile !== destination))) v.invalid('peace.destination', 'fishing requires a valid dock approach')
-    if (['crateward', 'checkingCrate'].includes(activity) && (!crateAtSpot(world, destination) || (activity === 'checkingCrate' && p.tile !== destination))) v.invalid('peace.destination', 'supply visit requires a valid crate approach')
     if (['entering', 'resting', 'verandaRest'].includes(activity) && !neighboringTiles(home).includes(p.tile)) v.invalid('peace.activity', 'home activity is away from entrance')
     // A pending legacy 5–10-minute deadline remains valid after resaving as version 26.
     const house = world.buildings[home]!
     if (house?.kind === 'treehouse' && (sinceMs < house.placedAtMs || nextGiftAtMs < house.placedAtMs + 300000 || gifts.some(g => g.atMs < house.placedAtMs || nextGiftAtMs < g.atMs + 300000) || (shutdown && shutdown.atMs !== house.placedAtMs))) v.invalid('peace', 'activity predates home')
   }
   return { ...createPeace(), ...(boat ? { boat } : {}), home, activity, sinceMs, untilMs, destination, nextProjectCheckAtMs, nextGiftAtMs, nextId, seed: v.count(s.seed, 'peace.seed', 0xffffffff), gifts, shutdown, reactionAtMs }
+}
+
+// Owned service crossings are available only after the validated homestead has been restored.
+export function validateSupplyVisit(world: World): void {
+  const s = world.peace
+  if (['crateward', 'checkingCrate'].includes(s.activity) && (!crateAtSpot(world, s.destination) || s.activity === 'checkingCrate' && world.pete.tile !== s.destination)) v.invalid('peace.destination', 'supply visit requires a valid crate approach')
 }

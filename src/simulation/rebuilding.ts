@@ -39,7 +39,7 @@ function existingChain(world: World, kind: ExpansionPlan['kind'], anchor: number
     const b = world.buildings[anchor]
     return { kind, anchor, direction: b && 'direction' in b ? b.direction : 'east', built: 0 }
   }
-  const candidates: ExpansionPlan[] = (['north', 'south'] as const).map(direction => ({ kind, anchor, direction, built: 0 }))
+  const candidates: ExpansionPlan[] = (kind === 'cables' || kind === 'circuits' ? ['north', 'south', 'east'] as const : ['north', 'south'] as const).map(direction => ({ kind, anchor, direction, built: 0 }))
   if (kind === 'ironMining' || kind === 'copperMining' || kind === 'coalMining') {
     const route = [anchor], end = kind === 'coalMining' ? world.homestead!.expansion.fuelStore! : (kind === 'copperMining' ? world.homestead!.expansion.copperFurnace! : world.homestead!.expansion.furnace!) - 1
     while (route.length < 13 && route.at(-1) !== end) {

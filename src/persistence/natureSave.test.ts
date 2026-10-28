@@ -21,7 +21,7 @@ function setup() {
 describe('version 7 nature persistence and legacy compatibility', () => {
   it('round trips a generated landscape without regenerating forests or consuming RNG', () => {
     const world = createWorld(() => .5), loaded = restore(world)
-    expect(SAVE_VERSION).toBe(50)
+    expect(SAVE_VERSION).toBe(51)
     expect(snapshot(loaded)).toEqual(snapshot(world))
     expect(loaded.nature.seed).toBe(world.nature.seed)
     expect(loaded.nature.nextAttemptAtMs).toBe(world.nature.nextAttemptAtMs)

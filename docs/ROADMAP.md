@@ -377,3 +377,18 @@ Implemented following the explicit implementation and merge request:
 | 16.92 | Actual typed fuel cargo on the existing powered hoist cycle, finite buffers, physical stocking/return and restoration |
 
 [Game design](GAME_DESIGN.md#later-logistics-and-real-loading-sprints-1688-1692) owns exact rules. Save 50 preserves old worlds and paid work. Installation/offline 16.38, physical Safari acceptance, explicit pipes and the Pete-free complex Factory edition retain their prior deferred/future status. Later sprint scope remains a proposal until approved.
+
+
+## Sprints 16.93–16.97 — Circuit ingredients and Industrial supply
+
+Implemented following the explicit implementation and merge request:
+
+| Sprint | Scope |
+| --- | --- |
+| 16.93 | Paid mixed iron/cable input for the existing circuit assembler, bounded recipe supply and flight reserves |
+| 16.94 | Paid circuit return, total output quota, shared incoming belts, physical fallback and repairs |
+| 16.95 | Coal-funded ordinary stampfer input, protected boiler fuel and bounded main-depot stock |
+| 16.96 | Briquette input and fuel return through the existing real hoist cycle, physical fallback and actual cargo counting |
+| 16.97 | Three visible Industrial furnishing stages funded by real briquettes after ten actual cargo deliveries |
+
+[Game design](GAME_DESIGN.md#circuit-and-industrial-logistics-sprints-1693-1697) owns costs, reserves, quotas and work rules. Save 51 migrates older worlds and preserves paid work, transport and cargo. Existing compact sites retain physical fallbacks. Installation/offline 16.38, physical Safari acceptance, explicit pipes and the Pete-free complex Factory edition retain their prior deferred/future status. Further sprint scope requires a new proposal.

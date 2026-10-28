@@ -1,3 +1,5 @@
+import { connectionRunning } from './infrastructure'
+import { fuelAutomation, fuelDeliveryAllowed, mainFuel, protectsOutput } from './productionLogistics'
 import { arrived, begin, finish, freeSite, materialStore } from './homestead'
 import { expansionLayout, ironSite, planChain } from './homesteadExpansion'
 import type { ChainKind, ExpansionPlan } from './homesteadExpansion'
@@ -54,7 +56,7 @@ export function planIndustrial(world: World, kind: ChainKind): ExpansionPlan | n
     for (const direction of ['north', 'south'] as const) {
       const plan = { kind, anchor: y * SIZE + x, direction, built: 0 }, parts = expansionLayout(plan)
       const pole = parts[0].tile, enginePoles = world.buildings.flatMap((b, i) => b?.kind === 'powerPole' && (b.x - engine.x) ** 2 + (b.y - engine.y) ** 2 <= 9 ? [i] : [])
-      if (enginePoles.some(i => (i % SIZE - pole % SIZE) ** 2 + (Math.floor(i / SIZE) - Math.floor(pole / SIZE)) ** 2 <= 36) && freeSite(world, parts.map(p => p.tile))) return plan
+      if (enginePoles.some(i => (i % SIZE - pole % SIZE) ** 2 + (Math.floor(i / SIZE) - Math.floor(pole / SIZE)) ** 2 <= 36) && (kind !== 'briquettes' || [plan.anchor + 1, plan.anchor + 2].every(tile => !world.buildings[tile] && !world.water[tile] && !world.tiles[tile])) && !protectsOutput(world, parts.map(p => p.tile)) && freeSite(world, parts.map(p => p.tile))) return plan
     }
   }
   return null
@@ -71,15 +73,15 @@ export function chooseIndustrial(world: World): boolean {
   // each mined batch in the test load before the six-coal reserve can accumulate.
   if (!plan && engine?.kind === 'steamEngine' && (engine.fuel + engine.briquettes <= 1 || engine.fuel + engine.briquettes <= 4 && feeder?.kind !== 'inserter') && (store.inventory.coal >= 2 || store.inventory.coalBriquette >= 2)) { begin(world, 'fetchSteam', h.store); return true }
   if (depot?.kind === 'fuelDepot') {
-    if (store.inventory.coal < 12 && depot.inventory.coal >= 2 && inventoryTotal(store.inventory) + store.wood + 2 <= supplyCapacity(store)) { begin(world, 'takeCoal', e.fuelStore); return true }
+    if ((fuelAutomation(world) ? store.inventory.coal < 6 && mainFuel(world) >= 10 : store.inventory.coal < 12) && depot.inventory.coal >= 2 && inventoryTotal(store.inventory) + store.wood + 2 <= supplyCapacity(store)) { begin(world, 'takeCoal', e.fuelStore); return true }
     const stamp = e.briquetteAssembler === null ? null : world.buildings[e.briquetteAssembler]
     if (stamp?.kind === 'assembler' && store.inventory.coalBriquette + depot.inventory.coalBriquette < 8) {
-      if (stamp.output.coalBriquette) { begin(world, 'takeBriquettes', e.briquetteAssembler); return true }
-      if (!stamp.job && stamp.input.coal < 2 && store.inventory.coal >= 2) { begin(world, 'fetchStamp', h.store); return true }
+      if ((!connectionRunning(world, 'loadingFeed') || mainFuel(world) < 8) && stamp.output.coalBriquette && fuelDeliveryAllowed(world, depot, 'coalBriquette')) { begin(world, 'takeBriquettes', e.briquetteAssembler); return true }
+      if (!connectionRunning(world, 'stampFeed') && !stamp.job && stamp.input.coal < 2 && store.inventory.coal >= 2) { begin(world, 'fetchStamp', h.store); return true }
     }
-    if (store.inventory.coalBriquette && inventoryTotal(depot.inventory) < 24) { begin(world, 'fetchFuel', h.store); return true }
+    if (store.inventory.coalBriquette && fuelDeliveryAllowed(world, depot, 'coalBriquette') && inventoryTotal(depot.inventory) < 24) { begin(world, 'fetchFuel', h.store); return true }
   }
-  if (store.inventory.coal < 24 && inventoryTotal(store.inventory) + store.wood + 3 <= supplyCapacity(store)) { const tile = ironSite(world, 'coal'); if (tile !== null) { begin(world, 'mineCoal', tile); return true } }
+  if (store.inventory.coal < (fuelAutomation(world) ? 6 : 24) && inventoryTotal(store.inventory) + store.wood + 3 <= supplyCapacity(store)) { const tile = ironSite(world, 'coal'); if (tile !== null) { begin(world, 'mineCoal', tile); return true } }
   return false
 }
 export function advanceIndustrial(world: World, delta: number): boolean {
@@ -88,10 +90,10 @@ export function advanceIndustrial(world: World, delta: number): boolean {
   if (!store || !arrived(world, h.target, delta)) return true
   const depot = e.fuelStore === null ? null : world.buildings[e.fuelStore], stamp = e.briquetteAssembler === null ? null : world.buildings[e.briquetteAssembler]
   if (h.task === 'storeFuel') {
-    if (depot?.kind === 'fuelDepot') for (const fuel of ['coalBriquette', 'coal'] as const) while (h.carried[fuel] && deliverItem(depot, fuel, 'east')) h.carried[fuel]--
+    if (depot?.kind === 'fuelDepot') for (const fuel of ['coalBriquette', 'coal'] as const) while (h.carried[fuel] && deliverItem(depot, fuel, 'east', world)) h.carried[fuel]--
     if (inventoryTotal(h.carried)) begin(world, 'returnStock', h.store); else finish(world)
   } else if (h.task === 'takeCoal') {
-    if (depot?.kind !== 'fuelDepot' || depot.inventory.coal < 2) { finish(world); return true }
+    if (depot?.kind !== 'fuelDepot' || depot.inventory.coal < 2 || fuelAutomation(world) && mainFuel(world) < 10) { finish(world); return true }
     depot.inventory.coal -= 2; h.carried.coal = 2; begin(world, 'returnStock', h.store)
   } else if (h.task === 'fetchFuel') {
     const amount = Math.min(2, store.inventory.coalBriquette)

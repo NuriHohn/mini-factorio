@@ -69,11 +69,15 @@ export function handMillLayout(anchor: number): { tile: number; kind: BuildingKi
 }
 export function freeSite(world: World, tiles: number[], infrastructure = false): boolean {
   if (!infrastructure && tiles.some(tile => infrastructureReserved(world).includes(tile))) return false
-  const home = world.peace.home
-  if (home === null || tiles.some(i => !inside(i % SIZE, Math.floor(i / SIZE)) || placementError(world, i % SIZE, Math.floor(i / SIZE), 'storage') || miniApproach(world, i) === null)) return false
+  const home = world.peace.home, before = peteReachableTiles(world, world.pete.tile)
   const crossings = infrastructure ? [...(world.homestead?.infrastructure.links ?? []), ...(world.homestead?.infrastructure.plan ? [world.homestead.infrastructure.plan] : [])].flatMap(p => p.parts).filter(p => p.kind === 'belt' || p.kind === 'inserter').map(p => p.tile) : []
+  if (home === null || tiles.some(i => {
+    const error = placementError(world, i % SIZE, Math.floor(i / SIZE), 'storage')
+    // Construction walks to a neighboring work spot before installing an owned low crossing.
+    return !inside(i % SIZE, Math.floor(i / SIZE)) || error && !(error === 'Pete is walking through this tile.' && !world.buildings[i] && crossings.includes(i)) || !neighboringTiles(i).some(tile => before.has(tile) && peteWalkableTile(world, tile))
+  })) return false
   if (projectPlansConflict(world, { home, direction: 'east', tiles, spots: [], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }, undefined, crossings)) return false
-  const before = peteReachableTiles(world, world.pete.tile), buildings = [...world.buildings]
+  const buildings = [...world.buildings]
   for (const tile of tiles) {
     const s = world.homestead?.infrastructure, part = infrastructure ? [...(s?.links ?? []), ...(s?.plan ? [s.plan] : [])].flatMap(p => p.parts).find(p => p.tile === tile) : null
     const position = { x: tile % SIZE, y: Math.floor(tile / SIZE) }

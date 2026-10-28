@@ -103,7 +103,7 @@ export function projectSiteClear(world: World, project: SecretProject): boolean 
   const remaining = project.tiles.slice(project.built)
   const actors = [world.pete, ...(world.police.car ? [world.police.car] : []), ...(world.revenge.boss ? [world.revenge.boss] : [])]
   if (remaining.some(i => world.water[i] || world.buildings[i] || footbridgeBank(world, i) || world.buildings.some(b => b?.kind === 'prison' && b.exit === i) || actors.some(a => a.tile === i || a.next === i || ('path' in a && a.path.includes(i))))) return false
-  if (project.spots.slice(project.built).some(i => world.water[i] || world.buildings[i])) return false
+  if (project.spots.slice(project.built).some(i => world.water[i] || world.buildings[i] && !(['flightpad', 'treasure', 'workshop', 'experiment', 'house', 'bicycle'].includes(project.kind ?? '') && serviceCrossing(world, i)))) return false
   const before = reachableTiles(world, world.pete.tile), buildings = [...world.buildings]
   for (const i of remaining) buildings[i] = projectBuilding(project, i)
   const after = reachableTiles({ ...world, buildings }, world.pete.tile)
@@ -115,7 +115,10 @@ function layout(world: World, kind: SecretProject['kind']): SecretProject | null
     const cells = (kind ? [0] : [-1, 0, 1]).map(n => ({ x: x + dx * radius + (dy ? n : 0), y: y + dy * radius + (dx ? n : 0) }))
     if (cells.some(p => !inside(p.x, p.y) || (world.homestead && world.tiles[p.y * SIZE + p.x] !== null) || (outside && yardInterior(world.yard!, p.y * SIZE + p.x)))) continue
     const project: SecretProject = { ...(kind ? { kind } : {}), ...(developmentKind(kind) ? { carriedIron: 0, carriedGears: 0, carriedModules: 0 } : {}), ...((kind === 'treasure' || kind === 'flightpad') ? { carriedCopper: 0, carriedCable: 0, carriedCircuits: 0 } : {}), ...(kind === 'press' ? { carriedIron: 0, carriedGears: 0 } : {}), ...(kind === 'experiment' ? { carriedCopper: 0, carriedCable: 0, carriedGears: 0 } : {}), ...(kind === 'workshop' ? { carriedIron: 0 } : {}), home, direction: dy ? 'east' : 'south', tiles: cells.map(p => p.y * SIZE + p.x), spots: cells.map(p => (p.y - dy) * SIZE + p.x - dx), phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
-    if (!projectPlansConflict(world, project) && projectSiteClear(world, project) && source(world, project)) return project
+    for (const spot of kind === 'flightpad' ? [...new Set([...project.spots, ...neighboringTiles(project.tiles[0])])] : project.spots) {
+      const candidate = kind === 'flightpad' ? { ...project, spots: [spot] } : project
+      if (!projectPlansConflict(world, candidate) && projectSiteClear(world, candidate) && source(world, candidate)) return candidate
+    }
   }
   return null
 }
@@ -168,12 +171,14 @@ function availableMaterials(world: World, project: SecretProject | null, definit
 }
 export function projectPlansConflict(world: World, project: SecretProject, ignored?: SecretProject, crossings: number[] = []): boolean {
   const e = world.homestead?.expansion
-  if (project.phase === 'collecting' && project.kind && e && [e.furnace, e.gearAssembler, e.copperFurnace, e.cableAssembler].some(tile => tile !== null && project.tiles.some(t => t === tile + 1 || t === tile + 2))) return true
+  const store = world.homestead?.store
+  if (project.phase === 'collecting' && project.kind && e?.copperFurnace !== null && e?.copperFurnace !== undefined && store !== null && store !== undefined && project.tiles.some(t => [store - SIZE, store - 2 * SIZE, store + SIZE, store + 2 * SIZE].includes(t))) return true
+  if (project.phase === 'collecting' && project.kind && e && [e.furnace, e.gearAssembler, e.copperFurnace, e.cableAssembler, e.circuitAssembler, e.briquetteAssembler].some(tile => tile !== null && project.tiles.some(t => t === tile + 1 || t === tile + 2))) return true
   if (world.rebuilding?.jobs.some(job => project.tiles.slice(project.built).includes(job.tile) || project.spots.slice(project.built).includes(job.tile))) return true
   if (project.kind !== 'gate' && project.tiles.some(i => i === world.yard?.entrance || i === world.chickenRun?.entrance)) return true
   return PETE_PROJECTS.some(({ state }) => {
     const other = world[state]
-    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i) && !(['workshop', 'experiment'].includes(other.kind ?? '') && crossings.includes(i)))) return true
+    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i) && !(['workshop', 'experiment', 'house', 'bicycle', 'treasure', 'flightpad'].includes(other.kind ?? '') && crossings.includes(i)))) return true
     return other && other !== project && other !== ignored && other.phase !== 'complete' && (project.tiles.some(i => other.tiles.includes(i) || other.spots.includes(i)) || project.spots.some(i => other.tiles.includes(i)))
   })
 }

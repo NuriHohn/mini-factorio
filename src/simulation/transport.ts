@@ -1,3 +1,4 @@
+import { fuelDeliveryAllowed } from './productionLogistics'
 import { STEAM_FUEL_CAPACITY } from './steam'
 import { forestryOutput } from './forestryStation'
 import { PRESS_INPUT_CAPACITY } from './gearPress'
@@ -65,7 +66,8 @@ function accept(target: Building, item: Item, direction: Direction): void {
   }
 }
 // Shared atomic delivery for inserters, using the same ports, capacities and recipe locks.
-export function deliverItem(target: Building, item: Item, direction: Direction): boolean {
+export function deliverItem(target: Building, item: Item, direction: Direction, world?: World): boolean {
+  if (world && !fuelDeliveryAllowed(world, target, item)) return false
   if (!canReceive(target, item, direction)) return false
   accept(target, item, direction)
   return true
@@ -81,7 +83,7 @@ export function advanceTransport(world: World, delta: number): Set<Building> {
     const target = receiver(world, source, direction)
     if (!target) return
     const recipeId = target.kind === 'furnace' ? recipes.get(target) ?? incomingRecipe(target, item) : target.kind === 'assembler' ? target.recipeId : null
-    if (!canReceive(target, item, direction, reserved.get(target) ?? {}, recipeId)) return
+    if (!fuelDeliveryAllowed(world, target, item, reserved.get(target) ?? {}) || !canReceive(target, item, direction, reserved.get(target) ?? {}, recipeId)) return
     if (target.kind === 'furnace' && recipeId) recipes.set(target, recipeId)
     transfers.push({ source, output, target, item, direction })
     const inventory = reserved.get(target) ?? emptyInventory()
@@ -130,7 +132,7 @@ function splitterRouteAvailable(world: World, splitter: Splitter, output: Splitt
   const target = receiver(world, splitter, direction)
   // A front-facing inserter can extract the outgoing slot; it never takes queued intake.
   if (target?.kind === 'inserter') return target.direction === direction
-  return !!target && canReceive(target, item, direction, reserved?.get(target) ?? {})
+  return !!target && fuelDeliveryAllowed(world, target, item, reserved?.get(target) ?? {}) && canReceive(target, item, direction, reserved?.get(target) ?? {})
 }
 export function splitterBlocked(world: World, splitter: Splitter, output: SplitterOutput): boolean {
   const direction = splitterDirections(splitter.direction)[output], target = receiver(world, splitter, direction)
