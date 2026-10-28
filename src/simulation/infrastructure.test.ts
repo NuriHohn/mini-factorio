@@ -58,7 +58,7 @@ describe('ordinary paid Pete transport', () => {
   it('funds an original project when the store is accessible only over its owned transport', () => {
     const w = stored(), store = materialStore(w)!
     link(w, 'iron')
-    for (const tile of [860, 901, 940]) expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'powerPole', 'east')).toBe(true)
+    for (const tile of [860, 899, 901, 940].filter(tile => w.buildings[tile] === null)) expect(placeBuilding(w, tile % SIZE, Math.floor(tile / SIZE), 'powerPole', 'east')).toBe(true)
     store.inventory.ironPlate = 12
     expect(projectCandidates(w).some(p => p.definition.id === 'workshop')).toBe(true)
     expect(trySecretProject(w)).toBe(true)

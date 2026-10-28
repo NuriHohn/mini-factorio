@@ -1,6 +1,6 @@
 import { awardActivity } from './personality'
 import { PETE_PROJECTS } from './projectRegistry'
-import { neighboringTiles, peteReachableTiles, tilePath } from './navigation'
+import { serviceCrossing, neighboringTiles, peteReachableTiles, tilePath } from './navigation'
 import { SIZE } from './world'
 import type { Position, World } from './world'
 export const TREASURES = [
@@ -34,7 +34,7 @@ export function leisureSpot(world: World, kind: 'treasure' | 'flightpad'): numbe
   const project = kind === 'treasure' ? world.treasureProject : world.flightProject
   if (project?.phase !== 'complete' || world.buildings[project.tiles[0]]?.kind !== (kind === 'treasure' ? 'peteTreasure' : 'peteFlightpad')) return null
   const paths = peteReachableTiles(world, world.pete.tile)
-  return neighboringTiles(project.tiles[0]).filter(i => !world.water[i] && !world.buildings[i] && paths.has(i))
+  return neighboringTiles(project.tiles[0]).filter(i => !world.water[i] && (!world.buildings[i] || serviceCrossing(world, i)) && paths.has(i))
     .sort((a, b) => (tilePath(paths, a)?.length ?? Infinity) - (tilePath(paths, b)?.length ?? Infinity) || a - b)[0] ?? null
 }
 export function leisureDecision(world: World): { activity: LeisureActivity; destination: number } | null {
@@ -92,7 +92,7 @@ export function refreshLeisure(world: World): void {
   if (state && world.peace.home === null) { state.pending = null; state.flight = null }
   if (!state || !LEISURE_ACTIVITIES.includes(activity)) return
   const target = world.peace.destination
-  const invalid = world.peace.home === null || (['flightward', 'flying', 'crashRest'].includes(activity) ? leisureSpot(world, 'flightpad') === null : ['treasureHomeward', 'storingTreasure'].includes(activity) ? leisureSpot(world, 'treasure') === null : !state.pending || !!world.buildings[state.pending.tile] || world.water[state.pending.tile]) || (target !== null && (world.water[target] || !!world.buildings[target]))
+  const invalid = world.peace.home === null || (['flightward', 'flying', 'crashRest'].includes(activity) ? leisureSpot(world, 'flightpad') === null : ['treasureHomeward', 'storingTreasure'].includes(activity) ? leisureSpot(world, 'treasure') === null : !state.pending || !!world.buildings[state.pending.tile] || world.water[state.pending.tile]) || (target !== null && (world.water[target] || !!world.buildings[target] && !serviceCrossing(world, target)))
   if (!invalid) return
   state.pending = null
   if (state.flight) state.nextFlightAtMs = world.timeMs + FLIGHT_COOLDOWN_MS

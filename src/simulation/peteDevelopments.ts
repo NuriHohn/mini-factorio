@@ -24,7 +24,7 @@ export function developmentBuilding(world: World, kind: DevelopmentKind): PeteDe
 }
 export function approach(world: World, tile: number): number | null {
   const parents = peteReachableTiles(world, world.pete.tile)
-  return neighboringTiles(tile).filter(i => !world.water[i] && !world.buildings[i] && parents.has(i)).sort((a, b) => tilePath(parents, a)!.length - tilePath(parents, b)!.length || a - b)[0] ?? null
+  return neighboringTiles(tile).filter(i => !world.water[i] && (!world.buildings[i] || serviceCrossing(world, i)) && parents.has(i)).sort((a, b) => tilePath(parents, a)!.length - tilePath(parents, b)!.length || a - b)[0] ?? null
 }
 function atBuilding(world: World, kind: DevelopmentKind): number | null {
   const h = world.homestead
@@ -130,7 +130,7 @@ export function finishDevelopment(world: World): boolean {
 export function developmentTargetValid(world: World): boolean {
   const s = world.developmentLife
   if (!s?.task || s.target === null || world.peace.home === null) return false
-  if ((world.water[s.target] || world.buildings[s.target]) && !(s.task === 'cycle' && world.homestead?.cargoBicycle && (world.buildings[s.target]?.kind === 'footbridge' || serviceCrossing(world, s.target)))) return false
+  if ((world.water[s.target] || world.buildings[s.target]) && !(serviceCrossing(world, s.target) || s.task === 'cycle' && world.homestead?.cargoBicycle && world.buildings[s.target]?.kind === 'footbridge')) return false
   if (s.task === 'storeFruit') return neighboringTiles(world.peace.home).includes(s.target) && s.carriedFruit > 0
   if (s.task === 'collectNurseryWood') return !!developmentBuilding(world, 'nursery') && neighboringTiles(s.target).some(i => { const b = world.buildings[i]; return b?.kind === 'supplyCrate' && b.wood >= 2 })
   if (s.task === 'cookFruit') return s.fruit > 0 && neighboringTiles(s.target).some(i => world.buildings[i]?.kind === 'peteCampfire')

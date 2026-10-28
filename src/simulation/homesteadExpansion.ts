@@ -1,4 +1,5 @@
-import { connectionRunning } from './infrastructure'
+import { protectsOutput } from './productionLogistics'
+import { connectionRunning, planConnection, previewConnection } from './infrastructure'
 import { chooseCraftsman, advanceCraftsman } from './craftsman'
 import { advanceIndustrial, chooseIndustrial, industrialLayout, planIndustrial } from './industrial'
 import { INDUSTRIAL_CHAINS } from './industrialRules'
@@ -14,6 +15,7 @@ import { arrived, begin, finish, freeSite, materialStore } from './homestead'
 import { emptyInventory, inventoryTotal } from './items'
 import type { Inventory, Item } from './items'
 import { miniApproach } from './petesWorld'
+import { neighboringTiles } from './navigation'
 import { awardActivity } from './personality'
 import { supplyCapacity } from './supplyCrate'
 import { deliverItem } from './transport'
@@ -65,6 +67,7 @@ export function expansionLayout(plan: ExpansionPlan): { tile: number; kind: Buil
     return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, ...route.slice(1).map((tile, i) => ({ tile, kind: 'belt' as const, direction: i + 2 < route.length ? direction(tile, route[i + 2]) : 'east' as const })), { tile: a, kind: 'miner', direction: direction(a, route[1]) }]
   }
   if (plan.kind === 'steam') return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a, kind: 'steamEngine', direction: 'east' }]
+  if ((plan.kind === 'cables' || plan.kind === 'circuits') && d === 'east') return [{ tile: a + 3, kind: 'powerPole', direction: 'east' }, { tile: a + 4, kind: 'generator', direction: 'east' }, { tile: a, kind: 'assembler', direction: 'east' }]
   if (plan.kind === 'gears' || plan.kind === 'cables' || plan.kind === 'circuits') return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, { tile: a, kind: 'assembler', direction: 'east' }]
   if (plan.kind === 'crates') return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, { tile: a - 1, kind: 'belt', direction: 'east' }, { tile: a, kind: 'assembler', direction: 'east' }]
   return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, { tile: a, kind: 'furnace', direction: 'east' }]
@@ -97,7 +100,11 @@ function chainCandidates(world: World, kind: ChainKind): ExpansionPlan[] {
     for (let radius = 3; radius <= 7; radius++) for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue
       const x = home % SIZE + dx, y = Math.floor(home / SIZE) + dy
-      if (x > 0 && x < SIZE - 2 && y > 0 && y < SIZE - 2) for (const direction of ['north', 'south'] as const) candidates.push({ kind, anchor: y * SIZE + x, direction, built: 0 })
+      if (x > 0 && x < SIZE - 2 && y > 0 && y < SIZE - 2) {
+        if (kind === 'circuits' && x < SIZE - 4) candidates.push({ kind, anchor: y * SIZE + x, direction: 'east', built: 0 })
+        for (const direction of ['north', 'south'] as const) candidates.push({ kind, anchor: y * SIZE + x, direction, built: 0 })
+        if (kind === 'cables' && x < SIZE - 4) candidates.push({ kind, anchor: y * SIZE + x, direction: 'east', built: 0 })
+      }
     }
   }
   if (kind === 'iron' || kind === 'copper' || kind === 'steam') {
@@ -110,15 +117,43 @@ function chainCandidates(world: World, kind: ChainKind): ExpansionPlan[] {
 export function planChain(world: World, kind: ChainKind): ExpansionPlan | null {
   if (INDUSTRIAL_CHAINS.some(k => k === kind)) return planIndustrial(world, kind)
   if (kind === 'ironMining' || kind === 'copperMining') return planOreMining(world, kind === 'copperMining' ? 'copper' : 'iron')
-  return chainCandidates(world, kind).find(p => {
-    if (kind === 'iron' || kind === 'gears' || kind === 'copper' || kind === 'cables') {
+  let fallback: ExpansionPlan | null = null
+  for (const p of chainCandidates(world, kind)) {
+    if (kind === 'iron' || kind === 'gears' || kind === 'copper' || kind === 'cables' || kind === 'circuits') {
       const store = world.homestead!.store
-      if (store !== null && Math.abs(p.anchor % SIZE - store % SIZE) + Math.abs(Math.floor(p.anchor / SIZE) - Math.floor(store / SIZE)) < 4) return false
-      if (p.anchor % SIZE >= SIZE - 2 || [p.anchor + 1, p.anchor + 2].some(t => world.buildings[t] || world.water[t] || world.tiles[t])) return false
-      if (!expansionLayout(p).every(s => world.tiles[s.tile] === null)) return false
+      if (store !== null && Math.abs(p.anchor % SIZE - store % SIZE) + Math.abs(Math.floor(p.anchor / SIZE) - Math.floor(store / SIZE)) < 4) continue
+      if (p.anchor % SIZE >= SIZE - 2 || [p.anchor + 1, p.anchor + 2].some(t => world.buildings[t] || world.water[t] || world.tiles[t])) continue
+      if (!expansionLayout(p).every(s => world.tiles[s.tile] === null) || protectsOutput(world, [p.anchor + 1, p.anchor + 2])) continue
+      if (kind === 'circuits') {
+        const inlet = p.anchor - 1
+        if (world.buildings[inlet] || world.water[inlet] || world.tiles[inlet] || protectsOutput(world, [inlet])) continue
+      }
     }
-    return freeSite(world, expansionLayout(p).map(s => s.tile))
-  }) ?? null
+    if (protectsOutput(world, expansionLayout(p).map(s => s.tile)) || !freeSite(world, expansionLayout(p).map(s => s.tile))) continue
+    fallback ??= p
+    if (!['cables', 'circuits'].includes(kind) || assemblySiteConnected(world, p)) return p
+  }
+  return fallback
+}
+// Check the concrete shared yard before committing a new ingredient machine. Nothing is built here.
+function assemblySiteConnected(world: World, plan: ExpansionPlan): boolean {
+  const h = world.homestead!, buildings = [...world.buildings]
+  for (const part of expansionLayout(plan)) {
+    const position = { x: part.tile % SIZE, y: Math.floor(part.tile / SIZE) }
+    if (part.kind === 'assembler') buildings[part.tile] = { ...position, kind: 'assembler', direction: 'east', recipeMode: 'manual', recipeId: plan.kind === 'circuits' ? 'electronicCircuit' : 'copperCable', recipeLocked: true, autoWaitElapsedMs: null, input: emptyInventory(), output: emptyInventory(), job: null }
+    else if (part.kind === 'powerPole' || part.kind === 'generator') buildings[part.tile] = { ...position, kind: part.kind }
+  }
+  let candidate: World = { ...world, buildings, homestead: { ...h, expansion: { ...h.expansion, ...(plan.kind === 'circuits' ? { circuitAssembler: plan.anchor } : { cableAssembler: plan.anchor }) } } }
+  if (plan.kind === 'cables' && h.expansion.copperMiner === null && !planOreMining(candidate, 'copper')) return false
+  const returns = plan.kind === 'circuits' && h.expansion.furnace !== null ? ['circuitReturn', 'cableReturn', 'copper'] as const : ['copper', 'cableReturn', 'circuitReturn'] as const
+  for (const kind of ['iron', 'gearFeed', 'cableFeed', 'circuitFeed', ...returns] as const) {
+    if (candidate.homestead!.infrastructure.links.some(p => p.kind === kind) || plan.kind === 'cables' && (kind === 'circuitFeed' || kind === 'circuitReturn')) continue
+    if (kind === 'iron' && h.expansion.furnace === null || kind === 'gearFeed' && h.expansion.gearAssembler === null) continue
+    const link = planConnection(candidate, kind)
+    if (!link) return false
+    candidate = previewConnection(candidate, link)
+  }
+  return true
 }
 function planOreMining(world: World, resource: 'iron' | 'copper'): ExpansionPlan | null {
   const furnace = resource === 'copper' ? world.homestead!.expansion.copperFurnace : world.homestead!.expansion.furnace
@@ -134,7 +169,7 @@ function planOreMining(world: World, resource: 'iron' | 'copper'): ExpansionPlan
     for (const direction of ['north', 'south'] as const) {
       const plan: ExpansionPlan = { kind: resource === 'copper' ? 'copperMining' : 'ironMining', anchor, direction, built: 0, route }
       const tiles = expansionLayout(plan).map(s => s.tile)
-      if (new Set(tiles).size === tiles.length && tiles.every(t => inside(t % SIZE, Math.floor(t / SIZE)) && Math.abs(t % SIZE - anchor % SIZE) <= 13) && freeSite(world, tiles)) return plan
+      if (new Set(tiles).size === tiles.length && tiles.every(t => inside(t % SIZE, Math.floor(t / SIZE)) && Math.abs(t % SIZE - anchor % SIZE) <= 13) && freeSite(world, tiles) && expansionLayout(plan).every(part => neighboringTiles(part.tile).some(tile => !tiles.includes(tile) && !world.water[tile] && !world.buildings[tile]))) return plan
     }
   }
   return null
@@ -158,15 +193,16 @@ function chooseCopper(world: World): boolean {
   }
   const circuits = e.circuitAssembler === null ? null : world.buildings[e.circuitAssembler]
   if (circuits?.kind === 'assembler' && store.inventory.electronicCircuit < 12 && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) {
-    if (circuits.output.electronicCircuit) { begin(world, 'takeCircuits', e.circuitAssembler); return true }
-    if (!circuits.job && (circuits.input.ironPlate < 1 || circuits.input.copperCable < 3) && store.inventory.ironPlate >= Math.max(0, 1 - circuits.input.ironPlate) && store.inventory.copperCable >= Math.max(0, 3 - circuits.input.copperCable)) { begin(world, 'fetchCircuits', h.store); return true }
+    if (!connectionRunning(world, 'circuitReturn') && circuits.output.electronicCircuit) { begin(world, 'takeCircuits', e.circuitAssembler); return true }
+    if (!connectionRunning(world, 'circuitFeed') && !circuits.job && (circuits.input.ironPlate < 1 || circuits.input.copperCable < 3) && store.inventory.ironPlate >= Math.max(0, 1 - circuits.input.ironPlate) && store.inventory.copperCable >= Math.max(0, 3 - circuits.input.copperCable)) { begin(world, 'fetchCircuits', h.store); return true }
   }
   const furnace = e.copperFurnace === null ? null : world.buildings[e.copperFurnace]
   const assembler = e.cableAssembler === null ? null : world.buildings[e.cableAssembler]
   const room = store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)
+  const cableInvoice = world.flightProject?.phase === 'complete' && h.infrastructure.links.filter(p => ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'].includes(p.kind)).length < 5 ? 10 : 2
   if (assembler?.kind === 'assembler' && store.inventory.copperCable < 16) {
     if (!connectionRunning(world, 'cableReturn') && assembler.output.copperCable && room) { begin(world, 'takeCable', e.cableAssembler); return true }
-    if (!connectionRunning(world, 'cableFeed') && !assembler.job && !assembler.input.copperPlate && store.inventory.copperPlate >= 2) { begin(world, 'fetchCable', h.store); return true }
+    if (!connectionRunning(world, 'cableFeed') && !assembler.job && !assembler.input.copperPlate && store.inventory.copperPlate >= cableInvoice) { begin(world, 'fetchCable', h.store); return true }
   }
   if (furnace?.kind === 'furnace' && store.inventory.copperPlate < 40) {
     if (!connectionRunning(world, 'copper') && furnace.output.copperPlate && room) { begin(world, 'takeCopper', e.copperFurnace); return true }

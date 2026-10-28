@@ -1,3 +1,4 @@
+import { fuelDeliveryAllowed } from './productionLogistics'
 import { infrastructurePickupAllowed, ownedStorePickup } from './infrastructure'
 import { forestryOutput } from './forestryStation'
 import { splitterDirections } from './splitters'
@@ -64,20 +65,20 @@ export function createInserterFrame(world: World): InserterFrame {
   }
   return frame
 }
-function accepts(target: Building | null, item: Item, inserter: Inserter, frame?: InserterFrame): target is Building {
-  return target !== null && !frame?.blockedBelts.has(target) && canReceive(target, item, inserter.direction)
+function accepts(world: World, target: Building | null, item: Item, inserter: Inserter, frame?: InserterFrame): target is Building {
+  return target !== null && fuelDeliveryAllowed(world, target, item) && !frame?.blockedBelts.has(target) && canReceive(target, item, inserter.direction)
 }
 function pickupCandidate(world: World, inserter: Inserter, frame?: InserterFrame): Item | null {
   const { source, target } = neighbors(world, inserter)
   if (!source) return null
   return ITEMS.find(item => infrastructurePickupAllowed(world, inserter.y * SIZE + inserter.x, item) && sourceCount(source, inserter, item, true, world) > 0
     && (!frame || (frame.sources.get(source)?.[item] ?? 0) > 0)
-    && accepts(target, item, inserter, frame)) ?? null
+    && accepts(world, target, item, inserter, frame)) ?? null
 }
 export function inserterDemand(world: World, inserter: Inserter, frame?: InserterFrame): number {
   if (inserter.phase === 'idle') return pickupCandidate(world, inserter, frame) ? INSERTER_KW : 0
   if (inserter.phase === 'returning' || inserter.elapsedMs < INSERTER_SWING_MS) return INSERTER_KW
-  return inserter.item && accepts(neighbors(world, inserter).target, inserter.item, inserter, frame) ? INSERTER_KW : 0
+  return inserter.item && accepts(world, neighbors(world, inserter).target, inserter.item, inserter, frame) ? INSERTER_KW : 0
 }
 export type InserterStatus = 'waiting-input' | 'output-blocked' | 'moving' | 'returning'
 export function inserterStatus(world: World, inserter: Inserter): InserterStatus {
@@ -126,7 +127,7 @@ export function advanceInserters(world: World, delta: number, frame: InserterFra
     inserter.elapsedMs = INSERTER_SWING_MS
     if (inserter.phase === 'carrying') {
       const { target } = neighbors(world, inserter)
-      if (!inserter.item || !accepts(target, inserter.item, inserter, frame) || !deliverItem(target, inserter.item, inserter.direction)) continue
+      if (!inserter.item || !accepts(world, target, inserter.item, inserter, frame) || !deliverItem(target, inserter.item, inserter.direction, world)) continue
       inserter.item = null
       inserter.phase = 'returning'
       inserter.elapsedMs = 0

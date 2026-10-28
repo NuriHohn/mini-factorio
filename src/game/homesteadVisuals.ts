@@ -33,6 +33,15 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
     const at = world.flightProject.tiles[0], x = (at % SIZE + .5) * tile, y = (Math.floor(at / SIZE) + .5) * tile
     if (visiblePoint(view, x, y, tile)) for (let n = 1; n < s.infrastructure.inventor; n++) g.fillStyle(0x82c6d4).fillRect(x - 14 + n * 9, y + 5, 6, 10)
   }
+  if (s) for (let n = 0; n < s.infrastructure.industrial; n++) {
+    const at = n === 0 ? s.expansion.steamWorkshop : s.expansion.steamHoist, host = at === null ? null : world.buildings[at]
+    if (!host || (host.kind !== 'steamWorkshop' && host.kind !== 'steamHoist')) continue
+    const x = (host.x + .5) * tile, y = (host.y + .5) * tile
+    if (!visiblePoint(view, x, y, tile)) continue
+    if (n === 0) g.fillStyle(0xa88155).fillRect(x - 14, y + 9, 13, 5)
+    else if (n === 1) g.lineStyle(2, 0xd1ae63).strokeRect(x - 17, y + 9, 34, 7)
+    else { g.fillStyle(0x8f7356).fillTriangle(x - 20, y - 11, x, y - 20, x + 20, y - 11); g.fillStyle(0xffdc89).fillCircle(x + 14, y - 5, 3) }
+  }
   const hoist = s?.expansion.steamHoist === null || s?.expansion.steamHoist === undefined ? null : world.buildings[s.expansion.steamHoist]
   if (s?.infrastructure.loadingCargo && hoist?.kind === 'steamHoist') {
     const x = (hoist.x + .5) * tile, y = (hoist.y + .5) * tile - hoist.elapsedMs / 8000 * 18

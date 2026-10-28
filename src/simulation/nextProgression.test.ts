@@ -87,6 +87,8 @@ describe('resource-led copper automation, circuits and coal', () => {
     beforeAll(() => { until(w, () => w.homestead!.expansion.cableAssembler !== null, 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => w.homestead!.expansion.copperMiner !== null, 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => w.produced.electronicCircuit > 0, 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.experimentProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.treasureProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => w.flightProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => (w.leisure?.practices ?? 0) > 0, 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => w.leisure?.flight?.practice === false, 7200000) }, 60000)

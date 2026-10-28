@@ -150,3 +150,6 @@ Sprints **16.78–16.82** add an autonomous Craftsman gear assembler and paid ca
 Sprints **16.83–16.87** add per-path next-step/focus controls, paid iron/gear transport connections, an Eco waterwheel linked to the mill and bounded product-funded coop/workshop furnishings. Personal deliveries remain a fallback, and Save 49 retains older worlds. See [connected supplies and later work](docs/GAME_DESIGN.md#connected-supplies-and-visible-later-work-sprints-1683-1687).
 
 Sprints **16.88–16.92** add connection inspection, paid copper/cable logistics, Inventor furnishings and actual steam-hoist fuel loading. Save 50 retains older worlds. See [later logistics and loading](docs/GAME_DESIGN.md#later-logistics-and-real-loading-sprints-1688-1692).
+
+
+Sprints **16.93–16.97** extend the shared transport to mixed circuit ingredients and circuit return, automatic stampfer feeding and a one-way briquette loading chain, plus three visible product-funded Industrial upgrades. Save 51 preserves older worlds and paid work. See [circuit and Industrial logistics](docs/GAME_DESIGN.md#circuit-and-industrial-logistics-sprints-1693-1697).

@@ -182,7 +182,7 @@ describe('real fuel loading on the existing hoist', () => {
 it('upgrades a genuine Save 49 without fabricating cable work or fuel', () => {
   const w = stored(), old = snapshot(w), s = old.game.homestead.infrastructure
   old.version = 49
-  for (const key of ['inventor', 'loading', 'loadingPlan', 'loadingCargo']) delete s[key]
+  for (const key of ['industrial', 'cargoCycles', 'inventor', 'loading', 'loadingPlan', 'loadingCargo']) delete s[key]
   const loaded = decodeSave(JSON.stringify(old)).world
   expect(loaded.homestead!.infrastructure.inventor).toBe(0)
   expect(loaded.homestead!.infrastructure.loading).toBeNull()

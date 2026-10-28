@@ -41,14 +41,14 @@ export function restoreLeisure(value: unknown, world: World): PeteLeisure | unde
     const f = v.object(r.flight, 'leisure.flight', ['startMs', 'durationMs', 'tile', 'pad', 'practice', 'crash'])
     state.flight = { startMs: clock(f.startMs, 'leisure.flight.startMs', world.timeMs), durationMs: v.number(f.durationMs, 'leisure.flight.durationMs', 6000, 12000, true), tile: v.tile(f.tile, 'leisure.flight.tile'), pad: v.tile(f.pad, 'leisure.flight.pad'), practice: v.boolean(f.practice, 'leisure.flight.practice'), crash: v.boolean(f.crash, 'leisure.flight.crash') }
     const flight = state.flight, activity = world.peace.activity
-    if (!['flying', 'crashRest'].includes(activity) || flight.tile !== world.pete.tile || world.flightProject?.tiles[0] !== flight.pad || leisureSpot(world, 'flightpad') === null || flight.durationMs !== (flight.practice ? 6000 : 12000) || (!flight.practice && flight.crash) || (activity === 'flying' ? world.peace.sinceMs !== flight.startMs || world.peace.untilMs !== flight.startMs + flight.durationMs : !flight.crash || world.peace.sinceMs !== flight.startMs + flight.durationMs)) v.invalid('leisure.flight', 'invalid flight origin, stage or clock')
+    if (!['flying', 'crashRest'].includes(activity) || flight.tile !== world.pete.tile || world.flightProject?.tiles[0] !== flight.pad || flight.durationMs !== (flight.practice ? 6000 : 12000) || (!flight.practice && flight.crash) || (activity === 'flying' ? world.peace.sinceMs !== flight.startMs || world.peace.untilMs !== flight.startMs + flight.durationMs : !flight.crash || world.peace.sinceMs !== flight.startMs + flight.durationMs)) v.invalid('leisure.flight', 'invalid flight origin, stage or clock')
   }
   const activity = world.peace.activity, destination = world.peace.destination
   if ((!!state.pending) !== ['treasureward', 'pickingTreasure'].includes(activity) || (!!state.flight) !== ['flying', 'crashRest'].includes(activity) || (state.carried && state.pending)) v.invalid('leisure', 'activity and payload disagree')
   if (state.pending && destination !== state.pending.tile) v.invalid('leisure.pending', 'find destination disagrees')
   if (['pickingTreasure', 'storingTreasure'].includes(activity) && destination !== world.pete.tile) v.invalid('leisure', 'work is away from destination')
   if (['treasureHomeward', 'storingTreasure'].includes(activity) && (!state.carried || world.treasureProject?.phase !== 'complete' || !neighboringTiles(world.treasureProject.tiles[0]).includes(destination!) || world.buildings[world.treasureProject.tiles[0]]?.kind !== 'peteTreasure')) v.invalid('leisure', 'missing chest or carried treasure')
-  if (activity === 'flightward' && (leisureSpot(world, 'flightpad') === null || !neighboringTiles(world.flightProject!.tiles[0]).includes(destination!))) v.invalid('leisure', 'invalid flight approach')
+  if (activity === 'flightward' && (!world.flightProject || !neighboringTiles(world.flightProject.tiles[0]).includes(destination!))) v.invalid('leisure', 'invalid flight approach')
   return state
 }
 export function validateLeisure(world: World): void {
@@ -62,6 +62,7 @@ export function validateLeisure(world: World): void {
   const total = Object.values(state.collection).reduce((a, b) => a + b, 0)
   if ((state.carried || state.pending || total) && world.treasureProject?.phase !== 'complete') v.invalid('leisure', 'treasures require completed chest')
   if ((state.practices || state.flight || world.peace.activity === 'flightward') && world.flightProject?.phase !== 'complete') v.invalid('leisure', 'flight requires completed workshop')
+  if ((state.flight || world.peace.activity === 'flightward') && leisureSpot(world, 'flightpad') === null) v.invalid('leisure.flight', 'requires a safe owned workshop approach')
   if (state.flight && world.personality.paths.inventor.level < (state.flight.practice ? 4 : 5)) v.invalid('leisure.flight', 'flight not unlocked')
   const projectXp = world.personality.rewardedProjects.reduce((sum, id) => sum + (PROJECT_REWARDS[id].path === 'inventor' ? PROJECT_REWARDS[id].xp : 0), 0)
   if (world.personality.paths.inventor.xp < projectXp + total + state.practices * PRACTICE_XP) v.invalid('leisure', 'missing completion XP')
