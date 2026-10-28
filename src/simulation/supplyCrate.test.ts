@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createBareWorld, poweredWorld } from './testFixtures'
 import { placeBuilding, removeBuilding, offsets, DIRECTIONS, SIZE } from './world'
@@ -133,10 +134,10 @@ describe('peaceful supply visits and persistence', () => {
     advanceWorld(w, 8765)
     for (const ms of [17, 2000, 103, 2645, 4000]) advanceWorld(loaded, ms)
     expect(JSON.parse(encode(loaded))).toEqual(JSON.parse(encode(w)))
-    expect(SAVE_VERSION).toBe(51)
+    expect(SAVE_VERSION).toBe(52)
   })
   it('accepts genuine prior-version saves and rejects malformed inventory or hidden new state', () => {
-    const legacy = JSON.parse(encode(world())); legacy.version = 13; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
+    const legacy = JSON.parse(encode(world())); stripVersion52State(legacy.game); legacy.version = 13; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
     expect(JSON.parse(encode(decodeSave(JSON.stringify(legacy)).world))).toEqual(JSON.parse(encode(world())))
     const w = home(); visit(w)
     for (const mutate of [

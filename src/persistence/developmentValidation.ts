@@ -20,11 +20,11 @@ export function restoreDevelopmentProject(value: unknown, world: World, kind: De
   if (p.carried !== (paid ? costs.wood ?? 0 : 0) || p.carriedIron !== (paid ? costs.ironPlate ?? 0 : 0) || p.carriedGears !== (paid ? costs.ironGear ?? 0 : 0) || p.carriedModules !== (paid ? costs.mechanicModule ?? 0 : 0)) v.invalid(kind, 'paid material accounting disagrees')
   return p
 }
-export function restoreDevelopmentLife(value: unknown, world: World): DevelopmentLife {
+export function restoreDevelopmentLife(value: unknown, world: World, version = 52): DevelopmentLife {
   const r = v.object(value, 'developmentLife', ['seed', 'task', 'target', 'plant', 'carriedFruit', 'fruit', 'carriedWood', 'carriedSapling', 'saplings', 'nextAt', 'ecoXp', 'craftsmanXp', 'industrialXp'])
-  const state = createDevelopmentLife(), deadlines = v.object(r.nextAt, 'developmentLife.nextAt', TASKS)
+  const state = createDevelopmentLife(), deadlines = v.object(r.nextAt, 'developmentLife.nextAt', version >= 52 ? TASKS : TASKS.filter(t => t !== 'pavilionRest'))
   state.seed = v.count(r.seed, 'developmentLife.seed', 0xffffffff)
-  state.task = r.task === null ? null : v.choice(r.task, 'developmentLife.task', TASKS)
+  state.task = r.task === null ? null : v.choice(r.task, 'developmentLife.task', version >= 52 ? TASKS : TASKS.filter(t => t !== 'pavilionRest'))
   state.target = r.target === null ? null : v.tile(r.target, 'developmentLife.target')
   state.plant = r.plant === null ? null : v.tile(r.plant, 'developmentLife.plant')
   state.carriedFruit = v.count(r.carriedFruit, 'developmentLife.carriedFruit', 2)
@@ -33,7 +33,7 @@ export function restoreDevelopmentLife(value: unknown, world: World): Developmen
   state.carriedSapling = v.count(r.carriedSapling, 'developmentLife.carriedSapling', 1)
   state.saplings = v.count(r.saplings, 'developmentLife.saplings', 3)
   if (![0, 2].includes(state.carriedFruit) || ![0, 2].includes(state.carriedWood) || (Number(!!state.carriedFruit) + Number(!!state.carriedWood) + state.carriedSapling > 1) || (state.plant !== null) !== (state.task === 'plantSapling')) v.invalid('developmentLife', 'invalid carried payload or planting task')
-  for (const task of TASKS) { const n = v.count(deadlines[task], task, world.timeMs + 60000); if (n % 50) v.invalid(task, 'deadline is off fixed-step clock'); state.nextAt[task] = n }
+  for (const task of TASKS) { if (version < 52 && task === 'pavilionRest') { state.nextAt[task] = 0; continue } const n = v.count(deadlines[task], task, world.timeMs + (task === 'pavilionRest' ? 300000 : 60000)); if (n % 50) v.invalid(task, 'deadline is off fixed-step clock'); state.nextAt[task] = n }
   for (const path of ['eco', 'craftsman', 'industrial'] as const) state[`${path}Xp`] = v.count(r[`${path}Xp`], path)
   return state
 }

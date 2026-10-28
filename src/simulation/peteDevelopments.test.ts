@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createUnlockedWorld } from './testFixtures'
 import { placeBuilding, removeBuilding } from './world'
@@ -143,7 +144,7 @@ describe('higher Pete developments', () => {
   it('retains fruit and wood on home loss and migrates module-free version 37', () => {
     const w = prepared('orchard'); w.developmentLife ??= createDevelopmentLife(); w.developmentLife.carriedFruit = 2
     removeBuilding(w, 20, 20); expect(w.developmentLife.carriedFruit).toBe(2); expect(() => load(w)).not.toThrow()
-    const legacy = snap(createUnlockedWorld(() => .5)); legacy.version = 37
+    const legacy = snap(createUnlockedWorld(() => .5)); stripVersion52State(legacy.game); legacy.version = 37
     const strip = (o: Record<string, unknown>) => { if (!o || typeof o !== 'object') return; delete o.mechanicModule; for (const v of Object.values(o)) if (v && typeof v === 'object') strip(v as Record<string, unknown>) }
     strip(legacy.game); expect(decodeSave(JSON.stringify(legacy)).world.produced.mechanicModule).toBe(0)
   })

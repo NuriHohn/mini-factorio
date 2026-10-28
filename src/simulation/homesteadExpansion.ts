@@ -315,7 +315,7 @@ export function chooseExpansion(world: World, path: PersonalityPath = 'craftsman
     if (!furnace.job && !furnace.input.iron && store.inventory.iron >= 2) { begin(world, 'fetchIron', h.store); return true }
   }
   const assembler = e.assembler === null ? null : world.buildings[e.assembler]
-  if (path === 'eco' && assembler?.kind === 'assembler' && assembler.output.woodenCrate && store.inventory.woodenCrate < 8 && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeCrates', e.assembler); return true }
+  if (path === 'eco' && !connectionRunning(world, 'crateReturn') && assembler?.kind === 'assembler' && assembler.output.woodenCrate && store.inventory.woodenCrate < 8 && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeCrates', e.assembler); return true }
   if (path === 'craftsman' && (e.miner === null || world.buildings[e.miner]?.kind !== 'miner' || furnace?.kind !== 'furnace') && store.inventory.iron < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.ironPlate < 40)) {
     const tile = ironSite(world)
     if (tile !== null) { begin(world, 'mineIron', tile); return true }

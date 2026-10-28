@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { expect, it } from 'vitest'
 import { createUnlockedWorld } from './testFixtures'
 import { placeBuilding, removeBuilding, removalError, SIZE } from './world'
@@ -111,7 +112,7 @@ it.each(['missing', 'direction', 'bank', 'old-version', 'water'] as const)('reje
   if (bad === 'old-version') { save.version = 12; delete save.game.personality }
   if (bad === 'water') save.game.water[411] = false
   expect(() => decodeSave(JSON.stringify(save))).toThrow('Invalid save')
-  const old = river(); const legacy = JSON.parse(encodeSave(old, view)); legacy.version = 12; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
+  const old = river(); const legacy = JSON.parse(encodeSave(old, view)); stripVersion52State(legacy.game); legacy.version = 12; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
   expect(decodeSave(JSON.stringify(legacy)).world.water).toEqual(old.water)
 })
 

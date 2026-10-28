@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createBareWorld } from './testFixtures'
 import { placeBuilding, removeBuilding, SIZE } from './world'
@@ -30,7 +31,7 @@ function working() { const w = garden(); supplyWood(w, 824, 2); choose(w, 'garde
 describe('paid repeatable garden care', () => {
   it('loads a version-30 garden without inventing care work, spending Wood or granting XP', () => {
     const w = garden(), document = JSON.parse(save(w))
-    document.version = 30; delete document.game.buildings[w.gardenProject!.tiles[0]].feed
+    stripVersion52State(document.game); document.version = 30; delete document.game.buildings[w.gardenProject!.tiles[0]].feed
     const restored = decodeSave(JSON.stringify(document)).world
     expect(restored.careProject).toBeUndefined()
     expect(restored.personality).toEqual(w.personality)

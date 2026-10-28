@@ -79,7 +79,7 @@ export function peteStatus(world: World): PeteStatus {
   if (world.homestead?.task) {
     const h = world.homestead
     development.carrying = ITEMS.filter(item => h.carried[item]).map(item => `${h.carried[item]} ${ITEM_DEFINITIONS[item].label}`).join(' · ') || 'Nichts getragen'
-    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'buildBridge' && h.waterworks.plan ? Math.max(1, shoreTiles(h.waterworks.plan).length) * 4000 : h.task === 'finishOrder' || h.task === 'buildDock' || h.task === 'upgradeBicycle' || h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildConnection' || h.task === 'buildWheel' || h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
+    development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'buildBridge' && h.waterworks.plan ? Math.max(1, shoreTiles(h.waterworks.plan).length) * 4000 : h.task === 'buildPavilion' || h.task === 'finishOrder' || h.task === 'buildDock' || h.task === 'upgradeBicycle' || h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildConnection' || h.task === 'buildWheel' || h.task === 'buildMill' || h.task === 'buildChain' ? 4000 : 6000)) : null
   }
   const repair = world.rebuilding?.jobs.find(j => j.tile === world.rebuilding?.active)
   if (repair) {

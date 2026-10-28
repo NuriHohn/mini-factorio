@@ -40,6 +40,8 @@ Place a generator and a nearby power pole, then build **miner → belt → furna
 
 Land factory placement is free once its technology is unlocked, except Waterwheel Generators cost 10 Wood and Fishing Docks cost 8 Wood; water bridge segments cost 3 Wood each; Pete’s Treehouse costs 20 Wood. New games begin with Basic Industry; productive miners, furnaces and assemblers earn RP. Use **Research** to unlock inserters, assemblers, splitters and the analytics dashboard. See [Research and technology](docs/GAME_DESIGN.md#research-and-technology). For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
 
+Petes Welt now includes per-path construction/material/blockage summaries, paid Wood/panel/crate return links and a three-stage Eco-5 orchard pavilion. See [Eco supplies and pavilion](docs/GAME_DESIGN.md#eco-supplies-and-orchard-pavilion-sprints-1698-16102). Save 52 retains compatibility with previous worlds.
+
 ## Project context
 
 - [Architecture](docs/ARCHITECTURE.md): implemented systems and source map.

@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { expect, it } from 'vitest'
 import { createBareWorld } from './testFixtures'
 import { DIRECTIONS, offsets, placeBuilding, placementError, removeBuilding } from './world'
@@ -110,7 +111,7 @@ it('loads and resumes an inactive wheel, and accepts existing version-9 saves un
   paintWater(loaded, { x: 11, y: 10 }, { x: 11, y: 10 }, 'water', 1)
   advanceWorld(loaded, 50); expect(loaded.buildings[410]).toMatchObject({ rotationMs: 200 })
   removeBuilding(w, 10, 10)
-  const legacy = JSON.parse(encodeSave(w, view)); legacy.version = 9; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
+  const legacy = JSON.parse(encodeSave(w, view)); stripVersion52State(legacy.game); legacy.version = 9; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
   const restored = decodeSave(JSON.stringify(legacy)).world
   expect(JSON.parse(encodeSave(restored, view, '2026-10-21T00:00:00.000Z'))).toEqual(JSON.parse(encodeSave(w, view, '2026-10-21T00:00:00.000Z')))
 })

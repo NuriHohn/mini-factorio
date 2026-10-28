@@ -1,4 +1,5 @@
-import { serviceCrossing } from './navigation'
+import { ecoWoodReserve } from './productionLogistics'
+import { serviceCrossing, peteWalkableTile } from './navigation'
 import { awardActivity } from './personality'
 import { recordProduction } from './analytics'
 import { neighboringTiles, peteReachableTiles, tilePath } from './navigation'
@@ -10,7 +11,7 @@ export const DEVELOPMENT_KINDS = ['orchard', 'bicycle', 'mechanic', 'winch', 'nu
 export type DevelopmentKind = typeof DEVELOPMENT_KINDS[number]
 export function developmentKind(kind: string | undefined): kind is DevelopmentKind { return DEVELOPMENT_KINDS.some(k => k === kind) }
 export const DEVELOPMENT_NAMES: Record<DevelopmentKind, string> = { orchard: 'Orchard', bicycle: 'Bicycle', mechanic: 'Mechanic workshop', winch: 'Workshop hoist', nursery: 'Tree nursery', house: 'Treehouse annex' }
-export const TASKS = ['tendOrchard', 'pickFruit', 'storeFruit', 'cookFruit', 'mechanics', 'collectNurseryWood', 'nursing', 'takeSapling', 'plantSapling', 'winching', 'cycle', 'annexRest'] as const
+export const TASKS = ['tendOrchard', 'pickFruit', 'storeFruit', 'cookFruit', 'mechanics', 'collectNurseryWood', 'nursing', 'takeSapling', 'plantSapling', 'winching', 'cycle', 'annexRest', 'pavilionRest'] as const
 export type DevelopmentTask = typeof TASKS[number]
 export interface DevelopmentLife {
   seed: number; task: DevelopmentTask | null; target: number | null; plant: number | null
@@ -31,7 +32,7 @@ function atBuilding(world: World, kind: DevelopmentKind): number | null {
   if (kind === 'bicycle' && h?.cargoBicycle && h.bikeTile !== null && developmentBuilding(world, kind)) return peteReachableTiles(world, world.pete.tile).has(h.bikeTile) ? h.bikeTile : null
   const b = developmentBuilding(world, kind); return b ? approach(world, b.y * SIZE + b.x) : null }
 function ready(world: World, task: DevelopmentTask): boolean { return world.timeMs >= world.developmentLife!.nextAt[task] }
-export function developmentDuration(task: DevelopmentTask): number { return task === 'cycle' ? 1000 : task === 'pickFruit' ? 2000 : task === 'storeFruit' ? 1500 : task === 'collectNurseryWood' || task === 'takeSapling' ? 1000 : task === 'annexRest' ? 12000 : task === 'winching' ? 4000 : 6000 }
+export function developmentDuration(task: DevelopmentTask): number { return task === 'cycle' ? 1000 : task === 'pickFruit' ? 2000 : task === 'storeFruit' ? 1500 : task === 'collectNurseryWood' || task === 'takeSapling' ? 1000 : task === 'pavilionRest' ? 8000 : task === 'annexRest' ? 12000 : task === 'winching' ? 4000 : 6000 }
 function begin(world: World, task: DevelopmentTask, target: number, plant: number | null = null) {
   const s = world.developmentLife!
   s.task = task; s.target = target; s.plant = plant
@@ -56,11 +57,13 @@ export function developmentDecision(world: World, overdueOnly = false) {
   add('pickFruit', 'orchard', !!orchard && orchard.fruit >= 2 && s.fruit <= 10 && home !== null)
   if (s.fruit && ready(world, 'cookFruit')) { const fire = world.campfireProject; const tile = fire?.phase === 'complete' && world.buildings[fire.tiles[0]]?.kind === 'peteCampfire' ? approach(world, fire.tiles[0]) : null; if (tile !== null) options.push({ task: 'cookFruit', tile }) }
   add('mechanics', 'mechanic', !!mechanic && mechanic.gears >= 2 && mechanic.modules < 4)
+  const pavilion = world.homestead?.infrastructure.pavilion
+  if (pavilion?.stage === 3 && world.buildings[pavilion.tile]?.kind === 'petePavilion' && ready(world, 'pavilionRest') && peteReachableTiles(world, world.pete.tile).has(pavilion.spot) && peteWalkableTile(world, pavilion.spot)) options.push({ task: 'pavilionRest', tile: pavilion.spot })
   add('winching', 'winch'); add('cycle', 'bicycle'); add('annexRest', 'house')
   if (developmentBuilding(world, 'nursery') && s.saplings === 0 && planPlanting(world) && ready(world, 'collectNurseryWood')) {
     const parents = peteReachableTiles(world, world.pete.tile)
     const sources = world.buildings.flatMap((b, i) => {
-      const tile = b?.kind === 'supplyCrate' && b.wood >= 2 ? approach(world, i) : null
+      const tile = b?.kind === 'supplyCrate' && b.wood >= 2 + ecoWoodReserve(world) ? approach(world, i) : null
       return tile === null ? [] : [{ tile, steps: tilePath(parents, tile)!.length }]
     }).sort((a, b) => a.steps - b.steps || a.tile - b.tile)
     if (sources[0]) options.push({ task: 'collectNurseryWood', tile: sources[0].tile })
@@ -118,12 +121,13 @@ export function finishDevelopment(world: World): boolean {
     // Existing planting command checks occupancy/connectivity; the nursery supplies its paid seedling.
     if (plantTree(world, s.plant % SIZE, Math.floor(s.plant / SIZE), 'oak')) { s.carriedSapling = 0; reward(world, 'eco', 5) }
   } else if (task === 'winching') reward(world, 'industrial', 2)
+  else if (task === 'pavilionRest') reward(world, 'eco', 1)
   else if (task === 'annexRest') reward(world, 'craftsman', 2)
   if (world.peace.activity === 'dismounting') {
     reward(world, 'craftsman', 3)
     if (world.homestead?.cargoBicycle) world.homestead.bikeTile = world.pete.tile
   }
-  s.nextAt[task] = world.timeMs + (task === 'cycle' || task === 'annexRest' ? 60000 : 30000)
+  s.nextAt[task] = world.timeMs + (task === 'pavilionRest' ? 300000 : task === 'cycle' || task === 'annexRest' ? 60000 : 30000)
   s.task = null; s.target = null; s.plant = null
   return false
 }
@@ -135,6 +139,7 @@ export function developmentTargetValid(world: World): boolean {
   if (s.task === 'collectNurseryWood') return !!developmentBuilding(world, 'nursery') && neighboringTiles(s.target).some(i => { const b = world.buildings[i]; return b?.kind === 'supplyCrate' && b.wood >= 2 })
   if (s.task === 'cookFruit') return s.fruit > 0 && neighboringTiles(s.target).some(i => world.buildings[i]?.kind === 'peteCampfire')
   if (s.task === 'plantSapling') return s.carriedSapling === 1 && s.plant !== null && neighboringTiles(s.plant).includes(s.target) && plantingSite(world, s.plant)
+  if (s.task === 'pavilionRest') { const p = world.homestead?.infrastructure.pavilion; return p?.stage === 3 && p.spot === s.target && world.buildings[p.tile]?.kind === 'petePavilion' }
   const kind = s.task === 'mechanics' ? 'mechanic' : s.task === 'winching' ? 'winch' : s.task === 'cycle' ? 'bicycle' : s.task === 'annexRest' ? 'house' : s.task === 'nursing' || s.task === 'takeSapling' ? 'nursery' : 'orchard'
   const b = developmentBuilding(world, kind)
   if (!b) return false
