@@ -392,3 +392,18 @@ Implemented following the explicit implementation and merge request:
 | 16.97 | Three visible Industrial furnishing stages funded by real briquettes after ten actual cargo deliveries |
 
 [Game design](GAME_DESIGN.md#circuit-and-industrial-logistics-sprints-1693-1697) owns costs, reserves, quotas and work rules. Save 51 migrates older worlds and preserves paid work, transport and cargo. Existing compact sites retain physical fallbacks. Installation/offline 16.38, physical Safari acceptance, explicit pipes and the Pete-free complex Factory edition retain their prior deferred/future status. Further sprint scope requires a new proposal.
+
+
+## Sprints 16.98–16.102 — Eco supplies and orchard pavilion
+
+Implemented following the explicit implementation and merge request:
+
+| Sprint | Scope |
+| --- | --- |
+| 16.98 | Four copied per-path goal summaries with construction progress, actual missing materials, known blockers and existing camera focus |
+| 16.99 | Paid real forestry-belt Wood return, bounded project supply, retained replanting and sawmill production |
+| 16.100 | Paid panel-belt return, bounded building stock, protected crate ingredients and personal fallback |
+| 16.101 | Paid crate return, carried/packet-aware quota, outages and original-part Wood-funded repairs |
+| 16.102 | Eco-5 orchard pavilion with three visible mixed-invoice stages, original-site paid restoration and occasional saved visits |
+
+[Game design](GAME_DESIGN.md#eco-supplies-and-orchard-pavilion-sprints-1698-16102) owns costs, gates, reserves and timing. Save 52 retains previous worlds and their water. Installation/offline 16.38, physical Safari acceptance, explicit pipes and the Pete-free complex Factory edition retain their previous deferred/future status. Further sprint scope requires a new proposal.

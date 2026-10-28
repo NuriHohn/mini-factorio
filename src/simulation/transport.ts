@@ -1,3 +1,4 @@
+import { ecoReturnClaim } from './ecoLogistics'
 import { fuelDeliveryAllowed } from './productionLogistics'
 import { STEAM_FUEL_CAPACITY } from './steam'
 import { forestryOutput } from './forestryStation'
@@ -93,7 +94,7 @@ export function advanceTransport(world: World, delta: number): Set<Building> {
   for (const source of world.buildings) {
     if (source?.kind === 'belt' && source.item) {
       source.progress = Math.min(1, source.progress + delta / BELT_TRAVEL_MS)
-      if (source.progress >= 1 - 1e-8) { source.progress = 1; reserve(source, source.direction, source.item) }
+      if (source.progress >= 1 - 1e-8) { source.progress = 1; if (!ecoReturnClaim(world, source.y * SIZE + source.x, source.item)) reserve(source, source.direction, source.item) }
     } else if (source?.kind === 'splitter') {
       if (source.input) {
         source.input.progress = Math.min(1, source.input.progress + delta / SPLITTER_STAGE_MS)

@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createBareWorld } from './testFixtures'
 import { placeBuilding, removeBuilding } from './world'
@@ -87,7 +88,7 @@ describe('Inventor collection and harmless flight', () => {
   it('strictly rejects forged carried materials and flight clocks and accepts old version 36', () => {
     const w = world(); choose(w, 'treasure'); until(w, () => w.treasureProject?.phase === 'building')
     const bad = snap(w); bad.game.treasureProject.carriedCable = 0; expect(() => decodeSave(JSON.stringify(bad))).toThrow('Invalid save')
-    const legacy = snap(createBareWorld(() => .5)); legacy.version = 36
+    const legacy = snap(createBareWorld(() => .5)); stripVersion52State(legacy.game); legacy.version = 36
     expect(decodeSave(JSON.stringify(legacy)).world.leisure).toBeUndefined()
     legacy.game.leisure = createLeisure(w); expect(() => decodeSave(JSON.stringify(legacy))).toThrow('Invalid save')
   })

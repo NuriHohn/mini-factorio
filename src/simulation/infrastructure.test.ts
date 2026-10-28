@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createPetesWorld } from './petesWorld'
 import { advanceInfrastructure, chooseInfrastructure, connectionComplete, planConnection, planWheel } from './infrastructure'
@@ -193,6 +194,8 @@ describe('Eco wheel and orientation', () => {
     store.inventory.ironGear = 4; h.infrastructure.order = 'craftsman'; begin(w, 'finishOrder', tile)
     for (let n = 0; n < 2000 && !h.elapsedMs; n++) { w.timeMs += 50; advanceInfrastructure(w, 50) }
     expect(inventoryTotal(h.carried)).toBe(4)
+    const next = peteStatus(w).next!.find(p => p.path === 'craftsman')!
+    expect(next.name).toBe('Werkstattausbau'); expect(next.phase).toBe('Bau · bezahlt'); expect(next.missing).toEqual([]); expect(next.target).toBe(tile)
     const restored = decodeSave(JSON.stringify(snapshot(w))).world
     build(w); build(restored)
     expect(snapshot(restored)).toEqual(snapshot(w))
@@ -213,7 +216,7 @@ it.each(['duplicate', 'clock', 'invoice', 'geometry', 'hiddenLegacy'] as const)(
 })
 it('migrates genuine Save 48 without granting items or altering water', () => {
   const w = stored(), old = snapshot(w)
-  old.version = 48; delete old.game.homestead.infrastructure
+  stripVersion52State(old.game); old.version = 48; delete old.game.homestead.infrastructure
   const loaded = decodeSave(JSON.stringify(old)).world
   expect(loaded.water).toEqual(w.water); expect(materialStore(loaded)).toEqual(materialStore(w))
   expect(loaded.homestead!.infrastructure.links).toEqual([])

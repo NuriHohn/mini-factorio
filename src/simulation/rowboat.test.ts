@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { expect, it } from 'vitest'
 import { createBareWorld } from './testFixtures'
 import { DIRECTIONS, offsets, placeBuilding, removeBuilding, SIZE } from './world'
@@ -126,7 +127,7 @@ it('loads legacy version-11 peaceful activity unchanged', () => {
   for (let i = 0; i < 400 && w.peace.activity !== 'fishing'; i++) advanceWorld(w, 50)
   expect(w.peace.activity).toBe('fishing')
   w.peace.nextProjectCheckAtMs = 0; w.peace.nextGiftAtMs = Math.min(w.peace.nextGiftAtMs, w.timeMs + 600000)
-  const legacy = JSON.parse(encodeSave(w, view)); legacy.version = 11; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
+  const legacy = JSON.parse(encodeSave(w, view)); stripVersion52State(legacy.game); legacy.version = 11; delete legacy.game.personality; delete legacy.game.peace.nextProjectCheckAtMs
   const loaded = decodeSave(JSON.stringify(legacy)).world
   expect(loaded.peace).toEqual(w.peace)
   advanceWorld(w, 30000); advanceWorld(loaded, 30000)

@@ -18,7 +18,7 @@ export function connectionGuide(world: World, index: number): { reason: string; 
   const action = `${LINK_NAMES[link.kind]} · ${materials.map(item => ITEM_DEFINITIONS[item].label).join(' + ')} · Quelle (${coordinate(link.source)}) → Ziel (${coordinate(link.target)}). Persönliche Lieferungen bleiben bei Ausfällen möglich.`
   let reason = 'Die Verbindung transportiert echte Gegenstände.'
   const assignment = world.power?.assignments[armPart.tile], network = world.power?.networks.find(n => n.id === assignment)
-  const available = materials.filter(item => (source?.kind === 'supplyCrate' || source?.kind === 'fuelDepot' ? source.inventory[item] : source?.kind === 'furnace' || source?.kind === 'assembler' ? source.output[item] : 0) > 0)
+  const available = materials.filter(item => (source?.kind === 'belt' ? Number(source.item === item) : source?.kind === 'supplyCrate' && item === 'wood' ? source.wood : source?.kind === 'supplyCrate' || source?.kind === 'fuelDepot' ? source.inventory[item] : source?.kind === 'furnace' || source?.kind === 'assembler' ? source.output[item] : 0) > 0)
   const stock = available.length
   const moving = available.find(item => infrastructurePickupAllowed(world, armPart.tile, item)) ?? material
   const tail = link.parts.at(-1)!

@@ -4,6 +4,7 @@ export const BUILDING_CAPABILITIES: Readonly<Record<BuildingKind, { sabotageable
   fuelDepot: { sabotageable: false }, steamWorkshop: { sabotageable: true }, steamHoist: { sabotageable: true },
   steamEngine: { sabotageable: true },
   forester: { sabotageable: true }, sawmill: { sabotageable: true },
+  petePavilion: { sabotageable: false },
   peteDevelopment: { sabotageable: false },
   peteTreasure: { sabotageable: false },
   peteFlightpad: { sabotageable: false },

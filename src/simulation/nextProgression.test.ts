@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { stripVersion48Homestead } from './testFixtures'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
@@ -141,7 +142,7 @@ describe('resource-led copper automation, circuits and coal', () => {
   })
   it('upgrades a genuine version-45 routine without adding fuel, stock or completed projects', () => {
     const w = stored(), old = snapshot(w)
-    old.version = 45; stripVersion48Homestead(old.game)
+    stripVersion52State(old.game); old.version = 45; stripVersion48Homestead(old.game)
     for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]
     const strip = (value: unknown): void => {
       if (!value || typeof value !== 'object') return

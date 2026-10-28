@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { stripVersion48Homestead } from './testFixtures'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, ironError, placeGrove, placeIron } from './petesWorld'
@@ -151,7 +152,7 @@ describe('gradual homestead products and iron development', () => {
   })
   it('migrates version 40 without changing paid work and rejects malformed expansion state', () => {
     const w = forest(); advanceWorld(w, 15000)
-    const old = snapshot(w); old.version = 40; stripVersion48Homestead(old.game); delete old.game.homestead.nextRestAtMs; delete old.game.homestead.expansion
+    const old = snapshot(w); stripVersion52State(old.game); old.version = 40; stripVersion48Homestead(old.game); delete old.game.homestead.nextRestAtMs; delete old.game.homestead.expansion
     const restored = decodeSave(JSON.stringify(old)).world
     expect(restored.homestead?.carried).toEqual(w.homestead?.carried)
     expect(restored.homestead?.expansion).toEqual(w.homestead?.expansion)

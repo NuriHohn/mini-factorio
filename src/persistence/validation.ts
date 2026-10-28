@@ -84,11 +84,12 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
   if (value === null) return null
   const raw = value as Record<string, unknown>
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) invalid(path, 'expected building or null')
-  const kind = choice(raw.kind, `${path}.kind`, ['fuelDepot', 'steamWorkshop', 'steamHoist', 'steamEngine', 'forester', 'sawmill', 'peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
+  const kind = choice(raw.kind, `${path}.kind`, ['petePavilion', 'fuelDepot', 'steamWorkshop', 'steamHoist', 'steamEngine', 'forester', 'sawmill', 'peteDevelopment', 'peteTreasure', 'peteFlightpad', 'petePress', 'peteExperiment', 'peteWorkshop', 'peteGarden', 'peteGate', 'peteCampfire', 'peteCoop', 'peteFence', 'supplyCrate', 'footbridge', 'fishingDock', 'waterwheel', 'treehouse', 'tree', 'miner', 'belt', 'storage', 'furnace', 'assembler', 'inserter', 'generator', 'powerPole', 'radar', 'prison', 'splitter', 'sprinkler'] as const)
   if (version < 47 && ['fuelDepot', 'steamWorkshop', 'steamHoist'].includes(kind)) invalid(path, 'industrial machinery requires save version 47')
   if (version < 46 && kind === 'steamEngine') invalid(path, 'steam engines require save version 46')
   if (version < 39 && (kind === 'forester' || kind === 'sawmill')) invalid(path, 'forestry buildings require version 39')
   if (version < 38 && kind === 'peteDevelopment') invalid(path, 'development requires version 38')
+  if (version < 52 && kind === 'petePavilion') invalid(path, 'Pavilion requires save version 52')
   if (version < 37 && (kind === 'peteTreasure' || kind === 'peteFlightpad')) invalid(path, 'Inventor leisure structures require save version 37')
   if (version < 28 && kind === 'petePress') invalid(path, 'Pete gear presses require save version 28')
   if (version < 27 && kind === 'peteExperiment') invalid(path, 'Pete experiment tables require save version 27')
@@ -108,6 +109,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     forester: ['direction', 'elapsed', 'output', 'replant', 'plots', 'plantElapsed'],
     sawmill: ['direction', 'recipeMode', 'recipeId', 'recipeLocked', 'input', 'output', 'job'],
     peteDevelopment: ['development', 'gears', 'modules', 'fruit', 'readyAtMs'],
+    petePavilion: [],
     peteTreasure: [],
     peteFlightpad: [],
     petePress: ['plates', 'gears'],
@@ -155,6 +157,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     }
     case 'petePress': return { ...base, kind, plates: count(r.plates, `${path}.plates`, PRESS_INPUT_CAPACITY), gears: count(r.gears, `${path}.gears`, PRESS_OUTPUT_CAPACITY) }
     case 'peteGarden': return { ...base, kind, feed: version >= 33 ? count(r.feed, `${path}.feed`, 4) : 0 }
+    case 'petePavilion':
     case 'peteTreasure':
     case 'peteFlightpad':
     case 'peteExperiment':

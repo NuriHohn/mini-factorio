@@ -1,3 +1,4 @@
+import { ecoWoodReserve } from './productionLogistics'
 import { approach, DEVELOPMENT_KINDS, DEVELOPMENT_NAMES, developmentBuilding } from './peteDevelopments'
 import type { DevelopmentKind, DevelopmentTask } from './peteDevelopments'
 import { planPlanting } from './ecoProjects'
@@ -5,13 +6,14 @@ import type { World } from './world'
 import { SIZE } from './world'
 
 export const TASK_LABELS: Record<DevelopmentTask, string> = {
+  pavilionRest: 'Enjoying the orchard pavilion',
   tendOrchard: 'Tending the orchard', pickFruit: 'Picking ripe fruit', storeFruit: 'Storing fruit at home',
   cookFruit: 'Cooking fruit at the campfire', mechanics: 'Making a mechanic module',
   collectNurseryWood: 'Collecting nursery Wood', nursing: 'Growing a nursery sapling',
   takeSapling: 'Picking up a nursery sapling', plantSapling: 'Planting a nursery sapling',
   winching: 'Operating the workshop hoist', cycle: 'Getting ready for a bicycle ride', annexRest: 'Resting at the treehouse annex',
 }
-const TASK_KINDS: Record<DevelopmentTask, DevelopmentKind> = {
+const TASK_KINDS: Partial<Record<DevelopmentTask, DevelopmentKind>> = {
   tendOrchard: 'orchard', pickFruit: 'orchard', storeFruit: 'orchard', cookFruit: 'orchard',
   mechanics: 'mechanic', collectNurseryWood: 'nursery', nursing: 'nursery', takeSapling: 'nursery', plantSapling: 'nursery',
   winching: 'winch', cycle: 'bicycle', annexRest: 'house',
@@ -38,7 +40,7 @@ export function developmentStatus(world: World): { carrying: string; progress: n
     else if (id === 'nursery' && !planPlanting(world)) reason = 'I need a safe, reachable planting site four to six tiles from home.'
     else if (id === 'nursery' && s?.carriedWood) reason = 'Bringing paid Wood back to grow a sapling; no second Wood payment is needed.'
     else if (id === 'nursery' && s?.carriedSapling) reason = 'Carrying a paid nursery sapling to its planting site.'
-    else if (id === 'nursery' && !s?.saplings && !s?.carriedWood && !world.buildings.some((c, i) => c?.kind === 'supplyCrate' && c.wood >= 2 && approach(world, i) !== null)) reason = 'I need 2 Wood together in a reachable supply crate.'
+    else if (id === 'nursery' && !s?.saplings && !s?.carriedWood && !world.buildings.some((c, i) => c?.kind === 'supplyCrate' && c.wood >= 2 + ecoWoodReserve(world) && approach(world, i) !== null)) reason = `I need 2 Wood together in a reachable supply crate${ecoWoodReserve(world) ? ` plus ${ecoWoodReserve(world)} Wood reserved for construction` : ''}.`
     else if (id === 'orchard' && (s?.fruit ?? 0) > 10) reason = canCook ? 'The pantry is full. Cooking fruit frees space for my next delivery.' : 'The pantry is full. I need a reachable campfire to cook fruit and free space.'
     else if (id === 'orchard' && approach(world, world.peace.home) === null) reason = 'I cannot reach my treehouse to deliver fruit.'
     else {

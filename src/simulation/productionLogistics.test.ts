@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createPetesWorld } from './petesWorld'
 import { begin, materialStore } from './homestead'
@@ -107,7 +108,7 @@ describe('mixed circuit supply', () => {
     h.carried.copperPlate = 12; begin(w, 'buildChain', 974)
     const paid = snapshot(w), loaded = decodeSave(JSON.stringify(paid)).world
     expect(snapshot(loaded)).toEqual(paid)
-    const old = structuredClone(paid); old.version = 50
+    const old = structuredClone(paid); stripVersion52State(old.game); old.version = 50
     delete old.game.homestead.infrastructure.industrial; delete old.game.homestead.infrastructure.cargoCycles
     expect(() => decodeSave(JSON.stringify(old))).toThrow()
     build(w, advanceExpansion); build(loaded, advanceExpansion)
@@ -227,7 +228,7 @@ describe('fuel production and real loading', () => {
   })
   it('counts only completed cargo, preserves full-output work and migrates genuine Save 50', () => {
     const w = industrial(), s = w.homestead!.infrastructure, site = s.loading!
-    const old = snapshot(w); old.version = 50
+    const old = snapshot(w); stripVersion52State(old.game); old.version = 50
     delete old.game.homestead.infrastructure.industrial; delete old.game.homestead.infrastructure.cargoCycles
     const legacy = decodeSave(JSON.stringify(old)).world
     expect(legacy.homestead!.infrastructure.cargoCycles).toBe(0)

@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { beforeAll, expect, it } from 'vitest'
 import { createPetesWorld, placeGrove } from './petesWorld'
 import { advanceWorld } from './step'
@@ -78,7 +79,7 @@ it('allows nearby replanting outside the immediate machine approach while preser
 
 it('migrates a real version-42 rest deadline without altering its stock or paid work', () => {
   const w = structuredClone(farm), old = snapshot(w)
-  old.version = 42; stripVersion48Homestead(old.game); for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]; delete old.game.homestead.nextRestAtMs
+  stripVersion52State(old.game); old.version = 42; stripVersion48Homestead(old.game); for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]; delete old.game.homestead.nextRestAtMs
   const loaded = decodeSave(JSON.stringify(old)).world
   expect(loaded.homestead!.nextRestAtMs).toBe(w.timeMs + 180000)
   expect(loaded.homestead!.carried).toEqual(w.homestead!.carried)
@@ -96,7 +97,7 @@ it('rejects a machine footprint that traps Pete and repairs an already trapped i
   expect(freeSite(w, [738])).toBe(false)
   placeBuilding(w, 18, 18, 'storage', 'east')
   expect(peteReachableTiles(w, w.pete.tile).size).toBe(1)
-  const old = snapshot(w); old.version = 42; stripVersion48Homestead(old.game); for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]; delete old.game.homestead.nextRestAtMs
+  const old = snapshot(w); stripVersion52State(old.game); old.version = 42; stripVersion48Homestead(old.game); for (const key of ['copperMiner', 'circuitAssembler', 'steamEngine', 'coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist']) delete old.game.homestead.expansion[key]; delete old.game.homestead.nextRestAtMs
   const loaded = decodeSave(JSON.stringify(old)).world
   expect(loaded.pete.tile).not.toBe(w.pete.tile)
   expect(neighboringTiles(loaded.peace.home!).some(tile => peteReachableTiles(loaded, loaded.pete.tile).has(tile))).toBe(true)

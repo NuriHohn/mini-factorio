@@ -1,3 +1,4 @@
+import { connectionRunning } from './infrastructure'
 import { resourcePreference } from './resourcePreference'
 import { DEVELOPMENT_KINDS, developmentKind } from './peteDevelopments'
 import { HARVEST_MS, HARVEST_WOOD, HARVEST_XP, HARVEST_COOLDOWN_MS, harvestSiteClear, harvestTreeReady, planHarvest, woodDestination } from './forestry'
@@ -154,7 +155,7 @@ export function refreshProject(world: World): void {
   }
 }
 function availableMaterials(world: World, project: SecretProject | null, definition: ProjectDefinition): number {
-  if (definition.id === 'harvesting') return world.homestead && !project?.selected && !project?.carried && world.buildings.some(b => b?.kind === 'supplyCrate' && b.storeTier !== undefined && b.wood >= 24) ? 0 : 1
+  if (definition.id === 'harvesting') return world.homestead && !project?.selected && !project?.carried && world.buildings.some(b => b?.kind === 'supplyCrate' && b.storeTier !== undefined && (b.wood >= 24 || b.wood >= 18 && connectionRunning(world, 'woodReturn'))) ? 0 : 1
   if (project?.phase === 'building') return 1 // Already collected stock is never charged again.
   if (homesteadProjectDelay(world, definition.id)) return 0
   if (definition.id === 'feeding') return gardenSpot(world) === null ? 0 : feedGarden(world)?.feed ?? 0
@@ -170,6 +171,8 @@ function availableMaterials(world: World, project: SecretProject | null, definit
   return weight
 }
 export function projectPlansConflict(world: World, project: SecretProject, ignored?: SecretProject, crossings: number[] = []): boolean {
+  const pavilion = world.homestead?.infrastructure.pavilion
+  if (project.kind && pavilion && (project.tiles.some(t => t === pavilion.tile || t === pavilion.spot) || project.spots.includes(pavilion.tile))) return true
   const e = world.homestead?.expansion
   const store = world.homestead?.store
   if (project.phase === 'collecting' && project.kind && e?.copperFurnace !== null && e?.copperFurnace !== undefined && store !== null && store !== undefined && project.tiles.some(t => [store - SIZE, store - 2 * SIZE, store + SIZE, store + 2 * SIZE].includes(t))) return true
@@ -178,7 +181,7 @@ export function projectPlansConflict(world: World, project: SecretProject, ignor
   if (project.kind !== 'gate' && project.tiles.some(i => i === world.yard?.entrance || i === world.chickenRun?.entrance)) return true
   return PETE_PROJECTS.some(({ state }) => {
     const other = world[state]
-    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i) && !(['workshop', 'experiment', 'house', 'bicycle', 'treasure', 'flightpad'].includes(other.kind ?? '') && crossings.includes(i)))) return true
+    if (other?.phase === 'complete' && [...DEVELOPMENT_KINDS, 'treasure', 'flightpad', 'press', 'experiment', 'campfire', 'workshop', 'garden'].includes(other.kind ?? '') && world.buildings[other.tiles[0]]?.kind === projectBuilding(other, other.tiles[0]).kind && project.tiles.some(i => other.spots.includes(i) && !(['workshop', 'experiment', 'house', 'bicycle', 'treasure', 'flightpad', 'orchard', 'nursery'].includes(other.kind ?? '') && crossings.includes(i)))) return true
     return other && other !== project && other !== ignored && other.phase !== 'complete' && (project.tiles.some(i => other.tiles.includes(i) || other.spots.includes(i)) || project.spots.some(i => other.tiles.includes(i)))
   })
 }

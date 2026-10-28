@@ -81,3 +81,11 @@ describe('Pete project inspection', () => {
     expect(useGameStore.getState().peteInspection).toBeNull()
   })
 })
+
+it('shows paid original fence work ahead of later goals without requesting its Wood twice', () => {
+  const w = createPetesWorld()
+  w.project = { home: w.peace.home!, direction: 'east', tiles: [822, 823, 824], spots: [782, 783, 784], phase: 'building', crate: null, built: 1, carried: 6, elapsedMs: 1000 }
+  const before = structuredClone(w), step = peteStatus(w).next!.find(p => p.path === 'eco')!
+  expect(step.name).toBe('Fence'); expect(step.phase).toBe('Bau · bezahlt'); expect(step.progress).toBe('1/3 Bauteile'); expect(step.missing).toEqual([]); expect(step.target).toBe(823)
+  expect(w).toEqual(before)
+})

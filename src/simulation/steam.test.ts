@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createBareWorld, stripVersion48Homestead } from './testFixtures'
 import { placeBuilding } from './world'
@@ -57,7 +58,7 @@ describe('coal-fired closed-loop steam work', () => {
       const save = JSON.parse(original); save.game.buildings[820][key] = value
       expect(() => decodeSave(JSON.stringify(save))).toThrow()
     }
-    const old = JSON.parse(original); old.version = 45; stripVersion48Homestead(old.game)
+    const old = JSON.parse(original); stripVersion52State(old.game); old.version = 45; stripVersion48Homestead(old.game)
     expect(() => decodeSave(JSON.stringify(old))).toThrow(/version 46/)
     expect(encodeSave(w, view, stamp)).toBe(original)
   })

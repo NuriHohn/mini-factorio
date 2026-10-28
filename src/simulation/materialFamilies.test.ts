@@ -1,3 +1,4 @@
+import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { ITEMS } from './items'
 import { MATERIAL_PATH, PETE_PROJECTS } from './projectRegistry'
@@ -17,7 +18,7 @@ describe('exclusive Pete material families', () => {
     w.workshopProject = { legacyMaterials: true, kind: 'workshop', home: 820, direction: 'east', tiles: [700], spots: [740], phase: 'building', crate: null, built: 0, carried: 4, carriedIron: 8, elapsedMs: 500, selected: true }
     Object.assign(w.pete, { tile: 740, x: 20, y: 18, next: null, path: [], travelMs: 0 })
     Object.assign(w.peace, { activity: 'project', destination: 740, sinceMs: 0, untilMs: 0 })
-    const document = JSON.parse(encodeSave(w, view)); document.version = 28; delete document.game.workshopProject.legacyMaterials
+    const document = JSON.parse(encodeSave(w, view)); stripVersion52State(document.game); document.version = 28; delete document.game.workshopProject.legacyMaterials
     const restored = decodeSave(JSON.stringify(document)).world
     expect(projectResources(restored.workshopProject!)).toEqual({ wood: 4, ironPlate: 8 })
     const again = decodeSave(encodeSave(restored, view)).world

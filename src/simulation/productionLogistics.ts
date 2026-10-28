@@ -4,7 +4,10 @@ import type { LinkKind, LoadingSite } from './infrastructureRules'
 import type { HomesteadExpansion } from './homesteadExpansion'
 import type { Building, World } from './world'
 
-export function productionEndpoints(kind: LinkKind, store: number | null, e: HomesteadExpansion, loading: LoadingSite | null): [number | null, number | null] {
+export function productionEndpoints(kind: LinkKind, store: number | null, e: HomesteadExpansion, loading: LoadingSite | null, mill: number | null = null): [number | null, number | null] {
+  if (kind === 'woodReturn') return [e.forestry === null || mill === null ? null : (e.forestry + mill) / 2, store]
+  if (kind === 'panelReturn') return [mill === null ? null : mill + 1, store]
+  if (kind === 'crateReturn') return [e.assembler, store]
   if (kind === 'circuitFeed') return [store, e.circuitAssembler]
   if (kind === 'circuitReturn') return [e.circuitAssembler, store]
   if (kind === 'stampFeed') return [e.fuelStore, e.briquetteAssembler]
@@ -109,4 +112,11 @@ export function laterPickup(world: World, kind: LinkKind, item: Item): boolean |
     return (item === 'coal' || item === 'coalBriquette') && depot?.kind === 'fuelDepot' && depot.inventory[item] + inFlight(world, item, kind) < (item === 'coal' ? 12 : 8)
   }
   return null
+}
+
+export function ecoWoodReserve(world: World): number {
+  const h = world.homestead
+  if (!h || h.expansion.assembler === null || h.expansion.forestry === null) return 0
+  if (['woodReturn', 'panelReturn', 'crateReturn'].some(kind => !h.infrastructure.links.some(p => p.kind === kind))) return 18
+  return world.personality.paths.eco.level >= 5 && h.infrastructure.pavilion?.stage !== 3 ? 12 : 0
 }
