@@ -497,3 +497,6 @@ The first existing iron line is the earlier conveyor increment; product feed/ret
 The shared world/schema-53 codec, bounded material ledger, UI request facade and shared rendering/input/production helpers remain intentional compatibility contracts. The two applications have separate composition/orchestration and mode command/save adapters; they do not duplicate the engine or own two worlds. [Architecture](ARCHITECTURE.md#pete-and-factory-application-boundaries) records exact ownership and remaining coupling. [Game design](GAME_DESIGN.md#independent-pete-application-and-earlier-visible-supply) owns mechanics; Development owns commands, measured checks and limitations. Physical iPhone/iPad Safari verification remains open.
 
 Final checks and setup-inclusive measurements are recorded in [Development](DEVELOPMENT.md#pete-first-separation-validation).
+
+
+Post-16.112 entry correction: the main address and `pete.html` start Pete; `factory.html` retains Factory. Menus no longer offer cross-game creation/loading, and imports are admitted by the active game’s adapter. Shared engine/schema contracts remain as documented in [Architecture](ARCHITECTURE.md#pete-and-factory-application-boundaries).

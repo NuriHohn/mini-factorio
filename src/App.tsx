@@ -12,6 +12,7 @@ export default function App({ initialParts }: { initialParts?: ApplicationParts 
   const { playMode, uiPanel, togglePanel, touchActive, touchToolsOpen } = useGameStore()
   const [loaded, setLoaded] = useState<{ mode: PlayMode; parts: ApplicationParts } | null>(() => initialParts ? { mode: playMode, parts: initialParts } : null)
   useEffect(() => {
+    document.title = playMode === 'petesWorld' ? 'Petes Welt' : 'Mini Factorio — Factory'
     let disposed = false
     void loadApplication(playMode).then(parts => { if (!disposed) setLoaded({ mode: playMode, parts }) })
     return () => { disposed = true }
