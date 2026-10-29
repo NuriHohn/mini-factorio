@@ -91,6 +91,8 @@ git status --short --branch
 
 Verify matching local/remote hashes and report any remaining working-tree changes. Provide `https://github.com/NuriHohn/mini-factorio/compare/main...<feature-branch>?expand=1` for review against `main`. Create a PR through a supported integration only when authorized, or use **Create pull request** on GitHub's compare page. Publishing a branch is not creating a PR. If an operation is blocked, report the operation, exact error and missing capability; do not infer PR permissions from repository access.
 
+After a merge, Pages still serves the previous release until the `Publish playable game` workflow completes its build and deploy jobs. Verify the run's commit and successful deployment, then inspect the public `pete.html` and `factory.html` entries before describing a release as available online. A local production preview and a merged PR alone do not establish publication. If deployment remains pending or fails, state that explicitly alongside any test URL.
+
 The delivery summary should state what changed, validation actually performed, material limitations, commit/branch and compare URL. Report push failure explicitly instead of claiming publication.
 
 ## Regression coverage
@@ -464,3 +466,10 @@ Both the transitive source-import check and production-build check passed. The e
 The final Windows in-app-browser production build passed direct Pete cold start, own tools/help, real mouse iron offerings, pause/×16, autonomous real plate/gear production and all three visible ordinary return/feed connections. Native autosave/manual save/export/load and Pete → Factory → saved Pete switching retained the separate slots and actual production. The final extracted Factory research module opened normally; returning to Pete left one canvas, zero research/Analytics panels, no horizontal desktop overflow and no browser errors. Screenshots were visually reviewed.
 
 The available browser provides viewport resizing but no native touch/mobile emulation. A narrow mouse viewport remains the existing desktop layout and is **not** recorded as phone acceptance. Touch input/palette regression tests passed; native touch-browser and physical iPhone/iPad Safari acceptance remain unverified. Shared World/UI-facade/schema-53 contracts are intentional coupling as documented in Architecture. Save version, dependencies and hosting settings did not change. Temporary repository reports/logs/snapshots and the preview server were removed before delivery.
+
+
+## Separate game entry correction validation
+
+The complete two-worker, 60-second-budget aggregate passed **1,832 tests in 161 files**, zero failed/pending, in **544.67 seconds** including setup. Thirteen targeted application/admission/boundary cases also passed; lint and the production build passed. New regressions protect root Pete startup, fixed HTML entries overriding contradictory query modes, game-specific menus and rejected cross-game new requests. Existing adapter/slot regressions retain rejection of opposite-game saves without writes. No simulation behavior, schema version, dependencies or test limits changed.
+
+Windows in-app-browser production preview verified `pete.html`, `factory.html?mode=pete` and root startup, correct page titles, Pete’s own menu without Factory switches and zero browser errors. The main-push Pages workflow must still finish before these entries can be called publicly available. Existing shared engine/schema contracts and the large-bundle warning remain; native touch and physical Safari were not retested for this correction.

@@ -820,7 +820,7 @@ Once the store holds **eight wood panels**, Pete collects them and spends **eigh
 
 Version **43** preserves the next-rest deadline and homestead task, actual carried inventories, harvest identity, work/deadline, store/mill references, partial paid mill construction and store tier. Current snapshots strictly validate material payloads, work clocks, capacity and mode/home links on detached candidates. Versions **1–42** remain loadable; older homesteads receive a next-rest deadline three simulation minutes after their saved time; version 41 receives empty miner/copper/cable references without changing paid work; version 40 receives empty expansion markers while retaining paid homestead work, and version 39 receives an empty homestead routine without altering its existing factory. Versions 1–38 retain the version-39 zero inventory upgrade and their previous gameplay. Saving/loading does not replay debits, rewards or completed construction; no offline production is generated.
 
-Petes Welt has distinct `.petes-world` manual/autosave keys; Factory retains the original keys. New games and loads ask before replacing the running world. Save before switching; **Andere Spielweise laden** loads the other mode’s manual slot. Export/import preserves the mode and does not overwrite either mode’s browser slots. Failed/cancelled loading keeps the running world and slot selection.
+Petes Welt has distinct `.petes-world` manual/autosave keys; Factory retains the original keys. New games and loads ask before replacing the running world. Each game page loads only its own slots; the menu has no cross-game new/load action. Export/import preserves the mode and does not overwrite either game’s browser slots. Importing the other game’s save is rejected before world replacement; open that game’s page to load it. Failed/cancelled loading keeps the running world and slot selection.
 
 
 ### Product projects and the iron path (Sprints 16.58-16.62)
@@ -1070,7 +1070,7 @@ Each path can complete from its own offered resource family. Existing fixed-step
 
 ## Independent Pete application and earlier visible supply
 
-The normal Factory start is retained; `?mode=pete` opens a new Petes Welt directly. Pete has dedicated resource/landscape tools and help, with no research, Analytics or combat panels. The existing menu explicitly switches between the two modes and their separate manual saves. Camera, inspection/focus, contextual chopping, demolition, water play, all speeds and mouse/touch controls retain their existing rules.
+The root and `pete.html` start Petes Welt; `factory.html` starts Factory. Fixed HTML entries override query parameters. Legacy root `?mode=pete` and `?mode=factory` links remain supported. Pete has dedicated resource/landscape tools and help, with no research, Analytics or combat panels. Each menu operates on its own game and separate manual/autosave slots; there is no in-game switch to the other game. Camera, inspection/focus, contextual chopping, demolition, water play, all speeds and mouse/touch controls retain their existing rules.
 
 The earlier iron return reuses [connected supplies](#connected-supplies-and-visible-later-work-sprints-1683-1687), which owns its eligibility, costs, ordinary power/transport, quotas and fallback rules. Real production supplies later projects; full stock or missing demand can still stop a belt. Existing paid routes and the other resource families retain those documented policies.
 

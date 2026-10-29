@@ -1,3 +1,4 @@
+import { entryMode } from '../core/entry'
 import { miniStatus } from '../simulation/petesWorld'
 import { peteStatus } from '../simulation/peteStatus'
 import { learningGoals, machineGuide, processGuides } from '../simulation/learning'
@@ -117,7 +118,7 @@ interface State {
 export const useGameStore = create<State>((set, get) => ({
   spraySource: null,
   beginSpray: () => { const s = get(); if (s.inspected !== null && s.inspection?.kind === 'sprinkler') set({ spraySource: s.inspected, tool: 'playfulSpray', inspected: null, inspection: null, touchPlacement: null, message: 'Mit Wasser spritzen · 3 Felder · 5 kW · Escape/Rechtsklick beendet.' }) },
-  playMode: typeof location !== 'undefined' && new URLSearchParams(location.search).get('mode') === 'pete' ? 'petesWorld' : 'factory', miniHint: null,
+  playMode: typeof location !== 'undefined' ? entryMode(location.pathname, location.search) : 'factory', miniHint: null,
   petePathVisible: true, connectionVisible: false,
   goals: [], pinnedGoal: null, machineHelp: null, processes: [], supplies: [], supplyRequest: null,
   applySupply: world => {
@@ -160,7 +161,9 @@ export const useGameStore = create<State>((set, get) => ({
   focusPeteProject: index => { if (get().playMode !== 'petesWorld' || !Number.isInteger(index) || index < 0 || index >= SIZE * SIZE) return; get().select(null); set({ focusRequest: index }) },
   focusBuilding: index => { if (get().playMode !== 'factory' || !hasTechnology(get().research, 'analytics1')) return; get().select(null); set({ focusRequest: index }) },
   saveStatus: { manualAt: null, autoAt: null, message: '', error: false }, saveBusy: false, saveRequest: null,
-  requestSave: request => set(state => state.saveBusy ? state : { saveRequest: request, saveBusy: true }),
+  requestSave: request => set(state => state.saveBusy ? state : 'mode' in request && request.mode && request.mode !== state.playMode
+    ? { saveStatus: { ...state.saveStatus, error: true, message: 'Dieses Spiel hat einen eigenen Einstieg. Öffne die passende Spielseite.' } }
+    : { saveRequest: request, saveBusy: true }),
   saveFeedback: (message, error = false) => set(state => ({ saveStatus: { ...state.saveStatus, message, error } })),
   buildTab: 'factory',
   setBuildTab: tab => {

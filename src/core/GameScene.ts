@@ -53,7 +53,6 @@ import { peteHit, sabotageRemaining } from '../simulation/pete'
 import { WaterVisuals, drawSprinkler } from '../game/sprinklerVisuals'
 import { sprinklerPowered, SPRINKLER_RANGE } from '../simulation/sprinklers'
 import { SaveSession, errorMessage } from '../persistence/storage'
-import { decodeSave } from '../persistence/saveGame'
 import type { LoadedGame, ViewState } from '../persistence/saveGame'
 import { downloadSave } from '../persistence/download'
 import { splitterPorts, splitterDirections, SPLITTER_STAGE_MS } from '../simulation/splitters'
@@ -556,7 +555,7 @@ export class GameScene extends Phaser.Scene {
         const previousMode = this.saves.mode
         if (request.kind !== 'import' && request.mode) this.saves.setMode(request.mode)
         let candidate: LoadedGame
-        try { candidate = request.kind === 'import' ? decodeSave(request.text) : this.saves.load(request.kind === 'load-auto' ? 'auto' : 'manual') } finally { this.saves.setMode(previousMode) }
+        try { candidate = request.kind === 'import' ? this.runtime.save.read(request.text) : this.saves.load(request.kind === 'load-auto' ? 'auto' : 'manual') } finally { this.saves.setMode(previousMode) }
         if (window.confirm('Replace the current running factory with this saved game? Unsaved progress will be replaced.')) {
           await this.restore(candidate)
           this.saves.setMode(this.world.miniFactory ? 'petesWorld' : 'factory')

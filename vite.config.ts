@@ -33,5 +33,5 @@ export default defineConfig({
       }, null, 2) })
     },
   }],
-  build: { manifest: true },
+  build: { manifest: true, rolldownOptions: { input: { index: 'index.html', pete: 'pete.html', factory: 'factory.html' } } },
 })
