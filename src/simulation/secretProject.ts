@@ -280,6 +280,9 @@ function moveTo(world: World, target: number, delta: number): boolean {
 export function advanceSecretProject(world: World, delta: number): void {
   const project = currentProject(world)
   if (!project || project.phase === 'complete' || world.peace.home === null) { stop(world); return }
+  if ((project.kind === 'yard' || project.kind === 'run') && project.phase === 'collecting' && !project.carried && world.pete.next === null && homesteadProjectDelay(world, project.kind)) {
+    delete project.selected; project.crate = null; stop(world); return
+  }
   if (project.kind === 'fell') {
     if (project.phase === 'building') {
       if (!harvestTreeReady(world, project) || !moveTo(world, project.spots[0], delta)) { if (!harvestTreeReady(world, project)) stop(world); return }

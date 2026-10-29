@@ -90,9 +90,11 @@ export function laterPickup(world: World, kind: LinkKind, item: Item): boolean |
   const h = world.homestead!, e = h.expansion, s = h.infrastructure, store = h.store === null ? null : world.buildings[h.store]
   if (kind === 'circuitFeed') {
     const machine = e.circuitAssembler === null ? null : world.buildings[e.circuitAssembler]
-    if (store?.kind !== 'supplyCrate' || machine?.kind !== 'assembler' || machine.recipeId !== 'electronicCircuit' || !['ironPlate', 'copperCable'].includes(item)) return false
+    if (store?.kind !== 'supplyCrate' || machine?.kind !== 'assembler') return false
+    if (machine.recipeId === 'electronicCircuit') return item === 'copperCable' && legacyCircuitIron(world) > 0 && machine.input.copperCable + inFlight(world, item, kind) < Math.min(6, legacyCircuitIron(world) * 3) && store.inventory.copperCable > 0
+    if (machine.recipeId !== 'peteCircuit' || !['copperPlate', 'copperCable'].includes(item)) return false
     const batches = Math.min(2, Math.max(0, 12 - circuitStock(world)))
-    return machine.input[item] + inFlight(world, item, kind) < batches * (item === 'ironPlate' ? 1 : 3) && store.inventory[item] > (item === 'ironPlate' ? ironReserve(world) : flightReserve(world))
+    return machine.input[item] + inFlight(world, item, kind) < batches * (item === 'copperPlate' ? 1 : 3) && store.inventory[item] > (item === 'copperPlate' ? world.flightProject?.phase === 'complete' ? 2 : 24 : flightReserve(world))
   }
   if (kind === 'circuitReturn') return item === 'electronicCircuit' && store?.kind === 'supplyCrate' && store.inventory.electronicCircuit + inFlight(world, item) < 12
   if (kind === 'stampFeed') {
@@ -119,4 +121,13 @@ export function ecoWoodReserve(world: World): number {
   if (!h || h.expansion.assembler === null || h.expansion.forestry === null) return 0
   if (['woodReturn', 'panelReturn', 'crateReturn'].some(kind => !h.infrastructure.links.some(p => p.kind === kind))) return 18
   return world.personality.paths.eco.level >= 5 && h.infrastructure.pavilion?.stage !== 3 ? 12 : 0
+}
+
+// Already paid old iron batches and packets drain before the owned machine is retuned.
+export function legacyCircuitIron(world: World): number {
+  const h = world.homestead, at = h?.expansion.circuitAssembler, machine = at === null || at === undefined ? null : world.buildings[at]
+  if (!h || machine?.kind !== 'assembler') return 0
+  const plans = [...h.infrastructure.links, ...(h.infrastructure.plan ? [h.infrastructure.plan] : [])].filter(p => p.kind === 'circuitFeed')
+  const tiles = new Set(plans.flatMap(p => p.parts.map(b => b.tile)))
+  return machine.input.ironPlate + (machine.job?.inputs.ironPlate ?? 0) + (h.task === 'feedCircuits' ? h.carried.ironPlate : 0) + [...tiles].reduce((n, at) => { const b = world.buildings[at]; return n + Number((b?.kind === 'belt' || b?.kind === 'inserter') && b.item === 'ironPlate') }, 0)
 }

@@ -232,6 +232,7 @@ export function building(value: unknown, path: string, index: number, timeMs: nu
     }
     case 'sawmill': case 'furnace': case 'assembler': {
       const shared = { ...base, direction: facing(), recipeId: recipeId(r.recipeId, `${path}.recipeId`), recipeLocked: boolean(r.recipeLocked, `${path}.recipeLocked`), input: inventory(r.input, `${path}.input`), output: inventory(r.output, `${path}.output`), job: job(r.job, `${path}.job`) }
+      if (version < 53 && (shared.recipeId === 'peteCircuit' || shared.job?.recipeId === 'peteCircuit')) invalid(path, 'Inventor circuit requires save version 53')
       const machine: CraftingMachine = kind === 'furnace' || kind === 'sawmill' ? { ...shared, kind, recipeMode: choice(r.recipeMode, `${path}.recipeMode`, ['auto', ...recipeIds]) } : { ...shared, kind, recipeMode: choice(r.recipeMode, `${path}.recipeMode`, ['auto', 'manual'] as const), autoWaitElapsedMs: r.autoWaitElapsedMs === null ? null : number(r.autoWaitElapsedMs, `${path}.autoWaitElapsedMs`, 0, 2000) }
       validateCrafting(machine, path)
       return machine

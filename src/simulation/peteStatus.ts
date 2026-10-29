@@ -60,6 +60,7 @@ export function peteStatus(world: World): PeteStatus {
         reason = `I need ${missing.join(', ')} in one reachable supply crate.`
       }
     }
+    if (world.homestead && saved && (saved.legacyMaterials || ['press', 'mechanic', 'winch'].includes(definition.id))) reason = `Altauftrag: ursprüngliche Rechnung und bezahlte Materialien bleiben erhalten. ${reason}`
     return [{ id: definition.id, name, reason, ready: !!candidate, path: definition.path }]
   })
   const wishes = projects.filter(p => !world.homestead || p.path === world.personality.dominant).sort((a, b) => Number(b.ready) - Number(a.ready) || Number(world.personality.paths[b.path!].level >= PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel) - Number(world.personality.paths[a.path!].level >= PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel) || Number(b.path === world.personality.dominant) - Number(a.path === world.personality.dominant) || (world.homestead ? PETE_PROJECTS.find(p => p.id === a.id)!.minimumLevel - PETE_PROJECTS.find(p => p.id === b.id)!.minimumLevel : 0))

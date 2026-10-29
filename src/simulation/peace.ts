@@ -185,7 +185,7 @@ function move(world: World, delta: number): void {
             } else activity(world, 'entering', 3000)
           }
           else activity(world, 'waving', 4000) // Enclosed home: wait, then retry after obstacles change.
-        } else activity(world, random(world) < .5 ? 'flowers' : 'waving', 5000)
+        } else activity(world, random(world) < (world.homestead ? .1 : .5) ? 'flowers' : 'waving', 5000)
         return
       }
     }
@@ -201,11 +201,15 @@ function move(world: World, delta: number): void {
 }
 function spawnGift(world: World): void {
   const s = world.peace
-  if (s.gifts.length >= (world.homestead ? 2 : MAX_GIFTS) || s.nextId === Number.MAX_SAFE_INTEGER) return
+  if (s.gifts.length >= (world.homestead ? 1 : MAX_GIFTS) || s.nextId === Number.MAX_SAFE_INTEGER) return
   const tiles = localTiles(world, reachableTiles(world, world.pete.tile)).filter(i => i !== world.pete.tile && i !== world.pete.next && !s.gifts.some(g => g.tile === i))
   if (!tiles.length) return
-  const tile = tiles[Math.floor(random(world) * tiles.length)], flowers = random(world) < 1 / 3
-  s.gifts.push({ id: s.nextId++, tile, kind: flowers ? 'flowers' : 'wood', wood: flowers ? 0 : 1 + Math.floor(random(world) * 2), atMs: world.timeMs })
+  const roll = random(world), flowers = random(world) < 1 / 3
+  const wood = flowers ? 0 : 1 + Math.floor(random(world) * 2)
+  // Reuse the position draw so gift rarity does not add a draw to Pete's decision stream.
+  if (world.homestead && roll >= .25) return
+  const tile = tiles[Math.floor((world.homestead ? roll * 4 : roll) * tiles.length)]
+  s.gifts.push({ id: s.nextId++, tile, kind: flowers ? 'flowers' : 'wood', wood, atMs: world.timeMs })
 }
 export function collectGift(world: World, tile: number): string | null {
   if (!peaceful(world) || world.buildings[tile]) return null
@@ -299,7 +303,7 @@ function nextActivity(world: World): void {
   }
 }
 export function advancePeace(world: World, delta: number): void {
-  if (world.rebuilding && peaceful(world) && world.timeMs >= world.peace.nextGiftAtMs) {
+  if ((world.rebuilding || world.homestead) && peaceful(world) && world.timeMs >= world.peace.nextGiftAtMs) {
     if (world.buildings[world.peace.home!]?.kind === 'treehouse') spawnGift(world)
     scheduleGift(world)
   }
@@ -334,7 +338,7 @@ export function advancePeace(world: World, delta: number): void {
       return
     }
     advanceSecretProject(world, delta)
-    if (project?.phase === 'complete') { s.nextProjectCheckAtMs = world.timeMs; nextActivity(world) }
+    if (project?.phase === 'complete' || !currentProject(world)) { s.nextProjectCheckAtMs = world.timeMs; nextActivity(world) }
     return
   }
   if (['coverward', 'covering', 'uncoverward', 'uncovering'].includes(s.activity) && coverSpot(world) === null) { if (world.poultry) delete world.poultry.cover; activity(world, 'homeward'); return }

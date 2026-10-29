@@ -55,7 +55,7 @@ function machinery(w: World, ms: number, check?: () => void) {
 function circuits() {
   const w = stored()
   placeBuilding(w, 14, 24, 'assembler', 'east'); w.homestead!.expansion.circuitAssembler = 974
-  changeCraftingRecipe(w, 14, 24, 'electronicCircuit')
+  changeCraftingRecipe(w, 14, 24, 'peteCircuit')
   return w
 }
 function industrial(hoistX = 26) {
@@ -77,7 +77,7 @@ function industrial(hoistX = 26) {
   changeCraftingRecipe(w, 14, 17, 'coalBriquette')
   return w
 }
-describe('mixed circuit supply', () => {
+describe('independent copper circuit supply', () => {
   it('retains paid personal cable production when a compact store cannot fit both bands', () => {
     const w = stored(), h = w.homestead!, store = materialStore(w)!
     placeBuilding(w, 14, 17, 'furnace', 'east'); h.expansion.copperFurnace = 694
@@ -141,22 +141,22 @@ describe('mixed circuit supply', () => {
   it('pays for one mixed line, bounds both ingredients and produces exactly twelve circuits', () => {
     const w = circuits(), store = materialStore(w)!, machine = w.buildings[974]!
     link(w, 'circuitFeed'); link(w, 'circuitReturn')
-    store.inventory.ironPlate = 48; store.inventory.copperCable = 48
+    store.inventory.ironPlate = 48; store.inventory.copperPlate = 48; store.inventory.copperCable = 48
     machinery(w, 180000, () => {
       if (machine.kind !== 'assembler') throw Error('assembler')
-      expect(machine.input.ironPlate + inFlight(w, 'ironPlate', 'circuitFeed')).toBeLessThanOrEqual(2)
+      expect(machine.input.copperPlate + inFlight(w, 'copperPlate', 'circuitFeed')).toBeLessThanOrEqual(2)
       expect(machine.input.copperCable + inFlight(w, 'copperCable', 'circuitFeed')).toBeLessThanOrEqual(6)
       expect(circuitStock(w)).toBeLessThanOrEqual(12)
     })
     expect(store.inventory.electronicCircuit).toBe(12)
     expect(w.produced.electronicCircuit).toBe(12)
-    expect(store.inventory.ironPlate).toBe(36); expect(store.inventory.copperCable).toBe(12)
+    expect(store.inventory.ironPlate).toBe(48); expect(store.inventory.copperPlate).toBe(36); expect(store.inventory.copperCable).toBe(12)
     expect(w.personality.paths.inventor.xp).toBe(0)
     expect(snapshot(decodeSave(JSON.stringify(snapshot(w))).world)).toEqual(snapshot(w))
   })
   it('keeps real packets and reservations through outage, missing parts and active save continuation', () => {
     const w = circuits(), p = link(w, 'circuitFeed'), store = materialStore(w)!
-    store.inventory.ironPlate = 30; store.inventory.copperCable = 18
+    store.inventory.copperPlate = 30; store.inventory.copperCable = 18
     machinery(w, 2500)
     const loaded = decodeSave(JSON.stringify(snapshot(w))).world
     machinery(w, 3000); machinery(loaded, 3000); expect(snapshot(loaded)).toEqual(snapshot(w))

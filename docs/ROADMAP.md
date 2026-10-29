@@ -407,3 +407,8 @@ Implemented following the explicit implementation and merge request:
 | 16.102 | Eco-5 orchard pavilion with three visible mixed-invoice stages, original-site paid restoration and occasional saved visits |
 
 [Game design](GAME_DESIGN.md#eco-supplies-and-orchard-pavilion-sprints-1698-16102) owns costs, gates, reserves and timing. Save 52 retains previous worlds and their water. Installation/offline 16.38, physical Safari acceptance, explicit pipes and the Pete-free complex Factory edition retain their previous deferred/future status. Further sprint scope requires a new proposal.
+
+
+## Post-16.102 maintenance — resource separation and building focus
+
+Implemented: modern Petes Welt project/chain families include a copper-only Inventor circuit recipe, removing the flight workshop's indirect Craftsman dependency. Existing paid old batches/cargo and legacy projects retain their materials; no further missing legacy Industrial gear projects are created. Construction access is repaired, Eco returns retain their construction Wood and keep their shore-work ordering, idle bouquets and gifts are rarer, and natural regrowth keeps recorded project sites/approaches clear. Save 53 preserves old work and water. Exact rules: [path separation and construction focus](GAME_DESIGN.md#path-separation-and-construction-focus). Future sprint scope remains unplanned; previous deferred features retain their status.

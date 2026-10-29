@@ -1,3 +1,4 @@
+import { PETE_PROJECTS } from './projectRegistry'
 import { inside, placementError, placeBuilding, SIZE } from './world'
 import type { Position, Tree, World } from './world'
 
@@ -73,7 +74,9 @@ export function reproductionTargets(world: World, tree: Tree): number[] {
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
     const x = tree.x + dx, y = tree.y + dy
     if ((!dx && !dy) || !inside(x, y) || nearFactory(world, x, y) || placementError(world, x, y, 'tree')) continue
-    tiles.push(y * SIZE + x)
+    const tile = y * SIZE + x
+    if (world.homestead && PETE_PROJECTS.some(({ state }) => { const project = world[state]; return project && (project.tiles.includes(tile) || project.spots.includes(tile)) })) continue
+    tiles.push(tile)
   }
   return tiles // row/tile order is stable
 }

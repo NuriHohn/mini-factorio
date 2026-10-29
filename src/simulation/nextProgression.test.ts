@@ -57,22 +57,22 @@ describe('resource-led copper automation, circuits and coal', () => {
     expect(furnace?.kind).toBe('furnace')
     expect(w.mined.copper).toBeGreaterThan(0)
   })
-  it('physically feeds the existing circuit recipe, consumes actual mixed inputs and resumes exactly', () => {
+  it('physically feeds the Inventor circuit recipe, consumes only copper-family inputs and resumes exactly', () => {
     const w = stored(), h = w.homestead!, e = h.expansion, store = materialStore(w)!
     placeBuilding(w, 24, 20, 'assembler', 'east'); e.circuitAssembler = 824
-    changeCraftingRecipe(w, 24, 20, 'electronicCircuit')
+    changeCraftingRecipe(w, 24, 20, 'peteCircuit')
     placeBuilding(w, 24, 21, 'powerPole', 'east'); placeBuilding(w, 25, 21, 'generator', 'east')
-    store.inventory.ironPlate = 1; store.inventory.copperCable = 3
+    store.inventory.copperPlate = 1; store.inventory.copperCable = 3
     begin(w, 'fetchCircuits', h.store)
     for (let i = 0; i < 1000 && h.task !== 'feedCircuits'; i++) { w.timeMs += 50; advanceExpansion(w, 50) }
-    expect(h.carried.ironPlate).toBe(1); expect(h.carried.copperCable).toBe(3)
+    expect(h.carried.copperPlate).toBe(1); expect(h.carried.copperCable).toBe(3)
     const restored = load(w)
     advanceWorld(w, 30000); advanceWorld(restored, 30000)
     expect(snapshot(restored)).toEqual(snapshot(w))
     const machine = w.buildings[824]
     expect(w.produced.electronicCircuit).toBe(1)
     expect((machine?.kind === 'assembler' ? machine.output.electronicCircuit : 0) + store.inventory.electronicCircuit + h.carried.electronicCircuit).toBe(1)
-    expect(store.inventory.ironPlate + store.inventory.copperCable).toBe(0)
+    expect(store.inventory.copperPlate + store.inventory.copperCable).toBe(0)
     expect(inventoryTotal(h.carried)).toBe(0)
   })
   describe('raw copper and iron through scenic flight', () => {
