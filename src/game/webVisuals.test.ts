@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type Phaser from 'phaser'
 import { WebVisuals } from './webVisuals'
 import { drawPete } from './peteVisuals'
-import { shootWeb } from '../simulation/webs'
+import { shootWeb } from '../factory/webSystem'
 import { placeBuilding } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 function graphics() {

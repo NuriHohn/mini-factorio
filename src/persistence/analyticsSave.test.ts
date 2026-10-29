@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { analyticsSnapshot, createAnalytics } from '../simulation/analytics'
+import { createAnalytics } from '../simulation/analytics'
+import { analyticsSnapshot } from '../factory/analytics'
 import { changeCraftingRecipe } from '../simulation/crafting'
 import { advanceWorld } from '../simulation/step'
 import { poweredWorld } from '../simulation/testFixtures'

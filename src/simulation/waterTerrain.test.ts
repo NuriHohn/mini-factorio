@@ -5,7 +5,7 @@ import { createBareWorld, createUnlockedWorld } from './testFixtures'
 import { natureRandom, paintLandscape, plantTree, reproductionTargets } from './nature'
 import { reachableTiles } from './navigation'
 import { advanceWorld } from './step'
-import { recordArrest } from './revenge'
+import { recordArrest } from '../factory/revengeSystem'
 const rng = (seed: number) => { const state = { seed }; return () => natureRandom(state) }
 describe('deterministic natural water terrain', () => {
   it.each([1, 42, 123456, 0xffffffff])('generates bounded organic features from seed %i with a protected, connected starting region', seed => {

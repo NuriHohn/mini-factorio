@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createPetesWorld, placeGrove } from './petesWorld'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { advanceHomestead, materialStore } from './homestead'
 import { awardActivity } from './personality'
 import { decodeSave, encodeSave } from '../persistence/saveGame'

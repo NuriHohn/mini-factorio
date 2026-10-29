@@ -60,7 +60,7 @@ it('shows far fewer idle bouquets without changing Factory behavior or consuming
     }
     counts.push(flowers)
   }
-  expect(counts[0]).toBeGreaterThan(0); expect(counts[0]).toBeLessThan(counts[1] / 2)
+  expect(counts[0]).toBeGreaterThan(0); expect(counts[0]).toBeLessThan(counts[1] / 5)
 })
 it('keeps affordable fence work available while optional material returns are still missing', () => {
   const w = waiting(), h = w.homestead!
@@ -130,7 +130,7 @@ it('generates far fewer gifts in a deterministic run while retaining Factory gif
     return count
   }
   const petes = attempts(waiting()), factory = attempts(waiting(false))
-  expect(factory).toBe(100); expect(petes).toBeGreaterThan(0); expect(petes).toBeLessThan(50)
+  expect(factory).toBe(100); expect(petes).toBeGreaterThan(0); expect(petes).toBeLessThan(15)
   const old = waiting(); old.peace.gifts = [{ id: 1, tile: 859, kind: 'flowers', wood: 0, atMs: 0 }, { id: 2, tile: 861, kind: 'wood', wood: 1, atMs: 0 }]; old.peace.nextId = 3
   const before = structuredClone(old.peace.gifts)
   old.timeMs = old.peace.nextGiftAtMs; advancePeace(old, 0)

@@ -14,7 +14,7 @@ import { awardActivity } from './personality'
 import { projectCandidates } from './secretProject'
 import { DIRECTIONS, inside, offsets, placeBuilding, SIZE } from './world'
 import type { Direction, World } from './world'
-import { copperLink, feedLink, linkMaterial, industrialLink, linkCurrency, linkCost, ecoLink } from './infrastructureRules'
+import { copperLink, feedLink, linkMaterial, industrialLink, linkCurrency, linkCost, ecoLink, earlyIronReturnUnlocked } from './infrastructureRules'
 import { chooseLoading, advanceLoading, loadingParts } from './loading'
 import type { Connection, InfrastructurePart, LinkKind, WheelSite } from './infrastructureRules'
 
@@ -255,12 +255,12 @@ export function chooseInfrastructure(world: World, path: string): boolean {
       if (plan) { s.plan = plan; s.built = 0; s.repair = false; begin(world, 'buildConnection', h.store); return true }
     }
   }
-  if (path === 'craftsman' && h.cargoBicycle) {
+  if (path === 'craftsman' && (h.cargoBicycle || earlyIronReturnUnlocked(world))) {
     if (parkForConnection(world, (['iron', 'gearFeed', 'gearReturn'] as const).filter(kind => !s.links.some(p => p.kind === kind) && (kind === 'iron' || s.links.some(p => p.kind === 'iron'))))) return true
     const missing = s.links.find(p => !copperLink(p.kind) && !industrialLink(p.kind) && !ecoLink(p.kind) && p.parts.some(part => !partComplete(world, part)))
     if (missing && store.inventory.ironPlate >= 1) { s.plan = structuredClone(missing); s.built = 0; s.repair = true; begin(world, 'buildConnection', h.store); return true }
     for (const kind of ['iron', 'gearFeed', 'gearReturn'] as const) {
-      if (s.links.some(p => p.kind === kind) || store.inventory.ironPlate < 8 || kind !== 'iron' && !s.links.some(p => p.kind === 'iron')) continue
+      if (s.links.some(p => p.kind === kind) || store.inventory.ironPlate < 8 || kind !== 'iron' && (!h.cargoBicycle || !s.links.some(p => p.kind === 'iron'))) continue
       const plan = planConnection(world, kind)
       if (plan) { s.plan = plan; s.built = 0; s.repair = false; begin(world, 'buildConnection', h.store); return true }
     }

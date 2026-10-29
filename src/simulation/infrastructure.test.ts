@@ -14,7 +14,7 @@ import type { World } from './world'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { peteStatus } from './peteStatus'
 import { projectBuilding, projectCandidates, trySecretProject } from './secretProject'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { peteWalkableTile, serviceCrossing } from './navigation'
 import { finishWorkshop, workshopSpot } from './workshop'
 import { advanceCrafting, changeCraftingRecipe } from './crafting'
@@ -56,6 +56,19 @@ function wait(w: World, ms: number) {
 }
 
 describe('ordinary paid Pete transport', () => {
+  it.each([false, true])('offers the earlier iron return only before cargo in a single-family yard (mixed=%s)', mixed => {
+    const w = stored(), h = w.homestead!, store = materialStore(w)!
+    w.personality.paths.craftsman.level = 3
+    w.tiles[626] = 'iron'
+    expect(placeBuilding(w, 26, 15, 'miner', 'south')).toBe(true)
+    h.expansion.miner = 626
+    if (mixed) w.tiles[627] = 'copper'
+    store.inventory.ironPlate = 8
+    expect(h.cargoBicycle).toBe(false)
+    expect(chooseInfrastructure(w, 'craftsman')).toBe(!mixed)
+    expect(h.infrastructure.plan?.kind ?? null).toBe(mixed ? null : 'iron')
+    expect(store.inventory.ironPlate).toBe(8)
+  })
   it('funds an original project when the store is accessible only over its owned transport', () => {
     const w = stored(), store = materialStore(w)!
     link(w, 'iron')

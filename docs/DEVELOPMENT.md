@@ -24,7 +24,11 @@ These are the existing npm scripts; run them from the root.
 | Command | Script / purpose |
 | --- | --- |
 | `npm run dev` | `vite`: local development server |
-| `npm test` | `vitest run`: all colocated tests, once |
+| `npm test` | `vitest run`: complete aggregate, including tooling boundary checks |
+| `npm run test:pete` | Pete UI and mode-specific development/production acceptance |
+| `npm run test:factory` | Factory research, analytics, sabotage/police/Revenge and controls |
+| `npm run test:core` | Shared production/transport/terrain/power and rendering/input primitives |
+| `npm run test:integration` | Mixed legacy worlds, save compatibility, slots, UI facade and dependency boundaries |
 | `npm run typecheck` | `tsc -b`: TypeScript project checks |
 | `npm run lint` | `eslint .`: lint and Hooks rules |
 | `npm run build` | `tsc -b && vite build`: production output in ignored `dist/` |
@@ -37,13 +41,17 @@ For a sprint package, settle simulation behavior with its focused dependency tes
 Reuse real progression preparation within a test suite when seed, resource offers and milestones are identical. Capture intermediate cargo/flight/paid-work snapshots before continuing, so later hooks cannot change what an earlier acceptance test claims to inspect. Keep the original simulation-step size, milestone bounds and all assertions. A different layout or offered resource family remains an independent scenario; saved fixtures must not replace raw-start acceptance.
 
 
-**Before delivery of code changes:** Run the complete test suite once, plus lint and a production build:
+**Before delivery of code changes:** For shared changes and cross-game releases, run the complete suite once, plus lint and a production build:
 
 ```sh
 npm test
 npm run lint
 npm run build
 ```
+
+**Scoped final checks:** A change confined to delivered Pete modules runs `test:pete`, affected core/contract tests and relevant integration checks; Factory-only changes follow the symmetric rule. Check transitive imports and the explicit ownership in `testSuites.ts`, not merely filenames. Mixed peaceful-Factory/modern-Pete files stay in integration; do not omit their applicable assertions. Run both games' affected coverage for shared invariants, simulation ordering, the common UI facade, schema codec/storage, test-selection tooling or uncertain dependency impact. Use the full aggregate when coverage cannot safely be bounded and for every cross-game release. The 16.108–16.112 package requires the full aggregate. Lint/build remain required for executable changes; affected input/render flows require browser checks. Do not delete/skip tests or weaken assertions/time bounds to obtain smaller suites.
+
+Every test must occur exactly once in `testSuites.ts`; `tests/boundaries.test.ts` rejects missing, duplicate or removed paths and static Factory imports into Pete/common startup. The normal production build also checks actual emitted chunks and writes ignored `dist/pete-build-boundary.json` and `dist/.vite/manifest.json`. Type-only imports and explicit dynamic mode loading do not introduce a static runtime dependency. The shared 53 codec and material ledger remain intentional coupling; compatibility changes require integration coverage. Factory services are installed only in Factory/integration test setup; Pete-specific progression imports its own orchestrator.
 
 The build already executes `tsc -b`. Do not additionally run `npm run typecheck` when a successful build covers the same source; the standalone command remains useful for targeted TypeScript feedback during development. Fix introduced failures and identify any remaining failures or unavailable checks. Do not weaken tests, skip regressions or bypass electricity to make a change pass.
 
@@ -434,3 +442,25 @@ Windows Chrome production-bundle verification imported the four real completed r
 
 
 Final validation: **1,816 tests in 158 files passed**, zero failed/pending, with `npm test -- --maxWorkers=2 --testTimeout=60000 --reporter=json --outputFile=<temporary-report>.json`. Complete setup-inclusive elapsed time was **527.85 seconds**. Lint, the final production build and `git diff --check` passed. All original simulation-step sizes, milestone bounds and retained intermediate-state assertions remain; no tests were skipped. The existing Vite large-bundle warning remains. Temporary reports/logs, browser scripts/snapshots/images and preview servers were removed before delivery; no dependencies or hosting settings changed.
+
+
+## Pete-first separation validation
+
+The frozen candidate passed **1,830 tests in 161 files**, zero failed/pending, with `npm test -- --maxWorkers=2 --testTimeout=60000 --reporter=json --outputFile=<temporary-report>.json`. Setup-inclusive elapsed time was **693.70 seconds**. The previous recorded 16.103–16.107 release was 1,816 tests/158 files in 527.85 seconds. The new coverage and NPC work/route trajectories differ; this run is slower and no test-runtime reduction is claimed. All original fixed-step and milestone limits remain unchanged.
+
+Every separately runnable suite also passed independently on the final behavior, sequentially and separately from browser work. Times include setup (`max(testResults.endTime) - startTime`), not assertion-only durations; they are single-host observations, not additive estimates of the aggregate or cross-device guarantees.
+
+| Suite | Files | Passed tests | Setup-inclusive time |
+| --- | --- | --- | --- |
+| `pete` | 23 | 202 | 489.27 s |
+| `factory` | 16 | 227 | 5.87 s |
+| `core` | 37 | 501 | 11.82 s |
+| `integration` | 85 | 900 | 140.22 s |
+
+`pete/separation.test.ts` covers actual powered production without Factory hooks/RP, partitioned clocks and exact save continuation, immediate material work from cosmetic pauses, preserved peaceful Factory homeward movement, old diagnostic retirement, rejected stale Factory commands/projections and transactional opposite-mode slot rejection. Pete composition tests retain resource/water/touch-palette controls without Factory panels. The original raw iron acceptance now captures the first paid return before cargo, then retains all three links, furnishings, completion and repair assertions. Mixed raw copper/iron still retains the two-hour first-practice limit and subsequent physical logistics; all four resource-family closure worlds remain real-resource acceptances. Gift-cap coverage selects an actually eligible five-percent opportunity; deterministic gift/bouquet frequency assertions are stricter. No tests or assertions were removed, skipped or given weaker simulation bounds.
+
+Both the transitive source-import check and production-build check passed. The emitted Pete/common static closure contains **zero Factory runtime/panel modules**. The original single JS bundle was **2,075.80 kB** (585.35 kB gzip); the final shared main chunk is **2,022.83 kB** (569.60 kB gzip). The build guard reports **2,032,966 static Pete code bytes**; all emitted JS files together occupy **2,087,002 bytes**. Factory UI, research and simulation are separate on-demand chunks. This is a loading-boundary improvement, not a claim that total shipped code shrank; the existing large Phaser-bundle warning remains. An AST review also confirmed 37 extracted Factory function bodies match the fetched baseline exactly.
+
+The final Windows in-app-browser production build passed direct Pete cold start, own tools/help, real mouse iron offerings, pause/×16, autonomous real plate/gear production and all three visible ordinary return/feed connections. Native autosave/manual save/export/load and Pete → Factory → saved Pete switching retained the separate slots and actual production. The final extracted Factory research module opened normally; returning to Pete left one canvas, zero research/Analytics panels, no horizontal desktop overflow and no browser errors. Screenshots were visually reviewed.
+
+The available browser provides viewport resizing but no native touch/mobile emulation. A narrow mouse viewport remains the existing desktop layout and is **not** recorded as phone acceptance. Touch input/palette regression tests passed; native touch-browser and physical iPhone/iPad Safari acceptance remain unverified. Shared World/UI-facade/schema-53 contracts are intentional coupling as documented in Architecture. Save version, dependencies and hosting settings did not change. Temporary repository reports/logs/snapshots and the preview server were removed before delivery.

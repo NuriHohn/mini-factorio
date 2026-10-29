@@ -5,7 +5,7 @@ import { createWorld, placeBuilding } from '../simulation/world'
 import { emptyInventory } from '../simulation/items'
 import { changeFurnaceRecipe } from '../simulation/smelting'
 import { advanceWorld } from '../simulation/step'
-import { attackWalker, damageWalker, recordArrest } from '../simulation/revenge'
+import { attackWalker, damageWalker, recordArrest } from '../factory/revengeSystem'
 function renderer() {
   const calls: string[] = []
   const graphics = new Proxy({}, { get: (_target, key) => () => { calls.push(String(key)); return graphics } }) as Phaser.GameObjects.Graphics

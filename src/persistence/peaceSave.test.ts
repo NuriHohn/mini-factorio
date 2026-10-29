@@ -6,7 +6,7 @@ import { placeBuilding, removeBuilding } from '../simulation/world'
 import type { World } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
 import { collectGift, createPeace } from '../simulation/peace'
-import { damageWalker, recordArrest } from '../simulation/revenge'
+import { damageWalker, recordArrest } from '../factory/revengeSystem'
 const view = { scrollX: 0, scrollY: 0, zoom: 1.3, direction: 'east' as const, powerOverlay: false }
 const snapshot = (w: World): SaveDocument => JSON.parse(encodeSave(w, view, '2026-10-21T00:00:00.000Z'))
 const load = (w: World) => decodeSave(JSON.stringify(snapshot(w))).world

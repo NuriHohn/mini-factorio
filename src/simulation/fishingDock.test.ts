@@ -8,7 +8,7 @@ import { placementInfo } from './construction'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { inspectBuilding } from './inspection'
 import { createPeace } from './peace'
-import { recordArrest } from './revenge'
+import { recordArrest } from '../factory/revengeSystem'
 const view = { scrollX: 0, scrollY: 0, zoom: 1.3, direction: 'east' as const, powerOverlay: false }
 const snapshot = (w: ReturnType<typeof fixture>) => JSON.parse(encodeSave(w, view, '2026-10-21T00:00:00.000Z'))
 function fixture() {

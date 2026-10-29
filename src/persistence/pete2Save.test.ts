@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { placeBuilding, removeBuilding } from '../simulation/world'
 import type { World } from '../simulation/world'
 import { advanceWorld } from '../simulation/step'
-import { shootWeb } from '../simulation/webs'
+import { shootWeb } from '../factory/webSystem'
 import { decodeSave, encodeSave } from './saveGame'
 import type { SaveDocument } from './saveGame'
 const view = { scrollX: 0, scrollY: 0, zoom: 1.3, direction: 'east' as const, powerOverlay: false }

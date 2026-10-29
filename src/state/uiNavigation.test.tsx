@@ -1,7 +1,9 @@
+import * as factoryApplication from '../factory/application'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { useGameStore } from './gameStore'
-import { CONTROL_ROWS, importantNotification, notificationText, technologyView, worldInputBlocked } from './uiMetadata'
+import { importantNotification, notificationText, worldInputBlocked } from './uiMetadata'
+import { CONTROL_ROWS, technologyView } from '../factory/uiMetadata'
 import { PLAYER_TOOLS } from './toolMetadata'
 import { createResearch, RP_UNITS } from '../simulation/research'
 import { createBareWorld } from '../simulation/testFixtures'
@@ -20,7 +22,7 @@ vi.mock('./gameStore', async importOriginal => {
 beforeEach(() => useGameStore.setState(useGameStore.getInitialState(), true))
 describe('compact navigation and UI-only state', () => {
   it('starts with no utility panel and keeps manuals, management and large resource tables out of normal play', () => {
-    const html = renderToStaticMarkup(<App />)
+    const html = renderToStaticMarkup(<App initialParts={factoryApplication} />)
     expect(useGameStore.getState().uiPanel).toBeNull()
     expect(html).not.toContain('Import file'); expect(html).not.toContain('Toggle Mining machine')
     expect(html).not.toContain('Resource statistics'); expect(html).not.toContain('role="dialog" aria-modal="false"')
@@ -32,9 +34,9 @@ describe('compact navigation and UI-only state', () => {
     useGameStore.getState().publish(w)
     const hint = useGameStore.getState().miniHint!
     expect(hint.length).toBeGreaterThan(20)
-    expect(renderToStaticMarkup(<App />)).not.toContain(hint)
+    expect(renderToStaticMarkup(<App initialParts={factoryApplication} />)).not.toContain(hint)
     useGameStore.getState().inspectPete(w)
-    const html = renderToStaticMarkup(<App />)
+    const html = renderToStaticMarkup(<App initialParts={factoryApplication} />)
     expect(html).toContain('Pete inspection')
     expect(html).toContain(hint)
     expect(html).not.toContain('mini-world-hint')

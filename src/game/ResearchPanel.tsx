@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useGameStore } from '../state/gameStore'
-import { purchaseError, formatResearchBalance, TECHNOLOGIES, TECHNOLOGY_IDS } from '../simulation/research'
+import { TECHNOLOGIES, TECHNOLOGY_IDS } from '../simulation/research'
+import { purchaseError, formatResearchBalance } from '../factory/research'
 import type { TechnologyId } from '../simulation/research'
-import { TECHNOLOGY_GROUPS, TECHNOLOGY_ICONS, technologyView } from '../state/uiMetadata'
+import { TECHNOLOGY_GROUPS, TECHNOLOGY_ICONS, technologyView } from '../factory/uiMetadata'
 
 export function ResearchPanel() {
   const { research, researchRate, researchOpen, toggleResearch, requestResearch, researchRequest, researchFeedback } = useGameStore()

@@ -1,8 +1,9 @@
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
-import type { CombatImpact } from '../simulation/revenge'
-import { BREAKDOWN_MS, STOMP_MS, peteUnavailable, empTargetEligible, WALKER_TILE_MS } from '../simulation/revenge'
+import type { CombatImpact } from '../factory/revengeSystem'
+import { BREAKDOWN_MS, STOMP_MS, peteUnavailable, WALKER_TILE_MS } from '../simulation/revenge'
+import { empTargetEligible } from '../factory/revengeSystem'
 import type { World } from '../simulation/world'
 
 function star(g: Phaser.GameObjects.Graphics, x: number, y: number, size: number) {

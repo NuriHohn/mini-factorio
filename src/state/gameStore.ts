@@ -14,17 +14,16 @@ import { natureTool } from './natureTools'
 import type { BrushSize } from '../simulation/nature'
 import { combatTool, createRevenge } from '../simulation/revenge'
 import type { RevengeState } from '../simulation/revenge'
-import { buildingTechnologyError, createResearch, hasTechnology, purchaseTechnology, researchRate, TECHNOLOGIES } from '../simulation/research'
+import { buildingTechnologyError, createResearch, hasTechnology, TECHNOLOGIES } from '../simulation/research'
 import type { ResearchState, TechnologyId } from '../simulation/research'
-import { analyticsSnapshot } from '../simulation/analytics'
-import type { AnalyticsSnapshot } from '../simulation/analytics'
+import { factoryStateServices } from '../core/factoryState'
+import { peteProjection, peteToolAllowed } from '../pete/state'
+import type { AnalyticsSnapshot } from '../factory/analytics'
 import type { SaveRequest, SaveStatus } from '../persistence/storage'
-import { PETES_WORLD_TOOLS, TOOL_HOTKEYS, toolMetadata } from './toolMetadata'
+import { TOOL_HOTKEYS, toolMetadata } from './toolMetadata'
 import type { BuildTab, Tool } from './toolMetadata'
 export { TOOL_HOTKEYS } from './toolMetadata'
 export type { Tool } from './toolMetadata'
-import { releasePete } from '../simulation/police'
-import { shootWeb } from '../simulation/webs'
 import type { Position } from '../simulation/world'
 import { emptyInventory } from '../simulation/items'
 import type { FurnaceRecipeMode } from '../simulation/recipes'
@@ -118,7 +117,7 @@ interface State {
 export const useGameStore = create<State>((set, get) => ({
   spraySource: null,
   beginSpray: () => { const s = get(); if (s.inspected !== null && s.inspection?.kind === 'sprinkler') set({ spraySource: s.inspected, tool: 'playfulSpray', inspected: null, inspection: null, touchPlacement: null, message: 'Mit Wasser spritzen · 3 Felder · 5 kW · Escape/Rechtsklick beendet.' }) },
-  playMode: 'factory', miniHint: null,
+  playMode: typeof location !== 'undefined' && new URLSearchParams(location.search).get('mode') === 'pete' ? 'petesWorld' : 'factory', miniHint: null,
   petePathVisible: true, connectionVisible: false,
   goals: [], pinnedGoal: null, machineHelp: null, processes: [], supplies: [], supplyRequest: null,
   applySupply: world => {
@@ -145,20 +144,21 @@ export const useGameStore = create<State>((set, get) => ({
   setBrushSize: size => { if ([1, 3, 5].includes(size)) set({ brushSize: size }) },
   revenge: createRevenge(), simulationTime: 0,
   research: createResearch(), researchRate: 0, researchOpen: false, researchRequest: null, researchFeedback: '',
-  toggleResearch: () => set(state => ({ researchOpen: !state.researchOpen, analyticsOpen: false, uiPanel: null, researchFeedback: '' })),
-  requestResearch: id => set(state => state.researchRequest === null ? { researchRequest: id } : state),
+  toggleResearch: () => set(state => state.playMode !== 'factory' ? state : ({ researchOpen: !state.researchOpen, analyticsOpen: false, uiPanel: null, researchFeedback: '' })),
+  requestResearch: id => set(state => state.playMode === 'factory' && state.researchRequest === null ? { researchRequest: id } : state),
   applyResearch: world => {
     const id = get().researchRequest
     if (id === null) return
-    const error = purchaseTechnology(world, id)
+    if (world.miniFactory || get().playMode !== 'factory') { set({ researchRequest: null }); return }
+    const error = factoryStateServices()?.purchase(world, id) ?? (factoryStateServices() ? null : 'Factory is not active.')
     set({ researchRequest: null, researchFeedback: error ?? `${TECHNOLOGIES[id].name} researched.` })
     get().publish(world)
   },
   analytics: { timeMs: 0, produced: emptyInventory(), consumed: emptyInventory(), totalPerMinute: 0, utilization: 0, configuredMachines: 0, problems: [], history: [], recentItems: [] }, analyticsOpen: false,
-  toggleAnalytics: () => set(state => hasTechnology(state.research, 'analytics1') ? { analyticsOpen: !state.analyticsOpen, researchOpen: false, uiPanel: null } : state),
+  toggleAnalytics: () => set(state => state.playMode === 'factory' && hasTechnology(state.research, 'analytics1') ? { analyticsOpen: !state.analyticsOpen, researchOpen: false, uiPanel: null } : state),
   focusRequest: null,
   focusPeteProject: index => { if (get().playMode !== 'petesWorld' || !Number.isInteger(index) || index < 0 || index >= SIZE * SIZE) return; get().select(null); set({ focusRequest: index }) },
-  focusBuilding: index => { if (!hasTechnology(get().research, 'analytics1')) return; get().select(null); set({ focusRequest: index }) },
+  focusBuilding: index => { if (get().playMode !== 'factory' || !hasTechnology(get().research, 'analytics1')) return; get().select(null); set({ focusRequest: index }) },
   saveStatus: { manualAt: null, autoAt: null, message: '', error: false }, saveBusy: false, saveRequest: null,
   requestSave: request => set(state => state.saveBusy ? state : { saveRequest: request, saveBusy: true }),
   saveFeedback: (message, error = false) => set(state => ({ saveStatus: { ...state.saveStatus, message, error } })),
@@ -169,11 +169,12 @@ export const useGameStore = create<State>((set, get) => ({
     set({ buildTab: tab })
   },
   releaseRequest: null,
-  requestRelease: () => set(state => state.inspected !== null && state.inspection?.kind === 'prison' && state.inspection.imprisonedAtMs !== null ? { releaseRequest: { index: state.inspected, imprisonedAtMs: state.inspection.imprisonedAtMs } } : state),
+  requestRelease: () => set(state => state.playMode === 'factory' && state.inspected !== null && state.inspection?.kind === 'prison' && state.inspection.imprisonedAtMs !== null ? { releaseRequest: { index: state.inspected, imprisonedAtMs: state.inspection.imprisonedAtMs } } : state),
   applyRelease: world => {
     const request = get().releaseRequest
     if (!request) return
-    const released = releasePete(world, request.index, request.imprisonedAtMs)
+    if (world.miniFactory || get().playMode !== 'factory') { set({ releaseRequest: null }); return }
+    const released = factoryStateServices()?.release(world, request.index, request.imprisonedAtMs)
     set({ releaseRequest: null, message: released ? 'Pete released · eligible for arrest immediately.' : 'Pete is no longer held by this prison.' })
   },
   recipeRequest: null,
@@ -185,8 +186,8 @@ export const useGameStore = create<State>((set, get) => ({
   message: 'Power first: place a generator (5) and pole (6) within 3 tiles of your machines. P shows electricity.',
   select: requested => set(state => {
     if (requested === 'playfulSpray') return state
-    if (requested && ((state.playMode === 'petesWorld' && requested !== 'axe' && !PETES_WORLD_TOOLS.includes(requested)) || (state.playMode === 'factory' && ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource'].includes(requested)))) return { message: 'In Petes Welt platzierst du nur Ressourcen. Pete baut selbst.' }
-    const technologyError = requested && buildingTechnologyError(state.research, requested)
+    if (requested && ((state.playMode === 'petesWorld' && !peteToolAllowed(requested)) || (state.playMode === 'factory' && ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource'].includes(requested)))) return { message: 'In Petes Welt platzierst du nur Ressourcen. Pete baut selbst.' }
+    const technologyError = state.playMode === 'factory' && requested && buildingTechnologyError(state.research, requested)
     if (technologyError) return { message: technologyError }
     const tool = requested !== null && state.tool === requested ? null : requested
     if (tool === null && state.tool === null) return state
@@ -206,8 +207,8 @@ export const useGameStore = create<State>((set, get) => ({
     if (Object.hasOwn(TOOL_HOTKEYS, event.code)) get().select(TOOL_HOTKEYS[event.code])
   },
   useWebTool: (world, position) => {
-    if (get().tool !== 'spiderWeb') return false
-    const result = shootWeb(world, position)
+    if (get().playMode !== 'factory' || world.miniFactory || get().tool !== 'spiderWeb') return false
+    const result = factoryStateServices()?.web(world, position)
     if (result === 'ground' || (result === 'hit' && !peaceful(world))) get().recordToolUse('spiderWeb')
     set({ message: peaceful(world) && result === 'hit' ? 'Pete is peaceful. No need for webs!' : result === 'ground' ? 'Web fired · lands for 10 seconds. Click Pete directly to scare him.' : result === 'outside' ? 'Choose a tile inside the world.' : result === 'full' ? 'Too many active webs. Wait for some to expire.' : world.pete.water ? 'Pete is soaked! Let his water reaction finish.' : ['ARRESTED', 'TRANSPORTED', 'IMPRISONED'].includes(world.pete.mode) ? 'Pete is in police custody.' : 'Pete is frightened! He will cry in a safe corner, then return.' })
     return true
@@ -220,24 +221,25 @@ export const useGameStore = create<State>((set, get) => ({
   }),
   rotate: () => set(state => ({ direction: rotate(state.direction) })),
   publish: world => set(state => {
-    const peteInspection = state.peteInspection ? peteStatus(world) : null
+    const pete = world.miniFactory ? peteProjection(world, state.peteInspection !== null) : null
+    const peteInspection = pete ? pete.peteInspection : state.peteInspection ? peteStatus(world) : null
     const peteConstructionHint = constructionHint(world)
-    const revenge = structuredClone(world.revenge)
-    const research = { ...world.research, unlocked: [...world.research.unlocked] }
-    const rate = researchRate(world)
-    const analytics = analyticsSnapshot(world)
+    const revenge = world.miniFactory ? createRevenge() : structuredClone(world.revenge)
+    const research = world.miniFactory ? createResearch() : { ...world.research, unlocked: [...world.research.unlocked] }
+    const rate = world.miniFactory ? 0 : factoryStateServices()?.researchRate(world) ?? 0
+    const analytics = world.miniFactory ? useGameStore.getInitialState().analytics : factoryStateServices()?.analytics(world) ?? get().analytics
     const stats = worldStats(world)
     const electricity = powerOverview(world)
     const inspection = inspectBuilding(world, state.inspected)
     const inspected = inspection ? state.inspected : null
     const playMode = world.miniFactory ? 'petesWorld' : 'factory'
-    const miniHint = miniStatus(world)
-    const goals = learningGoals(world)
+    const miniHint = pete ? pete.miniHint : miniStatus(world)
+    const goals = world.miniFactory ? [] : learningGoals(world)
     const machineHelp = inspected === null ? null : machineGuide(world, inspected)
     const processes = state.peteInspection || inspected !== null ? processGuides(world, state.peteInspection ? null : inspected) : []
     const supplies = inspected === null ? [] : supplyOffers(world, inspected)
     // Publish value snapshots only when summaries change, never live world objects.
     if (playMode === state.playMode && miniHint === state.miniHint && JSON.stringify([goals, machineHelp, processes, supplies]) === JSON.stringify([state.goals, state.machineHelp, state.processes, state.supplies]) && JSON.stringify(peteInspection) === JSON.stringify(state.peteInspection) && peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { playMode, miniHint, goals, machineHelp, processes, supplies, peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: state.analyticsOpen && hasTechnology(research, 'analytics1') }
+    return { playMode, miniHint, goals, machineHelp, processes, supplies, peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: playMode === 'factory' && state.analyticsOpen && hasTechnology(research, 'analytics1'), researchOpen: playMode === 'factory' && state.researchOpen }
   }),
 }))

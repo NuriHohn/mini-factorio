@@ -185,7 +185,7 @@ function move(world: World, delta: number): void {
             } else activity(world, 'entering', 3000)
           }
           else activity(world, 'waving', 4000) // Enclosed home: wait, then retry after obstacles change.
-        } else activity(world, random(world) < (world.homestead ? .1 : .5) ? 'flowers' : 'waving', 5000)
+        } else activity(world, random(world) < (world.homestead ? .02 : .5) ? 'flowers' : 'waving', 5000)
         return
       }
     }
@@ -207,8 +207,8 @@ function spawnGift(world: World): void {
   const roll = random(world), flowers = random(world) < 1 / 3
   const wood = flowers ? 0 : 1 + Math.floor(random(world) * 2)
   // Reuse the position draw so gift rarity does not add a draw to Pete's decision stream.
-  if (world.homestead && roll >= .25) return
-  const tile = tiles[Math.floor((world.homestead ? roll * 4 : roll) * tiles.length)]
+  if (world.homestead && roll >= .05) return
+  const tile = tiles[Math.floor((world.homestead ? roll * 20 : roll) * tiles.length)]
   s.gifts.push({ id: s.nextId++, tile, kind: flowers ? 'flowers' : 'wood', wood, atMs: world.timeMs })
 }
 export function collectGift(world: World, tile: number): string | null {
@@ -345,7 +345,13 @@ export function advancePeace(world: World, delta: number): void {
   if (world.poultry?.cover?.stage === 'skipped' && !['homeward', 'entering', 'resting', 'verandaRest'].includes(s.activity)) delete world.poultry.cover
   // Only pre-empt cosmetic work at a stationary tile; committed activities finish normally.
   const interruptible = world.homestead ? ['walking', 'waving', 'flowers'] : ['homeward', 'walking', 'resting', 'verandaRest', 'waving', 'flowers']
-  if (world.poultry?.cover?.stage !== 'covered' && p.next === null && interruptible.includes(s.activity) && tryConstruction(world)) return
+  if (world.poultry?.cover?.stage !== 'covered' && p.next === null && interruptible.includes(s.activity)) {
+    if (tryConstruction(world)) return
+    if (world.homestead) {
+      if (homesteadDaily(world)) return
+      if (advanceHomestead(world, delta, true)) return
+    }
+  }
   if (s.activity === 'boating' && s.boat) {
     const boat = s.boat
     if (boat.phase === 'rowing') {

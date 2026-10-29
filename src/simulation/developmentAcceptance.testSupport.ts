@@ -3,7 +3,7 @@ import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { peteStatus } from './peteStatus'
 import { PERSONALITY_PATHS } from './personality'
 import type { PersonalityPath } from './personality'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { removeBuilding, SIZE } from './world'
 import type { World } from './world'
 

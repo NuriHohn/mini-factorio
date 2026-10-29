@@ -5,7 +5,8 @@ import { allocatePower } from './power'
 import { advanceWorld } from './step'
 import { changeCraftingRecipe } from './crafting'
 import { changeFurnaceRecipe } from './smelting'
-import { createResearch, purchaseTechnology, researchBalance, researchRate, RP_UNITS, SPRINT11_TECHNOLOGIES } from './research'
+import { createResearch, RP_UNITS, SPRINT11_TECHNOLOGIES } from './research'
+import { purchaseTechnology, researchBalance, researchRate } from '../factory/research'
 
 function machineWorld(kind: 'miner' | 'furnace' | 'assembler') {
   const world = createWorld(() => .5)

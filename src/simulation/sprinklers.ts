@@ -1,5 +1,4 @@
 import { peaceful } from './peace'
-import { bossAlive, damageWalker, peteUnavailable } from './revenge'
 import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navigation'
 import { PETE_FLEE_MS, PETE_WALK_MS } from './pete'
 import { withinRange } from './power'
@@ -28,7 +27,7 @@ export function sprinklerState(world: World, building: Sprinkler): 'Unpowered' |
   if (world.pete.mode === 'SPRAYED' && world.pete.water?.source === index) return 'Spraying'
   return building.cooldownUntilMs > world.timeMs ? 'Cooling down' : 'Ready'
 }
-function beginSlip(world: World): void {
+export function beginSlip(world: World): void {
   const water = world.pete.water!
   water.source = null; water.remainingMs = SLIP_MS
   world.pete.mode = 'SLIPPING'
@@ -36,42 +35,6 @@ function beginSlip(world: World): void {
 export function removeSprinkler(world: World, building: Building): void {
   if (world.playfulSpray?.source === building.y * SIZE + building.x) delete world.playfulSpray
   if (building.kind === 'sprinkler' && world.pete.mode === 'SPRAYED' && world.pete.water?.source === building.y * SIZE + building.x) beginSlip(world)
-}
-// Called after current power allocation and police dispatch: a committed police case wins.
-export function advanceSprinklers(world: World, delta: number, allowDetection = true): void {
-  if (peaceful(world)) return
-  if (bossAlive(world)) {
-    const r = world.revenge
-    if (world.timeMs < r.sprinklerReadyAtMs) return
-    const source = world.buildings.find(b => b?.kind === 'sprinkler' && b.cooldownUntilMs <= world.timeMs && sprinklerPowered(world, b.y * SIZE + b.x) && withinRange(b, r.boss!, SPRINKLER_RANGE))
-    if (source?.kind === 'sprinkler') {
-      source.cooldownUntilMs = world.timeMs + SPRINKLER_COOLDOWN_MS; source.sprays++
-      r.sprinklerReadyAtMs = world.timeMs + 2000
-      damageWalker(world, 2)
-    }
-    return
-  }
-  if (peteUnavailable(world)) return
-  const pete = world.pete, water = pete.water
-  if (pete.mode === 'SPRAYED' && water) {
-    const index = water.source!, source = world.buildings[index]
-    if (source?.kind !== 'sprinkler') { beginSlip(world); return }
-    if (!sprinklerPowered(world, index)) return
-    water.remainingMs = Math.max(0, water.remainingMs - delta)
-    if (water.remainingMs === 0) {
-      source.cooldownUntilMs = world.timeMs + SPRINKLER_COOLDOWN_MS
-      source.sprays++
-      beginSlip(world)
-    }
-    return
-  }
-  if (!allowDetection || pete.mode !== 'WANDERING' || water || world.police.car || world.timeMs < pete.graceUntilMs) return
-  const index = world.buildings.findIndex(b => b?.kind === 'sprinkler' && b.cooldownUntilMs <= world.timeMs && sprinklerDetects(world, b.y * SIZE + b.x))
-  if (index < 0) return
-  const source = world.buildings[index]!
-  pete.water = { origin: { x: source.x, y: source.y }, source: index, remainingMs: SPRAY_MS, complaint: (world.timeMs / 50 + index) % WATER_COMPLAINTS.length }
-  pete.mode = 'SPRAYED'; pete.pumpkin = null; pete.webMs = 0
-  pete.path = []; pete.escape = null; pete.pathRevision = -1
 }
 function planEscape(world: World): void {
   const pete = world.pete, origin = pete.water!.origin

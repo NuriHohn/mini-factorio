@@ -1,0 +1,37 @@
+import { hasTechnology, RP_UNITS, TECHNOLOGIES } from '../simulation/research'
+import { formatResearchBalance, purchaseError } from './research'
+import type { ResearchState, TechnologyId } from '../simulation/research'
+import { PLAYER_TOOLS } from '../state/toolMetadata'
+
+export const TECHNOLOGY_ICONS: Record<TechnologyId, string> = {
+  basicIndustry: '⚙', logistics1: '⌁', automation1: '⚒', logistics2: '⑂', analytics1: '▥', revengeDefense1: '⛏', revengeDefense2: 'ϟ',
+}
+export const TECHNOLOGY_GROUPS: readonly { label: string; ids: TechnologyId[] }[] = [
+  { label: 'Start here', ids: ['basicIndustry'] },
+  { label: 'Build your factory', ids: ['logistics1', 'automation1', 'logistics2', 'analytics1'] },
+  { label: 'Pete’s Revenge', ids: ['revengeDefense1', 'revengeDefense2'] },
+]
+export function technologyView(research: ResearchState, id: TechnologyId, pending: TechnologyId | null = null) {
+  const tech = TECHNOLOGIES[id], done = hasTechnology(research, id)
+  const locked = !!tech.prerequisite && !hasTechnology(research, tech.prerequisite)
+  const ready = !done && !purchaseError(research, id)
+  const progress = done || tech.cost === 0 ? 100 : Number(BigInt(research.balanceUnits) * 100n / (BigInt(tech.cost) * RP_UNITS))
+  return { state: done ? 'researched' : locked ? 'locked' : pending === id ? 'pending' : ready ? 'ready' : 'available',
+    label: done ? 'Researched' : locked ? 'Locked' : pending === id ? 'Unlocking…' : ready ? 'Ready to unlock' : 'Collect points',
+    symbol: done ? '✓' : locked ? '🔒' : pending === id ? '◷' : ready ? '✦' : '◔',
+    progress: Math.min(100, progress), balance: formatResearchBalance(research) }
+}
+export const CONTROL_ROWS = [
+  { keys: 'W A S D', action: 'Move the camera' },
+  { keys: 'Mouse wheel', action: 'Zoom in or out' },
+  ...PLAYER_TOOLS.filter(t => t.code).map(t => ({ keys: t.key, action: `Toggle ${t.label}` })),
+  { keys: 'R', action: 'Rotate the selected building' },
+  { keys: 'P', action: 'Show or hide power coverage' },
+  { keys: 'Escape', action: 'Cancel a drag first, then close a panel or menu, then put away your tool' },
+  { keys: 'Right click', action: 'Cancel a drag, or put away your tool; never removes a building' },
+  { keys: 'Drag belt / pole', action: 'Preview belts, safe reversals and land-to-land bridges (up to 5 water tiles; 3 Wood each) or a power route that reuses existing poles; release to build all at once' },
+  { keys: 'Left click', action: 'Use your selected tool, or inspect when no tool is selected' },
+  { keys: 'Click active tool', action: 'Cancel that tool; choosing a different group also cancels it' },
+  { keys: 'Click and drag', action: 'Paint flowers, grass or water; restore land or erase decoration with a landscape brush' },
+  { keys: 'Gift click', action: 'Press Escape, then click Pete’s gift to collect it' },
+] as const

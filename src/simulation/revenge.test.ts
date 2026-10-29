@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { attackWalker, advanceRevenge, combatPosition, createRevenge, damageWalker, recordArrest, walkerHit } from './revenge'
+import { combatPosition, createRevenge } from './revenge'
+import { attackWalker, advanceRevenge, damageWalker, recordArrest, walkerHit } from '../factory/revengeSystem'
 import { createWorld, placeBuilding, placementError, SIZE } from './world'
 import type { CraftingMachine, World } from './world'
 import { advanceWorld } from './step'
 import { allocatePower } from './power'
 import { changeFurnaceRecipe } from './smelting'
-import { advancePolice } from './police'
-import { advanceSprinklers } from './sprinklers'
+import { advancePolice } from '../factory/policeSystem'
+import { advanceSprinklers } from '../factory/sprinklerSystem'
 import { emptyInventory } from './items'
-import { createResearch, purchaseTechnology, RP_UNITS } from './research'
+import { createResearch, RP_UNITS } from './research'
+import { purchaseTechnology } from '../factory/research'
 
 // Original combat fixtures retain their dry map; terrain navigation has separate coverage.
 export function encounter() {
