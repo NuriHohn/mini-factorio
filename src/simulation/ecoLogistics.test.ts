@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { createPetesWorld } from './petesWorld'
 import { begin, materialStore, freeSite } from './homestead'
 import { emptyInventory } from './items'
-import { advanceInfrastructure, connectionComplete, infrastructurePickupAllowed, planConnection } from './infrastructure'
+import { advanceInfrastructure, chooseInfrastructure, connectionComplete, infrastructurePickupAllowed, planConnection } from './infrastructure'
 import { allocatePower } from './power'
 import { createInserterFrame, advanceInserters } from './inserters'
 import { advanceTransport, outputMachines } from './transport'
@@ -18,6 +18,7 @@ import { refreshNatureSchedule } from './nature'
 import { ecoPickup } from './ecoLogistics'
 import { ecoWoodReserve } from './productionLogistics'
 import { peteStatus } from './peteStatus'
+import { chooseExpansion } from './homesteadExpansion'
 
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 const snap = (w: World) => JSON.parse(encodeSave(w, view, '2026-10-28T00:00:00.000Z'))
@@ -32,6 +33,16 @@ function world() {
   changeCraftingRecipe(w, 16, 17, 'woodenCrate')
   return w
 }
+it('preserves shore construction priority before funding new material returns', () => {
+  const w = world(), h = w.homestead!
+  w.personality.paths.eco.level = 4; w.water[1220] = true
+  w.orchardProject = { kind: 'orchard', home: 820, direction: 'east', tiles: [950], spots: [949], phase: 'complete', crate: null, built: 1, carried: 0, elapsedMs: 0 }
+  expect(h.waterworks.dock).toBeNull(); expect(h.infrastructure.wheel).toBeNull()
+  expect(chooseInfrastructure(w, 'eco')).toBe(false)
+  expect(h.infrastructure.plan).toBeNull()
+  expect(materialStore(w)!.wood).toBe(18)
+  expect(h.infrastructure.links).toEqual([])
+})
 function build(w: World) {
   for (let t = 0; t < 240000 && w.homestead!.task; t += 50) { w.timeMs += 50; advanceInfrastructure(w, 50) }
   expect(w.homestead!.task).toBeNull()
@@ -47,6 +58,27 @@ function tick(w: World, ms: number) {
   for (let t = 0; t < ms; t += 50) { w.timeMs += 50; const frame = createInserterFrame(w), vacated = advanceTransport(w, 50); outputMachines(w, vacated); allocatePower(w, frame); advanceInserters(w, 50, frame); advanceCrafting(w, 50) }
 }
 describe('Eco returns on the existing physical production chain', () => {
+  it('reserves original crate improvements before additional furnishing orders', () => {
+    const w = world(), h = w.homestead!, store = materialStore(w)!
+    for (const kind of ['woodReturn', 'panelReturn', 'crateReturn'] as const) link(w, kind)
+    w.personality.paths.eco.level = 4; store.storeTier = 1
+    w.orchardProject = { kind: 'orchard', home: 820, direction: 'east', tiles: [816], spots: [817], phase: 'complete', crate: null, built: 1, carried: 0, elapsedMs: 0 }
+    w.gardenProject = { ...w.orchardProject, kind: 'garden', tiles: [818], spots: [858] }
+    w.buildings[818] = { kind: 'peteGarden', x: 18, y: 20, feed: 0 }
+    w.coopProject = { ...w.orchardProject, kind: 'coop', tiles: [940], spots: [941] }
+    w.buildings[940] = { kind: 'peteCoop', x: 20, y: 23 }
+    h.infrastructure.wheel = { tile: 1100, direction: 'east', poles: [] }
+    w.buildings[1100] = { kind: 'waterwheel', x: 20, y: 27, direction: 'east', rotationMs: 0 }
+    store.inventory.woodenCrate = 2
+    expect(chooseInfrastructure(w, 'eco')).toBe(false)
+    store.inventory.woodenCrate = 4
+    expect(chooseExpansion(w, 'eco')).toBe(true); expect(h.expansion.improvement).toBe('storeShelves')
+    h.task = null; h.expansion.improvement = null; h.expansion.improvements.storeShelves = h.store!
+    store.inventory.woodenCrate = 2
+    expect(chooseInfrastructure(w, 'eco')).toBe(false)
+    store.inventory.woodenCrate = 3
+    expect(chooseExpansion(w, 'eco')).toBe(true); expect(h.expansion.improvement).toBe('gardenBoxes')
+  })
   it('pays six real Wood per route and transports all three products through ordinary powered arms', () => {
     const w = world(), store = materialStore(w)!, h = w.homestead!
     store.wood = 30

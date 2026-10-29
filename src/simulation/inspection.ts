@@ -67,6 +67,7 @@ export type Inspection = { kind: 'steamWorkshop' | 'steamHoist'; cycles: number;
   | { kind: 'generator' | 'waterwheel'; direction?: Direction; waterAvailable?: boolean; capacityKw: number; actualKw: number; electrical: ElectricalDetails }
   | { kind: 'powerPole'; coverageRadius: number; coveredMachines: number; electrical: ElectricalDetails } | {
   kind: 'furnace' | 'assembler' | 'sawmill'
+  peteCircuit?: true
   direction: Direction
   recipe: string
   recipeMode: FurnaceRecipeMode
@@ -165,6 +166,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
     kind: building.kind, direction: building.direction, recipeMode: building.kind === 'furnace' || building.kind === 'sawmill' ? building.recipeMode : building.recipeMode === 'auto' ? 'auto' : building.recipeId ?? 'auto', recipe: recipe?.label ?? (building.kind === 'furnace' ? 'Waiting for ore' : 'Select a recipe'), recipeId: building.recipeId,
     recipeLocked: building.recipeLocked,
     detectionStatus: building.recipeLocked ? (building.recipeMode === 'auto' ? 'automatic-locked' : 'manual-locked') : building.recipeId ? 'choosing' : 'undetected',
+    ...(world.homestead?.expansion.circuitAssembler === building.y * SIZE + building.x ? { peteCircuit: true as const } : {}),
     requirements: { ...recipe?.inputs }, products: { ...recipe?.outputs }, durationMs: recipe?.durationMs ?? 0, recipeChangeError: recipeChangeError(building),
     input: { ...building.input }, output: { ...building.output }, reserved: { ...(building.job?.outputs ?? emptyInventory()) },
     progress: building.job ? building.job.elapsedMs / RECIPES[building.job.recipeId].durationMs : 0,

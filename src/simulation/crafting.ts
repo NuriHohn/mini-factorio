@@ -1,3 +1,4 @@
+import { legacyCircuitIron } from './productionLogistics'
 import { awardActivity } from './personality'
 import { awardResearch } from './research'
 import { recordProduction } from './analytics'
@@ -23,6 +24,7 @@ export function canStartCrafting(machine: CraftingMachine): boolean {
 export function advanceCrafting(world: World, delta: number): void {
   for (const machine of world.buildings) {
     if (machine?.kind !== 'furnace' && machine?.kind !== 'assembler' && machine?.kind !== 'sawmill') continue
+    if (machine.kind === 'assembler' && world.homestead?.expansion.circuitAssembler === machine.y * SIZE + machine.x && machine.recipeId === 'electronicCircuit' && !machine.job && !legacyCircuitIron(world)) machine.recipeId = 'peteCircuit'
     const speed = world.power?.consumers[machine.y * SIZE + machine.x]?.speedFraction ?? 0
     if (speed <= 0) continue
     const job = machine.job
@@ -66,6 +68,7 @@ export function changeCraftingRecipe(world: World, x: number, y: number, recipeI
   const machine = buildingAt(world, x, y)
   if (machine?.kind !== 'assembler') return 'Select an existing assembler.'
   if (recipeId !== 'auto' && (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== machine.kind)) return 'This recipe is not compatible with this machine.'
+  if (recipeId === 'peteCircuit' && world.homestead?.expansion.circuitAssembler !== y * SIZE + x && !(world.homestead?.expansion.plan?.kind === 'circuits' && world.homestead.expansion.plan.anchor === y * SIZE + x)) return 'This recipe belongs to Pete’s Inventor circuit assembler.'
   const error = recipeChangeError(machine)
   if (error) return error
   if (recipeId === 'auto') return 'Assemblers require explicit manual recipe selection.'

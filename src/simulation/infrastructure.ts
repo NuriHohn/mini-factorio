@@ -1,8 +1,9 @@
 import { wantsShoreDock, wantsWaterwheel } from './projectRegistry'
 import { ecoPickup } from './ecoLogistics'
 import { choosePavilion, advancePavilion } from './pavilion'
+import { IMPROVEMENT_RULES } from './homesteadExpansion'
 import type { Item } from './items'
-import { productionEndpoints, laterPickup, mainFuel, ironReserve, boilerPickupAllowed, coalInlet, outputClearance, inputClearance } from './productionLogistics'
+import { productionEndpoints, laterPickup, mainFuel, boilerPickupAllowed, coalInlet, outputClearance, inputClearance } from './productionLogistics'
 import { findBeltRoute } from './beltRouting'
 import { arrived, begin, finish, freeSite, materialStore } from './homestead'
 import { inventoryTotal } from './items'
@@ -35,7 +36,7 @@ const plans = new WeakMap<World, Map<LinkKind, { revision: string; plan: Connect
 const jointPlans = new WeakMap<World, Map<LinkKind, { revision: string; plan: Connection | null }>>()
 function planRevision(world: World): string {
   const h = world.homestead!, e = h.expansion
-  return `${h.infrastructure.pavilion?.tile}:${h.infrastructure.pavilion?.spot}:${world.topologyRevision}:${world.pete.tile}:${h.bikeTile}:${h.infrastructure.links.map(p => p.kind).join(',')}:${[e.forestry, e.assembler, h.millAnchor, e.furnace, e.gearAssembler, e.copperFurnace, e.cableAssembler, e.circuitAssembler, e.briquetteAssembler, h.infrastructure.loading?.input, h.infrastructure.loading?.output].join(',')}`
+  return `${world.yard?.entrance}:${world.chickenRun?.entrance}:${h.infrastructure.pavilion?.tile}:${h.infrastructure.pavilion?.spot}:${world.topologyRevision}:${world.pete.tile}:${h.bikeTile}:${h.infrastructure.links.map(p => p.kind).join(',')}:${[e.forestry, e.assembler, h.millAnchor, e.furnace, e.gearAssembler, e.copperFurnace, e.cableAssembler, e.circuitAssembler, e.briquetteAssembler, h.infrastructure.loading?.input, h.infrastructure.loading?.output].join(',')}`
 }
 export function previewConnection(world: World, plan: Connection): World {
   const h = world.homestead!, buildings = [...world.buildings]
@@ -55,9 +56,7 @@ export function planConnection(world: World, kind: LinkKind): Connection | null 
   const revision = planRevision(world), old = cache.get(kind)
   if (old?.revision === revision) return old.plan
   if (kind === 'iron' || ecoLink(kind)) return planSingleConnection(world, kind)
-  if ((kind === 'copper' || kind === 'cableReturn') && world.homestead!.expansion.furnace !== null && world.homestead!.expansion.circuitAssembler !== null && !world.homestead!.infrastructure.links.some(p => p.kind === 'iron')) return null
   // A mixed yard needs all three ingredient outlets before an enclosing return.
-  if (kind === 'gearReturn' && world.homestead!.expansion.copperFurnace !== null && ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'].some(kind => !world.homestead!.infrastructure.links.some(p => p.kind === kind))) return null
   let candidate = world
   for (const feed of ['gearFeed', 'cableFeed', 'circuitFeed'] as const) {
     if (candidate.homestead!.infrastructure.links.some(p => p.kind === feed)) continue
@@ -66,7 +65,7 @@ export function planConnection(world: World, kind: LinkKind): Connection | null 
     if (plan) candidate = previewConnection(candidate, plan)
   }
   // In a mixed yard the short assembler returns need the inner lanes; copper can go around them.
-  if ((kind === 'copper' || kind === 'cableReturn') && candidate.homestead!.expansion.furnace !== null && candidate.homestead!.expansion.circuitAssembler !== null) {
+  if ((kind === 'copper' || kind === 'cableReturn') && world.homestead!.expansion.furnace !== null && world.homestead!.expansion.circuitAssembler !== null) {
     for (const returning of ['circuitReturn', 'cableReturn'] as const) {
       if (returning === kind) break
       if (candidate.homestead!.infrastructure.links.some(p => p.kind === returning)) continue
@@ -123,6 +122,7 @@ function planSingleConnection(world: World, kind: LinkKind): Connection | null {
   reserved.push(...outputClearance(world, source), ...inputClearance(world, feedLink(kind) ? target : undefined))
   const storePorts = world.homestead!.store === null ? [] : neighboringTiles(world.homestead!.store!)
   const corridors = world.homestead!.store === null ? storePorts : [...storePorts, world.homestead!.store! - 2 * SIZE, world.homestead!.store! + 2 * SIZE]
+  const yardLandings = [world.yard, world.chickenRun].flatMap(yard => yard ? neighboringTiles(yard.entrance) : [])
   const terminals = [target, ...(!feedLink(kind) ? world.homestead!.infrastructure.links.filter(p => !feedLink(p.kind) && p.target === target && p.receiver === undefined).flatMap(p => p.parts.filter(p => p.kind === 'belt').map(p => p.tile)) : [])]
   const inlet = kind === 'loadingReturn' ? coalInlet(world) : []
   terminals.push(...inlet.slice(1, -1))
@@ -151,7 +151,7 @@ function planSingleConnection(world: World, kind: LinkKind): Connection | null {
       const poles = world.buildings.flatMap((_, tile) => Math.max(Math.abs(tile % SIZE - arm % SIZE), Math.abs(Math.floor(tile / SIZE) - Math.floor(arm / SIZE))) <= 3 ? [tile] : [])
       poles.sort((a, b) => Math.abs(a - arm) - Math.abs(b - arm))
       for (const pole of poles) for (const generator of neighboringTiles(pole)) {
-        if (!available(pole) || !available(generator) || corridors.includes(pole) || corridors.includes(generator) || pole === generator || parts.some(p => p.tile === pole || p.tile === generator)) continue
+        if (!available(pole) || !available(generator) || corridors.includes(pole) || corridors.includes(generator) || yardLandings.includes(pole) || yardLandings.includes(generator) || pole === generator || parts.some(p => p.tile === pole || p.tile === generator)) continue
         const plan: Connection = { kind, source, target, ...(receiver === target ? {} : { receiver }), ...(inlet.slice(1, -1).includes(receiver) ? { inlet } : {}), parts: [{ tile: pole, kind: 'powerPole', direction: 'east' }, { tile: generator, kind: 'generator', direction: 'east' }, ...parts] }
         if (accessibleLayout(world, plan)) { chosen = plan; break outer }
       }
@@ -230,7 +230,7 @@ export function chooseInfrastructure(world: World, path: string): boolean {
       const plan = planConnection(world, kind)
       if (plan) { s.plan = plan; s.built = 0; s.repair = false; begin(world, 'buildConnection', h.store); return true }
     }
-    if (choosePavilion(world)) return true
+    if ((s.pavilion || ['woodReturn', 'panelReturn', 'crateReturn'].every(kind => s.links.some(p => p.kind === kind))) && choosePavilion(world)) return true
   }
   if (path === 'industrial' && chooseLoading(world)) return true
   if (path === 'industrial' && world.personality.paths.industrial.level >= 4 && h.expansion.steamWorkshop !== null && world.produced.coalBriquette >= 4) {
@@ -243,13 +243,14 @@ export function chooseInfrastructure(world: World, path: string): boolean {
     }
   }
   if (path === 'inventor' && world.personality.paths.inventor.level >= 4 && h.expansion.copperMiner !== null) {
-    const wanted = (['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const).filter(kind => !s.links.some(p => p.kind === kind) && (kind === 'copper' || s.links.some(p => p.kind === 'copper')) && (!(kind === 'circuitFeed' || kind === 'circuitReturn') || h.expansion.circuitAssembler !== null && (kind === 'circuitFeed' ? store.inventory.ironPlate > ironReserve(world) && store.inventory.copperCable > (world.flightProject?.phase === 'complete' ? 0 : 12) : s.links.some(p => p.kind === 'circuitFeed'))))
-    if (store.inventory.copperPlate >= (world.flightProject?.phase === 'complete' ? 8 : 32) && parkForConnection(world, wanted)) return true
+    const plateThreshold = !s.links.some(p => p.kind === 'copper') || world.flightProject?.phase === 'complete' ? 8 : 32
+    const wanted = (['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const).filter(kind => !s.links.some(p => p.kind === kind) && (kind === 'copper' || s.links.some(p => p.kind === 'copper')) && (!(kind === 'circuitFeed' || kind === 'circuitReturn') || h.expansion.circuitAssembler !== null && (kind === 'circuitFeed' ? store.inventory.copperPlate > (world.flightProject?.phase === 'complete' ? 2 : 24) && store.inventory.copperCable > (world.flightProject?.phase === 'complete' ? 0 : 12) : s.links.some(p => p.kind === 'circuitFeed'))))
+    if (store.inventory.copperPlate >= plateThreshold && parkForConnection(world, wanted)) return true
     const missing = s.links.find(p => copperLink(p.kind) && p.parts.some(part => !partComplete(world, part)))
     if (missing && store.inventory.copperPlate >= 1) { s.plan = structuredClone(missing); s.built = 0; s.repair = true; begin(world, 'buildConnection', h.store); return true }
     for (const kind of ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const) {
-      if (s.links.some(p => p.kind === kind) || store.inventory.copperPlate < (world.flightProject?.phase === 'complete' ? 8 : 32) || kind !== 'copper' && !s.links.some(p => p.kind === 'copper')) continue
-      if ((kind === 'circuitFeed' || kind === 'circuitReturn') && (h.expansion.circuitAssembler === null || kind === 'circuitFeed' && (store.inventory.ironPlate <= ironReserve(world) || store.inventory.copperCable <= (world.flightProject?.phase === 'complete' ? 0 : 12)) || kind === 'circuitReturn' && !s.links.some(p => p.kind === 'circuitFeed'))) continue
+      if (s.links.some(p => p.kind === kind) || store.inventory.copperPlate < plateThreshold || kind !== 'copper' && !s.links.some(p => p.kind === 'copper')) continue
+      if ((kind === 'circuitFeed' || kind === 'circuitReturn') && (h.expansion.circuitAssembler === null || kind === 'circuitFeed' && (store.inventory.copperPlate <= (world.flightProject?.phase === 'complete' ? 2 : 24) || store.inventory.copperCable <= (world.flightProject?.phase === 'complete' ? 0 : 12)) || kind === 'circuitReturn' && !s.links.some(p => p.kind === 'circuitFeed'))) continue
       const plan = planConnection(world, kind)
       if (plan) { s.plan = plan; s.built = 0; s.repair = false; begin(world, 'buildConnection', h.store); return true }
     }
@@ -269,6 +270,12 @@ export function chooseInfrastructure(world: World, path: string): boolean {
     if (site && !wheelParts(site).every(p => world.buildings[p.tile]?.kind === p.kind) && store.wood >= (world.buildings[site.tile]?.kind === 'waterwheel' ? 0 : 10)) { s.wheelPlan = site; s.built = 0; begin(world, 'buildWheel', h.store); return true }
   }
   if ((path !== 'eco' && path !== 'craftsman' && path !== 'inventor' && path !== 'industrial') || s[path] >= 3 || world.personality.paths[path].level < (path === 'industrial' ? 5 : 4) || world.timeMs < s.nextOrderAtMs || orderTarget(world, path) === null) return false
+  if (path === 'eco') {
+    const garden = world.gardenProject
+    const improvement = h.expansion.improvements.storeShelves === undefined ? 'storeShelves' : h.expansion.improvements.gardenBoxes === undefined && garden?.phase === 'complete' && world.buildings[garden.tiles[0]] ? 'gardenBoxes' : null
+    const reserve = improvement ? IMPROVEMENT_RULES[improvement] : null
+    if (reserve && store.inventory[reserve.item] < reserve.amount + 2) return false
+  }
   if (projectCandidates(world).some(c => !c.definition.repeatable && !['yard', 'run'].includes(c.definition.id))) return false
   const fuel = h.expansion.fuelStore === null ? null : world.buildings[h.expansion.fuelStore]
   if (path === 'industrial' && (s.cargoCycles < 10 || fuel?.kind !== 'fuelDepot' || fuel.inventory.coalBriquette < 6 || inventoryTotal(fuel.inventory) < 14)) return false

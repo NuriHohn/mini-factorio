@@ -3,6 +3,8 @@ import { createPetesWorld, placeGrove, placeIron } from './petesWorld'
 import { advanceWorld } from './step'
 import type { World } from './world'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
+import { neighboringTiles, peteReachableTiles, peteWalkableTile } from './navigation'
+import { projectBuilding } from './secretProject'
 
 function until(w: World, done: () => boolean, limit = 1800000) {
   for (let t = 0; t < limit && !done(); t += 50) advanceWorld(w, 50)
@@ -43,6 +45,14 @@ describe('raw groves fund Eco wheel and later visible orders', () => {
     expect(w.homestead!.infrastructure.links.map(p => p.kind).sort()).toEqual(['crateReturn', 'panelReturn', 'woodReturn'])
     expect(w.nature.wood).toBe(0)
     expect(() => decodeSave(encodeSave(w, view))).not.toThrow()
+  })
+  it('keeps the store reachable through the planned yard entrance after all return links are installed', () => {
+    const future = structuredClone(w), yard = future.yard!
+    expect(yard).not.toBeNull()
+    for (const tile of yard.tiles) if (!future.buildings[tile]) future.buildings[tile] = projectBuilding(yard, tile)
+    const inside = neighboringTiles(future.peace.home!).find(tile => peteWalkableTile(future, tile))!
+    const paths = peteReachableTiles(future, inside)
+    expect(neighboringTiles(future.homestead!.store!).some(tile => paths.has(tile))).toBe(true)
   })
   beforeAll(() => { until(w, () => w.homestead!.infrastructure.eco === 3) }, 60000)
   beforeAll(() => { until(w, () => w.homestead!.task === 'buildPavilion' && w.homestead!.elapsedMs > 0); paidSnapshot = encodeSave(w, view) }, 60000)

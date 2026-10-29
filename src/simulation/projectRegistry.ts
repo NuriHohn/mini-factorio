@@ -5,10 +5,14 @@ import type { World } from './world'
 export type ProjectMaterial = Item | 'wood' | 'chickenFeed' | 'fruit' | 'sapling'
 export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { coalBriquette: 'industrial', coal: 'industrial', woodPanel: 'eco', woodenCrate: 'eco', fruit: 'eco', sapling: 'eco', mechanicModule: 'industrial', chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
 export function materialPath(world: World, item: ProjectMaterial): PersonalityPath { return world.homestead && item === 'ironGear' ? 'craftsman' : MATERIAL_PATH[item] }
-export function retiredIndustrial(world: World, definition: ProjectDefinition): boolean { return !!world.homestead && ['press', 'mechanic', 'winch'].includes(definition.id) && !world.pressProject && !world.mechanicProject && !world.winchProject }
+export function retiredIndustrial(world: World, definition: ProjectDefinition): boolean { return !!world.homestead && ['press', 'mechanic', 'winch'].includes(definition.id) && !world[definition.state] }
 export function wantsShoreDock(world: World): boolean {
   const h = world.homestead, home = world.peace.home, width = Math.sqrt(world.water.length)
   return !!h && home !== null && !h.waterworks.dock && h.expansion.assembler !== null && world.orchardProject?.phase === 'complete' && !world.buildings.some(b => b?.kind === 'fishingDock') && world.water.some((water, tile) => water && Math.max(Math.abs(tile % width - home % width), Math.abs(Math.floor(tile / width) - Math.floor(home / width))) <= 11)
+}
+export function wantsEcoReturns(world: World): boolean {
+  const h = world.homestead
+  return !!h && world.personality.paths.eco.level >= 4 && h.expansion.forestry !== null && h.expansion.assembler !== null && world.orchardProject?.phase === 'complete' && ['woodReturn', 'panelReturn', 'crateReturn'].some(kind => !h.infrastructure.links.some(p => p.kind === kind))
 }
 export function wantsWaterwheel(world: World): boolean {
   const h = world.homestead, home = world.peace.home, width = Math.sqrt(world.water.length)
@@ -69,6 +73,8 @@ export function homesteadProjectDelay(world: World, id: ProjectDefinition['id'])
     if (world.personality.paths.eco.level >= 3 && h.expansion.assembler === null && store?.kind === 'supplyCrate' && store.wood < 14) return 'Ich halte zwölf Holz für Sägewerk und Produktionsausbau zurück. Zusätzliche Vorräte finanzieren neue Zaunabschnitte.'
     if (wantsWaterwheel(world) && store?.kind === 'supplyCrate' && store.wood < 12) return 'Ich halte zehn Holz für das Wasserrad zurück. Zusätzliche Vorräte bleiben für Zaunabschnitte frei.'
     if (wantsShoreDock(world) && store?.kind === 'supplyCrate' && store.wood < 10) return 'Ich halte acht Holz für Angelsteg und Ruderboot zurück. Zusätzliche Vorräte bleiben für neue Zaunabschnitte frei.'
+    const reserve = id === 'run' ? ecoWoodReserve(world) : 0
+    if (reserve && store?.kind === 'supplyCrate' && store.wood < reserve + 2) return `Ich halte ${reserve} Holz für Logistik und Pavillon zurück. Der zusätzliche Hühnerauslauf folgt mit weiterem Nachschub.`
   }
   if (id === 'gardenCare' || id === 'reforestation') {
     const stock = world.buildings.reduce((n, b) => n + (b?.kind === 'supplyCrate' && b.storeTier !== undefined ? b.wood : 0), 0)

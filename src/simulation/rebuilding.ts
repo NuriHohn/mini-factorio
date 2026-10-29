@@ -201,7 +201,7 @@ export function advanceRebuilding(world: World, delta: number): boolean {
     if (!placeBuilding(world, position.x, position.y, part.kind, part.direction)) return true
     if (part.kind === 'steamEngine') { const engine = world.buildings[job.tile]; if (engine?.kind === 'steamEngine') engine.fuel = job.paid.coal }
     if (part.kind === 'fuelDepot') { const depot = world.buildings[job.tile]; if (depot?.kind === 'fuelDepot') depot.inventory.coal = job.paid.coal }
-    if (part.kind === 'assembler') changeCraftingRecipe(world, position.x, position.y, job.owner.type === 'chain' && job.owner.plan.kind === 'gears' ? 'ironGear' : job.owner.type === 'chain' && job.owner.plan.kind === 'briquettes' ? 'coalBriquette' : job.owner.type === 'chain' && job.owner.plan.kind === 'circuits' ? 'electronicCircuit' : job.owner.type === 'chain' && job.owner.plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
+    if (part.kind === 'assembler') changeCraftingRecipe(world, position.x, position.y, job.owner.type === 'chain' && job.owner.plan.kind === 'gears' ? 'ironGear' : job.owner.type === 'chain' && job.owner.plan.kind === 'briquettes' ? 'coalBriquette' : job.owner.type === 'chain' && job.owner.plan.kind === 'circuits' ? 'peteCircuit' : job.owner.type === 'chain' && job.owner.plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
   }
   r.jobs = r.jobs.filter(j => j !== job); r.active = null
   // Resume through existing navigation rather than retaining a repair destination.

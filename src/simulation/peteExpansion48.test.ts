@@ -82,7 +82,7 @@ describe('independent modern paths and real gears', () => {
     expect(materialPath(factory, 'ironGear')).toBe('industrial')
     w.pressProject = { kind: 'press', home: 820, direction: 'south', tiles: [823], spots: [822], phase: 'collecting', crate: null, built: 0, carried: 0, carriedIron: 0, carriedGears: 0, elapsedMs: 0 }
     expect(projectUnlocked(w, press)).toBe(true)
-    expect(retiredIndustrial(w, PETE_PROJECTS.find(p => p.id === 'mechanic')!)).toBe(false)
+    expect(retiredIndustrial(w, PETE_PROJECTS.find(p => p.id === 'mechanic')!)).toBe(true)
     expect(load(w).pressProject).toEqual(w.pressProject)
   })
   it('feeds only real plates into the shared powered gear recipe and awards pickup XP once', () => {
@@ -243,6 +243,19 @@ describe('paid water access', () => {
     const loaded = load(w)
     advanceWorld(w, 3000); advanceWorld(loaded, 3000)
     expect(snapshot(loaded)).toEqual(snapshot(w))
+  })
+  it('finishes crossing a paid dock site before validating placement, without freezing or paying twice', () => {
+    const w = stored(), h = w.homestead!, store = materialStore(w)!
+    store.wood = 20
+    const plan = planShoreDock(w)!
+    expect(plan).not.toBeNull()
+    h.waterworks.plan = plan; begin(w, 'buildDock', plan.tile)
+    store.wood -= 8; h.carried.wood = 8
+    Object.assign(w.pete, { tile: plan.tile - SIZE, x: plan.tile % SIZE, y: Math.floor(plan.tile / SIZE) - 1, next: plan.tile, travelMs: 50, path: [] })
+    tick(w, advanceShoreline, () => h.task === null)
+    expect(w.buildings[plan.tile]?.kind).toBe('fishingDock')
+    expect(store.wood).toBe(12); expect(h.carried.wood).toBe(0)
+    expect(w.pete.tile).not.toBe(plan.tile)
   })
   it('keeps wider unsupported channels unpaid and does not offer a boat dock on a tiny pool', () => {
     const w = stored()

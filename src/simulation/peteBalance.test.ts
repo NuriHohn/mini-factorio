@@ -4,7 +4,7 @@ import { advanceWorld } from './step'
 import { advanceHomestead, begin, materialStore } from './homestead'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { finishWorkshop, WORKSHOP_ACTIVITY_MS } from './workshop'
-import { projectCandidates, trySecretProject } from './secretProject'
+import { currentProject, projectCandidates, projectWood, trySecretProject } from './secretProject'
 import { advancePeace, GIFT_MAX_MS, GIFT_MIN_MS } from './peace'
 import type { World } from './world'
 
@@ -80,12 +80,14 @@ it('prefers affordable new buildings over overdue routine work while retaining a
   expect(projectCandidates(w).some(c => c.definition.id === 'orchard')).toBe(true)
   expect(projectCandidates(w).some(c => c.definition.id === 'gardenCare')).toBe(true)
   expect(trySecretProject(w)).toBe(true)
-  expect(w.orchardProject?.selected).toBe(true)
-  w.orchardProject!.phase = 'building'; w.orchardProject!.carried = 18; store.wood = 0
-  const project = w.orchardProject
+  const project = currentProject(w)!
+  expect(projectCandidates(w).find(c => w[c.definition.state] === project)?.definition.repeatable).toBe(false)
+  const paid = projectWood(project)
+  expect(paid).toBeGreaterThan(0)
+  project.phase = 'building'; project.carried = paid; store.wood = 0
   expect(trySecretProject(w)).toBe(true)
-  expect(w.orchardProject).toBe(project)
-  expect(project?.carried).toBe(18)
+  expect(currentProject(w)).toBe(project)
+  expect(project.carried).toBe(paid)
 })
 it('awards iron XP on physical output collection, never again on returning the same plates', () => {
   const w = structuredClone(craftsman), h = w.homestead!, tile = h.expansion.furnace!, furnace = w.buildings[tile]!
@@ -113,7 +115,7 @@ it('round trips longer rest/gift timers and continues exact active work', () => 
   advanceWorld(w, 1000); advanceWorld(loaded, 1000)
   expect(save(loaded)).toEqual(save(w))
 })
-it('uses longer gift intervals and at most two waiting gifts in new Petes Welt', () => {
+it('uses longer gift intervals and at most one waiting gift in new Petes Welt', () => {
   const w = createPetesWorld()
   expect(w.peace.nextGiftAtMs).toBeGreaterThanOrEqual(GIFT_MIN_MS * 2)
   expect(w.peace.nextGiftAtMs).toBeLessThanOrEqual(GIFT_MAX_MS * 2)
@@ -123,6 +125,6 @@ it('uses longer gift intervals and at most two waiting gifts in new Petes Welt',
     expect(w.peace.nextGiftAtMs - w.timeMs).toBeGreaterThanOrEqual(GIFT_MIN_MS * 2)
     expect(w.peace.nextGiftAtMs - w.timeMs).toBeLessThanOrEqual(GIFT_MAX_MS * 2)
   }
-  expect(w.peace.gifts).toHaveLength(2)
+  expect(w.peace.gifts).toHaveLength(1)
   expect(decodeSave(JSON.stringify(save(w))).world.peace.gifts).toEqual(w.peace.gifts)
 })

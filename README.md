@@ -25,6 +25,8 @@ Open **Menu → Neue Petes Welt**, then place **Waldgruppe** (nine mature trees)
 
 The existing Factory game also offers Forststation and Sägewerk. The shared chain harvests physical Wood, saws 1 Wood into 2 wood panels, then uses the ordinary assembler to make 1 wooden crate from 4 panels. Forestry replants its own harvested plots and respects five-minute tree growth. See [shared Eco production](docs/GAME_DESIGN.md#shared-eco-production-and-petes-welt).
 
+Petes Welt keeps new development costs and production within each path: Eco uses Wood, Craftsman iron, Inventor copper and Industrial coal, including their own processed goods. Pete's Inventor circuit recipe uses **1 copper plate + 3 cables**, so the flight workshop needs no iron supply. Fewer idle bouquets and gifts, less duplicate manual forestry and reliable construction access keep Pete focused on building. See [path separation and construction focus](docs/GAME_DESIGN.md#path-separation-and-construction-focus).
+
 ## First factory
 
 Place a generator and a nearby power pole, then build **miner → belt → furnace → belt → storage**. Machines and generators must be covered by poles. Furnaces detect incoming ore once, then lock their recipe. For circuits, choose Electronic circuit in an assembler’s inspector, then feed iron plates and copper cables to separate inputs. Assemblers require a manual recipe. Inserters (8) move items between belts, chests and machine buffers without removing direct belt connections. Use **Save Game** to keep a local browser save, **Load Game** to restore it after refresh, or **Export file** for a portable offline backup. A separate autosave runs every two minutes of active gameplay. Research **Analytics I**, then open **Analytics** in the header for actual item rates, production history, utilization and clickable bottlenecks; see [Production analytics](docs/GAME_DESIGN.md#production-analytics).
@@ -40,7 +42,7 @@ Place a generator and a nearby power pole, then build **miner → belt → furna
 
 Land factory placement is free once its technology is unlocked, except Waterwheel Generators cost 10 Wood and Fishing Docks cost 8 Wood; water bridge segments cost 3 Wood each; Pete’s Treehouse costs 20 Wood. New games begin with Basic Industry; productive miners, furnaces and assemblers earn RP. Use **Research** to unlock inserters, assemblers, splitters and the analytics dashboard. See [Research and technology](docs/GAME_DESIGN.md#research-and-technology). For exact recipes, buffers, power rules, previews and recipe selection, read [Game design](docs/GAME_DESIGN.md).
 
-Petes Welt now includes per-path construction/material/blockage summaries, paid Wood/panel/crate return links and a three-stage Eco-5 orchard pavilion. See [Eco supplies and pavilion](docs/GAME_DESIGN.md#eco-supplies-and-orchard-pavilion-sprints-1698-16102). Save 52 retains compatibility with previous worlds.
+Petes Welt now includes per-path construction/material/blockage summaries, paid Wood/panel/crate return links and a three-stage Eco-5 orchard pavilion. See [Eco supplies and pavilion](docs/GAME_DESIGN.md#eco-supplies-and-orchard-pavilion-sprints-1698-16102). Save 53 retains compatibility with previous worlds.
 
 ## Project context
 

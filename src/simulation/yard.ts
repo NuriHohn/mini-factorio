@@ -1,5 +1,5 @@
 import { footbridgeBank } from './footbridge'
-import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
+import { neighboringTiles, peteReachableTiles as reachableTiles, serviceCrossing, tilePath } from './navigation'
 import type { SecretProject } from './secretProject'
 import { SIZE } from './world'
 import type { World } from './world'
@@ -39,7 +39,7 @@ export function yardNavigation(world: World, y: Yard): World {
 }
 
 function preservesApproaches(world: World, before: Map<number, number>, after: Map<number, number>, final: World): boolean {
-  return world.buildings.every((b, i) => !b || b.kind === 'peteFence' || b.kind === 'tree' || !neighboringTiles(i).some(n => before.has(n) && !world.buildings[n] && !world.water[n]) || neighboringTiles(i).some(n => after.has(n) && !final.buildings[n] && !world.water[n]))
+  return world.buildings.every((b, i) => !b || b.kind === 'peteFence' || b.kind === 'tree' || !neighboringTiles(i).some(n => before.has(n) && (!world.buildings[n] || serviceCrossing(world, n)) && !world.water[n]) || neighboringTiles(i).some(n => after.has(n) && (!final.buildings[n] || serviceCrossing(final, n)) && !world.water[n]))
 }
 const workCache = new WeakMap<World, { key: string; spot: number | null }>()
 // Validate the next section, not every future actor reservation at once.
@@ -54,7 +54,7 @@ export function yardWorkSpot(world: World, y: Yard, tile: number): number | null
   // A section must preserve all currently accessible space. Future sections may wait.
   if (!preservesApproaches(world, before, after, candidate) || [...before.keys()].some(i => i !== tile && !after.has(i))) return null
   const boundary = yardBoundary(y)
-  const spot = neighboringTiles(tile).filter(i => !boundary.includes(i) && !world.water[i] && !world.buildings[i] && after.has(i))
+  const spot = neighboringTiles(tile).filter(i => !boundary.includes(i) && !world.water[i] && (!world.buildings[i] || serviceCrossing(world, i)) && after.has(i))
     .sort((a, b) => (tilePath(after, a)?.length ?? Infinity) - (tilePath(after, b)?.length ?? Infinity) || a - b)[0] ?? null
   workCache.set(world, { key, spot })
   return spot

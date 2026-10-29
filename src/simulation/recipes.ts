@@ -1,7 +1,7 @@
 import { ITEMS } from './items'
 import type { Inventory } from './items'
 export type FurnaceRecipeMode = 'auto' | RecipeId
-export type RecipeId = 'coalBriquette' | 'woodSawing' | 'woodenCrate' | 'ironSmelting' | 'copperSmelting' | 'ironGear' | 'copperCable' | 'electronicCircuit'
+export type RecipeId = 'peteCircuit' | 'coalBriquette' | 'woodSawing' | 'woodenCrate' | 'ironSmelting' | 'copperSmelting' | 'ironGear' | 'copperCable' | 'electronicCircuit'
 export interface Recipe {
   readonly id: RecipeId
   readonly label: string
@@ -18,6 +18,7 @@ export const RECIPES: Readonly<Record<RecipeId, Recipe>> = {
   copperSmelting: { id: 'copperSmelting', label: 'Copper smelting', machine: 'furnace', inputs: { copper: 1 }, outputs: { copperPlate: 1 }, durationMs: 2000 },
   ironGear: { id: 'ironGear', label: 'Iron gear', machine: 'assembler', inputs: { ironPlate: 2 }, outputs: { ironGear: 1 }, durationMs: 2000 },
   copperCable: { id: 'copperCable', label: 'Copper cable', machine: 'assembler', inputs: { copperPlate: 1 }, outputs: { copperCable: 2 }, durationMs: 2000 },
+  peteCircuit: { id: 'peteCircuit', label: 'Inventor circuit · copper only', machine: 'assembler', inputs: { copperPlate: 1, copperCable: 3 }, outputs: { electronicCircuit: 1 }, durationMs: 3000 },
   electronicCircuit: { id: 'electronicCircuit', label: 'Electronic circuit', machine: 'assembler', inputs: { ironPlate: 1, copperCable: 3 }, outputs: { electronicCircuit: 1 }, durationMs: 3000 },
 }
 export const FURNACE_INPUT_CAPACITY = 2

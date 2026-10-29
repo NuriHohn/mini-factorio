@@ -1,4 +1,4 @@
-import { protectsOutput } from './productionLogistics'
+import { legacyCircuitIron, protectsOutput } from './productionLogistics'
 import { connectionRunning, planConnection, previewConnection } from './infrastructure'
 import { chooseCraftsman, advanceCraftsman } from './craftsman'
 import { advanceIndustrial, chooseIndustrial, industrialLayout, planIndustrial } from './industrial'
@@ -8,6 +8,8 @@ import { findBeltRoute } from './beltRouting'
 import type { PersonalityPath } from './personality'
 import { recordProduction } from './analytics'
 import { changeCraftingRecipe } from './crafting'
+import type { RecipeId } from './recipes'
+import { copperLink } from './infrastructureRules'
 import { forestTiles } from './forestryStation'
 import { planHarvest } from './forestry'
 import { treeStage } from './nature'
@@ -140,7 +142,7 @@ function assemblySiteConnected(world: World, plan: ExpansionPlan): boolean {
   const h = world.homestead!, buildings = [...world.buildings]
   for (const part of expansionLayout(plan)) {
     const position = { x: part.tile % SIZE, y: Math.floor(part.tile / SIZE) }
-    if (part.kind === 'assembler') buildings[part.tile] = { ...position, kind: 'assembler', direction: 'east', recipeMode: 'manual', recipeId: plan.kind === 'circuits' ? 'electronicCircuit' : 'copperCable', recipeLocked: true, autoWaitElapsedMs: null, input: emptyInventory(), output: emptyInventory(), job: null }
+    if (part.kind === 'assembler') buildings[part.tile] = { ...position, kind: 'assembler', direction: 'east', recipeMode: 'manual', recipeId: plan.kind === 'circuits' ? 'peteCircuit' : 'copperCable', recipeLocked: true, autoWaitElapsedMs: null, input: emptyInventory(), output: emptyInventory(), job: null }
     else if (part.kind === 'powerPole' || part.kind === 'generator') buildings[part.tile] = { ...position, kind: part.kind }
   }
   let candidate: World = { ...world, buildings, homestead: { ...h, expansion: { ...h.expansion, ...(plan.kind === 'circuits' ? { circuitAssembler: plan.anchor } : { cableAssembler: plan.anchor }) } } }
@@ -174,6 +176,9 @@ function planOreMining(world: World, resource: 'iron' | 'copper'): ExpansionPlan
   }
   return null
 }
+function manualCircuitTarget(world: World, recipe: RecipeId | null): number { return recipe === 'peteCircuit' && world.flightProject?.phase !== 'complete' ? 8 : 12 }
+function manualCopperReserve(world: World): number { return world.flightProject?.phase === 'complete' && world.homestead!.infrastructure.links.filter(p => copperLink(p.kind)).length < 5 ? 8 : 0 }
+function circuitPlateReserve(world: World): number { return world.personality.paths.inventor.level >= 4 && !world.homestead!.infrastructure.links.some(p => p.kind === 'copper') ? 8 : manualCopperReserve(world) }
 function chooseCopper(world: World): boolean {
   const h = world.homestead!, e = h.expansion, store = materialStore(world)!
   const level = world.personality.paths.inventor.level
@@ -192,14 +197,15 @@ function chooseCopper(world: World): boolean {
     if (plan) { e.plan = plan; begin(world, 'buildChain', h.store); return true }
   }
   const circuits = e.circuitAssembler === null ? null : world.buildings[e.circuitAssembler]
-  if (circuits?.kind === 'assembler' && store.inventory.electronicCircuit < 12 && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) {
+  if (circuits?.kind === 'assembler' && store.inventory.electronicCircuit < manualCircuitTarget(world, circuits.recipeId) && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) {
     if (!connectionRunning(world, 'circuitReturn') && circuits.output.electronicCircuit) { begin(world, 'takeCircuits', e.circuitAssembler); return true }
-    if (!connectionRunning(world, 'circuitFeed') && !circuits.job && (circuits.input.ironPlate < 1 || circuits.input.copperCable < 3) && store.inventory.ironPlate >= Math.max(0, 1 - circuits.input.ironPlate) && store.inventory.copperCable >= Math.max(0, 3 - circuits.input.copperCable)) { begin(world, 'fetchCircuits', h.store); return true }
+    const plate = circuits.recipeId === 'peteCircuit' ? Math.max(0, 1 - circuits.input.copperPlate) : 0
+    if (!connectionRunning(world, 'circuitFeed') && !circuits.job && (circuits.recipeId === 'peteCircuit' || legacyCircuitIron(world) > 0) && (plate || circuits.input.copperCable < 3) && store.inventory.copperPlate >= (plate ? plate + circuitPlateReserve(world) : 0) && store.inventory.copperCable >= Math.max(0, 3 - circuits.input.copperCable)) { begin(world, 'fetchCircuits', h.store); return true }
   }
   const furnace = e.copperFurnace === null ? null : world.buildings[e.copperFurnace]
   const assembler = e.cableAssembler === null ? null : world.buildings[e.cableAssembler]
   const room = store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)
-  const cableInvoice = world.flightProject?.phase === 'complete' && h.infrastructure.links.filter(p => ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'].includes(p.kind)).length < 5 ? 10 : 2
+  const cableInvoice = 2 + manualCopperReserve(world)
   if (assembler?.kind === 'assembler' && store.inventory.copperCable < 16) {
     if (!connectionRunning(world, 'cableReturn') && assembler.output.copperCable && room) { begin(world, 'takeCable', e.cableAssembler); return true }
     if (!connectionRunning(world, 'cableFeed') && !assembler.job && !assembler.input.copperPlate && store.inventory.copperPlate >= cableInvoice) { begin(world, 'fetchCable', h.store); return true }
@@ -221,15 +227,15 @@ function advanceCopper(world: World, delta: number): boolean {
     const machine = e.circuitAssembler === null ? null : world.buildings[e.circuitAssembler]
     if (machine?.kind !== 'assembler') { if (inventoryTotal(h.carried)) begin(world, 'returnStock', h.store); else finish(world); return true }
     if (h.task === 'fetchCircuits') {
-      const plates = Math.max(0, 1 - machine.input.ironPlate), cables = Math.max(0, 3 - machine.input.copperCable)
-      if (machine.job || !plates && !cables || store.inventory.ironPlate < plates || store.inventory.copperCable < cables) { finish(world); return true }
-      store.inventory.ironPlate -= plates; store.inventory.copperCable -= cables
-      h.carried.ironPlate = plates; h.carried.copperCable = cables; begin(world, 'feedCircuits', e.circuitAssembler)
+      const plates = machine.recipeId === 'peteCircuit' ? Math.max(0, 1 - machine.input.copperPlate) : 0, cables = Math.max(0, 3 - machine.input.copperCable)
+      if (machine.job || !plates && !cables || store.inventory.copperPlate < (plates ? plates + circuitPlateReserve(world) : 0) || store.inventory.copperCable < cables) { finish(world); return true }
+      store.inventory.copperPlate -= plates; store.inventory.copperCable -= cables
+      h.carried.copperPlate = plates; h.carried.copperCable = cables; begin(world, 'feedCircuits', e.circuitAssembler)
     } else if (h.task === 'feedCircuits') {
-      for (const item of ['ironPlate', 'copperCable'] as const) while (h.carried[item] && deliverItem(machine, item, 'east')) h.carried[item]--
+      for (const item of ['ironPlate', 'copperPlate', 'copperCable'] as const) while (h.carried[item] && deliverItem(machine, item, 'east')) h.carried[item]--
       if (inventoryTotal(h.carried)) begin(world, 'returnStock', h.store); else finish(world)
     } else {
-      const amount = Math.min(2, machine.output.electronicCircuit, 12 - store.inventory.electronicCircuit)
+      const amount = Math.min(2, machine.output.electronicCircuit, Math.max(0, manualCircuitTarget(world, machine.recipeId) - store.inventory.electronicCircuit))
       if (!amount) { finish(world); return true }
       machine.output.electronicCircuit -= amount; h.carried.electronicCircuit = amount
       awardActivity(world.personality, { path: 'inventor', xp: amount * 2 }); begin(world, 'returnStock', h.store)
@@ -368,7 +374,7 @@ export function advanceExpansion(world: World, delta: number): boolean {
     h.target = step.tile; h.elapsedMs = Math.min(4000, h.elapsedMs + delta)
     if (h.elapsedMs === 4000 && plan.kind === 'coalFeed' && !world.research.unlocked.includes('logistics1')) world.research.unlocked.push('logistics1')
     if (h.elapsedMs !== 4000 || !placeBuilding(world, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, step.direction)) return true
-    if (step.kind === 'assembler') changeCraftingRecipe(world, step.tile % SIZE, Math.floor(step.tile / SIZE), plan.kind === 'gears' ? 'ironGear' : plan.kind === 'briquettes' ? 'coalBriquette' : plan.kind === 'circuits' ? 'electronicCircuit' : plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
+    if (step.kind === 'assembler') changeCraftingRecipe(world, step.tile % SIZE, Math.floor(step.tile / SIZE), plan.kind === 'gears' ? 'ironGear' : plan.kind === 'briquettes' ? 'coalBriquette' : plan.kind === 'circuits' ? 'peteCircuit' : plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
     plan.built++; h.elapsedMs = 0
     if (plan.built === expansionLayout(plan).length) {
       const leftover = emptyInventory()
@@ -473,7 +479,7 @@ export function expansionProjectStatuses(world: World): { path: PersonalityPath;
     entry('inventor', 'Kupferofen', `${e.copperFurnace !== null ? 'gebaut' : `${store?.inventory.copper ?? 0}/6 Kupfererz · Erfinder 2 · freier Bauplatz mit Stromversorgung`}`),
     entry('inventor', 'Kupferförderer', `${e.copperMiner !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Erfinder 3 · zuerst Kabel-Assembler · freie Bandstrecke zum Kupferofen`}`),
     entry('inventor', 'Schaltkreis-Assembler', `${e.circuitAssembler !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/12 Kupferplatten · Erfinder 3 · zuerst Kupferförderer · freier Bauplatz`}`),
-    entry('inventor', 'Schaltkreis-Zutaten', `${store?.inventory.ironPlate ?? 0}/1 Eisenplatte und ${store?.inventory.copperCable ?? 0}/3 Kupferkabel pro Stück · Material muss erreichbar sein`),
+    entry('inventor', 'Schaltkreis-Zutaten', `${store?.inventory.copperPlate ?? 0}/1 Kupferplatte und ${store?.inventory.copperCable ?? 0}/3 Kupferkabel pro Stück · Material muss erreichbar sein`),
     entry('inventor', 'Flugwerkstatt', `Erfinder 4 · vorhandene Schaltkreise und Kupferkabel · Übungsflüge führen zu Rundflügen ab 5`),
     entry('industrial', 'Kohleförderung', `${e.coalMiner !== null ? 'gebaut' : 'Industrie 3 · 6 Kohle als Vorrat · freie Bandstrecke zum Brennstofflager am Kessel'}`),
     entry('industrial', 'Kesselgreifer', `${e.coalInserter !== null ? 'gebaut' : 'zuerst Kohleförderung · 6 Kohle als Brennstoffreserve · freier Platz zwischen Lager und Kessel'}`),

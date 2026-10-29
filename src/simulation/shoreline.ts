@@ -113,8 +113,10 @@ export function advanceShoreline(world: World, delta: number): boolean {
     }
     store.wood -= cost - h.carried.wood; h.carried.wood = cost
   }
-  if (!clear(world, plan)) return true
   const spot = shoreApproaches(plan)[0]
+  // Finish crossing the still-empty dock site before checking placement occupancy.
+  if (plan.kind === 'dock' && !world.buildings[plan.tile] && (world.pete.tile === plan.tile || world.pete.next === plan.tile)) { miniWalk(world, spot, delta); return true }
+  if (!clear(world, plan)) return true
   if (!miniWalk(world, spot, delta)) return true
   const duration = plan.kind === 'bridge' ? Math.max(1, cost / 3) * SHORE_WORK_MS : 8000
   h.elapsedMs = Math.min(duration, h.elapsedMs + delta)
