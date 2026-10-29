@@ -3,7 +3,7 @@ import { PETE_PROJECTS } from './projectRegistry'
 import { IMPROVEMENTS } from './homesteadExpansion'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, placeGrove, placeIron } from './petesWorld'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import type { World } from './world'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { neighboringTiles, peteReachableTiles, peteWalkableTile } from './navigation'
@@ -16,9 +16,16 @@ function until(w: World, done: () => boolean, limit = 1800000) {
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 describe('raw iron supply grows into connected Craftsman production', () => {
   let w: World
+  let earlyReturn: string
   beforeAll(() => { w = createPetesWorld(); expect(placeIron(w, 26, 18)).toBeNull(); until(w, () => w.homestead!.expansion.miner !== null && w.verandaProject?.phase === 'complete') }, 60000)
+  beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === 'iron')); earlyReturn = encodeSave(w, view) }, 60000)
+  it('connects the real iron production to its store before the cargo bicycle', () => {
+    const early = decodeSave(earlyReturn).world
+    expect(early.homestead!.cargoBicycle).toBe(false)
+    expect(early.homestead!.infrastructure.links[0]).toMatchObject({ kind: 'iron', source: early.homestead!.expansion.furnace, target: early.homestead!.store })
+    expect(early.produced.ironPlate).toBeGreaterThanOrEqual(8)
+  })
   beforeAll(() => { until(w, () => w.homestead!.cargoBicycle) }, 60000)
-  beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === 'iron')) }, 60000)
   beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.length === 3) }, 60000)
   it('builds three paid ordinary links from iron alone and preserves exact ongoing simulation', () => {
     expect(w.homestead!.infrastructure.links.map(p => p.kind)).toEqual(['iron', 'gearFeed', 'gearReturn'])

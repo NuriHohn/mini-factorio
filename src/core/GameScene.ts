@@ -1,75 +1,73 @@
-import { drawFuelDepot, drawSteamWork } from './steamVisuals'
+import { drawFuelDepot, drawSteamWork } from '../game/steamVisuals'
 import { clearResource, demolitionNotice } from '../simulation/rebuilding'
-import { RightPan } from './rightPan'
-import { drawGuidance } from './guidanceVisuals'
-import { drawAnnexWalkway, drawDevelopment, drawDevelopmentActivity } from './developmentVisuals'
-import { createPetesWorld, groveError, ironError, copperError, miniLayout, placeGrove, placeIron, placeCopper, coalError, placeCoal } from '../simulation/petesWorld'
-import { TouchGestures } from './touchGestures'
+import { RightPan } from '../game/rightPan'
+import { drawGuidance } from '../game/guidanceVisuals'
+import { drawAnnexWalkway, drawDevelopment, drawDevelopmentActivity } from '../game/developmentVisuals'
+import { groveError, ironError, copperError, miniLayout, placeGrove, placeIron, placeCopper, coalError, placeCoal } from '../simulation/petesWorld'
+import { TouchGestures } from '../game/touchGestures'
 import { commitConstruction } from '../simulation/construction'
-import { drawInventorStructure, drawLeisure, drawPlayfulSpray } from './leisureVisuals'
+import { drawInventorStructure, drawLeisure, drawPlayfulSpray } from '../game/leisureVisuals'
 import { flightPose } from '../simulation/peteLeisure'
 import { playfulSpray } from '../simulation/playfulSpray'
 import { simulationDelta, useSimulationSpeed } from '../state/simulationSpeed'
-import { drawGearPress } from './gearPressVisuals'
-import { drawExperimentTable } from './experimentVisuals'
-import { drawWorkshop } from './workshopVisuals'
-import { drawVegetableGarden } from './ecoVisuals'
-import { drawGardenGate } from './gardenGateVisuals'
-import { drawYardCorner, drawYardEntrance, yardCorner } from './yardVisuals'
-import { drawCampfire, drawCampfireEffects } from './campfireVisuals'
-import { drawPoultry } from './poultryVisuals'
-import { drawChickenCoop } from './chickenCoopVisuals'
-import { CrateSupplyAction } from './crateSupplyAction'
-import { drawPeteFence } from './secretProjectVisuals'
-import { drawSupplyCrate } from './supplyCrateVisuals'
-import { ShoreVegetation } from './shoreVegetation'
-import { drawFootbridge } from './footbridgeVisuals'
-import { drawFishingDock } from './fishingDockVisuals'
+import { drawGearPress } from '../game/gearPressVisuals'
+import { drawExperimentTable } from '../game/experimentVisuals'
+import { drawWorkshop } from '../game/workshopVisuals'
+import { drawVegetableGarden } from '../game/ecoVisuals'
+import { drawGardenGate } from '../game/gardenGateVisuals'
+import { drawYardCorner, drawYardEntrance, yardCorner } from '../game/yardVisuals'
+import { drawCampfire, drawCampfireEffects } from '../game/campfireVisuals'
+import { drawPoultry } from '../game/poultryVisuals'
+import { drawChickenCoop } from '../game/chickenCoopVisuals'
+import { CrateSupplyAction } from '../game/crateSupplyAction'
+import { drawPeteFence } from '../game/secretProjectVisuals'
+import { drawSupplyCrate } from '../game/supplyCrateVisuals'
+import { ShoreVegetation } from '../game/shoreVegetation'
+import { drawFootbridge } from '../game/footbridgeVisuals'
+import { drawFishingDock } from '../game/fishingDockVisuals'
 import { waterwheelRunning } from '../simulation/waterwheel'
-import { drawWaterwheel } from './waterwheelVisuals'
-import { TerrainVisuals } from './terrainVisuals'
+import { drawWaterwheel } from '../game/waterwheelVisuals'
+import { TerrainVisuals } from '../game/terrainVisuals'
 import { waterEditError, waterProtection } from '../simulation/waterLandscaping'
-import { cameraViewport, visibleTileBounds, intersects } from './viewport'
+import { cameraViewport, visibleTileBounds, intersects } from '../game/viewport'
 import { useGraphicsSettings } from '../state/graphicsSettings'
-import { LandscapeWater } from './landscapeWater'
-import { PlacementRotation, rotationBuilding } from './placementRotation'
-import { ConstructionDrag } from './constructionDrag'
+import { LandscapeWater } from '../game/landscapeWater'
+import { PlacementRotation, rotationBuilding } from '../game/placementRotation'
+import { ConstructionDrag } from '../game/constructionDrag'
 import { placementInfo, planConstruction } from '../simulation/construction'
 import type { ConstructionPlan } from '../simulation/construction'
 import { PETES_WORLD_TOOLS, toolMetadata } from '../state/toolMetadata'
-import { peteCaption } from './peteCaption'
+import { peteCaption } from '../game/peteCaption'
 import { worldInputBlocked } from '../state/uiMetadata'
 import { collectGift, peaceful } from '../simulation/peace'
-import { drawPeace, drawTreehouse } from './peaceVisuals'
-import { NatureVisuals, drawTree } from './natureVisuals'
-import { LandscapeStroke, landscapeTile } from './landscapeStroke'
+import { drawPeace, drawTreehouse } from '../game/peaceVisuals'
+import { NatureVisuals, drawTree } from '../game/natureVisuals'
+import { LandscapeStroke, landscapeTile } from '../game/landscapeStroke'
 import { brushTiles, chopTree, MATURE_TREE_MS, plantTree, REPRODUCTION_MS } from '../simulation/nature'
 import { brushMode, natureTool, plantingSpecies } from '../state/natureTools'
-import { arrestVisual } from './arrestVisuals'
-import { attackWalker, combatPosition, combatTool, peteUnavailable } from '../simulation/revenge'
-import { RevengeVisuals } from './RevengeVisuals'
+import { arrestVisual } from '../game/arrestVisuals'
+import { combatPosition, combatTool, peteUnavailable } from '../simulation/revenge'
 import { hasTechnology } from '../simulation/research'
-import { WebVisuals } from './webVisuals'
+import { WebVisuals } from '../game/webVisuals'
 import { peteHit, sabotageRemaining } from '../simulation/pete'
-import { WaterVisuals, drawSprinkler } from './sprinklerVisuals'
+import { WaterVisuals, drawSprinkler } from '../game/sprinklerVisuals'
 import { sprinklerPowered, SPRINKLER_RANGE } from '../simulation/sprinklers'
 import { SaveSession, errorMessage } from '../persistence/storage'
-import { decodeSave, encodeSave } from '../persistence/saveGame'
+import { decodeSave } from '../persistence/saveGame'
 import type { LoadedGame, ViewState } from '../persistence/saveGame'
 import { downloadSave } from '../persistence/download'
 import { splitterPorts, splitterDirections, SPLITTER_STAGE_MS } from '../simulation/splitters'
 import { splitterBlocked } from '../simulation/transport'
-import { splitterInputPoint, splitterOutputPoint } from './splitterPath'
+import { splitterInputPoint, splitterOutputPoint } from '../game/splitterPath'
 import { RADAR_RANGE } from '../simulation/police'
-import { drawSecurityBuilding, drawPoliceEffects } from './policeVisuals'
-import { drawPete, drawSabotage } from './peteVisuals'
+import { drawPete, drawSabotage } from '../game/peteVisuals'
 import Phaser from 'phaser'
-import { buildingAt, createWorld, inside, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, rotate, SIZE } from '../simulation/world'
+import { buildingAt, inside, INTERVAL, offsets, opposite, placementError, placeBuilding, removalError, removeBuilding, rotate, SIZE } from '../simulation/world'
 import { beltInputs } from '../simulation/beltConnections'
 import { BELT_TRAVEL_MS } from '../simulation/transport'
 import { inserterPorts } from '../simulation/inserters'
-import { inserterArmPoint } from './inserterArm'
-import { beltPathPoint } from './beltPath'
+import { inserterArmPoint } from '../game/inserterArm'
+import { beltPathPoint } from '../game/beltPath'
 import { changeFurnaceRecipe, furnaceStatus } from '../simulation/smelting'
 import { changeCraftingRecipe, craftingStatus } from '../simulation/crafting'
 import { RECIPES } from '../simulation/recipes'
@@ -77,13 +75,21 @@ import { ITEM_DEFINITIONS, ITEMS } from '../simulation/items'
 import { allocatePower, polePlacementPreview, POLE_COVERAGE_RADIUS, powerRequirement, tilePosition, withinRange } from '../simulation/power'
 import type { PolePlacementPreview } from '../simulation/power'
 import { electricalDetails } from '../simulation/inspection'
-import { advanceWorld } from '../simulation/step'
+import { loadRuntime } from './application'
+import type { SceneRuntime } from './application'
 import type { Item } from '../simulation/items'
 import type { World, Direction } from '../simulation/world'
 import { useGameStore } from '../state/gameStore'
-import { moveCamera, updateCameraBounds } from './cameraMovement'
+import { moveCamera, updateCameraBounds } from '../game/cameraMovement'
 const TILE = 32
-export class FactoryScene extends Phaser.Scene {
+export class GameScene extends Phaser.Scene {
+  private runtime: SceneRuntime
+  constructor(runtime: SceneRuntime) {
+    super('world')
+    this.runtime = runtime
+    this.world = runtime.createWorld()
+    runtime.activate()
+  }
   private rightPan = new RightPan()
   private natureVisuals = new NatureVisuals()
   private landscapeWater = new LandscapeWater()
@@ -97,8 +103,9 @@ export class FactoryScene extends Phaser.Scene {
   private landscapeUsed = false
   private landscapeStroke = new LandscapeStroke()
   private landscape!: Phaser.GameObjects.Graphics
-  private revengeVisuals = new RevengeVisuals()
-  private world = createWorld()
+  private world: World
+  private loading = false
+  private disposed = false
   private terrain!: TerrainVisuals
   private summaryWorld: World | null = null
   private summaryAt = -Infinity
@@ -121,9 +128,11 @@ export class FactoryScene extends Phaser.Scene {
   private waterVisuals = new WaterVisuals()
   private preview!: Phaser.GameObjects.Graphics
   create() {
+    if (this.runtime.mode === 'petesWorld') useGameStore.setState({ tool: null, buildTab: 'nature' })
     useGameStore.setState({ spraySource: null, peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
+    this.saves.setMode(this.runtime.mode)
     useGameStore.setState({ saveStatus: this.saves.initialize() })
     this.terrain = this.createTerrain(this.world)
     this.waterSurface = this.add.graphics().setDepth(-.75)
@@ -208,7 +217,7 @@ export class FactoryScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanupGestures)
     this.events.once(Phaser.Scenes.Events.DESTROY, cleanupGestures)
     const removeToolKeyListener = () => window.removeEventListener('keydown', toolKeyDown)
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.revengeVisuals.destroy())
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.disposed = true; this.runtime.features?.destroy() })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeToolKeyListener)
     this.events.once(Phaser.Scenes.Events.DESTROY, removeToolKeyListener)
     keyboard.on('keydown-P', () => { if (!worldInputBlocked(useGameStore.getState())) useGameStore.getState().togglePowerOverlay() })
@@ -287,10 +296,10 @@ export class FactoryScene extends Phaser.Scene {
       }
       if (combatTool(selected)) {
         const position = combatPosition(pointer, this.cameras.main, TILE)
-        const impact = attackWalker(this.world, selected, position)
+        const impact = this.runtime.features?.attack(this.world, selected, position)
         if (impact) {
           if (impact.hit) useGameStore.getState().recordToolUse(selected)
-          this.revengeVisuals.impact(impact, this.world)
+          this.runtime.features?.impact(impact, this.world)
           useGameStore.setState({ message: impact.hit ? `Hit! -${impact.damage} HP` : 'Miss! Click the walker hitbox.' })
         }
         return
@@ -369,7 +378,7 @@ export class FactoryScene extends Phaser.Scene {
     if (state.touchPlacement?.contextual && buildingAt(this.world, tile.x, tile.y)?.kind !== 'tree') { state.select(null); this.touchTap(point); return }
     if (state.tool === 'playfulSpray') { this.sprayAt(position); return }
     if (state.tool === 'spiderWeb') { state.useWebTool(this.world, position); return }
-    if (combatTool(state.tool)) { const impact = attackWalker(this.world, state.tool, position); if (impact) this.revengeVisuals.impact(impact, this.world); return }
+    if (combatTool(state.tool)) { const impact = this.runtime.features?.attack(this.world, state.tool, position); if (impact) this.runtime.features?.impact(impact, this.world); return }
     if (state.tool === null) {
       const supply = this.crateSupply.hit(this.world, worldPoint, TILE, this.cameras.main.zoom)
       if (supply !== null) { this.crateSupply.activate(this.world, supply); return }
@@ -482,7 +491,11 @@ export class FactoryScene extends Phaser.Scene {
     const c = this.cameras.main, state = useGameStore.getState()
     return { scrollX: c.scrollX, scrollY: c.scrollY, zoom: c.zoom, direction: state.direction, powerOverlay: state.powerOverlay }
   }
-  private restore(candidate: LoadedGame) {
+  private async restore(candidate: LoadedGame, preparedRuntime?: SceneRuntime) {
+    const mode = candidate.world.miniFactory ? 'petesWorld' : 'factory'
+    const nextRuntime = preparedRuntime ?? (this.runtime.mode === mode ? this.runtime : await loadRuntime(mode))
+    if (this.disposed) { if (nextRuntime !== this.runtime) nextRuntime.features?.destroy(); throw new Error('The game scene has been closed.') }
+    nextRuntime.save.accept(candidate.world)
     // Build replacement rendering while hidden. A failed preparation leaves the old world intact.
     const terrain = this.createTerrain(candidate.world, false)
     this.landscapeStroke.end()
@@ -504,14 +517,22 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.setState(oldState, true)
       throw error
     }
+    if (nextRuntime !== this.runtime) { this.runtime.features?.destroy(); this.runtime = nextRuntime; this.runtime.activate() }
     oldTerrain.destroy()
     this.polePreviewKey = ''; this.poleCandidate = null; this.poleLinks.clear()
     this.saves.resetAutosave()
   }
 
   private processSaveRequest(): boolean {
+    if (this.loading) return true
+    if (!useGameStore.getState().saveRequest) return false
+    this.loading = true
+    void this.executeSaveRequest().finally(() => { this.loading = false })
+    return true
+  }
+  private async executeSaveRequest(): Promise<void> {
     const request = useGameStore.getState().saveRequest
-    if (!request) return false
+    if (!request) return
     const loading = request.kind === 'load' || request.kind === 'load-auto' || request.kind === 'import' || request.kind === 'new'
     useGameStore.setState({ saveRequest: null })
     try {
@@ -519,15 +540,17 @@ export class FactoryScene extends Phaser.Scene {
       else if (request.kind === 'new') {
         if (window.confirm('Neue Spielwelt starten? Ungespeicherter Fortschritt geht verloren. Deine gespeicherten Welten bleiben erhalten.')) {
           const camera = this.cameras.main
-          const nextWorld = request.mode === 'petesWorld' || (!request.mode && this.world.miniFactory) ? createPetesWorld() : createWorld()
-          this.restore({ world: nextWorld, view: { scrollX: SIZE * TILE / 2 - camera.width / 2, scrollY: SIZE * TILE / 2 - camera.height / 2 + (nextWorld.miniFactory ? TILE * 2 : 0), zoom: nextWorld.miniFactory ? 1 : 1.3, direction: 'east', powerOverlay: false }, savedAt: new Date().toISOString() })
+          const mode = request.mode ?? this.runtime.mode
+          const runtime = this.runtime.mode === mode ? this.runtime : await loadRuntime(mode)
+          const nextWorld = runtime.createWorld()
+          await this.restore({ world: nextWorld, view: { scrollX: SIZE * TILE / 2 - camera.width / 2, scrollY: SIZE * TILE / 2 - camera.height / 2 + (nextWorld.miniFactory ? TILE * 2 : 0), zoom: nextWorld.miniFactory ? 1 : 1.3, direction: 'east', powerOverlay: false }, savedAt: new Date().toISOString() }, runtime)
           this.saves.setMode(this.world.miniFactory ? 'petesWorld' : 'factory')
           useGameStore.getState().setBuildTab(this.world.miniFactory ? 'nature' : 'factory')
           this.saves.feedback('New game started. Browser save slots were kept.')
         } else this.saves.feedback('New game cancelled. Current factory kept.')
       } else if (request.kind === 'export') {
         const savedAt = new Date().toISOString()
-        downloadSave(encodeSave(this.world, this.viewState(), savedAt), savedAt)
+        downloadSave(this.runtime.save.write(this.world, this.viewState(), savedAt), savedAt)
         this.saves.feedback('JSON save exported. Browser save slots were kept.')
       } else {
         const previousMode = this.saves.mode
@@ -535,7 +558,7 @@ export class FactoryScene extends Phaser.Scene {
         let candidate: LoadedGame
         try { candidate = request.kind === 'import' ? decodeSave(request.text) : this.saves.load(request.kind === 'load-auto' ? 'auto' : 'manual') } finally { this.saves.setMode(previousMode) }
         if (window.confirm('Replace the current running factory with this saved game? Unsaved progress will be replaced.')) {
-          this.restore(candidate)
+          await this.restore(candidate)
           this.saves.setMode(this.world.miniFactory ? 'petesWorld' : 'factory')
           useGameStore.getState().setBuildTab(this.world.miniFactory ? 'nature' : 'factory')
           this.saves.feedback(request.kind === 'import' ? 'JSON save imported. Browser save slots were kept.' : 'Game loaded locally.')
@@ -546,7 +569,6 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.setState({ saveBusy: false, saveStatus: { ...this.saves.status } })
       if (loading) this.skipNextDelta = true
     }
-    return loading
   }
   private drawItem(item: Item, x: number, y: number) {
     const visual = ITEM_DEFINITIONS[item].visual
@@ -656,10 +678,12 @@ export class FactoryScene extends Phaser.Scene {
       useGameStore.setState({ focusRequest: null })
     }
     useGameStore.getState().applySupply(this.world)
-    useGameStore.getState().applyResearch(this.world)
-    useGameStore.getState().applyRelease(this.world)
+    if (this.runtime.mode === 'factory') {
+      useGameStore.getState().applyResearch(this.world)
+      useGameStore.getState().applyRelease(this.world)
+    }
     const request = useGameStore.getState().recipeRequest
-    if (request) {
+    if (request && this.runtime.mode === 'factory') {
       const position = tilePosition(request.index)
       const machine = buildingAt(this.world, position.x, position.y)
       const error = machine?.kind === 'assembler'
@@ -673,7 +697,7 @@ export class FactoryScene extends Phaser.Scene {
     const before = this.world.timeMs
     const diagnostics = useGraphicsSettings.getState().diagnostics
     const tickStart = diagnostics ? performance.now() : 0
-    if (!loading && !skip) advanceWorld(this.world, simulationDelta(delta, useSimulationSpeed.getState().speed))
+    if (!loading && !skip) this.runtime.advance(this.world, simulationDelta(delta, useSimulationSpeed.getState().speed))
     if (diagnostics && this.world.timeMs > before) this.tickCostMs = (performance.now() - tickStart) / ((this.world.timeMs - before) / 50)
     const autosave = this.saves.tick(document.hidden ? 0 : this.world.timeMs - before, this.world, this.viewState(), !loading && !skip)
     if (autosave) useGameStore.setState({ saveStatus: autosave })
@@ -719,7 +743,7 @@ export class FactoryScene extends Phaser.Scene {
       } else if (building.kind === 'sprinkler') {
         drawSprinkler(this.machines, this.world, building, TILE)
       } else if (building.kind === 'radar' || building.kind === 'prison') {
-        drawSecurityBuilding(this.machines, this.world, building, TILE)
+        this.runtime.features?.security(this.machines, this.world, building, TILE)
       } else if (building.kind === 'peteGate') {
         drawGardenGate(this.machines, building, TILE)
       } else if (building.kind === 'peteTreasure' || building.kind === 'peteFlightpad') {
@@ -948,7 +972,7 @@ export class FactoryScene extends Phaser.Scene {
     this.natureVisuals.drawEffects(this.peteEffects, this.world, TILE, view)
     this.webVisuals.draw(this.peteEffects, this.world, TILE, view)
     this.waterVisuals.draw(this.peteEffects, this.world, TILE, view)
-    this.revengeVisuals.draw(this.peteEffects, this.world, TILE, this, view)
+    this.runtime.features?.draw(this.peteEffects, this.world, TILE, this, view)
     drawCampfireEffects(this.peteEffects, this.world, TILE, view)
     drawYardEntrance(this.peteEffects, this.world, TILE, view)
     drawPoultry(this.peteEffects, this.world, TILE, view)
@@ -964,7 +988,7 @@ export class FactoryScene extends Phaser.Scene {
     drawPlayfulSpray(this.peteEffects, this.world, TILE, view)
     this.crateSupply.draw(this.peteEffects, this.world, view, TILE, camera.zoom, useGameStore.getState().tool === null && !worldInputBlocked(useGameStore.getState()))
     if (!peaceful(this.world) && (!peteUnavailable(this.world) || this.world.revenge.stage === 'stunned')) drawPete(this.peteEffects, this.world, TILE, view)
-    drawPoliceEffects(this.peteEffects, this.world, TILE, view)
+    this.runtime.features?.police(this.peteEffects, this.world, TILE, view)
     const arrest = arrestVisual(this.world)
     const pete = this.world.pete, complaining = pete.mode === 'COMPLAINING'
     const home = this.world.peace.home === null ? null : this.world.buildings[this.world.peace.home]

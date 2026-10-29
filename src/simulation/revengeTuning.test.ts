@@ -5,7 +5,7 @@ import type { CraftingMachine, World } from './world'
 import { emptyInventory } from './items'
 import { allocatePower } from './power'
 import { advanceWorld } from './step'
-import { advanceRevenge, damageWalker, empTargetEligible, productiveTarget, recordArrest } from './revenge'
+import { advanceRevenge, damageWalker, empTargetEligible, productiveTarget, recordArrest } from '../factory/revengeSystem'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 
 function encounter() {

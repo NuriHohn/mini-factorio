@@ -433,7 +433,7 @@ Implemented and validated under the explicit five-sprint implementation and merg
 
 ## Next five sprints: Pete-first code and test separation
 
-**Status: proposed, not implemented.** Recorded on 2026-10-29 at the user's request for continuation in a new chat. The user wants to keep developing **Petes Welt**, separate the two games in the codebase and tests, and remove unnecessary inherited Factory complexity from Pete. The suggested Factory feature sequence 17.1–17.5 (Pete-free Factory start, introduction, filters, steam and production challenge) was explicitly withdrawn. Do not treat it as the next implementation assignment.
+**Historical proposal from PR #109; superseded by the implementation record below.** Recorded on 2026-10-29 at the user's request for continuation in a new chat. The user wants to keep developing **Petes Welt**, separate the two games in the codebase and tests, and remove unnecessary inherited Factory complexity from Pete. The suggested Factory feature sequence 17.1–17.5 (Pete-free Factory start, introduction, filters, steam and production challenge) was explicitly withdrawn. Do not treat it as the next implementation assignment.
 
 ### Starting point and agreed direction
 
@@ -478,3 +478,22 @@ After boundaries are implemented and checked, a **Pete-only** change runs the Pe
 3. Keep the implemented mechanics in Game design authoritative. Update Architecture for delivered ownership, Development for delivered commands/check-selection rules and this Roadmap for completed versus pending sprints; do not create a separate handoff/context file.
 4. This request authorizes **planning/documentation only**. Do not infer implementation or merge approval for this sequence from earlier sprint approvals. A later explicit implementation/merge request supplies that authorization under AGENTS.
 5. Continue to prioritize Pete. No new Factory features, new Pete levels/buildings, offline/install work, pipe networks or separate-repository migration are included. Physical iPhone/iPad Safari verification remains open and must not be claimed from automated Chrome touch checks.
+
+
+## Delivered 16.108–16.112: independent Pete and earlier supply
+
+Implemented under the later explicit instruction to implement and merge the revised five-sprint package. Pete remains the priority within one repository; the withdrawn Factory 17.1–17.5 feature proposal remains withdrawn.
+
+| Sprint | Delivered scope |
+| --- | --- |
+| 16.108 | Actual ownership/dependency map, explicit complete test inventory, four separately runnable suites and automated static import boundaries |
+| 16.109 | Dedicated Pete application parts, toolbar/help and scene adapter; dynamically loaded Factory UI/adapter; one persistent shared Phaser host |
+| 16.110 | Separate fixed-step entry points with explicitly ordered shared production and Factory-only hooks; material work can interrupt cosmetic stops; rarer gifts/bouquets |
+| 16.111 | Mode-owned command/projection services and save admission; transactional cross-mode slot checks; first real paid iron return at Craftsman 3 in an iron-only start before the cargo bike, retaining existing powered transport/quotas |
+| 16.112 | Factory runtime/panels excluded from built Pete startup, dynamic switching, dependency-based test policy and release verification/measurements |
+
+The first existing iron line is the earlier conveyor increment; product feed/return still follows cargo progression. Other paid Eco/copper/Industrial links retain their established rules. Full stores and quotas legitimately stop production until demand returns. No synthetic items, extra production chain, level, dependency or separate repository was introduced.
+
+The shared world/schema-53 codec, bounded material ledger, UI request facade and shared rendering/input/production helpers remain intentional compatibility contracts. The two applications have separate composition/orchestration and mode command/save adapters; they do not duplicate the engine or own two worlds. [Architecture](ARCHITECTURE.md#pete-and-factory-application-boundaries) records exact ownership and remaining coupling. [Game design](GAME_DESIGN.md#independent-pete-application-and-earlier-visible-supply) owns mechanics; Development owns commands, measured checks and limitations. Physical iPhone/iPad Safari verification remains open.
+
+Final checks and setup-inclusive measurements are recorded in [Development](DEVELOPMENT.md#pete-first-separation-validation).

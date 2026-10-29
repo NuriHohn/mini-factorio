@@ -45,6 +45,7 @@ export class SaveSession {
   feedback(message: string, error = false): SaveStatus { this.status = { ...this.status, message, error }; return { ...this.status } }
   resetAutosave(): void { this.activeMs = 0 }
   save(world: World, view: ViewState, slot: SaveSlot): string {
+    if (!!world.miniFactory !== (this.mode === 'petesWorld')) throw new Error('Save mode does not match the active storage slots.')
     if (this.busy) throw new Error('A save operation is already in progress.')
     this.busy = true
     try {
@@ -57,7 +58,9 @@ export class SaveSession {
   load(slot: SaveSlot): LoadedGame {
     const text = this.storage.getItem(this.key(slot))
     if (text === null) throw new Error(slot === 'manual' ? 'No manual save exists yet.' : 'No autosave exists yet.')
-    return decodeSave(text)
+    const candidate = decodeSave(text)
+    if (!!candidate.world.miniFactory !== (this.mode === 'petesWorld')) throw new Error('Save mode does not match this storage slot.')
+    return candidate
   }
   tick(activeMs: number, world: World, view: ViewState, ready = true): SaveStatus | null {
     if (!ready || this.busy || !Number.isFinite(activeMs) || activeMs <= 0) return null

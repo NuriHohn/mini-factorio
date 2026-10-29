@@ -1,7 +1,7 @@
 import { acceptCompletedPath } from './developmentAcceptance.testSupport'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, placeCoal } from './petesWorld'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import type { World } from './world'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }

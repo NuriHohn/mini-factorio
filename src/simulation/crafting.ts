@@ -1,6 +1,6 @@
 import { legacyCircuitIron } from './productionLogistics'
 import { awardActivity } from './personality'
-import { awardResearch } from './research'
+import type { ProductionCredit } from '../core/productionCredit'
 import { recordProduction } from './analytics'
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import { hasRecipeInputs, MACHINE_DEFINITIONS, RECIPES } from './recipes'
@@ -21,7 +21,7 @@ export function canStartCrafting(machine: CraftingMachine): boolean {
   const recipe = machine.recipeId ? RECIPES[machine.recipeId] : null
   return recipe !== null && machine.recipeLocked && recipe.machine === machine.kind && !machine.job && hasOutputSpace(machine) && hasRecipeInputs(machine.input, recipe)
 }
-export function advanceCrafting(world: World, delta: number): void {
+export function advanceCrafting(world: World, delta: number, credit?: ProductionCredit): void {
   for (const machine of world.buildings) {
     if (machine?.kind !== 'furnace' && machine?.kind !== 'assembler' && machine?.kind !== 'sawmill') continue
     if (machine.kind === 'assembler' && world.homestead?.expansion.circuitAssembler === machine.y * SIZE + machine.x && machine.recipeId === 'electronicCircuit' && !machine.job && !legacyCircuitIron(world)) machine.recipeId = 'peteCircuit'
@@ -31,7 +31,7 @@ export function advanceCrafting(world: World, delta: number): void {
     if (job) {
       const recipe = RECIPES[job.recipeId]
       const elapsedMs = Math.min(recipe.durationMs, job.elapsedMs + delta * speed * MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
-      awardResearch(world, machine.kind === 'sawmill' ? 'furnace' : machine.kind, job.elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed, elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
+      credit?.research(world, machine.kind === 'sawmill' ? 'furnace' : machine.kind, job.elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed, elapsedMs / MACHINE_DEFINITIONS[machine.kind].craftingSpeed)
       job.elapsedMs = elapsedMs
       if (job.elapsedMs >= recipe.durationMs - 1e-8 && hasOutputSpace(machine)) {
         for (const item of ITEMS) {

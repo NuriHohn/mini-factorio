@@ -5,7 +5,7 @@ import { advanceWorld } from './step'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { allocatePower } from './power'
 import { emptyInventory } from './items'
-import { advanceRevenge, recordArrest } from './revenge'
+import { advanceRevenge, recordArrest } from '../factory/revengeSystem'
 
 function factory() {
   const world = createWorld(() => .5, { water: false, nature: false })

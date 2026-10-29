@@ -1,4 +1,4 @@
-import { damageWalker, recordArrest } from './revenge'
+import { damageWalker, recordArrest } from '../factory/revengeSystem'
 import { describe, expect, it } from 'vitest'
 import { advanceNature, brushTiles, chopTree, MATURE_TREE_MS, naturalTreeCap, natureRandom, nearFactory, paintLandscape, plantTree, refreshNatureSchedule, reproductionTargets, REPRODUCTION_MS, treeStage, treeWood, YOUNG_TREE_MS } from './nature'
 import { createWorld, placeBuilding, placementError, removeBuilding, SIZE } from './world'
@@ -6,7 +6,7 @@ import type { BuildingKind, Tree, World } from './world'
 import { advanceWorld } from './step'
 import { reachableTiles } from './navigation'
 import { allocatePower } from './power'
-import { analyticsSnapshot } from './analytics'
+import { analyticsSnapshot } from '../factory/analytics'
 const bare = () => createWorld(() => .5, { nature: false, water: false })
 function tree(world: World, x = 5, y = 5) {
   expect(plantTree(world, x, y, 'oak')).toBe(true)

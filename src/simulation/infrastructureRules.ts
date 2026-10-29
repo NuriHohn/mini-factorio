@@ -1,4 +1,4 @@
-import type { Direction } from './world'
+import type { Direction, World } from './world'
 
 export const LINK_KINDS = ['iron', 'gearFeed', 'gearReturn', 'copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn', 'stampFeed', 'loadingFeed', 'loadingReturn', 'woodReturn', 'panelReturn', 'crateReturn'] as const
 export type LinkKind = typeof LINK_KINDS[number]
@@ -32,6 +32,14 @@ export function copperLink(kind: LinkKind): boolean { return kind === 'copper' |
 export function feedLink(kind: LinkKind): boolean { return kind === 'gearFeed' || kind === 'cableFeed' || kind === 'circuitFeed' || kind === 'stampFeed' }
 export function industrialLink(kind: LinkKind): boolean { return kind === 'stampFeed' || kind === 'loadingFeed' || kind === 'loadingReturn' }
 export function ecoLink(kind: LinkKind): boolean { return kind === 'woodReturn' || kind === 'panelReturn' || kind === 'crateReturn' }
+// Earlier mixed-yard returns can enclose future ingredient lanes. Keep their
+// established cargo-stage planning; the first earlier increment is iron-only.
+export function earlyIronReturnUnlocked(world: World): boolean {
+  const h = world.homestead, paths = world.personality.paths
+  return !!h && paths.craftsman.level >= 3 && h.expansion.miner !== null && world.buildings[h.expansion.miner]?.kind === 'miner' &&
+    paths.eco.xp === 0 && paths.inventor.xp === 0 && paths.industrial.xp === 0 &&
+    world.tiles.every(resource => resource === null || resource === 'iron') && !world.buildings.some(b => b?.kind === 'tree')
+}
 export function linkCurrency(kind: LinkKind): 'wood' | 'coal' | 'copperPlate' | 'ironPlate' { return ecoLink(kind) ? 'wood' : industrialLink(kind) ? 'coal' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }
 export function linkCost(kind: LinkKind): number { return industrialLink(kind) || ecoLink(kind) ? 6 : 8 }
 export function linkMaterial(kind: LinkKind): 'ironPlate' | 'ironGear' | 'copperPlate' | 'copperCable' | 'electronicCircuit' | 'coal' | 'coalBriquette' | 'wood' | 'woodPanel' | 'woodenCrate' { return kind === 'woodReturn' ? 'wood' : kind === 'panelReturn' ? 'woodPanel' : kind === 'crateReturn' ? 'woodenCrate' : kind === 'stampFeed' ? 'coal' : industrialLink(kind) ? 'coalBriquette' : kind === 'circuitFeed' ? 'copperPlate' : kind === 'circuitReturn' ? 'electronicCircuit' : kind === 'gearReturn' ? 'ironGear' : kind === 'cableReturn' ? 'copperCable' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }

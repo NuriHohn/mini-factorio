@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from './gameStore'
 import { createWorld } from '../simulation/world'
-import { attackWalker } from '../simulation/revenge'
-import { purchaseTechnology, RP_UNITS } from '../simulation/research'
+import { attackWalker } from '../factory/revengeSystem'
+import { RP_UNITS } from '../simulation/research'
+import { purchaseTechnology } from '../factory/research'
 beforeEach(() => useGameStore.setState(useGameStore.getInitialState(), true))
 describe('combat toolbar access and existing tool behavior', () => {
   it('exposes the swatter by default and enforces both Revenge research gates', () => {

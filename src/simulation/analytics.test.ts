@@ -1,6 +1,7 @@
 import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
-import { analyticsSnapshot, pruneAnalytics, recordProduction } from './analytics'
+import { pruneAnalytics, recordProduction } from './analytics'
+import { analyticsSnapshot } from '../factory/analytics'
 import { changeCraftingRecipe } from './crafting'
 import { changeFurnaceRecipe } from './smelting'
 import { advanceWorld } from './step'

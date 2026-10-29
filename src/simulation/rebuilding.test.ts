@@ -10,7 +10,7 @@ import { createPetesWorld, placeGrove, placeIron } from './petesWorld'
 import { advanceRebuilding, chooseRebuild, clearResource, rebuildCost } from './rebuilding'
 import { resourcePreference } from './resourcePreference'
 import { projectBuilding } from './secretProject'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { buildingAt, placeBuilding, removeBuilding } from './world'
 import type { World } from './world'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }

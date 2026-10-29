@@ -5,7 +5,7 @@ import { drawPoliceEffects } from './policeVisuals'
 import { createWorld, placeBuilding } from '../simulation/world'
 import { ARREST_MS, LEGACY_ARREST_MS, arrestBoardingProgress } from '../simulation/police'
 import { advanceWorld } from '../simulation/step'
-import { damageWalker, recordArrest } from '../simulation/revenge'
+import { damageWalker, recordArrest } from '../factory/revengeSystem'
 import { decodeSave, encodeSave, SAVE_VERSION } from '../persistence/saveGame'
 
 function arrest(ordinal: number, elapsed = 0, threshold = 9, legacy = false) {

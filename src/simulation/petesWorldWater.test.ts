@@ -4,7 +4,7 @@ import { materialStore } from './homestead'
 import { emptyInventory } from './items'
 import { createPetesWorld, placeGrove } from './petesWorld'
 import { removeBuilding, SIZE } from './world'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { paintWater, waterEditError } from './waterLandscaping'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 const point = (x: number, y: number) => ({ x, y })

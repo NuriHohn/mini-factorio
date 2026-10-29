@@ -1,6 +1,6 @@
 import { beforeAll, expect, it } from 'vitest'
 import { createPetesWorld, placeGrove, placeIron } from './petesWorld'
-import { advanceWorld } from './step'
+import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { advanceHomestead, begin, materialStore } from './homestead'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { finishWorkshop, WORKSHOP_ACTIVITY_MS } from './workshop'
@@ -119,6 +119,8 @@ it('uses longer gift intervals and at most one waiting gift in new Petes Welt', 
   const w = createPetesWorld()
   expect(w.peace.nextGiftAtMs).toBeGreaterThanOrEqual(GIFT_MIN_MS * 2)
   expect(w.peace.nextGiftAtMs).toBeLessThanOrEqual(GIFT_MAX_MS * 2)
+  // Exercise the cap with a genuinely eligible five-percent gift opportunity.
+  w.peace.seed = 1972
   for (let i = 0; i < 4; i++) {
     w.timeMs = w.peace.nextGiftAtMs
     advancePeace(w, 50)
