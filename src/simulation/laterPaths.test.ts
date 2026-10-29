@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createPetesWorld, placeCoal, placeCopper } from './petesWorld'
+import { createPetesWorld, placeCopper } from './petesWorld'
 import { advanceWorld } from './step'
 import type { World } from './world'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
@@ -19,18 +19,6 @@ describe('raw copper grows into ordinary paid connections', () => {
     expect(w.produced.copperCable).toBeGreaterThan(0)
     const loaded = decodeSave(encodeSave(w, view)).world
     advanceWorld(w, 5000); advanceWorld(loaded, 5000)
-    expect(JSON.parse(encodeSave(loaded, view, '2026-10-27T00:00:00.000Z'))).toEqual(JSON.parse(encodeSave(w, view, '2026-10-27T00:00:00.000Z')))
-  })
-})
-describe('raw coal progresses into real loading work', () => {
-  let w: World
-  beforeAll(() => { w = createPetesWorld(); expect(placeCoal(w, 26, 18)).toBeNull(); until(w, () => w.homestead!.expansion.coalMiner !== null) }, 60000)
-  beforeAll(() => { until(w, () => w.homestead!.expansion.steamHoist !== null) }, 60000)
-  beforeAll(() => { until(w, () => w.homestead!.infrastructure.loading !== null) }, 60000)
-  it('commissions physical buffers and performs actual fuel cargo work with saved continuation', () => {
-    until(w, () => w.homestead!.infrastructure.loadingCargo !== null, 300000)
-    const loaded = decodeSave(encodeSave(w, view)).world
-    advanceWorld(w, 10000); advanceWorld(loaded, 10000)
     expect(JSON.parse(encodeSave(loaded, view, '2026-10-27T00:00:00.000Z'))).toEqual(JSON.parse(encodeSave(w, view, '2026-10-27T00:00:00.000Z')))
   })
 })

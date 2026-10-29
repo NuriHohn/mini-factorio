@@ -1,4 +1,4 @@
-import { chainCost, expansionLayout } from './homesteadExpansion'
+import { chainCost, expansionLayout, IMPROVEMENTS, IMPROVEMENT_RULES } from './homesteadExpansion'
 import type { ChainKind } from './homesteadExpansion'
 import { LINK_KINDS, LINK_NAMES, linkCost, linkCurrency } from './infrastructureRules'
 import { ITEM_DEFINITIONS } from './items'
@@ -24,8 +24,9 @@ export function developmentOverview(world: World, step: NextDevelopment, project
   const chain = h.expansion.plan && CHAINS[step.name] === h.expansion.plan.kind ? h.expansion.plan : null
   const order = s.order === step.path && step.name.toLowerCase().endsWith('ausbau')
   const building = order || saved?.phase === 'building' || kind && s.plan?.kind === kind || pavilion && h.task === 'buildPavilion' || step.name === 'Wasserrad' && !!s.wheelPlan || !!h.expansion.plan && CHAINS[step.name] === h.expansion.plan.kind
-  const repair = step.name.startsWith('Wiederaufbau:') || pavilion && !!s.pavilion?.stage && world.buildings[s.pavilion.tile]?.kind !== 'petePavilion'
-  const costs: Partial<Record<ProjectMaterial, number>> = kind ? { [linkCurrency(kind)]: repair ? 1 : linkCost(kind) } : pavilion ? { woodPanel: 4, woodenCrate: 2, wood: 12 } : CHAINS[step.name] ? chainCost(CHAINS[step.name]) : step.name === 'Sägewerk' ? { wood: 12 } : step.name === 'Wasserrad' ? { wood: 10 } : saved ? projectResources(saved) : definition ? definition.resources : step.name === 'Hofausbau' ? { woodenCrate: 2 } : step.name === 'Werkstattausbau' ? { ironGear: 4 } : step.name === 'Inventor-Ausbau' ? { copperCable: 4, electronicCircuit: 2 } : step.name === 'Industrial-Ausbau' ? { coalBriquette: 6 } : {}
+  const repair = step.name.startsWith('Wiederaufbau') || kind && s.plan?.kind === kind && s.repair || pavilion && !!s.pavilion?.stage && world.buildings[s.pavilion.tile]?.kind !== 'petePavilion'
+  const improvement = IMPROVEMENTS.find(id => IMPROVEMENT_RULES[id].label === step.name)
+  const costs: Partial<Record<ProjectMaterial, number>> = improvement ? { [IMPROVEMENT_RULES[improvement].item]: IMPROVEMENT_RULES[improvement].amount } : step.name === 'Lagerdach' ? { woodPanel: 8 } : kind ? { [linkCurrency(kind)]: repair ? 1 : linkCost(kind) } : pavilion ? { woodPanel: 4, woodenCrate: 2, wood: 12 } : CHAINS[step.name] ? chainCost(CHAINS[step.name]) : step.name === 'Sägewerk' ? { wood: 12 } : step.name === 'Wasserrad' ? { wood: 10 } : saved ? projectResources(saved) : definition ? definition.resources : step.name === 'Hofausbau' ? { woodenCrate: 2 } : step.name === 'Werkstattausbau' ? { ironGear: 4 } : step.name === 'Inventor-Ausbau' ? { copperCable: 4, electronicCircuit: 2 } : step.name === 'Industrial-Ausbau' ? { coalBriquette: 6 } : {}
   const garden = world.gardenProject?.phase === 'complete' ? world.buildings[world.gardenProject.tiles[0]] : null
   const source = saved?.crate !== null && saved?.crate !== undefined ? world.buildings[saved.crate] : store
   const paid = saved?.phase === 'building' || building && Object.values(h.carried).some(n => n > 0)

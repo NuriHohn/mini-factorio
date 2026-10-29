@@ -724,3 +724,8 @@ Infrastructure route caches include planned yard/run entrances. Solid power part
 Manual circuit targets and plate reserves stay in `homesteadExpansion.ts`: eight stored circuits before flight completion, then twelve; first-return and later-connection plate reserves prevent the copper-only recipe from starving its own transport. `infrastructure.ts` starts the first copper return from its real eight-plate invoice. `peace.ts` services existing gift deadlines before owned work can return early, keeping immediate saves valid without introducing another clock. Gift rarity reuses the position draw instead of adding a decision-stream draw.
 
 Before starting an additional Eco furnishing order, `infrastructure.ts` reserves the pending original crate-improvement invoice from `IMPROVEMENT_RULES`; those costs remain authoritative in `homesteadExpansion.ts`. Paid orders are not reclassified or interrupted.
+
+
+### Derived development completion
+
+`nextDevelopment.ts` extends the existing copied per-path inspector summaries with finite construction counts, current/maximum level and development/rebuilding/completed state. Original projects come from `PETE_PROJECTS` (excluding repeatable tasks and absent retired Industrial projects); original Eco improvements use their existing registry. Existing owned repair jobs and link integrity take priority. `PeteInspection.tsx` renders the detached result; no simulation decisions, timers, persistence fields or reward accounting depend on completion. Save 53 remains current. The authoritative player rule is [development completion](GAME_DESIGN.md#pete-development-completion).

@@ -1,3 +1,4 @@
+import { acceptCompletedPath } from './developmentAcceptance.testSupport'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, placeCopper } from './petesWorld'
 import { advanceWorld } from './step'
@@ -26,4 +27,7 @@ describe('independent Inventor progression from raw copper alone', () => {
     advanceWorld(w, 5000); advanceWorld(loaded, 5000)
     expect(JSON.parse(encodeSave(loaded, view, '2026-10-28T00:00:00.000Z'))).toEqual(JSON.parse(encodeSave(w, view, '2026-10-28T00:00:00.000Z')))
   })
+  beforeAll(() => { until(w, () => w.homestead!.infrastructure.inventor === 3 && w.personality.paths.inventor.level === 5 && w.treasureProject?.phase === 'complete') }, 60000)
+  it('completes Inventor independently, keeps living and restores its paid machines', () => { acceptCompletedPath(w, 'inventor') }, 60000)
+
 })

@@ -1,3 +1,4 @@
+import { PETE_PROJECTS } from './projectRegistry'
 import { inventoryTotal } from './items'
 import type { Item, Inventory } from './items'
 import type { LinkKind, LoadingSite } from './infrastructureRules'
@@ -120,6 +121,7 @@ export function ecoWoodReserve(world: World): number {
   const h = world.homestead
   if (!h || h.expansion.assembler === null || h.expansion.forestry === null) return 0
   if (['woodReturn', 'panelReturn', 'crateReturn'].some(kind => !h.infrastructure.links.some(p => p.kind === kind))) return 18
+  if (world.personality.paths.eco.level >= 4 && world.nurseryProject?.phase !== 'complete') return PETE_PROJECTS.find(p => p.id === 'nursery')!.resources.wood!
   return world.personality.paths.eco.level >= 5 && h.infrastructure.pavilion?.stage !== 3 ? 12 : 0
 }
 

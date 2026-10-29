@@ -1,3 +1,6 @@
+import { acceptCompletedPath } from './developmentAcceptance.testSupport'
+import { PETE_PROJECTS } from './projectRegistry'
+import { IMPROVEMENTS } from './homesteadExpansion'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, placeGrove, placeIron } from './petesWorld'
 import { advanceWorld } from './step'
@@ -26,6 +29,8 @@ describe('raw iron supply grows into connected Craftsman production', () => {
   })
   beforeAll(() => { until(w, () => w.homestead!.infrastructure.craftsman > 0) }, 60000)
   it('uses real gears for a visible later workshop order', () => { expect(w.homestead!.infrastructure.craftsman).toBeGreaterThan(0) })
+  beforeAll(() => { until(w, () => w.homestead!.infrastructure.craftsman === 3 && w.personality.paths.craftsman.level === 5 && w.houseProject?.phase === 'complete') }, 60000)
+  it('completes Craftsman independently, keeps living and restores its paid machines', () => { acceptCompletedPath(w, 'craftsman') }, 60000)
 })
 describe('raw groves fund Eco wheel and later visible orders', () => {
   let w: World
@@ -82,5 +87,8 @@ describe('raw groves fund Eco wheel and later visible orders', () => {
     expect(w.developmentLife!.nextAt.pavilionRest).toBeGreaterThan(w.timeMs)
     expect(JSON.parse(encodeSave(loaded, view, '2026-10-28T00:00:00.000Z'))).toEqual(JSON.parse(encodeSave(w, view, '2026-10-28T00:00:00.000Z')))
   })
+  beforeAll(() => { until(w, () => PETE_PROJECTS.filter(p => p.path === 'eco' && !p.repeatable).every(p => w[p.state]?.phase === 'complete') && IMPROVEMENTS.every(id => w.homestead!.expansion.improvements[id] !== undefined)) }, 60000)
+  it('completes Eco independently, keeps living and restores its paid machines', () => { acceptCompletedPath(w, 'eco') }, 60000)
+
 
 })

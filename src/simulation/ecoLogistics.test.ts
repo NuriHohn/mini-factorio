@@ -164,3 +164,20 @@ it('keeps an already committed nursery pickup valid below the new planning reser
   finishDevelopment(w)
   expect(store.wood).toBe(0); expect(w.developmentLife.carriedWood).toBe(2); expect(h.carried.wood).toBe(0)
 })
+
+
+it('protects the original nursery invoice after logistics instead of spending it on optional planting', () => {
+  const w = world(), store = materialStore(w)!
+  store.wood = 40
+  for (const kind of ['woodReturn', 'panelReturn', 'crateReturn'] as const) link(w, kind)
+  w.personality.paths.eco.level = 4
+  store.wood = 24
+  expect(ecoWoodReserve(w)).toBe(24)
+  expect(homesteadProjectDelay(w, 'reforestation')).toContain('24 Holz')
+  store.wood = 26
+  expect(homesteadProjectDelay(w, 'reforestation')).toBeNull()
+  w.nurseryProject = { kind: 'nursery', home: 820, direction: 'south', tiles: [940], spots: [941], phase: 'complete', built: 1, carried: 0, crate: null, elapsedMs: 0 }
+  expect(ecoWoodReserve(w)).toBe(0)
+  w.personality.paths.eco.level = 5
+  expect(ecoWoodReserve(w)).toBe(12)
+})
