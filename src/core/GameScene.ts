@@ -1,3 +1,4 @@
+import { peteText } from '../pete/text'
 import { drawFuelDepot, drawSteamWork } from '../game/steamVisuals'
 import { clearResource, demolitionNotice } from '../simulation/rebuilding'
 import { RightPan } from '../game/rightPan'
@@ -530,6 +531,7 @@ export class GameScene extends Phaser.Scene {
     return true
   }
   private async executeSaveRequest(): Promise<void> {
+    const t = this.runtime.mode === 'petesWorld' ? peteText : (text: string) => text
     const request = useGameStore.getState().saveRequest
     if (!request) return
     const loading = request.kind === 'load' || request.kind === 'load-auto' || request.kind === 'import' || request.kind === 'new'
@@ -556,7 +558,7 @@ export class GameScene extends Phaser.Scene {
         if (request.kind !== 'import' && request.mode) this.saves.setMode(request.mode)
         let candidate: LoadedGame
         try { candidate = request.kind === 'import' ? this.runtime.save.read(request.text) : this.saves.load(request.kind === 'load-auto' ? 'auto' : 'manual') } finally { this.saves.setMode(previousMode) }
-        if (window.confirm('Replace the current running factory with this saved game? Unsaved progress will be replaced.')) {
+        if (window.confirm(t('Replace the current running factory with this saved game? Unsaved progress will be replaced.'))) {
           await this.restore(candidate)
           this.saves.setMode(this.world.miniFactory ? 'petesWorld' : 'factory')
           useGameStore.getState().setBuildTab(this.world.miniFactory ? 'nature' : 'factory')

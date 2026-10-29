@@ -1,4 +1,5 @@
 import * as factoryApplication from '../factory/application'
+import * as peteApplication from '../pete/application'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { useGameStore } from './gameStore'
@@ -28,16 +29,20 @@ describe('compact navigation and UI-only state', () => {
     expect(html).not.toContain('Resource statistics'); expect(html).not.toContain('role="dialog" aria-modal="false"')
     for (const label of ['Game menu', 'Help', 'Research', 'Factory overview', 'Construction resources', 'Build toolbar']) expect(html).toContain(label)
   })
-  it('keeps detailed Pete status in inspection instead of covering the playfield', () => {
+  it('keeps work diagnostics collapsed and detailed Pete status in inspection', () => {
     const w = createPetesWorld()
     useGameStore.setState({ tool: null })
     useGameStore.getState().publish(w)
     const hint = useGameStore.getState().miniHint!
     expect(hint.length).toBeGreaterThan(20)
-    expect(renderToStaticMarkup(<App initialParts={factoryApplication} />)).not.toContain(hint)
+    const initial = renderToStaticMarkup(<App initialParts={peteApplication} />)
+    expect(initial).toContain('Arbeit und Warenfluss')
+    expect(initial).not.toContain('class="pete-work-status" open')
+    expect(initial).not.toContain('Pete ansehen')
+    expect(initial).not.toContain('Research')
     useGameStore.getState().inspectPete(w)
-    const html = renderToStaticMarkup(<App initialParts={factoryApplication} />)
-    expect(html).toContain('Pete inspection')
+    const html = renderToStaticMarkup(<App initialParts={peteApplication} />)
+    expect(html).toContain('Pete ansehen')
     expect(html).toContain(hint)
     expect(html).not.toContain('mini-world-hint')
   })

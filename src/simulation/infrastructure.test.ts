@@ -1,7 +1,7 @@
 import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createPetesWorld } from './petesWorld'
-import { advanceInfrastructure, chooseInfrastructure, connectionComplete, planConnection, planWheel } from './infrastructure'
+import { advanceInfrastructure, chooseInfrastructure, connectionComplete, planConnection, planWheel, previewConnection } from './infrastructure'
 import { arrived, begin, materialStore } from './homestead'
 import { emptyInventory, inventoryTotal } from './items'
 import { awardActivity, rewardProject } from './personality'
@@ -17,6 +17,7 @@ import { projectBuilding, projectCandidates, trySecretProject } from './secretPr
 import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { peteWalkableTile, serviceCrossing } from './navigation'
 import { finishWorkshop, workshopSpot } from './workshop'
+import { workStatus } from '../pete/workStatus'
 import { advanceCrafting, changeCraftingRecipe } from './crafting'
 
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
@@ -56,6 +57,41 @@ function wait(w: World, ms: number) {
 }
 
 describe('ordinary paid Pete transport', () => {
+  it('reports an actual connection outage without changing stock or authoritative state', () => {
+    const w = stored(), connection = link(w, 'iron')
+    allocatePower(w)
+    const generator = connection.parts[1].tile
+    removeBuilding(w, generator % SIZE, Math.floor(generator / SIZE)); allocatePower(w)
+    const before = snapshot(w), status = workStatus(w)!
+    expect(status.connections).toHaveLength(1)
+    expect(status.connections[0].reason).toMatch(/fehlt|Strom|Bauteil/)
+    expect(status.connections[0].target).toBe(w.homestead!.store)
+    expect(snapshot(w)).toEqual(before)
+  })
+  it('allows an early mixed-yard iron return after copper feed is built and keeps that lane', () => {
+    const w = stored(), h = w.homestead!
+    w.personality.paths.craftsman.level = 3; w.tiles[626] = 'iron'; w.tiles[627] = 'copper'
+    expect(placeBuilding(w, 26, 15, 'miner', 'south')).toBe(true); h.expansion.miner = 626
+    h.expansion.gearAssembler = null; h.expansion.circuitAssembler = 974
+    expect(changeCraftingRecipe(w, 14, 24, 'peteCircuit')).toBeNull()
+    const feed = planConnection(w, 'circuitFeed')
+    expect(feed).not.toBeNull()
+    h.infrastructure.plan = feed; materialStore(w)!.inventory.copperPlate = 8
+    begin(w, 'buildConnection', h.store); build(w)
+    materialStore(w)!.inventory.ironPlate = 8
+    expect(chooseInfrastructure(w, 'craftsman')).toBe(true)
+    expect(h.cargoBicycle).toBe(false); expect(h.infrastructure.plan?.kind).toBe('iron')
+    expect(connectionComplete(previewConnection(w, h.infrastructure.plan!), feed!)).toBe(true)
+  })
+  it('offers a paid copper return at Inventor three in a copper-only yard', () => {
+    const w = stored(), h = w.homestead!
+    w.personality.paths.inventor.level = 3
+    w.tiles[626] = 'copper'; expect(placeBuilding(w, 26, 15, 'miner', 'south')).toBe(true)
+    h.expansion.copperMiner = 626; h.expansion.copperFurnace = 694; h.expansion.cableAssembler = 974
+    materialStore(w)!.inventory.copperPlate = 8
+    expect(chooseInfrastructure(w, 'inventor')).toBe(true)
+    expect(h.infrastructure.plan?.kind).toBe('copper'); expect(materialStore(w)!.inventory.copperPlate).toBe(8)
+  })
   it.each([false, true])('offers the earlier iron return only before cargo in a single-family yard (mixed=%s)', mixed => {
     const w = stored(), h = w.homestead!, store = materialStore(w)!
     w.personality.paths.craftsman.level = 3

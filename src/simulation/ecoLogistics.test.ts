@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { createPetesWorld } from './petesWorld'
 import { begin, materialStore, freeSite } from './homestead'
 import { emptyInventory } from './items'
-import { advanceInfrastructure, chooseInfrastructure, connectionComplete, infrastructurePickupAllowed, planConnection } from './infrastructure'
+import { advanceInfrastructure, chooseInfrastructure, connectionComplete, infrastructurePickupAllowed, planConnection, previewConnection } from './infrastructure'
+import { planShoreDock, shoreApproaches } from './shoreline'
 import { allocatePower } from './power'
 import { createInserterFrame, advanceInserters } from './inserters'
 import { advanceTransport, outputMachines } from './transport'
@@ -42,6 +43,26 @@ it('preserves shore construction priority before funding new material returns', 
   expect(h.infrastructure.plan).toBeNull()
   expect(materialStore(w)!.wood).toBe(18)
   expect(h.infrastructure.links).toEqual([])
+})
+it('offers the earlier paid Wood return after the dock but before the wheel, preserving the dock approach', () => {
+  const w = world(), h = w.homestead!
+  w.personality.paths.eco.level = 4
+  for (const tile of [1220, 1260, 1300, 1340]) w.water[tile] = true
+  w.topologyRevision++
+  w.orchardProject = { kind: 'orchard', home: 820, direction: 'east', tiles: [950], spots: [949], phase: 'complete', crate: null, built: 1, carried: 0, elapsedMs: 0 }
+  const dock = planShoreDock(w)
+  expect(dock).not.toBeNull()
+  const store = materialStore(w)!
+  store.wood -= 8
+  h.waterworks.dock = dock
+  w.buildings[dock!.tile] = { kind: 'fishingDock', x: dock!.tile % SIZE, y: Math.floor(dock!.tile / SIZE), direction: dock!.direction }
+  expect(h.infrastructure.wheel).toBeNull()
+  expect(chooseInfrastructure(w, 'eco')).toBe(true)
+  expect(h.infrastructure.plan?.kind).toBe('woodReturn')
+  expect(store.wood).toBe(10)
+  const after = previewConnection(w, h.infrastructure.plan!)
+  expect(after.buildings[dock!.tile]?.kind).toBe('fishingDock')
+  for (const tile of shoreApproaches(dock!)) expect(after.buildings[tile]).toBeNull()
 })
 function build(w: World) {
   for (let t = 0; t < 240000 && w.homestead!.task; t += 50) { w.timeMs += 50; advanceInfrastructure(w, 50) }

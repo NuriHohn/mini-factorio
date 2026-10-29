@@ -1,4 +1,5 @@
 import { entryMode } from '../core/entry'
+import type { WorkStatus } from '../pete/workStatus'
 import { miniStatus } from '../simulation/petesWorld'
 import { peteStatus } from '../simulation/peteStatus'
 import { learningGoals, machineGuide, processGuides } from '../simulation/learning'
@@ -55,6 +56,7 @@ interface State {
   touchPlacement: { start: Position; end: Position; tool: NonNullable<Tool>; contextual?: true } | null
   touchRequest: 'confirm' | 'cancel' | null
   peteInspection: PeteStatus | null
+  workStatus: WorkStatus
   inspectPete: (world: World) => void
   dragActive: boolean
   dragCancelToken: number
@@ -130,7 +132,7 @@ export const useGameStore = create<State>((set, get) => ({
   },
   touchAnchor: { x: 0, y: 0 },
   touchActive: typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches, touchToolsOpen: false, touchPlacement: null, touchRequest: null,
-  peteInspection: null,
+  peteInspection: null, workStatus: null,
   inspectPete: world => { if (get().tool === null) set({ peteInspection: peteStatus(world), processes: processGuides(world), supplies: [], machineHelp: null, petePathVisible: true, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null }) },
   dragActive: false, dragCancelToken: 0, hintUses: {},
   recordToolUse: tool => set(state => {
@@ -242,7 +244,7 @@ export const useGameStore = create<State>((set, get) => ({
     const processes = state.peteInspection || inspected !== null ? processGuides(world, state.peteInspection ? null : inspected) : []
     const supplies = inspected === null ? [] : supplyOffers(world, inspected)
     // Publish value snapshots only when summaries change, never live world objects.
-    if (playMode === state.playMode && miniHint === state.miniHint && JSON.stringify([goals, machineHelp, processes, supplies]) === JSON.stringify([state.goals, state.machineHelp, state.processes, state.supplies]) && JSON.stringify(peteInspection) === JSON.stringify(state.peteInspection) && peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
-    return { playMode, miniHint, goals, machineHelp, processes, supplies, peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: playMode === 'factory' && state.analyticsOpen && hasTechnology(research, 'analytics1'), researchOpen: playMode === 'factory' && state.researchOpen }
+    if (JSON.stringify(pete?.workStatus ?? null) === JSON.stringify(state.workStatus) && playMode === state.playMode && miniHint === state.miniHint && JSON.stringify([goals, machineHelp, processes, supplies]) === JSON.stringify([state.goals, state.machineHelp, state.processes, state.supplies]) && JSON.stringify(peteInspection) === JSON.stringify(state.peteInspection) && peteConstructionHint === state.peteConstructionHint && peaceful(world) === state.peaceful && world.peace.activity === state.peaceActivity && world.peace.gifts.length === state.gifts && world.nature.wood === state.wood && world.timeMs === state.simulationTime && JSON.stringify(revenge) === JSON.stringify(state.revenge) && JSON.stringify(research) === JSON.stringify(state.research) && rate === state.researchRate && JSON.stringify(analytics) === JSON.stringify(state.analytics) && JSON.stringify(electricity) === JSON.stringify(state.electricity) && JSON.stringify(stats) === JSON.stringify(state.stats) && JSON.stringify(inspection) === JSON.stringify(state.inspection) && inspected === state.inspected) return state
+    return { playMode, miniHint, workStatus: pete?.workStatus ?? null, goals, machineHelp, processes, supplies, peteInspection, peteConstructionHint, peaceful: peaceful(world), peaceActivity: world.peace.activity, gifts: world.peace.gifts.length, wood: world.nature.wood, revenge, simulationTime: world.timeMs, stats, electricity, inspection, inspected, analytics, research, researchRate: rate, analyticsOpen: playMode === 'factory' && state.analyticsOpen && hasTechnology(research, 'analytics1'), researchOpen: playMode === 'factory' && state.researchOpen }
   }),
 }))

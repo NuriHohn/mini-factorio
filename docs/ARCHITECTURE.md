@@ -746,3 +746,10 @@ Before starting an additional Eco furnishing order, `infrastructure.ts` reserves
 ### Derived development completion
 
 `nextDevelopment.ts` extends the existing copied per-path inspector summaries with finite construction counts, current/maximum level and development/rebuilding/completed state. Original projects come from `PETE_PROJECTS` (excluding repeatable tasks and absent retired Industrial projects); original Eco improvements use their existing registry. Existing owned repair jobs and link integrity take priority. `PeteInspection.tsx` renders the detached result; no simulation decisions, timers, persistence fields or reward accounting depend on completion. Save 53 remains current. The authoritative player rule is [development completion](GAME_DESIGN.md#pete-development-completion).
+
+
+## Pete work presentation and recurring demand
+
+`pete/text.ts` owns German Pete presentation labels and variable-message formatting. `game/useGameText.ts` selects that presentation only in Pete; Factory copy stays unchanged. Identifiers, recipes, authoritative state and saved values are not translated. `pete/workStatus.ts` copies current activity, existing connection diagnostics and recurring-order eligibility into the transient UI facade. `pete/application.tsx` renders the collapsed work panel, using the existing focus command. It does not keep another world or schedule tasks.
+
+Recurring supply uses the existing infrastructure `finishOrder`, carried invoice, bounded furnishing stages and shared order clock. The validator admits completed-stage orders only when the same eligibility predicate is satisfied, retaining strict invoices, hosts and progress. Save 53 structure is unchanged. Existing raw-start completion tests now require repeated paid supply and exact active-order continuation as well as the original milestones, finite completion and repair acceptance. [Game design](GAME_DESIGN.md#work-and-visible-demand) owns gates, invoices, cooldowns and work priorities.

@@ -6,6 +6,7 @@ import type { PersonalityPath } from './personality'
 import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { removeBuilding, SIZE } from './world'
 import type { World } from './world'
+import { inventoryTotal } from './items'
 
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 const stamp = '2026-10-29T00:00:00.000Z'
@@ -26,15 +27,51 @@ export function acceptCompletedPath(w: World, path: PersonalityPath) {
   expect(JSON.parse(snapshot(loaded))).toEqual(JSON.parse(snapshot(w)))
   const actions = new Set<string>()
   const stages = structuredClone(w.homestead!.infrastructure)
+  const projectRewards = [...w.personality.rewardedProjects]
+  let activeOrder: World | null = null, checkedOrder = false, continuationMs = 0
+  let completedOrders = 0
   for (let ms = 0; ms < 600000; ms += 50) {
+    const paying = w.homestead!.task === 'finishOrder' && w.homestead!.infrastructure.order === path && inventoryTotal(w.homestead!.carried) > 0
     advanceWorld(w, 50)
+    if (paying && w.homestead!.task !== 'finishOrder') {
+      completedOrders++
+      expect(w.homestead!.infrastructure.nextOrderAtMs).toBe(w.timeMs + 60000)
+    }
+    if (activeOrder && continuationMs < 10000) {
+      advanceWorld(activeOrder, 50); continuationMs += 50
+      if (continuationMs === 10000) expect(JSON.parse(snapshot(activeOrder))).toEqual(JSON.parse(snapshot(w)))
+    }
+    const h = w.homestead!
+    if (!checkedOrder && h.task === 'finishOrder' && h.infrastructure.order === path && inventoryTotal(h.carried)) {
+      expect(inventoryTotal(h.carried)).toBe(path === 'eco' ? 2 : path === 'inventor' || path === 'industrial' ? 6 : 4)
+      expect(h.infrastructure[path]).toBe(3)
+      activeOrder = decodeSave(snapshot(w)).world; checkedOrder = true
+    }
     actions.add(w.homestead!.task ?? w.peace.activity)
   }
+  expect(checkedOrder, `${path} must perform a real paid recurring order after completion`).toBe(true)
+  expect(completedOrders, `${path} should supply its existing buildings after completion`).toBeGreaterThanOrEqual(1)
+  expect(continuationMs).toBe(10000)
   expect(actions.size).toBeGreaterThan(1)
   expect(w.peace.gifts.length).toBeLessThanOrEqual(1)
   expect(status().completion.state).toBe('complete')
   for (const p of PERSONALITY_PATHS) expect(w.homestead!.infrastructure[p]).toBe(stages[p])
+  expect(w.personality.rewardedProjects).toEqual(projectRewards)
   expect(decodeSave(snapshot(w)).world.timeMs).toBe(w.timeMs)
+
+  // Keep the original ten-minute acceptance above. A real Industrial refill can
+  // take longer than the minimum cooldown: require a second paid cycle too.
+  for (let ms = 0; ms < 600000 && completedOrders < 2; ms += 50) {
+    const h = w.homestead!, paying = h.task === 'finishOrder' && h.infrastructure.order === path && inventoryTotal(h.carried) > 0
+    advanceWorld(w, 50)
+    if (paying && h.task !== 'finishOrder') {
+      completedOrders++
+      expect(h.infrastructure.nextOrderAtMs).toBe(w.timeMs + 60000)
+    }
+  }
+  expect(completedOrders, `${path} must repeat paid supply when real stock is replenished`).toBeGreaterThanOrEqual(2)
+  for (const p of PERSONALITY_PATHS) expect(w.homestead!.infrastructure[p]).toBe(stages[p])
+  expect(w.personality.rewardedProjects).toEqual(projectRewards)
 
   // Damage a real, completed owned machine, then let Pete repair it naturally.
   const key = path === 'eco' ? 'assembler' : path === 'craftsman' ? 'furnace' : path === 'inventor' ? 'circuitAssembler' : 'steamWorkshop'

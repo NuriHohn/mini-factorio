@@ -24,7 +24,7 @@ export function mainFuel(world: World): number {
 export function fuelAutomation(world: World): boolean { return !!world.homestead?.infrastructure.links.some(p => p.kind === 'stampFeed') }
 export function boilerPickupAllowed(world: World, tile: number, item: Item): boolean {
   const h = world.homestead, depot = h?.expansion.fuelStore === null || h?.expansion.fuelStore === undefined ? null : world.buildings[h.expansion.fuelStore]
-  return !(fuelAutomation(world) && h?.expansion.coalInserter === tile && item === 'coalBriquette' && h.infrastructure.cargoCycles >= 10 && h.infrastructure.industrial < 3 && depot?.kind === 'fuelDepot' && depot.inventory.coal > 0 && depot.inventory.coalBriquette <= 6)
+  return !(fuelAutomation(world) && h?.expansion.coalInserter === tile && item === 'coalBriquette' && h.infrastructure.cargoCycles >= 10 && depot?.kind === 'fuelDepot' && depot.inventory.coal > 0 && depot.inventory.coalBriquette <= 6)
 }
 // Apply only to Pete's commissioned main depot. Old excess is retained; Factory stays ordinary.
 export function fuelDeliveryAllowed(world: World, target: Building, item: Item, reserved: Readonly<Partial<Inventory>> = {}): boolean {
