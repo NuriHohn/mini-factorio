@@ -1,15 +1,31 @@
+import { loadingParts } from './loading'
+import type { RebuildOwner } from './rebuilding'
+import { IMPROVEMENTS, IMPROVEMENT_RULES } from './homesteadExpansion'
+import { INDUSTRIAL_CHAINS } from './industrialRules'
+import { XP_THRESHOLDS } from './personality'
 import { currentProject } from './secretProject'
 import { PROJECT_NAMES } from './peteStatus'
-import { PETE_PROJECTS } from './projectRegistry'
+import { PETE_PROJECTS, retiredIndustrial } from './projectRegistry'
 import { developmentOverview } from './developmentOverview'
 import { copperLink, industrialLink, ecoLink, linkCurrency, linkCost } from './infrastructureRules'
 import { materialStore } from './homestead'
-import { connectionComplete, infrastructureBlockage, orderTarget, wheelParts } from './infrastructure'
+import { connectionComplete, infrastructureBlockage, orderTarget, wheelParts, partComplete } from './infrastructure'
 import { LINK_NAMES } from './infrastructureRules'
 import { PATH_LABELS, PERSONALITY_PATHS } from './personality'
 import type { PersonalityPath } from './personality'
 import type { ProjectStatus } from './peteStatus'
 import type { World } from './world'
+
+function repairPath(owner: RebuildOwner): PersonalityPath | null {
+  if (owner.type === 'project') return PETE_PROJECTS.find(p => p.id === owner.id)!.path
+  if (owner.type === 'chain') {
+    const kind = owner.plan.kind
+    if (kind === 'steam' || INDUSTRIAL_CHAINS.some(k => k === kind)) return 'industrial'
+    if (['copper', 'copperMining', 'cables', 'circuits'].includes(kind)) return 'inventor'
+    return ['iron', 'ironMining', 'gears'].includes(kind) ? 'craftsman' : 'eco'
+  }
+  return owner.type === 'mill' || owner.type === 'prototype' ? 'eco' : null
+}
 
 export interface NextDevelopment { path: PersonalityPath; name: string; reason: string; target: number | null }
 export function nextDevelopments(world: World, projects: ProjectStatus[]) {
@@ -25,8 +41,29 @@ export function nextDevelopments(world: World, projects: ProjectStatus[]) {
     inventor: [step('Kupferofen', e.copperFurnace !== null, e.copperFurnace), step('Kabel-Assembler', e.cableAssembler !== null, e.cableAssembler), step('Experiment table', complete('experimentProject')), step('Treasure chest', complete('treasureProject')), step('Kupferförderer', e.copperMiner !== null, e.copperMiner), step('Schaltkreis-Assembler', e.circuitAssembler !== null, e.circuitAssembler), step('Flight workshop', complete('flightProject')), ...(['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const).map(kind => step(LINK_NAMES[kind], s.links.some(p => p.kind === kind), kind === 'circuitFeed' || kind === 'circuitReturn' ? e.circuitAssembler : kind === 'copper' ? e.copperFurnace : e.cableAssembler, `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Inventor 4 · Kupferförderer · 24 Platten bleiben vor der Flugwerkstatt reserviert · kurze freie Bandstrecke erforderlich`)), orders('inventor')],
     industrial: [step('Dampfantrieb', e.steamEngine !== null, e.steamEngine), step('Kohleförderung', e.coalMiner !== null, e.coalMiner), step('Kesselgreifer', e.coalInserter !== null, e.coalInserter), step('Kohlestampfer', e.briquetteAssembler !== null, e.briquetteAssembler), step('Dampfwerkstatt', e.steamWorkshop !== null, e.steamWorkshop), step('Förderaufzug', e.steamHoist !== null, e.steamHoist), step('Verladeplatz', s.loading !== null, e.steamHoist, `${store?.inventory.coal ?? 0}/6 Kohle als echter Anfangsvorrat · zuerst ein abgeschlossener Aufzugzyklus · zwei freie Pufferplätze in Reichweite`), ...(['stampFeed', 'loadingFeed', 'loadingReturn'] as const).map(kind => step(LINK_NAMES[kind], s.links.some(p => p.kind === kind), kind === 'stampFeed' ? e.briquetteAssembler : e.steamHoist, `${store?.inventory.coal ?? 0}/6 Kohle Baukosten · Kesselreserve acht Brennstoff · kurze freie Strecke; persönliche Lieferungen bei Ausfällen`)), orders('industrial')],
   }
+  // Include every finite original project; recurring care is never a completion goal.
+  for (const definition of PETE_PROJECTS) {
+    if (definition.repeatable || retiredIndustrial(world, definition)) continue
+    if (!paths[definition.path].some(p => p.name === PROJECT_NAMES[definition.id])) {
+      const saved = world[definition.state]
+      paths[definition.path].push(step(PROJECT_NAMES[definition.id], saved?.phase === 'complete', saved?.tiles[0] ?? h.store))
+    }
+  }
+  paths.eco.push(step('Lagerdach', (store?.storeTier ?? 0) > 0, h.store, 'Acht Holzplatten aus dem eigenen Sägewerk.'))
+  for (const id of IMPROVEMENTS) paths.eco.push(step(IMPROVEMENT_RULES[id].label, e.improvements[id] !== undefined, e.improvements[id] ?? (id === 'coopAwning' ? world.coopProject?.tiles[0] : id === 'storeShelves' ? h.store : world.gardenProject?.tiles[0]) ?? h.store))
   const linkPath = (kind: Parameters<typeof ecoLink>[0]) => ecoLink(kind) ? 'eco' : industrialLink(kind) ? 'industrial' : copperLink(kind) ? 'inventor' : 'craftsman'
+
   return PERSONALITY_PATHS.map(path => {
+    const repair = world.rebuilding?.jobs.find(j => repairPath(j.owner) === path || repairPath(j.owner) === null)
+    if (repair) return { path, name: 'Wiederaufbau', reason: 'Ein vorhandenes Bauteil fehlt. Bezahlte Arbeit und erreichte Entwicklung bleiben erhalten.', target: repair.tile }
+    const missingWheel = path === 'eco' && s.wheel ? wheelParts(s.wheel).find(p => !partComplete(world, p)) : null
+    if (missingWheel) return { path, name: 'Wiederaufbau: Wasserrad', reason: 'Ein ursprüngliches Rad- oder Mastbauteil fehlt; erreichte Entwicklung bleibt erhalten.', target: missingWheel.tile }
+    const missingLoading = path === 'industrial' && s.loading ? loadingParts(s.loading).find(p => world.buildings[p.tile]?.kind !== p.kind) : null
+    if (missingLoading) return { path, name: 'Wiederaufbau: Verladeplatz', reason: 'Ein ursprünglicher Frachtpuffer oder Mast fehlt; erreichte Entwicklung bleibt erhalten.', target: missingLoading.tile }
+    const dock = path === 'eco' ? h.waterworks.dock : null
+    if (dock && world.buildings[dock.tile]?.kind !== 'fishingDock') return { path, name: 'Wiederaufbau: Angelsteg', reason: 'Der ursprüngliche Angelsteg fehlt; erreichte Entwicklung bleibt erhalten.', target: dock.tile }
+
+
     if (path === 'eco' && (h.task === 'buildPavilion' || s.pavilion && s.pavilion.stage > 0 && world.buildings[s.pavilion.tile]?.kind !== 'petePavilion')) return { path, name: 'Obstgarten-Pavillon', reason: s.pavilion!.repair || h.task !== 'buildPavilion' ? 'Wiederaufbau am ursprünglichen Ort; bezahlte Stufen und Erfahrung bleiben erhalten.' : `${s.pavilion!.stage}/3 Stufen · acht Sekunden Arbeit · bezahltes Material bleibt erhalten.`, target: s.pavilion!.tile }
     if (s.plan && path === linkPath(s.plan.kind)) {
       const part = s.plan.parts[s.built]
@@ -39,12 +76,18 @@ export function nextDevelopments(world: World, projects: ProjectStatus[]) {
     if (broken) return { path, name: `Wiederaufbau: ${LINK_NAMES[broken.kind]}`, reason: `${(ecoLink(broken.kind) ? store?.wood : store?.inventory[linkCurrency(broken.kind)]) ?? 0}/1 ${path === 'eco' ? 'Holz' : path === 'industrial' ? 'Kohle' : path === 'inventor' ? 'Kupferplatte' : 'Eisenplatte'} je fehlendem Bauteil · ursprüngliche Strecke · persönliche Lieferungen bleiben möglich`, target: broken.parts.find(p => world.buildings[p.tile]?.kind !== p.kind)?.tile ?? broken.source }
     const active = currentProject(world)
     const activeDefinition = active && PETE_PROJECTS.find(p => world[p.state] === active)
-    if (active && activeDefinition?.path === path) return { path, name: PROJECT_NAMES[activeDefinition.id], reason: projects.find(p => p.id === activeDefinition.id)?.reason ?? 'Begonnenes Projekt wird fortgesetzt.', target: active.tiles[active.built] ?? active.tiles[0] }
+    if (active && activeDefinition?.path === path && !activeDefinition.repeatable) return { path, name: PROJECT_NAMES[activeDefinition.id], reason: projects.find(p => p.id === activeDefinition.id)?.reason ?? 'Begonnenes Projekt wird fortgesetzt.', target: active.tiles[active.built] ?? active.tiles[0] }
     const chosen = paths[path].find(p => !p.done)
-    if (!chosen) return { path, name: 'Entwicklung abgeschlossen', reason: 'Die vorhandenen Anlagen, Übungen und Ausflüge bleiben aktiv.', target: h.store ?? world.peace.home }
+    if (!chosen) return world.personality.paths[path].level < XP_THRESHOLDS.length
+      ? { path, name: 'Level 5 erreichen', reason: `${world.personality.paths[path].xp}/${XP_THRESHOLDS.at(-1)} XP · vorhandene Arbeit, Übungen und Ausflüge entwickeln Pete weiter.`, target: h.store ?? world.peace.home }
+      : { path, name: 'Entwicklung abgeschlossen', reason: 'Level 5 und alle vorgesehenen Bauprojekte erreicht. Versorgung, Übungen und Ausflüge bleiben aktiv; weitere XP schalten keine neuen Stufen frei.', target: h.store ?? world.peace.home }
     const project = projects.find(p => p.path === path && p.name === chosen.name)
     const definition = PETE_PROJECTS.find(p => p.id === project?.id), original = definition ? world[definition.state] : null
     const blockage = (h.task === 'buildConnection' && path === 'craftsman' || h.task === 'buildWheel' && path === 'eco') ? infrastructureBlockage(world) : null
     return { path, name: chosen.name, reason: blockage ?? chosen.reason ?? project?.reason ?? 'Material und Voraussetzungen stehen unter Projekte und Anforderungen.', target: original?.tiles[original.built] ?? chosen.target ?? h.store ?? world.peace.home }
-  }).map(step => developmentOverview(world, step, projects))
+  }).map(step => {
+    const goals = paths[step.path], level = world.personality.paths[step.path].level
+    const overview = developmentOverview(world, step, projects)
+    return { ...overview, completion: { level, maxLevel: XP_THRESHOLDS.length, finished: goals.filter(p => p.done).length, total: goals.length, state: overview.phase === 'Wiederaufbau' ? 'rebuilding' : goals.every(p => p.done) && level === XP_THRESHOLDS.length ? 'complete' : 'developing' } }
+  })
 }

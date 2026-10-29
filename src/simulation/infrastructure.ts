@@ -183,7 +183,7 @@ export function planWheel(world: World): WheelSite | null {
   }
   return null
 }
-function partComplete(world: World, p: InfrastructurePart): boolean { const b = world.buildings[p.tile]; return b?.kind === p.kind && (!('direction' in b) || b.direction === p.direction) }
+export function partComplete(world: World, p: InfrastructurePart): boolean { const b = world.buildings[p.tile]; return b?.kind === p.kind && (!('direction' in b) || b.direction === p.direction) }
 export function connectionComplete(world: World, link: Connection): boolean {
   const intact = (p: InfrastructurePart) => partComplete(world, p)
   if (!link.parts.every(intact)) return false

@@ -76,7 +76,7 @@ describe('resource-led copper automation, circuits and coal', () => {
     expect(inventoryTotal(h.carried)).toBe(0)
   })
   describe('raw copper and iron through scenic flight', () => {
-    let w: World
+    let w: World, scenic: string
     beforeAll(() => {
       w = createPetesWorld()
       expect(placeCopper(w, 24, 20)).toBeNull()
@@ -84,24 +84,35 @@ describe('resource-led copper automation, circuits and coal', () => {
     })
     // Keep the original two-hour bound to the first practice and all 50 ms
     // simulation steps. Separate real milestones retain the 60-second CI budget.
-    beforeAll(() => { until(w, () => w.homestead!.expansion.copperFurnace !== null && w.homestead!.expansion.furnace !== null, 7200000 - w.timeMs) }, 60000)
-    beforeAll(() => { until(w, () => w.homestead!.expansion.cableAssembler !== null, 7200000 - w.timeMs) }, 60000)
-    beforeAll(() => { until(w, () => w.homestead!.expansion.copperMiner !== null, 7200000 - w.timeMs) }, 60000)
-    beforeAll(() => { until(w, () => w.produced.electronicCircuit > 0, 7200000 - w.timeMs) }, 60000)
+    beforeAll(() => { until(w, () => w.homestead!.expansion.copperFurnace !== null && w.homestead!.expansion.furnace !== null, Math.min(1800000, 7200000 - w.timeMs)) }, 60000)
+    beforeAll(() => { until(w, () => w.homestead!.expansion.cableAssembler !== null, Math.min(1800000, 7200000 - w.timeMs)) }, 60000)
+    beforeAll(() => { until(w, () => w.homestead!.expansion.copperMiner !== null, Math.min(1800000, 7200000 - w.timeMs)) }, 60000)
+    beforeAll(() => { until(w, () => w.produced.electronicCircuit > 0, Math.min(1800000, 7200000 - w.timeMs)) }, 60000)
     beforeAll(() => { until(w, () => w.experimentProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => w.treasureProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => w.flightProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => (w.leisure?.practices ?? 0) > 0, 7200000 - w.timeMs) }, 60000)
-    beforeAll(() => { until(w, () => w.leisure?.flight?.practice === false, 7200000) }, 60000)
+    beforeAll(() => { until(w, () => w.leisure?.flight?.practice === false, 7200000); scenic = encodeSave(w, view) }, 60000)
+    // Extend the same raw-resource world to logistics instead of bootstrapping it twice.
+    for (const kind of ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const) beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === kind), 1800000) }, 60000)
+    it('builds both paid real connections and resumes the mixed material flow exactly', () => {
+      expect(w.produced.electronicCircuit).toBeGreaterThan(0)
+      expect(w.homestead!.infrastructure.links.filter(p => p.kind.startsWith('circuit'))).toHaveLength(2)
+      const loaded = load(w)
+      advanceWorld(w, 10000); advanceWorld(loaded, 10000)
+      expect(snapshot(loaded)).toEqual(snapshot(w))
+    })
     it('funds the real mining and circuit chain from offered raw resources', () => {
       expect(w.produced.electronicCircuit).toBeGreaterThan(0)
       expect(w.homestead!.expansion.copperMiner).not.toBeNull()
       expect(w.homestead!.expansion.circuitAssembler).not.toBeNull()
     })
     it('completes practice flights before scenic flights', () => {
+      const w = decodeSave(scenic).world
       expect(w.leisure!.practices).toBeGreaterThan(0)
     })
     it('reaches Inventor five and preserves its safe scenic flight exactly', () => {
+      const w = decodeSave(scenic).world
       expect(w.leisure?.flight?.practice).toBe(false)
       expect(w.personality.paths.inventor.level).toBe(5)
       expect(load(w).leisure).toEqual(w.leisure)

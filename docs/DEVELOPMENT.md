@@ -32,6 +32,11 @@ These are the existing npm scripts; run them from the root.
 
 **During implementation:** Run only focused tests relevant to changed behavior and dependencies; add meaningful regressions. Reserve the complete suite for final validation.
 
+For a sprint package, settle simulation behavior with its focused dependency tests first, then complete inspector text/documentation and review the diff before the full run. Run the complete suite on the frozen delivery candidate. A prose-only follow-up does not invalidate it; an affected code change requires the applicable checks again. Keep timing measurements sequential and browser checks separate from CPU-intensive simulations. For a comparable timing report, use `npm test -- <same scenarios> --maxWorkers=2 --testTimeout=60000 --reporter=json --outputFile=<temporary-report>.json`; include setup hooks in elapsed time (`max(testResults.endTime) - startTime`), because individual assertion durations omit expensive `beforeAll` preparation. Remove temporary reports before committing.
+
+Reuse real progression preparation within a test suite when seed, resource offers and milestones are identical. Capture intermediate cargo/flight/paid-work snapshots before continuing, so later hooks cannot change what an earlier acceptance test claims to inspect. Keep the original simulation-step size, milestone bounds and all assertions. A different layout or offered resource family remains an independent scenario; saved fixtures must not replace raw-start acceptance.
+
+
 **Before delivery of code changes:** Run the complete test suite once, plus lint and a production build:
 
 ```sh
@@ -413,3 +418,19 @@ Final validation: **1,783 tests in 154 files passed**, with two workers and the 
 Windows Chrome checked production-bundle import of valid modern and active Save-52 legacy circuit snapshots, copper-only requirements, disabled owned recipe selection and the old-batch explanation. Both paused imports re-saved as Save 53 with identical authoritative game state. A real old batch finished at ×16 and switched to the copper recipe. Factory retained its selectable iron/cable circuit recipe and hid the NPC variant. Native phone touch checked new Petes Welt, retained water and no Axe; 390×844, 844×390 and 1024×640 layouts had no horizontal overflow or page errors. Screenshots were visually checked. Physical iPhone/iPad Safari remains unverified.
 
 Final validation: **1,806 tests in 157 files passed**, using two workers and the existing 60-second allowance. Lint, the final production build and `git diff --check` passed. All original long-game simulation bounds remain unchanged. The existing Vite large-bundle warning remains. Temporary diagnostic/browser fixtures, screenshots and local servers were removed before delivery; no dependencies or hosting settings changed.
+
+
+## Pete development closure validation
+
+`developmentCompletion.test.ts` distinguishes level maximum from unfinished construction, checks read-only finite counts and the remaining XP goal, and keeps Factory outside the completion UI. `ecoLogistics.test.ts` protects the original nursery invoice from optional planting after all three returns. `infrastructurePaths.test.ts`, `inventorIndependence.test.ts` and `productionPaths.test.ts` extend their existing raw-resource worlds through the complete original project set, level 5 and all furnishing stages. Their shared `developmentAcceptance.testSupport.ts` checks absence of foreign mining/XP, exact 30-second fixed-step save continuation, ten more simulation minutes without losing completion or adding stages, retained gift cap, changing actual activities and natural restoration of a demolished owned machine without another completion reward.
+
+The earlier coal held-cargo acceptance now captures its real intermediate state during the existing full coal-chain preparation. The mixed copper/iron flight and circuit-logistics acceptances share `nextProgression.test.ts`; the first-practice two-hour bound and the original milestone limits remain. The distinct copper layout in `laterPaths.test.ts` remains independently tested. No tests are disabled, dependencies changed or simulation steps skipped.
+
+
+Local timing comparison (same four mixed-resource flight/logistics assertions, complete setup included, sequential before/after runs): **112.09 s → 60.41 s with one worker** (46% less elapsed time). With two workers the comparison was **58.50 s → 60.03 s**: parallel preparation had already hidden the duplicate world's wall time. The earlier coal-only consolidation alone was **88.59 s → 87.43 s** for its four scenarios with two workers. These are single-host measurements, not a promised percentage for the full suite; the principal change removes duplicate simulation work while preserving raw-start acceptance. Final suite validation still uses two workers.
+
+
+Windows Chrome production-bundle verification imported the four real completed raw-resource snapshots and inspected each path's level/construction/completion card. A level-5 world with an unfinished nursery remained open; a real demolished machine displayed outstanding rebuilding with historical counts retained. Native desktop import/export and the phone-touch import/export preserved exact authoritative game state for all five round trips. The final help and Inspector describe copper-only new circuits. Screenshots were visually reviewed, including the scrolled completion card at 390×844; 844×390 and 1024×640 had no horizontal overflow or page errors. Physical iPhone/iPad Safari remains unverified. Temporary browser tooling, snapshots and images are removed before delivery; no browser dependency is committed.
+
+
+Final validation: **1,816 tests in 158 files passed**, zero failed/pending, with `npm test -- --maxWorkers=2 --testTimeout=60000 --reporter=json --outputFile=<temporary-report>.json`. Complete setup-inclusive elapsed time was **527.85 seconds**. Lint, the final production build and `git diff --check` passed. All original simulation-step sizes, milestone bounds and retained intermediate-state assertions remain; no tests were skipped. The existing Vite large-bundle warning remains. Temporary reports/logs, browser scripts/snapshots/images and preview servers were removed before delivery; no dependencies or hosting settings changed.

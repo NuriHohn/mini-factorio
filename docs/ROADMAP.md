@@ -412,3 +412,18 @@ Implemented following the explicit implementation and merge request:
 ## Post-16.102 maintenance — resource separation and building focus
 
 Implemented: modern Petes Welt project/chain families include a copper-only Inventor circuit recipe, removing the flight workshop's indirect Craftsman dependency. Existing paid old batches/cargo and legacy projects retain their materials; no further missing legacy Industrial gear projects are created. Construction access is repaired, Eco returns retain their construction Wood and keep their shore-work ordering, idle bouquets and gifts are rarer, and natural regrowth keeps recorded project sites/approaches clear. Save 53 preserves old work and water. Exact rules: [path separation and construction focus](GAME_DESIGN.md#path-separation-and-construction-focus). Future sprint scope remains unplanned; previous deferred features retain their status.
+
+
+## Sprints 16.103–16.107 — Pete developments 1.0 closure
+
+Implemented and validated under the explicit five-sprint implementation and merge request.
+
+| Sprint | Scope |
+| --- | --- |
+| 16.103 | Measured progression-test preparation; shared identical raw coal and mixed copper/iron worlds while retaining intermediate-state snapshots, all assertions and fixed-step/milestone limits; freeze-before-final-check workflow |
+| 16.104 | Separate level maximum, finite construction counts, completed development and outstanding owned repairs in Pete's existing inspector; no additional levels or saved rewards |
+| 16.105 | Extend existing raw Wood/iron/copper/coal acceptances through level 5 and every existing finite endpoint using only that path's resources |
+| 16.106 | Ten additional simulation minutes per completed path, valid save continuation and autonomous machine restoration; protect the unfinished nursery's original Wood invoice from optional care/planting |
+| 16.107 | Completion/help guidance, mixed-world/legacy/Factory regression coverage, desktop/touch release checks and an explicit boundary for Pete developments 1.0 |
+
+[Game design](GAME_DESIGN.md#pete-development-completion) owns the completion rule; [Development](DEVELOPMENT.md#pete-development-closure-validation) records the acceptance and measurements. Pete developments 1.0 ends at the existing four level-5 paths and their finite original projects. Future buildings/levels require a separate extension proposal. Save 53 remains current; deferred installation/offline work, pipes, physical Safari acceptance and the complex Factory edition retain their previous status.
