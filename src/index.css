@@ -381,3 +381,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .touch-mode .pinned-goal .save-action { min-width: 44px; min-height: 44px; }
 
 .mini-world-hint { position: absolute; top: 8px; left: 8px; max-width: min(420px, calc(100% - 16px)); padding: 10px 14px; border: 1px solid #698754; border-radius: 10px; background: #17271ee8; font-size: .9rem; pointer-events: none; z-index: 3; }
+
+.pete-work-status { flex: 1; min-width: 0; font-size: .8rem; }
+.pete-work-status summary { cursor: pointer; }
+.pete-work-status p { margin: .4rem 0; line-height: 1.4; }
+.pete-work-status[open] { max-height: 28vh; overflow: auto; }
+
+.pete-app .world-heading { align-items: flex-start; }
+.pete-app.touch-mode .world-heading { height: auto; min-height: 38px; max-height: 32vh; overflow: auto; }

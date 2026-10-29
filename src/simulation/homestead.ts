@@ -288,6 +288,7 @@ export const HOME_TASK_LABELS: Record<HomeTask, string> = { buildPavilion: 'Ich 
 export function homesteadHint(world: World): string {
   const s = world.homestead!, store = materialStore(world)
   if (s.task) {
+    if (s.task === 'finishOrder' && s.infrastructure.order && s.infrastructure[s.infrastructure.order] === 3) return 'Ich erledige einen bezahlten Versorgungsauftrag mit vorhandenen Produkten. Der Ausbau bleibt abgeschlossen.'
     if (s.task === 'buildChain' || s.task === 'improve') return expansionSummary(world)
     const workTile = s.task === 'buildMill' && s.millAnchor !== null ? handMillLayout(s.millAnchor)[s.millBuilt]?.tile : s.target
     if ((s.task === 'buildStore' || s.task === 'buildMill') && workTile !== null && workTile !== undefined && (world.water[workTile] || world.buildings[workTile])) return 'Mein Bauplatz ist belegt. Ich behalte mein Material und meinen Baufortschritt.'

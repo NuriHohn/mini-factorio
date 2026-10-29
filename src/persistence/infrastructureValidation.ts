@@ -3,7 +3,7 @@ import { createInfrastructure, LINK_KINDS, feedLink, linkCurrency, linkCost, eco
 import type { Connection, Infrastructure, WheelSite } from '../simulation/infrastructureRules'
 import type { LoadingSite } from '../simulation/infrastructureRules'
 import { loadingParts } from '../simulation/loading'
-import { facing, wheelParts } from '../simulation/infrastructure'
+import { facing, wheelParts, recurringOrderReady } from '../simulation/infrastructure'
 import { inventoryTotal, ITEMS } from '../simulation/items'
 import type { Homestead } from '../simulation/homestead'
 import type { HomesteadExpansion } from '../simulation/homesteadExpansion'
@@ -108,10 +108,10 @@ export function validateInfrastructureTask(h: Homestead, world: World): void {
     const path = s.order!
     if (path === 'industrial') {
       const target = s.industrial === 0 ? h.expansion.steamWorkshop : h.expansion.steamHoist
-      if (s.industrial >= 3 || s.cargoCycles < 10 || h.target !== target || !validInvoice({ coalBriquette: 6 }) || h.elapsedMs > 8000 || h.elapsedMs > 0 && !amount) v.invalid('infrastructure', 'invalid paid Industrial order')
+      if (s.industrial >= 3 && !recurringOrderReady(world, path) || s.cargoCycles < 10 || h.target !== target || !validInvoice({ coalBriquette: 6 }) || h.elapsedMs > 8000 || h.elapsedMs > 0 && !amount) v.invalid('infrastructure', 'invalid paid Industrial order')
       return
     }
     const project = path === 'eco' ? world.coopProject : path === 'inventor' ? (s.inventor === 0 ? world.experimentProject : world.flightProject) : world.workshopProject
-    if (s[path] >= 3 || h.target !== project?.tiles[0] || project.phase !== 'complete' || !validInvoice(path === 'eco' ? { woodenCrate: 2 } : path === 'inventor' ? { copperCable: 4, electronicCircuit: 2 } : { ironGear: 4 }) || h.elapsedMs > 8000 || h.elapsedMs > 0 && !amount) v.invalid('infrastructure', 'invalid paid development order')
+    if (s[path] >= 3 && !recurringOrderReady(world, path) || h.target !== project?.tiles[0] || project.phase !== 'complete' || !validInvoice(path === 'eco' ? { woodenCrate: 2 } : path === 'inventor' ? { copperCable: 4, electronicCircuit: 2 } : { ironGear: 4 }) || h.elapsedMs > 8000 || h.elapsedMs > 0 && !amount) v.invalid('infrastructure', 'invalid paid development order')
   }
 }

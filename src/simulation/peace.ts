@@ -207,7 +207,7 @@ function spawnGift(world: World): void {
   const roll = random(world), flowers = random(world) < 1 / 3
   const wood = flowers ? 0 : 1 + Math.floor(random(world) * 2)
   // Reuse the position draw so gift rarity does not add a draw to Pete's decision stream.
-  if (world.homestead && roll >= .05) return
+  if (world.homestead && (roll >= .05 || world.homestead.task !== null || projectCandidates(world).some(c => !c.definition.repeatable))) return
   const tile = tiles[Math.floor((world.homestead ? roll * 20 : roll) * tiles.length)]
   s.gifts.push({ id: s.nextId++, tile, kind: flowers ? 'flowers' : 'wood', wood, atMs: world.timeMs })
 }
@@ -261,7 +261,7 @@ function nextActivity(world: World): void {
   }
   if (!committed?.carried && committed?.phase !== 'building' && homesteadDaily(world)) return
   if (world.homestead && random(world) < .5 && advanceHomestead(world, 0, true)) return
-  if (world.homestead && !committed?.carried && committed?.phase !== 'building' && world.flightProject?.phase === 'complete' && world.timeMs >= (world.leisure?.nextFlightAtMs ?? 0) + 120000 && !projectCandidates(world).some(c => !c.definition.repeatable && !['yard', 'run'].includes(c.definition.id))) {
+  if (world.homestead && !committed?.carried && committed?.phase !== 'building' && world.flightProject?.phase === 'complete' && world.timeMs >= (world.leisure?.nextFlightAtMs ?? 0) + ((world.leisure?.practices ?? 0) === 0 ? 0 : 120000) && !projectCandidates(world).some(c => !c.definition.repeatable && !['yard', 'run'].includes(c.definition.id))) {
     const visit = leisureDecision(world)
     if (visit) { if (committed) delete committed.selected; activity(world, visit.activity, 0, visit.destination); return }
   }

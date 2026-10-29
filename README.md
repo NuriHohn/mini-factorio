@@ -29,7 +29,7 @@ Petes Welt keeps new development costs and production within each path: Eco uses
 
 ## Independent Pete and visible supplies
 
-Open [Petes Welt directly](https://nurihohn.github.io/mini-factorio/pete.html) for Pete's own tools and help. The first paid iron-furnace-to-store conveyor can now appear at Craftsman 3 in an iron-only start after his ore miner, before the cargo bicycle. Pete interrupts cosmetic pauses for available material work; gifts and idle bouquets are rarer. Actual stock, power and full buffers still govern every item on the belts. See [earlier visible supply](docs/GAME_DESIGN.md#independent-pete-application-and-earlier-visible-supply) and [application boundaries](docs/ARCHITECTURE.md#pete-and-factory-application-boundaries).
+Open [Petes Welt directly](https://nurihohn.github.io/mini-factorio/pete.html) for Pete's own tools and help. The first paid iron-furnace-to-store conveyor can now appear at Craftsman 3 after his ore miner, with protected production approaches in mixed-resource yards, before the cargo bicycle. Pete interrupts cosmetic pauses for available material work; gifts and idle bouquets are rarer. Actual stock, power and full buffers still govern every item on the belts. See [earlier visible supply](docs/GAME_DESIGN.md#independent-pete-application-and-earlier-visible-supply) and [application boundaries](docs/ARCHITECTURE.md#pete-and-factory-application-boundaries).
 
 ## First factory
 
@@ -161,3 +161,7 @@ Sprints **16.88–16.92** add connection inspection, paid copper/cable logistics
 
 
 Sprints **16.93–16.97** extend the shared transport to mixed circuit ingredients and circuit return, automatic stampfer feeding and a one-way briquette loading chain, plus three visible product-funded Industrial upgrades. Save 51 preserves older worlds and paid work. See [circuit and Industrial logistics](docs/GAME_DESIGN.md#circuit-and-industrial-logistics-sprints-1693-1697).
+
+## Pete work and supply
+
+Petes Welt has German controls and a collapsed **Arbeit und Warenfluss** panel for actual work, connection blockers and destination focus. Earlier paid iron/copper/Eco returns and recurring product-funded orders keep existing lines useful after completion. Gifts wait during active homestead tasks or affordable original construction; sleep, care, real production and full-buffer stops remain. See [work and visible demand](docs/GAME_DESIGN.md#work-and-visible-demand).

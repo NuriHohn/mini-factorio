@@ -32,13 +32,14 @@ export function copperLink(kind: LinkKind): boolean { return kind === 'copper' |
 export function feedLink(kind: LinkKind): boolean { return kind === 'gearFeed' || kind === 'cableFeed' || kind === 'circuitFeed' || kind === 'stampFeed' }
 export function industrialLink(kind: LinkKind): boolean { return kind === 'stampFeed' || kind === 'loadingFeed' || kind === 'loadingReturn' }
 export function ecoLink(kind: LinkKind): boolean { return kind === 'woodReturn' || kind === 'panelReturn' || kind === 'crateReturn' }
-// Earlier mixed-yard returns can enclose future ingredient lanes. Keep their
-// established cargo-stage planning; the first earlier increment is iron-only.
+// Wait for the other offered families' machine footprints and the real copper
+// ingredient lane before enclosing a mixed yard with the first iron return.
 export function earlyIronReturnUnlocked(world: World): boolean {
   const h = world.homestead, paths = world.personality.paths
   return !!h && paths.craftsman.level >= 3 && h.expansion.miner !== null && world.buildings[h.expansion.miner]?.kind === 'miner' &&
-    paths.eco.xp === 0 && paths.inventor.xp === 0 && paths.industrial.xp === 0 &&
-    world.tiles.every(resource => resource === null || resource === 'iron') && !world.buildings.some(b => b?.kind === 'tree')
+    (!world.tiles.includes('copper') || h.infrastructure.links.some(link => link.kind === 'circuitFeed')) &&
+    (!world.tiles.includes('coal') || h.expansion.steamWorkshop !== null) &&
+    (!world.buildings.some(b => b?.kind === 'tree') || h.expansion.assembler !== null)
 }
 export function linkCurrency(kind: LinkKind): 'wood' | 'coal' | 'copperPlate' | 'ironPlate' { return ecoLink(kind) ? 'wood' : industrialLink(kind) ? 'coal' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }
 export function linkCost(kind: LinkKind): number { return industrialLink(kind) || ecoLink(kind) ? 6 : 8 }

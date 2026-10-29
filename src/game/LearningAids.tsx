@@ -1,26 +1,30 @@
+import { useGameText } from './useGameText'
 import { useId, useState } from 'react'
 import { useGameStore } from '../state/gameStore'
 
 export function ProcessCards() {
+  const t = useGameText()
   const { processes } = useGameStore()
   if (!processes.length) return null
-  return <details className="learning-processes" open><summary>How this works</summary>{processes.map(p => <section key={p.title}>
-    <h3>{p.title}</h3><ol className="process-steps">{p.steps.map((step, i) => <li key={step} aria-current={p.active === i ? 'step' : undefined}><span>{step}</span>{i < p.steps.length - 1 && <span aria-hidden="true"> → </span>}</li>)}</ol><p>{p.stock}</p>
+  return <details className="learning-processes" open><summary>{t('How this works')}</summary>{processes.map(p => <section key={t(p.title)}>
+    <h3>{t(p.title)}</h3><ol className="process-steps">{p.steps.map((step, i) => <li key={t(step)} aria-current={p.active === i ? 'step' : undefined}><span>{t(step)}</span>{i < p.steps.length - 1 && <span aria-hidden="true"> → </span>}</li>)}</ol><p>{t(p.stock)}</p>
   </section>)}</details>
 }
 export function MachineHelp() {
+  const t = useGameText()
   const { machineHelp, connectionVisible } = useGameStore()
   if (!machineHelp) return null
-  return <section className="learning-card" aria-label="Machine guidance"><h3>What is happening?</h3><p>{machineHelp.reason}</p><p>{machineHelp.action}</p>{machineHelp.source !== undefined && <button className="save-action" onClick={() => useGameStore.getState().focusPeteProject(machineHelp.source!)}>Quelle zeigen</button>}{machineHelp.target !== undefined && <button className="save-action" onClick={() => useGameStore.getState().focusPeteProject(machineHelp.target!)}>Ziel zeigen</button>}
-    <button className="save-action" aria-pressed={connectionVisible} onClick={() => useGameStore.setState({ connectionVisible: !connectionVisible })}>{connectionVisible ? 'Hide connection' : 'Highlight connection'}</button>
-    {connectionVisible && <p>Amber marks the route; blue marks its source and green its destination when available.</p>}
+  return <section className="learning-card" aria-label={t('Machine guidance')}><h3>{t('What is happening?')}</h3><p>{t(machineHelp.reason)}</p><p>{t(machineHelp.action)}</p>{machineHelp.source !== undefined && <button className="save-action" onClick={() => useGameStore.getState().focusPeteProject(machineHelp.source!)}>Quelle zeigen</button>}{machineHelp.target !== undefined && <button className="save-action" onClick={() => useGameStore.getState().focusPeteProject(machineHelp.target!)}>Ziel zeigen</button>}
+    <button className="save-action" aria-pressed={connectionVisible} onClick={() => useGameStore.setState({ connectionVisible: !connectionVisible })}>{connectionVisible ? t('Hide connection') : t('Highlight connection')}</button>
+    {connectionVisible && <p>{t('Amber marks the route; blue marks its source and green its destination when available.')}</p>}
   </section>
 }
 export function SupplyAssistant() {
+  const t = useGameText()
   const { playMode, supplies, inspected, supplyRequest } = useGameStore()
   const [selected, setSelected] = useState(''), selectId = useId()
   const offer = supplies.find(o => o.id === selected) ?? supplies[0]
-  if (inspected === null || !offer) return <p>No material-funded project is unlocked right now. Pete’s inspection explains prerequisites.</p>
+  if (inspected === null || !offer) return <p>{t('No material-funded project is unlocked right now. Pete’s inspection explains prerequisites.')}</p>
   if (playMode === 'petesWorld') return <section className="learning-card" aria-label="Lager und Projekte"><h3>Material für Petes Projekte</h3>{supplies.map(o => <p key={o.id}>{o.name}: {o.amounts.map(r => `${r.stored}/${r.required} ${r.label}`).join(' · ')}</p>)}<p>Pete holt das Material selbst. Du platzierst nur Ressourcen in seiner Nähe.</p></section>
   return <section className="learning-card" aria-label="Supply assistant"><h3>Supply a project</h3>
     <label htmlFor={selectId}>What would you like to support?</label><select id={selectId} value={offer.id} onChange={e => setSelected(e.target.value)}>{supplies.map(o => <option key={o.id} value={o.id}>{o.name}{o.id === 'yard' || o.id === 'run' ? ' · per missing fence section' : ''}</option>)}</select>

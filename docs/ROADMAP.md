@@ -500,3 +500,18 @@ Final checks and setup-inclusive measurements are recorded in [Development](DEVE
 
 
 Post-16.112 entry correction: the main address and `pete.html` start Pete; `factory.html` retains Factory. Menus no longer offer cross-game creation/loading, and imports are admitted by the active game’s adapter. Shared engine/schema contracts remain as documented in [Architecture](ARCHITECTURE.md#pete-and-factory-application-boundaries).
+
+
+## Sprints 16.113–16.117 — Pete work and visible supply
+
+Implemented under the explicit instruction to implement and merge this five-sprint proposal.
+
+| Sprint | Scope |
+| --- | --- |
+| 16.113 | German Pete controls, menus/options, activity/material/inspection presentation and separate fixed entries; Factory copy retained |
+| 16.114 | Gifts suppressed during active homestead tasks or affordable original building work; existing construction/repair/material priorities, care, sleep and paid boundaries retained |
+| 16.115 | Early iron returns in protected mixed yards, copper-only returns at Inventor 3, and Eco returns after the dock and before the waterwheel; original paid costs, quotas and physical fallback retained |
+| 16.116 | Repeated, material-funded supply at completed existing path buildings, one-minute post-order opportunity, bounded three-stage completion and no repeat furnishing reward |
+| 16.117 | Collapsed current-work/real-connection diagnostics with target focus, idle-arm power explanation correction, strengthened raw-resource long-game/save/repair acceptance and release checks |
+
+[Game design](GAME_DESIGN.md#work-and-visible-demand) owns exact eligibility, invoices, timing and legitimate stops. [Architecture](ARCHITECTURE.md#pete-work-presentation-and-recurring-demand) owns presentation/projection and persistence boundaries. No additional level, building, dependency, production recipe or separate repository is introduced. Save 53 remains current. Native mobile/Safari verification remains an explicit limitation; available browser checks and final validation are recorded in Development.

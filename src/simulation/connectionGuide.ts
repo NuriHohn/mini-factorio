@@ -33,7 +33,7 @@ export function connectionGuide(world: World, index: number): { reason: string; 
   else if (stock && !available.some(item => infrastructurePickupAllowed(world, armPart.tile, item))) reason = link.kind === 'stampFeed' || link.kind === 'loadingFeed' || link.kind === 'loadingReturn' ? 'Brennstoffreserve oder Vorratsziel hat Vorrang; vorhandene Fracht bleibt erhalten.' : 'Vorratsziel erreicht oder Zutaten für andere Projekte reserviert.'
   else if (link.receiver !== undefined && world.buildings[link.receiver] && !canReceive(world.buildings[link.receiver]!, moving, tail.direction)) reason = 'Der gemeinsam genutzte Lagerzulauf wartet auf freien Platz.'
   else if (!canReceive(target, moving, tail.direction)) reason = 'Das Ziel kann derzeit nichts annehmen: Bestand, Rezept oder Eingang prüfen.'
-  else if (arm?.kind === 'inserter' && (world.power?.consumers[armPart.tile]?.speedFraction ?? 0) < 1) reason = 'Der Greifer erhält weniger als seine benötigte Leistung und wartet oder arbeitet langsamer.'
+  else if (arm?.kind === 'inserter' && (world.power?.consumers[armPart.tile]?.requestedKw ?? 0) > 0 && (world.power?.consumers[armPart.tile]?.speedFraction ?? 0) < 1) reason = 'Der Greifer erhält weniger als seine benötigte Leistung und wartet oder arbeitet langsamer.'
   return { reason, action, source: link.source, target: link.target, tiles: [link.source, ...link.parts.map(p => p.tile), ...(link.receiver === undefined ? [] : [link.receiver]), link.target] }
 }
 export function loadingGuide(world: World, index: number) {

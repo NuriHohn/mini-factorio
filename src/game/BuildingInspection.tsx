@@ -1,3 +1,5 @@
+import { ACTIVITY_NAMES } from '../simulation/peteStatus'
+import { useGameText } from './useGameText'
 import { PeteInspection } from './PeteInspection'
 import { PersonalityOverview } from './PersonalityOverview'
 import { RecipeAmounts } from './InventoryView'
@@ -12,53 +14,56 @@ import { CraftingInspector } from './CraftingInspector'
 import { inventoryTotal, ITEM_DEFINITIONS } from '../simulation/items'
 import { MachineHelp, ProcessCards, SupplyAssistant } from './LearningAids'
 export function BuildingInspection() {
+  const t = useGameText()
   const { playMode, peteInspection, inspected, inspection, requestRecipe, requestRelease } = useGameStore()
   const panel = useRef<HTMLElement>(null)
   useEffect(() => { if (panel.current) panel.current.scrollTop = 0 }, [inspected])
   if (peteInspection) return <PeteInspection status={peteInspection} />
   if (!inspection) return null
   const summary = inspectionSummary(inspection)
-  return <aside ref={panel} className="building-inspection" aria-label="Selected building">
-    <button className="panel-dismiss" aria-label="Close building inspection" onClick={() => useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null })}>×</button>
-    <section className="inspection" aria-label="Building inspection">
+  const homeActivity = inspection.kind === 'treehouse' && playMode === 'petesWorld'
+    ? Object.entries(ACTIVITY_NAMES).find(([id]) => id === inspection.activity)?.[1] ?? inspection.activity : null
+  return <aside ref={panel} className="building-inspection" aria-label={t('Selected building')}>
+    <button className="panel-dismiss" aria-label={t('Close building inspection')} onClick={() => useGameStore.setState({ inspected: null, inspection: null, recipeRequest: null, releaseRequest: null })}>×</button>
+    <section className="inspection" aria-label={t('Building inspection')}>
       <div className="inspection-summary">
-        <h2><span aria-hidden="true">{summary.icon}</span> {summary.name}</h2>
-        <p>{summary.description}</p><strong role="status">{summary.state}</strong>
-        {summary.power && <p>Power: {summary.power}</p>}
+        <h2><span aria-hidden="true">{summary.icon}</span> {t(summary.name)}</h2>
+        <p>{t(summary.description)}</p><strong role="status">{t(summary.state)}</strong>
+        {summary.power && <p>{t('Power:')} {t(summary.power)}</p>}
         <MachineHelp /><ProcessCards />
         {playMode === 'petesWorld' && <p className="inspection-note">Abriss über das Werkzeug: Inhalt geht ohne Erstattung verloren. Pete kann eigene fehlende Teile mit neuen Materialien wieder aufbauen; bereits getragenes Material, andere Projekte und bisherige Belohnungen bleiben erhalten.</p>}
         {inspection.kind === 'sprinkler' && <><p>Wasserspiel: 3 Felder · 5 kW · {(inspection.manualCooldownMs ?? 0) > 0 ? `${((inspection.manualCooldownMs ?? 0) / 1000).toFixed(1)} s Pause` : 'bereit bei voller Stromversorgung'}</p><button className="building" onClick={() => useGameStore.getState().beginSpray()}>Mit Wasser spritzen</button></>}
         {inspection.kind === 'supplyCrate' && <>
           <SupplyAssistant />
-          {inspection.projects?.map(project => <p key={project} className="inspection-note">{project}</p>)}
+          {inspection.projects?.map(project => <p key={project} className="inspection-note">{t(project)}</p>)}
           {(inspection.storeTier === undefined || !inspection.wood || inventoryTotal(inspection.inventory) > 0) && <InventoryView inventory={inspection.inventory} showAll={inspection.storeTier === undefined} />}
-          <div className="stats"><span>{inspection.storeTier === undefined ? 'Supplied Wood' : 'Holz im Materiallager'}</span><b>{inspection.wood}</b></div>
+          <div className="stats"><span>{inspection.storeTier === undefined ? t('Supplied Wood') : 'Holz im Materiallager'}</span><b>{inspection.wood}</b></div>
         </>}
-        {inspection.kind === 'peteTreasure' && <div className="treasure-collection">{inspection.treasures.map(t => <div key={t.id}><strong>{t.icon} {t.label} · {t.count}</strong><p>{t.comment}</p></div>)}{inspection.carrying && <p>Pete is bringing another treasure home.</p>}</div>}
+        {inspection.kind === 'peteTreasure' && <div className="treasure-collection">{inspection.treasures.map(treasure => <div key={treasure.id}><strong>{treasure.icon} {t(treasure.label)} · {treasure.count}</strong><p>{t(treasure.comment)}</p></div>)}{inspection.carrying && <p>{t('Pete is bringing another treasure home.')}</p>}</div>}
         {inspection.kind === 'treehouse' && <PersonalityOverview personality={inspection.personality} />}
-        {inspection.kind === 'peteGarden' && <p>Chicken feed: {inspection.feed ?? 0}/4 · Garden care grows one portion. Pete carries it to the coop.</p>}
-        {inspection.kind === 'peteCoop' && <p>{inspection.adults} chickens · {inspection.chicks} chicks · {inspection.inside} inside{inspection.bedtime ? ' · Bedtime with Pete' : ''}{inspection.covered ? ' · Protective cover on' : ''} · {inspection.run} · {(inspection.fedUntilMs ?? 0) > 0 ? `Fed · next meal in ${Math.ceil(inspection.fedUntilMs! / 1000)}s` : 'Ready for feeding'}</p>}
-        {inspection.kind === 'belt' && <p>Output: {inspection.direction} · {inspection.item ? ITEM_DEFINITIONS[inspection.item].label : 'No item'}</p>}
+        {inspection.kind === 'peteGarden' && <p>{t('Chicken feed:')} {inspection.feed ?? 0}{t('/4 · Garden care grows one portion. Pete carries it to the coop.')}</p>}
+        {inspection.kind === 'peteCoop' && <p>{inspection.adults} {t('chickens ·')} {inspection.chicks} {t('chicks ·')} {inspection.inside} {t('inside')}{inspection.bedtime ? t(' · Bedtime with Pete') : ''}{inspection.covered ? t(' · Protective cover on') : ''} · {t(inspection.run ?? '')} · {(inspection.fedUntilMs ?? 0) > 0 ? t(`Fed · next meal in ${Math.ceil(inspection.fedUntilMs! / 1000)}s`) : t('Ready for feeding')}</p>}
+        {inspection.kind === 'belt' && <p>{t('Output:')} {t(inspection.direction ?? '')} · {inspection.item ? ITEM_DEFINITIONS[inspection.item].label : 'No item'}</p>}
         {inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}
       </div>
-      <details className="inspection-technical" key={inspected}><summary>Details and settings</summary>
+      <details className="inspection-technical" key={inspected}><summary>{t('Details and settings')}</summary>
       {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
-      {inspection.kind === 'peteGate' ? <p className="inspection-note">Pete builds this once for 3 supplied Wood after his yard. It opens from either side and closes after he passes. Chickens and chicks never use this doorway. Demolition has no refund.</p> : inspection.kind === 'peteCampfire' ? <p className="inspection-note">Pete builds this once after his coop, using 5 supplied Wood. Cooking and eating takes eight seconds and uses one collected egg only when finished. No fuel, buffs or production.</p> : inspection.kind === 'peteCoop' ? <p className="inspection-note">Pete collects reachable eggs while peaceful. Up to four eggs can wait near the coop. Two chicks arrive after 2½ simulation minutes; they stay small and never lay eggs. Collected eggs can be cooked at Pete’s campfire; no factory items or trade.</p> : inspection.kind === 'supplyCrate' && inspection.storeTier !== undefined ? <p className="inspection-note">Allgemeines Materiallager · {inspection.capacity} Plätze. Pete bringt Material her und entnimmt es für seine Projekte. Die sichtbaren Stapel zeigen bis zu drei Materialarten. Überdachung: 8 Holzplatten ab Öko-Stufe 3. Regale: 4 Holzkisten ab Öko-Stufe 4, insgesamt 600 Plätze.</p> : inspection.kind === 'supplyCrate' ? <p className="inspection-note">6 Wood · {inspection.capacity} items total · No power. Input only; full crates stop incoming items. Click the Wood icon above the crate to unload 6 Wood. Pete may collect supplied Wood for his secret project. Other materials stay stored. Demolition discards contents; no Wood refund.</p> : inspection.kind === 'fishingDock' ? <>
-        <div className="stats"><span>Fishing side</span><b>{inspection.direction}</b></div>
+      {inspection.kind === 'peteGate' ? <p className="inspection-note">{t('Pete builds this once for 3 supplied Wood after his yard. It opens from either side and closes after he passes. Chickens and chicks never use this doorway. Demolition has no refund.')}</p> : inspection.kind === 'peteCampfire' ? <p className="inspection-note">{t('Pete builds this once after his coop, using 5 supplied Wood. Cooking and eating takes eight seconds and uses one collected egg only when finished. No fuel, buffs or production.')}</p> : inspection.kind === 'peteCoop' ? <p className="inspection-note">{t('Pete collects reachable eggs while peaceful. Up to four eggs can wait near the coop. Two chicks arrive after 2½ simulation minutes; they stay small and never lay eggs. Collected eggs can be cooked at Pete’s campfire; no factory items or trade.')}</p> : inspection.kind === 'supplyCrate' && inspection.storeTier !== undefined ? <p className="inspection-note">Allgemeines Materiallager · {inspection.capacity} Plätze. Pete bringt Material her und entnimmt es für seine Projekte. Die sichtbaren Stapel zeigen bis zu drei Materialarten. Überdachung: 8 Holzplatten ab Öko-Stufe 3. Regale: 4 Holzkisten ab Öko-Stufe 4, insgesamt 600 Plätze.</p> : inspection.kind === 'supplyCrate' ? <p className="inspection-note">6 Wood · {inspection.capacity} items total · No power. Input only; full crates stop incoming items. Click the Wood icon above the crate to unload 6 Wood. Pete may collect supplied Wood for his secret project. Other materials stay stored. Demolition discards contents; no Wood refund.</p> : inspection.kind === 'fishingDock' ? <>
+        <div className="stats"><span>{t('Fishing side')}</span><b>{t(inspection.direction ?? '')}</b></div>
         <p className="inspection-note">8 Wood · No electricity or item production. Keep the rear land approach clear. Pete visits only while peaceful.</p>
       </> : inspection.kind === 'treehouse' ? <>
-        <h2>Pete’s Treehouse</h2>
-        <p className="inspection-note">♥ Pete is peaceful · {inspection.activity}. {inspection.gifts} gifts nearby. Escape, then click a gift to collect it.</p>
-        <p className="inspection-note">Built with 20 Wood, no power needed. Demolition returns Pete to mischief; no Wood refund. Revenge progress is preserved.</p>
+        <h2>{t('Pete’s Treehouse')}</h2>
+        <p className="inspection-note">{t('♥ Pete is peaceful ·')} {t(homeActivity ?? inspection.activity)}. {inspection.gifts} {t('gifts nearby. Escape, then click a gift to collect it.')}</p>
+        <p className="inspection-note">{t('Built with 20 Wood, no power needed. Demolition returns Pete to mischief; no Wood refund. Revenge progress is preserved.')}</p>
       </> : inspection.kind === 'tree' ? <>
-        <h2>{inspection.species[0].toUpperCase() + inspection.species.slice(1)}</h2>
-        <div className="stats"><span>Growth stage</span><b>{inspection.stage}</b></div>
-        <div className="stats"><span>Age</span><b>{(inspection.ageMs / 60000).toFixed(1)} min</b></div>
-        <div className="stats"><span>Axe yield</span><b>{inspection.wood} Wood</b></div>
-        <p className="inspection-note">Young after 2 minutes; mature after 5. Use Nature → Axe to chop. The ore beneath stays intact.</p>
+        <h2>{t(inspection.species[0].toUpperCase() + inspection.species.slice(1))}</h2>
+        <div className="stats"><span>{t('Growth stage')}</span><b>{t(inspection.stage)}</b></div>
+        <div className="stats"><span>{t('Age')}</span><b>{(inspection.ageMs / 60000).toFixed(1)} min</b></div>
+        <div className="stats"><span>{t('Axe yield')}</span><b>{inspection.wood} {t('Wood')}</b></div>
+        <p className="inspection-note">{t('Young after 2 minutes; mature after 5. Use Nature → Axe to chop. The ore beneath stays intact.')}</p>
       </> : inspection.kind === 'splitter' ? <SplitterInspector inspection={inspection} /> : inspection.kind === 'prison' ? <>
         <h2>Pete’s prison</h2>
-        <div className="stats"><span>Occupant</span><b>{inspection.occupied ? 'Angry Pete' : 'Empty'}</b></div>
+        <div className="stats"><span>Occupant</span><b>{inspection.occupied ? 'Angry Pete' : t('Empty')}</b></div>
         <div className="stats"><span>Imprisonment elapsed</span><b>{(inspection.elapsedMs / 1000).toFixed(2)} s</b></div>
         <div className="stats"><span>Automatic escape in</span><b>{(inspection.remainingMs / 1000).toFixed(2)} s</b></div>
         <button className="building" disabled={!inspection.occupied} onClick={requestRelease}>Release Pete</button>
@@ -66,39 +71,39 @@ export function BuildingInspection() {
       </> : inspection.kind === 'sprinkler' ? <>
         <h2>Anti-Goblin Sprinkler</h2>
         <div className="stats"><span>State</span><b>{inspection.status}</b></div>
-        <div className="stats"><span>Detection radius</span><b>{inspection.radius} tiles</b></div>
+        <div className="stats"><span>Detection radius</span><b>{inspection.radius} {t('tiles')}</b></div>
         <div className="stats"><span>Power required</span><b>5 kW</b></div>
         <div className="stats"><span>Cooldown remaining</span><b>{(inspection.cooldownMs / 1000).toFixed(2)} s</b></div>
         <div className="stats"><span>Successful sprays</span><b>{inspection.sprays}</b></div>
         <p className="inspection-note">Requires full power. Spray pauses during shortages. Police and release grace take priority. No water supply needed.</p>
       </> : inspection.kind === 'radar' ? <>
         <h2>Radar trap</h2>
-        <div className="stats"><span>Detection radius</span><b>{inspection.radius} tiles</b></div>
+        <div className="stats"><span>Detection radius</span><b>{inspection.radius} {t('tiles')}</b></div>
         <div className="stats"><span>Radar</span><b>{inspection.active ? 'Active' : 'Inactive · needs full 5 kW'}</b></div>
         <div className="stats"><span>Police operation</span><b>{inspection.operation}</b></div>
         <p className="inspection-note">One police operation at a time. {inspection.prison ? `Prison at ${inspection.prison.x}, ${inspection.prison.y}.` : 'A prison appears at a reachable map edge on first dispatch.'}</p>
-      </> : inspection.kind === 'forester' ? <><p>{inspection.details}</p><InventoryView inventory={inspection.inventory} /><progress aria-label="Felling progress" value={inspection.progress} max={1} /></> : inspection.kind === 'storage' || inspection.kind === 'fuelDepot' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
-        <div className="stats"><span>Extracting</span><b>{inspection.resource ? ITEM_DEFINITIONS[inspection.resource].label : 'No deposit'}</b></div>
-        <div className="stats"><span>Mining progress</span><b>{Math.round(inspection.progress * 100)}%</b></div>
-        <div className="stats"><span>Output buffer</span><b>{inspection.buffered ? '1 ore · blocked' : 'Empty'}</b></div>
+      </> : inspection.kind === 'forester' ? <><p>{t(inspection.details)}</p><InventoryView inventory={inspection.inventory} /><progress aria-label="Felling progress" value={inspection.progress} max={1} /></> : inspection.kind === 'storage' || inspection.kind === 'fuelDepot' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
+        <div className="stats"><span>{t('Extracting')}</span><b>{inspection.resource ? t(ITEM_DEFINITIONS[inspection.resource].label) : t('No deposit')}</b></div>
+        <div className="stats"><span>{t('Mining progress')}</span><b>{Math.round(inspection.progress * 100)}%</b></div>
+        <div className="stats"><span>{t('Output buffer')}</span><b>{inspection.buffered ? '1 ore · blocked' : t('Empty')}</b></div>
       </> : inspection.kind === 'steamWorkshop' || inspection.kind === 'steamHoist' ? <>
         <div className="stats"><span>Abgeschlossene Arbeitszyklen</span><b>{inspection.cycles}</b></div>
         <progress aria-label="Dampfarbeit" value={inspection.progress} max={1} />
         <p className="inspection-note">{Math.round(inspection.steamFraction * 100)} % Dampfanteil im Netz. Arbeit pausiert bei Brennstoffmangel, Sabotage oder fehlender Verbindung. Werkstatt und Aufzug verwenden ihre Prüflast wieder und erzeugen keine Materialien.</p>
       </> : inspection.kind === 'steamEngine' ? <>
-        <div className="stats"><span>Coal</span><b>{inspection.fuel} Kohle + {inspection.briquettes} Briketts / 6</b></div>
-        <div className="stats"><span>Completed shaft cycles</span><b>{inspection.cycles}</b></div>
+        <div className="stats"><span>{t('Coal')}</span><b>{inspection.fuel} Kohle + {inspection.briquettes} Briketts / 6</b></div>
+        <div className="stats"><span>{t('Completed shaft cycles')}</span><b>{inspection.cycles}</b></div>
         <progress aria-label="Steam work" value={inspection.progress} max={1} />
-        <div className="stats"><span>Actual electricity / capacity</span><b>{inspection.actualKw.toFixed(1)} / {inspection.capacityKw} kW</b></div>
-        <p className="inspection-note">1 coal = 10 seconds, 1 briquette = 20 seconds of shaft work. Closed water circuit; no water placement needed. A pole exports power; the flywheel also runs its test load without one.</p>
+        <div className="stats"><span>{t('Actual electricity / capacity')}</span><b>{inspection.actualKw.toFixed(1)} / {inspection.capacityKw} kW</b></div>
+        <p className="inspection-note">{t('1 coal = 10 seconds, 1 briquette = 20 seconds of shaft work. Closed water circuit; no water placement needed. A pole exports power; the flywheel also runs its test load without one.')}</p>
       </> : inspection.kind === 'generator' || inspection.kind === 'waterwheel' ? <>
-        <div className="stats"><span>Generation capacity</span><b>{inspection.capacityKw} kW</b></div>
-        <div className="stats"><span>Actual generation</span><b>{inspection.actualKw.toFixed(1)} kW</b></div>
-        <p className="inspection-note">No fuel needed. Requires a pole within 3 tiles.{inspection.kind === 'waterwheel' && ` Facing ${inspection.direction} · ${inspection.waterAvailable ? 'water available' : 'restore adjacent water'}.`}</p>
+        <div className="stats"><span>{t('Generation capacity')}</span><b>{inspection.capacityKw} kW</b></div>
+        <div className="stats"><span>{t('Actual generation')}</span><b>{inspection.actualKw.toFixed(1)} kW</b></div>
+        <p className="inspection-note">{t('No fuel needed. Requires a pole within 3 tiles.')}{inspection.kind === 'waterwheel' && ` Facing ${t(inspection.direction ?? '')} · ${inspection.waterAvailable ? 'water available' : 'restore adjacent water'}.`}</p>
       </> : inspection.kind === 'powerPole' ? <>
-        <div className="stats"><span>Coverage radius</span><b>{inspection.coverageRadius} tiles</b></div>
-        <div className="stats"><span>Machines in radius</span><b>{inspection.coveredMachines}</b></div>
-        <p className="inspection-note">Highlighted machines are in this pole’s radius. Amber highlights belong to another network.</p>
+        <div className="stats"><span>{t('Coverage radius')}</span><b>{inspection.coverageRadius} {t('tiles')}</b></div>
+        <div className="stats"><span>{t('Machines in radius')}</span><b>{inspection.coveredMachines}</b></div>
+        <p className="inspection-note">{t('Highlighted machines are in this pole’s radius. Amber highlights belong to another network.')}</p>
       </> : null}
       </details>
     </section>

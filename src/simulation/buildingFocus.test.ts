@@ -33,6 +33,14 @@ it('starts affordable construction from a cosmetic pause', () => {
   advancePeace(w, 0)
   expect(w.peace.activity).toBe('project'); expect(currentProject(w)?.kind).toBe('workshop')
 })
+it('skips an otherwise eligible gift while an affordable original project awaits work', () => {
+  const quiet = waiting(), busy = buildable(3600000)
+  for (const w of [quiet, busy]) { w.peace.seed = 1972; w.peace.nextGiftAtMs = 50; w.timeMs = 50; advancePeace(w, 50) }
+  expect(quiet.peace.gifts).toHaveLength(1)
+  expect(busy.peace.gifts).toHaveLength(0)
+  expect(busy.peace.activity).toBe('project')
+  expect(currentProject(busy)?.kind).toBe('workshop')
+})
 it('rechecks construction reserves before every unpaid fence section while retaining paid work', () => {
   const w = waiting(), h = w.homestead!
   h.store = 738; h.expansion.assembler = 658; w.personality.paths.eco.level = 4
