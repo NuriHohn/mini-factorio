@@ -1,5 +1,5 @@
 import { recurringOrderReady } from './infrastructure'
-import { expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { prioritizeProject } from '../pete/priorities'
 import { advancePetesWorld } from '../pete/simulation'
 import { createPetesWorld, placeIron, placeCopper } from './petesWorld'
@@ -47,28 +47,44 @@ it('keeps the wish and exact continuation across saves, validates it and upgrade
   expect(upgraded.homestead!.priority).toBeNull()
   expect(upgraded.homestead!.nextMealAtMs).toBe((Math.floor(upgraded.timeMs / 600000) + 1) * 600000)
 })
-it('builds from raw iron at normal speed and repeatedly consumes and replaces real conveyor products', () => {
-  const w = createPetesWorld(), milestones: Record<string, number> = {}
-  expect(placeIron(w, 26, 18)).toBeNull()
-  expect(prioritizeProject(w, 'workshop')).toBe(true)
-  until(w, () => materialStore(w) !== null, 300000); milestones.store = w.timeMs
-  until(w, () => w.homestead!.expansion.furnace !== null, 600000 - w.timeMs); milestones.machine = w.timeMs
-  until(w, () => w.workshopProject?.phase === 'complete', 600000 - w.timeMs); milestones.project = w.timeMs
-  expect(peteStatus(w).projects.find(p => p.id === 'workshop')?.completed).toBe(true)
-  expect(prioritizeProject(w, 'veranda')).toBe(true)
-  const demand = projectDemand(w, materialStore(w)!)!
-  expect(demand.id).toBe('veranda'); expect(demand.costs.ironPlate).toBeGreaterThan(0)
-  until(w, () => w.homestead!.infrastructure.links.some(link => link.kind === 'iron'), 900000 - w.timeMs); milestones.return = w.timeMs
-  until(w, () => recurringOrderReady(w, 'craftsman'), 7200000)
-  const orders = w.homestead!.infrastructure.nextOrderAtMs, produced = w.produced.ironGear
-  let moving = 0
-  for (let elapsed = 0; elapsed < 600000; elapsed += 50) {
-    advancePetesWorld(w, 50)
-    if (elapsed % 1000 === 0 && w.homestead!.infrastructure.links.some(link => link.parts.some(p => { const b = w.buildings[p.tile]; return b?.kind === 'belt' && b.item !== null }))) moving++
-  }
-  expect(w.produced.ironGear).toBeGreaterThan(produced)
-  expect(w.homestead!.infrastructure.nextOrderAtMs).toBeGreaterThan(orders)
-  expect(moving).toBeGreaterThan(10)
-  expect(w.homestead!.infrastructure.craftsman).toBe(3)
-  console.info('Normal-speed raw iron milestones (simulation seconds)', Object.fromEntries(Object.entries(milestones).map(([key, ms]) => [key, ms / 1000])))
-}, 60000)
+describe('raw priority-driven production with bounded real preparation phases', () => {
+  let w: World, completionDeadline = 0, orders = 0, produced = 0, moving = 0
+  const milestones: Record<string, number> = {}
+  beforeAll(() => {
+    w = createPetesWorld()
+    expect(placeIron(w, 26, 18)).toBeNull()
+    expect(prioritizeProject(w, 'workshop')).toBe(true)
+    until(w, () => materialStore(w) !== null, 300000); milestones.store = w.timeMs
+  }, 60000)
+  beforeAll(() => { until(w, () => w.homestead!.expansion.furnace !== null, 600000 - w.timeMs); milestones.machine = w.timeMs }, 60000)
+  beforeAll(() => {
+    until(w, () => w.workshopProject?.phase === 'complete', 600000 - w.timeMs); milestones.project = w.timeMs
+    expect(peteStatus(w).projects.find(p => p.id === 'workshop')?.completed).toBe(true)
+    expect(prioritizeProject(w, 'veranda')).toBe(true)
+    const demand = projectDemand(w, materialStore(w)!)!
+    expect(demand.id).toBe('veranda'); expect(demand.costs.ironPlate).toBeGreaterThan(0)
+  }, 60000)
+  beforeAll(() => {
+    until(w, () => w.homestead!.infrastructure.links.some(link => link.kind === 'iron'), 900000 - w.timeMs); milestones.return = w.timeMs
+    completionDeadline = w.timeMs + 7200000
+  }, 60000)
+  // Same world, seed, 50 ms steps and original total completion bound. Only the
+  // wall-clock preparation is divided at real milestones for slower CI runners.
+  beforeAll(() => { until(w, () => w.homestead!.cargoBicycle, completionDeadline - w.timeMs) }, 60000)
+  beforeAll(() => { until(w, () => w.homestead!.infrastructure.craftsman === 3, completionDeadline - w.timeMs) }, 60000)
+  beforeAll(() => { until(w, () => recurringOrderReady(w, 'craftsman'), completionDeadline - w.timeMs) }, 60000)
+  beforeAll(() => {
+    orders = w.homestead!.infrastructure.nextOrderAtMs; produced = w.produced.ironGear
+    for (let elapsed = 0; elapsed < 600000; elapsed += 50) {
+      advancePetesWorld(w, 50)
+      if (elapsed % 1000 === 0 && w.homestead!.infrastructure.links.some(link => link.parts.some(p => { const b = w.buildings[p.tile]; return b?.kind === 'belt' && b.item !== null }))) moving++
+    }
+  }, 60000)
+  it('builds from raw iron at normal speed and repeatedly consumes and replaces real conveyor products', () => {
+    expect(w.produced.ironGear).toBeGreaterThan(produced)
+    expect(w.homestead!.infrastructure.nextOrderAtMs).toBeGreaterThan(orders)
+    expect(moving).toBeGreaterThan(10)
+    expect(w.homestead!.infrastructure.craftsman).toBe(3)
+    console.info('Normal-speed raw iron milestones (simulation seconds)', Object.fromEntries(Object.entries(milestones).map(([key, ms]) => [key, ms / 1000])))
+  }, 60000)
+})
