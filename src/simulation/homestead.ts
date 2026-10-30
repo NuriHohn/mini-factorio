@@ -27,6 +27,8 @@ export const LATER_HOME_TASKS = ['buildLoading', 'fetchLoading', 'feedLoading', 
 export const HOME_TASKS = ['buildPavilion', ...LATER_HOME_TASKS, ...INFRASTRUCTURE_TASKS, ...NEW_HOME_TASKS, 'takeCoal', 'fetchStamp', 'feedStamp', 'takeBriquettes', 'fetchFuel', 'storeFuel', 'gather', 'buildStore', 'buildMill', 'fetchWood', 'feedMill', 'takePanels', 'returnStock', 'expandStore', 'mineIron', 'buildChain', 'improve', 'fetchIron', 'feedIron', 'takeIron', 'takeCrates', 'mineCopper', 'fetchCopper', 'feedCopper', 'takeCopper', 'fetchCable', 'feedCable', 'takeCable', 'fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam'] as const
 export type HomeTask = typeof HOME_TASKS[number]
 export interface Homestead {
+  priority: string | null
+  nextMealAtMs: number
   store: number | null
   cargoBicycle: boolean
   bikeTile: number | null
@@ -45,7 +47,7 @@ export interface Homestead {
 }
 export const HOMESTEAD_REST_INTERVAL_MS = 360000
 export function createHomestead(): Homestead {
-  return { infrastructure: createInfrastructure(), store: null, cargoBicycle: false, bikeTile: null, waterworks: { plan: null, bridges: [], dock: null, nextVisitAtMs: 0, preferBoat: true }, task: null, target: null, treeBornAtMs: null, carried: emptyInventory(), elapsedMs: 0, nextAtMs: 0, nextRestAtMs: HOMESTEAD_REST_INTERVAL_MS, millAnchor: null, millBuilt: 0, expansion: createExpansion() }
+  return { priority: null, nextMealAtMs: 600000, infrastructure: createInfrastructure(), store: null, cargoBicycle: false, bikeTile: null, waterworks: { plan: null, bridges: [], dock: null, nextVisitAtMs: 0, preferBoat: true }, task: null, target: null, treeBornAtMs: null, carried: emptyInventory(), elapsedMs: 0, nextAtMs: 0, nextRestAtMs: HOMESTEAD_REST_INTERVAL_MS, millAnchor: null, millBuilt: 0, expansion: createExpansion() }
 }
 export function materialStore(world: World): SupplyCrate | null {
   const tile = world.homestead?.store, b = tile === null || tile === undefined ? null : world.buildings[tile]
@@ -111,7 +113,7 @@ export function begin(world: World, task: HomeTask, target: number | null): void
 export function finish(world: World): void {
   const s = world.homestead!, p = world.pete
   if (s.cargoBicycle && s.bikeTile === null) s.bikeTile = p.tile
-  s.task = null; s.target = null; s.elapsedMs = 0; s.treeBornAtMs = null; s.nextAtMs = world.timeMs + 5000
+  s.task = null; s.target = null; s.elapsedMs = 0; s.treeBornAtMs = null; s.nextAtMs = world.timeMs + 1000
   Object.assign(p, { next: null, travelMs: 0, path: [], pathRevision: -1, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
   Object.assign(world.peace, { activity: 'walking', sinceMs: world.timeMs, untilMs: world.timeMs, destination: null })
 }
@@ -216,7 +218,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
       if (s.target === null && !s.carried.wood) { for (const path of preferredPaths(world)) if (path !== 'eco' && chooseExpansion(world, path)) return true }
     }
     if (!arrived(world, s.target, delta)) return true
-    s.elapsedMs = Math.min(6000, s.elapsedMs + delta)
+    s.elapsedMs = Math.min(6000, s.elapsedMs + delta * 2)
     if (s.elapsedMs < 6000 || s.target === null) return true
     const result = chopTree(world, s.target % SIZE, Math.floor(s.target / SIZE), false)
     if (result) s.carried.wood += result.wood
@@ -227,7 +229,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
   const store = materialStore(world)
   if (s.task === 'buildStore') {
     if (s.target === null || !freeSite(world, [s.target]) || !arrived(world, s.target, delta, true)) return true
-    s.elapsedMs = Math.min(6000, s.elapsedMs + delta)
+    s.elapsedMs = Math.min(6000, s.elapsedMs + delta * 2)
     if (s.elapsedMs < 6000 || Math.max(s.carried.wood, s.carried.iron, s.carried.copper, s.carried.coal) < 6) return true
     const tile = s.target
     world.buildings[tile] = { kind: 'supplyCrate', x: tile % SIZE, y: Math.floor(tile / SIZE), wood: 0, inventory: emptyInventory(), storeTier: 0 }
@@ -245,7 +247,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     if (s.millAnchor === null) return true
     const step = handMillLayout(s.millAnchor)[s.millBuilt]
     if (!step || world.buildings[step.tile] || world.water[step.tile] || !arrived(world, step.tile, delta, true) || !freeSite(world, [step.tile])) return true
-    s.elapsedMs = Math.min(4000, s.elapsedMs + delta)
+    s.elapsedMs = Math.min(4000, s.elapsedMs + delta * 2)
     if (s.elapsedMs < 4000 || !placeBuilding(world, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, 'east')) return true
     s.millBuilt++; s.elapsedMs = 0
     if (s.millBuilt === 3) { s.carried.wood = 0; awardHomesteadOnce(world, 'mill', { path: 'eco', xp: 12 }); finish(world) }
@@ -279,7 +281,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
       if (store.inventory.woodPanel < 8 || store.storeTier !== 0) { finish(world); return true }
       store.inventory.woodPanel -= 8; s.carried.woodPanel = 8
     }
-    s.elapsedMs = Math.min(8000, s.elapsedMs + delta)
+    s.elapsedMs = Math.min(8000, s.elapsedMs + delta * 2)
     if (s.elapsedMs === 8000) { store.storeTier = 1; s.carried.woodPanel = 0; awardHomesteadOnce(world, 'roof', { path: 'eco', xp: 8 }); finish(world) }
   }
   return true

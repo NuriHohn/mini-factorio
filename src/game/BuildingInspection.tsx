@@ -1,3 +1,4 @@
+import { MaterialStore } from './MaterialStore'
 import { ACTIVITY_NAMES } from '../simulation/peteStatus'
 import { useGameText } from './useGameText'
 import { PeteInspection } from './PeteInspection'
@@ -21,6 +22,7 @@ export function BuildingInspection() {
   if (peteInspection) return <PeteInspection status={peteInspection} />
   if (!inspection) return null
   const summary = inspectionSummary(inspection)
+  const compactStore = playMode === 'petesWorld' && inspection.kind === 'supplyCrate' && inspection.storeTier !== undefined
   const homeActivity = inspection.kind === 'treehouse' && playMode === 'petesWorld'
     ? Object.entries(ACTIVITY_NAMES).find(([id]) => id === inspection.activity)?.[1] ?? inspection.activity : null
   return <aside ref={panel} className="building-inspection" aria-label={t('Selected building')}>
@@ -28,16 +30,17 @@ export function BuildingInspection() {
     <section className="inspection" aria-label={t('Building inspection')}>
       <div className="inspection-summary">
         <h2><span aria-hidden="true">{summary.icon}</span> {t(summary.name)}</h2>
-        <p>{t(summary.description)}</p><strong role="status">{t(summary.state)}</strong>
+        {!compactStore && <><p>{t(summary.description)}</p><strong role="status">{t(summary.state)}</strong></>}
         {summary.power && <p>{t('Power:')} {t(summary.power)}</p>}
-        <MachineHelp /><ProcessCards />
-        {playMode === 'petesWorld' && <p className="inspection-note">Abriss über das Werkzeug: Inhalt geht ohne Erstattung verloren. Pete kann eigene fehlende Teile mit neuen Materialien wieder aufbauen; bereits getragenes Material, andere Projekte und bisherige Belohnungen bleiben erhalten.</p>}
+        {!(playMode === 'petesWorld' && inspection.kind === 'supplyCrate') && <><MachineHelp /><ProcessCards /></>}
+        {playMode === 'petesWorld' && inspection.kind !== 'supplyCrate' && <p className="inspection-note">Abriss über das Werkzeug: Inhalt geht ohne Erstattung verloren. Pete kann eigene fehlende Teile mit neuen Materialien wieder aufbauen; bereits getragenes Material, andere Projekte und bisherige Belohnungen bleiben erhalten.</p>}
         {inspection.kind === 'sprinkler' && <><p>Wasserspiel: 3 Felder · 5 kW · {(inspection.manualCooldownMs ?? 0) > 0 ? `${((inspection.manualCooldownMs ?? 0) / 1000).toFixed(1)} s Pause` : 'bereit bei voller Stromversorgung'}</p><button className="building" onClick={() => useGameStore.getState().beginSpray()}>Mit Wasser spritzen</button></>}
         {inspection.kind === 'supplyCrate' && <>
+          {playMode === 'petesWorld' && inspection.storeTier !== undefined ? <MaterialStore store={inspection} /> : <>
           <SupplyAssistant />
           {inspection.projects?.map(project => <p key={project} className="inspection-note">{t(project)}</p>)}
           {(inspection.storeTier === undefined || !inspection.wood || inventoryTotal(inspection.inventory) > 0) && <InventoryView inventory={inspection.inventory} showAll={inspection.storeTier === undefined} />}
-          <div className="stats"><span>{inspection.storeTier === undefined ? t('Supplied Wood') : 'Holz im Materiallager'}</span><b>{inspection.wood}</b></div>
+          <div className="stats"><span>{inspection.storeTier === undefined ? t('Supplied Wood') : 'Holz im Materiallager'}</span><b>{inspection.wood}</b></div></>}
         </>}
         {inspection.kind === 'peteTreasure' && <div className="treasure-collection">{inspection.treasures.map(treasure => <div key={treasure.id}><strong>{treasure.icon} {t(treasure.label)} · {treasure.count}</strong><p>{t(treasure.comment)}</p></div>)}{inspection.carrying && <p>{t('Pete is bringing another treasure home.')}</p>}</div>}
         {inspection.kind === 'treehouse' && <PersonalityOverview personality={inspection.personality} />}
@@ -47,6 +50,7 @@ export function BuildingInspection() {
         {inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <p>{inspection.recipe}{inspection.recipeId && <><br /><RecipeAmounts amounts={inspection.requirements} /> → <RecipeAmounts amounts={inspection.products} /></>}</p> : null}
       </div>
       <details className="inspection-technical" key={inspected}><summary>{t('Details and settings')}</summary>
+      {compactStore && <><MachineHelp /><ProcessCards /></>}
       {'electrical' in inspection && <PowerInspector details={inspection.electrical} />}
       {inspection.kind === 'peteGate' ? <p className="inspection-note">{t('Pete builds this once for 3 supplied Wood after his yard. It opens from either side and closes after he passes. Chickens and chicks never use this doorway. Demolition has no refund.')}</p> : inspection.kind === 'peteCampfire' ? <p className="inspection-note">{t('Pete builds this once after his coop, using 5 supplied Wood. Cooking and eating takes eight seconds and uses one collected egg only when finished. No fuel, buffs or production.')}</p> : inspection.kind === 'peteCoop' ? <p className="inspection-note">{t('Pete collects reachable eggs while peaceful. Up to four eggs can wait near the coop. Two chicks arrive after 2½ simulation minutes; they stay small and never lay eggs. Collected eggs can be cooked at Pete’s campfire; no factory items or trade.')}</p> : inspection.kind === 'supplyCrate' && inspection.storeTier !== undefined ? <p className="inspection-note">Allgemeines Materiallager · {inspection.capacity} Plätze. Pete bringt Material her und entnimmt es für seine Projekte. Die sichtbaren Stapel zeigen bis zu drei Materialarten. Überdachung: 8 Holzplatten ab Öko-Stufe 3. Regale: 4 Holzkisten ab Öko-Stufe 4, insgesamt 600 Plätze.</p> : inspection.kind === 'supplyCrate' ? <p className="inspection-note">6 Wood · {inspection.capacity} items total · No power. Input only; full crates stop incoming items. Click the Wood icon above the crate to unload 6 Wood. Pete may collect supplied Wood for his secret project. Other materials stay stored. Demolition discards contents; no Wood refund.</p> : inspection.kind === 'fishingDock' ? <>
         <div className="stats"><span>{t('Fishing side')}</span><b>{t(inspection.direction ?? '')}</b></div>

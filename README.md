@@ -165,3 +165,6 @@ Sprints **16.93–16.97** extend the shared transport to mixed circuit ingredien
 ## Pete work and supply
 
 Petes Welt has German controls and a collapsed **Arbeit und Warenfluss** panel for actual work, connection blockers and destination focus. Earlier paid iron/copper/Eco returns and recurring product-funded orders keep existing lines useful after completion. Gifts wait during active homestead tasks or affordable original construction; sleep, care, real production and full-buffer stops remain. See [work and visible demand](docs/GAME_DESIGN.md#work-and-visible-demand).
+
+
+Pete's next increments (16.118-16.122) add a saved project priority and compact path/material inspectors. Click Pete, expand a development path and an available project, then choose **Priorisieren**. See [project focus and stock](docs/GAME_DESIGN.md#project-focus-and-compact-stock) and [pre-merge checks and publishing](docs/DEVELOPMENT.md#pre-merge-checks-and-artifact-reuse). No building-zone editor is introduced.

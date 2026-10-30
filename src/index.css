@@ -389,3 +389,24 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 .pete-app .world-heading { align-items: flex-start; }
 .pete-app.touch-mode .world-heading { height: auto; min-height: 38px; max-height: 32vh; overflow: auto; }
+
+/* Pete's compact project paths and real material stock. */
+.pete-current, .store-goal { border: 1px solid #628c71; border-radius: 10px; padding: 12px; background: #20382d; margin: 10px 0; }
+.pete-current h3 { margin: 5px 0; }
+.pete-inspector details, .material-store { min-width: 0; }
+.pete-path-group { border: 1px solid #526455; border-radius: 8px; margin: 8px 0; padding: 10px; }
+.pete-path-group > summary { font-weight: 700; }
+.pete-path-group > summary small, .project-row summary small { display: block; margin-left: 22px; color: #c4d4c4; font-weight: 400; }
+.project-row { border-top: 1px solid #405044; padding: 9px 0; }
+.project-row p, .path-next p { font-size: .85rem; line-height: 1.4; }
+.project-row summary { cursor: pointer; }
+.path-next { padding: 10px 0; }
+.completed-projects { color: #bdd6b7; margin-top: 8px; }
+.material-store > progress { width: 100%; accent-color: #9dc786; }
+.store-capacity { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }
+.material-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px; margin: 12px 0; }
+.material-tile { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 5px; border: 1px solid #4d6554; background: #25352d; border-radius: 8px; padding: 10px; }
+.material-tile > span:not(.material-icon), .material-tile small { grid-column: 1 / -1; font-size: .8rem; }
+.material-tile strong { font-size: 1.4rem; text-align: right; }
+.material-icon { font-size: 1.5rem; text-shadow: 0 1px 2px #000; }
+.material-tile small, .material-store > small { color: #c5d2bb; }

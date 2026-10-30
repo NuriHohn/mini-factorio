@@ -13,7 +13,10 @@
     "test:pete": "vitest run --project pete",
     "test:factory": "vitest run --project factory",
     "test:core": "vitest run --project core",
-    "test:integration": "vitest run --project integration"
+    "test:integration": "vitest run --project integration",
+    "test:quick": "node scripts/test-tier.mjs quick",
+    "test:long": "node scripts/test-tier.mjs long",
+    "test:release": "node --test scripts/release-reuse.test.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0",

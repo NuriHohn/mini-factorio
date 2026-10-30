@@ -153,20 +153,20 @@ describe('paid cargo bicycle', () => {
     const start = w.pete.tile
     arrived(w, h.store, 50)
     expect(h.bikeTile).toBeNull()
-    expect(w.pete.tile === start && w.pete.travelMs).toBe(100)
+    expect(w.pete.tile === start && w.pete.travelMs).toBe(150)
     expect(load(w).pete).toEqual(w.pete)
     const walking = stored()
     Object.assign(walking.pete, structuredClone(w.pete)); walking.pete.travelMs = 0; walking.pete.next = null; walking.pete.x = start % SIZE; walking.pete.y = Math.floor(start / SIZE)
     begin(walking, 'returnStock', walking.homestead!.store); walking.homestead!.carried.ironPlate = 2
     arrived(walking, walking.homestead!.store, 50)
-    expect(walking.pete.travelMs).toBe(50)
+    expect(walking.pete.travelMs).toBe(75)
     expect(waterEditError(w, start, 'water')).not.toBeNull()
     h.bikeTile = start
     Object.assign(w.pete, { tile: 740, x: 20, y: 18, next: null, travelMs: 0, path: [], pathRevision: -1 })
     arrived(w, h.store, 50)
     expect(w.peace.destination).toBe(start)
     expect(h.bikeTile).toBe(start)
-    expect(w.pete.travelMs).toBe(50)
+    expect(w.pete.travelMs).toBe(75)
   })
 })
 

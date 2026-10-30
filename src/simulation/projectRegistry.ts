@@ -1,3 +1,4 @@
+import { forestryNeedsTrees } from './forestrySupply'
 import { ecoWoodReserve } from './productionLogistics'
 import type { Item } from './items'
 import type { PersonalityPath, ProjectReward } from './personality'
@@ -82,6 +83,7 @@ export function homesteadProjectDelay(world: World, id: ProjectDefinition['id'])
     const garden = world.gardenProject?.phase === 'complete' ? world.buildings[world.gardenProject.tiles[0]] : null
     if (id === 'gardenCare' && garden?.kind === 'peteGarden' && !garden.feed && stock >= 2) return null
     const constructionReserve = ecoWoodReserve(world)
+    if (id === 'reforestation' && stock >= 2 && stock < constructionReserve && forestryNeedsTrees(world)) return null
     if (constructionReserve && stock < constructionReserve + 2) return `Ich halte ${constructionReserve} Holz für Logistik und Pavillon zurück. Aufforstung und zusätzliche Pflege folgen mit weiterem Nachschub.`
     if (id === 'reforestation' && stock >= 2) return null
     const reserve = 14

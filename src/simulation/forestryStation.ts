@@ -4,7 +4,8 @@ import { recordProduction } from './analytics'
 import { SIZE } from './world'
 import type { Forester, World } from './world'
 
-export const FOREST_RADIUS = 3
+import { FOREST_RADIUS } from './forestrySupply'
+export { FOREST_RADIUS } from './forestrySupply'
 export const FELL_MS = 6000
 export const REPLANT_MS = 3000
 export function forestTiles(station: Pick<Forester, 'x' | 'y'>): number[] {

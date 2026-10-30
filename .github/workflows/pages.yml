@@ -1,38 +1,115 @@
 name: Publish playable game
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
-  group: github-pages
+  group: playable-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
+  source:
+    runs-on: ubuntu-latest
+    outputs:
+      tree: ${{ steps.source.outputs.tree }}
+      reuse: ${{ steps.source.outputs.reuse }}
+      long: ${{ steps.source.outputs.long }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - id: source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {stdout} = await exec.getExecOutput('git', ['rev-parse', 'HEAD^{tree}'])
+            const tree = stdout.trim()
+            core.setOutput('tree', tree)
+            core.setOutput('reuse', '')
+            core.setOutput('long', 'true')
+            if (context.eventName === 'pull_request') {
+              const diff = await exec.getExecOutput('git', ['diff', '--name-only', context.payload.pull_request.base.sha, 'HEAD'])
+              core.setOutput('long', String(require('./scripts/check-scope.cjs')(diff.stdout.trim().split('\n').filter(Boolean))))
+            }
+            if (context.eventName !== 'push') return
+            const testedRun = require('./scripts/release-reuse.cjs')
+            core.setOutput('reuse', await testedRun(github, context.repo, tree))
+  quick:
+    needs: source
+    if: needs.source.outputs.reuse == ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npm test -- --maxWorkers=2 --testTimeout=60000
+      - run: npm run test:release
+      - run: npm run test:quick -- --maxWorkers=2 --testTimeout=60000
+  long:
+    needs: source
+    if: needs.source.outputs.reuse == '' && needs.source.outputs.long == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:long -- --maxWorkers=2 --testTimeout=60000 --shard=${{ matrix.shard }}/3
+  build:
+    needs: [source, quick, long]
+    if: always() && needs.source.result == 'success' && (needs.source.outputs.reuse != '' || (needs.quick.result == 'success' && (needs.long.result == 'success' || (needs.source.outputs.long == 'false' && needs.long.result == 'skipped'))))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/download-artifact@v4
+        if: needs.source.outputs.reuse != ''
+        with:
+          name: tested-game-${{ needs.source.outputs.tree }}
+          path: dist
+          run-id: ${{ needs.source.outputs.reuse }}
+          github-token: ${{ github.token }}
+      - uses: actions/setup-node@v4
+        if: needs.source.outputs.reuse == ''
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        if: needs.source.outputs.reuse == ''
       - run: npm run build
+        if: needs.source.outputs.reuse == ''
       - uses: actions/upload-artifact@v4
         with:
-          name: playable-game
+          name: tested-game-${{ needs.source.outputs.tree }}
           path: dist
+          include-hidden-files: true
       - uses: actions/configure-pages@v5
-        if: vars.ENABLE_PAGES == 'true'
+        if: github.event_name != 'pull_request' && vars.ENABLE_PAGES == 'true'
       - uses: actions/upload-pages-artifact@v4
-        if: vars.ENABLE_PAGES == 'true'
+        if: github.event_name != 'pull_request' && vars.ENABLE_PAGES == 'true'
         with:
           path: dist
   deploy:
-    if: vars.ENABLE_PAGES == 'true'
+    if: github.event_name != 'pull_request' && vars.ENABLE_PAGES == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:

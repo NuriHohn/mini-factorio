@@ -129,7 +129,7 @@ export class GameScene extends Phaser.Scene {
   private preview!: Phaser.GameObjects.Graphics
   create() {
     if (this.runtime.mode === 'petesWorld') useGameStore.setState({ tool: null, buildTab: 'nature' })
-    useGameStore.setState({ spraySource: null, peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
+    useGameStore.setState({ spraySource: null, peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, priorityRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', saveRequest: null, saveBusy: false })
     useGameStore.getState().publish(this.world)
     this.saves = new SaveSession({ getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
     this.saves.setMode(this.runtime.mode)
@@ -507,7 +507,7 @@ export class GameScene extends Phaser.Scene {
       this.world = candidate.world
       this.terrain = terrain.setVisible(true)
       this.rightPan.cancel()
-      useGameStore.setState({ spraySource: null, tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: candidate.world.miniFactory ? 'Petes Welt geladen.' : 'Factory restored · Click a building to inspect it.' })
+      useGameStore.setState({ spraySource: null, tool: null, buildTab: 'factory', peteInspection: null, inspected: null, inspection: null, recipeRequest: null, releaseRequest: null, supplyRequest: null, connectionVisible: false, priorityRequest: null, focusRequest: null, dragActive: false, uiPanel: null, researchOpen: false, researchRequest: null, researchFeedback: '', analyticsOpen: false, direction: candidate.view.direction, powerOverlay: candidate.view.powerOverlay, message: candidate.world.miniFactory ? 'Petes Welt geladen.' : 'Factory restored · Click a building to inspect it.' })
       useGameStore.getState().publish(this.world)
     } catch (error) {
       this.world = oldWorld; this.terrain = oldTerrain
@@ -573,6 +573,7 @@ export class GameScene extends Phaser.Scene {
   }
   private drawItem(item: Item, x: number, y: number) {
     const visual = ITEM_DEFINITIONS[item].visual
+    if (item === 'coal' || item === 'coalBriquette') this.items.lineStyle(1.5, 0xe6d6ae).strokeCircle(x, y, 5.5)
     if (visual.shape === 'ore') {
       this.items.fillStyle(0x17222b).fillCircle(x, y, 5)
       this.items.fillStyle(visual.color).fillTriangle(x - 4, y + 3, x - 2, y - 4, x + 4, y + 2)
@@ -677,6 +678,11 @@ export class GameScene extends Phaser.Scene {
         camera.centerOn((focus % SIZE + .5) * TILE, (Math.floor(focus / SIZE) + .5) * TILE)
       }
       useGameStore.setState({ focusRequest: null })
+    }
+    const priority = useGameStore.getState().priorityRequest
+    if (priority) {
+      if (this.runtime.prioritize?.(this.world, priority.id)) useGameStore.getState().publish(this.world)
+      useGameStore.setState({ priorityRequest: null })
     }
     useGameStore.getState().applySupply(this.world)
     if (this.runtime.mode === 'factory') {

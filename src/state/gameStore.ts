@@ -86,6 +86,8 @@ interface State {
   analytics: AnalyticsSnapshot
   analyticsOpen: boolean
   toggleAnalytics: () => void
+  priorityRequest: { id: string | null } | null
+  prioritizeProject: (id: string | null) => void
   focusRequest: number | null
   focusPeteProject: (index: number) => void
   focusBuilding: (index: number) => void
@@ -159,6 +161,8 @@ export const useGameStore = create<State>((set, get) => ({
   },
   analytics: { timeMs: 0, produced: emptyInventory(), consumed: emptyInventory(), totalPerMinute: 0, utilization: 0, configuredMachines: 0, problems: [], history: [], recentItems: [] }, analyticsOpen: false,
   toggleAnalytics: () => set(state => state.playMode === 'factory' && hasTechnology(state.research, 'analytics1') ? { analyticsOpen: !state.analyticsOpen, researchOpen: false, uiPanel: null } : state),
+  priorityRequest: null,
+  prioritizeProject: id => { if (get().playMode === 'petesWorld') set({ priorityRequest: { id } }) },
   focusRequest: null,
   focusPeteProject: index => { if (get().playMode !== 'petesWorld' || !Number.isInteger(index) || index < 0 || index >= SIZE * SIZE) return; get().select(null); set({ focusRequest: index }) },
   focusBuilding: index => { if (get().playMode !== 'factory' || !hasTechnology(get().research, 'analytics1')) return; get().select(null); set({ focusRequest: index }) },

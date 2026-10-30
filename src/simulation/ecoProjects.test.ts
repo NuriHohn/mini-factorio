@@ -8,6 +8,11 @@ import { projectCandidates, trySecretProject, currentProject } from './secretPro
 import { PETE_PROJECTS, projectUnlocked } from './projectRegistry'
 import { supplyWood } from './supplyCrate'
 import { gardenSpot, planPlanting, plantingSite, PLANT_COOLDOWN_MS, TEND_MS } from './ecoProjects'
+import { createPetesWorld } from './petesWorld'
+import { forestryNeedsTrees, ownedForestTile } from './forestrySupply'
+import { homesteadProjectDelay } from './projectRegistry'
+import { advanceSecretProject } from './secretProject'
+import { emptyInventory } from './items'
 import { plantTree, treeStage } from './nature'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import type { SaveDocument } from '../persistence/saveGame'
@@ -157,4 +162,45 @@ describe('Eco level two projects', () => {
       (d: SaveDocument) => { Object.assign(d, { version: 22 }) },
     ]) { const d = snapshot(w); mutate(d); expect(() => decodeSave(JSON.stringify(d))).toThrow('Invalid save') }
   })
+})
+function sparseForestry() {
+  const w = createPetesWorld(), h = w.homestead!
+  h.store = 900
+  w.buildings[900] = { kind: 'supplyCrate', x: 20, y: 22, wood: 2, inventory: emptyInventory(), storeTier: 0 }
+  placeBuilding(w, 14, 16, 'forester', 'east'); h.expansion.forestry = 654
+  h.infrastructure.links = (['woodReturn', 'panelReturn', 'crateReturn'] as const).map(kind => ({ kind, source: 654, target: 900, parts: [] }))
+  placeBuilding(w, 18, 16, 'assembler', 'east'); h.expansion.assembler = 658
+  awardActivity(w.personality, { path: 'eco', xp: 450 })
+  return w
+}
+it('funds safe forestry replenishment before optional construction reserves without free trees', () => {
+  const w = sparseForestry(), store = w.buildings[900] as SupplyCrate
+  expect(forestryNeedsTrees(w)).toBe(true)
+  expect(homesteadProjectDelay(w, 'reforestation')).toBeNull()
+  const plan = planPlanting(w)
+  expect(plan).not.toBeNull(); expect(ownedForestTile(w, plan!.tiles[0])).toBe(true)
+  w.plantProject = { ...plan!, selected: true }
+  w.peace.activity = 'project'
+  for (let t = 0; t < 60000 && w.plantProject.phase !== 'complete'; t += 50) { w.timeMs += 50; advanceSecretProject(w, 50) }
+  expect(w.plantProject.phase).toBe('complete')
+  expect(store.wood).toBe(0)
+  expect(w.buildings[plan!.tiles[0]]?.kind).toBe('tree')
+  expect(w.nature.wood).toBe(0)
+})
+it('stops requesting forestry replenishment after six standing trees and retains Factory clearance', () => {
+  const w = sparseForestry()
+  for (const [x, y] of [[13, 13], [14, 13], [15, 13], [13, 14], [14, 14], [15, 14]]) w.buildings[y * SIZE + x] = { kind: 'tree', x, y, species: 'oak', origin: 'manual', bornAtMs: 0, nextReproductionAtMs: 600000 }
+  expect(forestryNeedsTrees(w)).toBe(false)
+  expect(homesteadProjectDelay(w, 'reforestation')).toContain('24 Holz')
+  const factory = createBareWorld(); placeBuilding(factory, 14, 16, 'forester', 'east')
+  expect(ownedForestTile(factory, 614)).toBe(false)
+  expect(plantingSite(factory, 614)).toBe(false)
+})
+it('keeps all previously reachable land and machine access when adding forestry trees', () => {
+  const w = sparseForestry()
+  w.water.fill(true)
+  for (const tile of [613, 614, 615, 654, 820, 900]) w.water[tile] = false
+  Object.assign(w.pete, { tile: 613, next: null, x: 13, y: 15, travelMs: 0, path: [] })
+  expect(ownedForestTile(w, 614)).toBe(true)
+  expect(plantingSite(w, 614)).toBe(false)
 })

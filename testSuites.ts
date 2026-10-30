@@ -1,6 +1,7 @@
 // Every test is assigned once. Mixed legacy/modern scenarios belong to integration.
 export const testSuites = {
   'pete': [
+    'src/simulation/priorityAcceptance.test.ts',
     'src/game/gardenGateVisuals.test.ts',
     'src/game/homesteadVisuals.test.tsx',
     'src/game/poultryVisuals.test.ts',
