@@ -1,3 +1,4 @@
+import { testTier } from '../testTiers.ts'
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve, dirname, relative } from 'node:path'
 import ts from 'typescript'
@@ -48,4 +49,14 @@ it('keeps Factory runtime and panels outside Pete and common startup static impo
   const forbidden = [...visited].map(path => relative(resolve('src'), path).replaceAll('\\', '/')).filter(path =>
     path.startsWith('factory/') || /game\/(ResearchPanel|AnalyticsPanel|RevengeHUD|RevengeVisuals|policeVisuals|FactoryOverview)\./.test(path) || path === 'simulation/step.ts')
   expect(forbidden).toEqual([])
+})
+
+it('partitions the full inventory into disjoint quick and intact long runs', () => {
+  const all = Object.values(testSuites).flat()
+  const quick = all.filter(path => testTier(path) === 'quick')
+  const long = all.filter(path => testTier(path) === 'long')
+  expect(quick.length).toBeGreaterThan(0); expect(long.length).toBeGreaterThan(0)
+  expect([...quick, ...long].sort()).toEqual([...all].sort())
+  expect(quick.some(path => long.includes(path))).toBe(false)
+  for (const path of ['priorityAcceptance', 'infrastructurePaths', 'inventorIndependence', 'productionPaths', 'homesteadDaily']) expect(testTier(`src/simulation/${path}.test.ts`)).toBe('long')
 })

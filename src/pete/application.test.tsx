@@ -1,3 +1,8 @@
+import { PeteInspection } from '../game/PeteInspection'
+import { MaterialStore } from '../game/MaterialStore'
+import { createPetesWorld } from '../simulation/petesWorld'
+import { peteStatus } from '../simulation/peteStatus'
+import { emptyInventory } from '../simulation/items'
 import { afterEach, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { HeaderActions, WorldHeading, Panels, Toolbar } from './application'
@@ -79,4 +84,19 @@ it('keeps shared water brushes and touch palette controls in Pete', () => {
   expect(html).toContain('5×5')
   expect(html).toContain('Werkzeuge schließen')
   expect(html).toContain('data-tool="restoreLand"')
+})
+
+it('groups compact project rows by path and shows wishes and genuine stock demand', () => {
+  useGameStore.setState({ playMode: 'petesWorld' })
+  const w = createPetesWorld()
+  w.homestead!.priority = 'experiment'
+  const html = renderToStaticMarkup(<PeteInspection status={peteStatus(w)} />)
+  expect(html.match(/class="pete-path-group"/g)).toHaveLength(4)
+  expect(html).toContain('Mein Hauptziel'); expect(html).toContain('Priorisieren')
+  expect(html).toContain('Transport und nächster Schritt')
+  expect(html).not.toContain('A wish, not a fixed order')
+  const store = renderToStaticMarkup(<MaterialStore store={{ kind: 'supplyCrate', wood: 3, inventory: { ...emptyInventory(), copperPlate: 5 }, capacity: 200, storeTier: 0, inspecting: false, demand: { id: 'experiment', paid: false, costs: { copperPlate: 8, copperCable: 4 }, reserved: { copperPlate: 5 }, missing: { copperPlate: 3, copperCable: 4 } } }} />)
+  expect(store).toContain('8 / 200'); expect(store).toContain('Lagerbelegung')
+  expect(store).toContain('5 vorgemerkt'); expect(store).toContain('Noch sammeln:')
+  expect(store.match(/class="material-tile"/g)).toHaveLength(3)
 })

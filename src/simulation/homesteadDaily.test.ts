@@ -1,3 +1,5 @@
+import { projectCandidates } from './secretProject'
+import { yardWorkSpot } from './yard'
 import { stripVersion52State } from './testFixtures'
 import { beforeAll, expect, it } from 'vitest'
 import { createPetesWorld, placeGrove } from './petesWorld'
@@ -25,13 +27,17 @@ beforeAll(() => {
 }, 60000)
 
 let longGame: World, collected = 0, sleeping = false, plantReady = -1
-const sleepStarts: number[] = [], plantFinishes: number[] = []
+const sleepStarts: number[] = [], plantFinishes: number[] = [], mealStarts: number[] = []
+let goingToMeal = false
 beforeAll(() => { longGame = structuredClone(farm); collected = longGame.poultry!.collected })
 // Independent real-time preparation phases keep the hour-long regression within
 // the existing per-hook CI allowance; no simulation steps or assertions are skipped.
 for (let phase = 0; phase < 6; phase++) beforeAll(() => {
   for (let t = 0; t < 600000; t += 50) {
     advanceWorld(longGame, 50)
+    const meal = longGame.peace.activity === 'campfireward'
+    if (meal && !goingToMeal) mealStarts.push(longGame.timeMs)
+    goingToMeal = meal
     const rests = ['resting', 'verandaRest'].includes(longGame.peace.activity)
     if (rests && !sleeping) sleepStarts.push(longGame.timeMs)
     sleeping = rests
@@ -48,7 +54,8 @@ it('keeps sleeping, collecting eggs, replanting and completing the enclosure in 
   expect(plantFinishes.length, report).toBeGreaterThanOrEqual(2)
   expect(w.poultry!.eaten, report).toBeGreaterThan(0)
   expect(w.feedingProject?.completedCycles ?? 0, report).toBeGreaterThan(0)
-  expect(enclosedYard(w), report).not.toBeNull()
+  const yardDiagnostic = JSON.stringify({ yard: w.yard, candidates: projectCandidates(w).map(p => p.definition.id), workSpot: w.yard ? yardWorkSpot(w, w.yard, w.yard.tiles[w.yard.built]) : null, around: w.buildings.flatMap((b, tile) => b && tile >= 700 && tile <= 1000 ? [{ tile, kind: b.kind }] : []), pete: w.pete })
+  expect(enclosedYard(w), yardDiagnostic).not.toBeNull()
   const loaded = decodeSave(encodeSave(w, view, stamp)).world
   advanceWorld(w, 1000); advanceWorld(loaded, 1000)
   expect(snapshot(loaded)).toEqual(snapshot(w))
@@ -103,4 +110,9 @@ it('rejects a machine footprint that traps Pete and repairs an already trapped i
   expect(neighboringTiles(loaded.peace.home!).some(tile => peteReachableTiles(loaded, loaded.pete.tile).has(tile))).toBe(true)
   expect(loaded.buildings).toEqual(w.buildings)
   expect(loaded.personality).toEqual(w.personality)
+})
+
+it('spaces nonessential meals by ten minutes while preserving real care and construction', () => {
+  expect(mealStarts.length).toBeGreaterThan(0)
+  for (let i = 1; i < mealStarts.length; i++) expect(mealStarts[i] - mealStarts[i - 1]).toBeGreaterThanOrEqual(600000)
 })

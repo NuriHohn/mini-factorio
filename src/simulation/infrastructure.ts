@@ -164,18 +164,20 @@ export function wheelParts(site: WheelSite): InfrastructurePart[] { return [...s
 export function planWheel(world: World): WheelSite | null {
   const h = world.homestead!, mill = h.millAnchor
   if (mill === null) return null
+  const landings = [world.yard, world.chickenRun].flatMap(yard => yard ? [yard.entrance, ...neighboringTiles(yard.entrance)] : [])
+  const wheelSiteOpen = (tile: number) => open(world, tile) && !landings.includes(tile)
   const poles = world.buildings.flatMap((b, tile) => b?.kind === 'powerPole' && Math.max(Math.abs(tile % SIZE - mill % SIZE), Math.abs(Math.floor(tile / SIZE) - Math.floor(mill / SIZE))) <= 3 ? [tile] : [])
   const near = (a: number, b: number) => Math.max(Math.abs(a % SIZE - b % SIZE), Math.abs(Math.floor(a / SIZE) - Math.floor(b / SIZE)))
   for (let tile = 0; tile < world.buildings.length; tile++) {
-    if (!open(world, tile) || near(tile, mill) > 14 || world.peace.home === null || near(tile, world.peace.home) > 11) continue
+    if (!wheelSiteOpen(tile) || near(tile, mill) > 14 || world.peace.home === null || near(tile, world.peace.home) > 11) continue
     for (const direction of DIRECTIONS) {
       const water = next(tile, direction)
       if (water === null || !world.water[water]) continue
       if (poles.some(p => near(tile, p) <= 3) && freeSite(world, [tile], true)) return { tile, direction, poles: [] }
-      for (const pole of neighboringTiles(tile)) if (open(world, pole)) {
+      for (const pole of neighboringTiles(tile)) if (wheelSiteOpen(pole)) {
         if (poles.some(p => near(pole, p) <= 6) && freeSite(world, [tile, pole], true)) return { tile, direction, poles: [pole] }
         for (let connector = 0; connector < world.buildings.length; connector++) {
-          if (connector === tile || connector === pole || !open(world, connector) || near(connector, pole) > 6 || !poles.some(p => near(connector, p) <= 6)) continue
+          if (connector === tile || connector === pole || !wheelSiteOpen(connector) || near(connector, pole) > 6 || !poles.some(p => near(connector, p) <= 6)) continue
           if (freeSite(world, [tile, pole, connector], true)) return { tile, direction, poles: [connector, pole] }
         }
       }

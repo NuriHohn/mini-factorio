@@ -36,7 +36,12 @@ export function ecoProjectWood(world: World): number {
   return (world.chickenRun ? world.chickenRun.built * 2 + world.chickenRun.carried : 0) + (world.harvestProject?.manualCycles ?? 0) * 2 - (world.harvestProject?.completedCycles ?? 0) * 3 + (world.careProject?.completedCycles ?? 0) * 2 + (world.careProject?.carried ?? 0) + (world.gardenProject && world.gardenProject.phase !== 'collecting' ? 12 : 0) + (world.plantProject?.carried ?? 0) + 2 * world.buildings.filter(b => b?.kind === 'tree' && b.origin === 'manual').length
 }
 
+export function stripVersion54State(game: Pick<World, 'homestead'>): void {
+  if (game.homestead) for (const key of ['priority', 'nextMealAtMs']) Reflect.deleteProperty(game.homestead, key)
+}
+
 export function stripVersion52State(game: Pick<World, 'homestead' | 'developmentLife'>): void {
+  stripVersion54State(game)
   if (game.homestead?.infrastructure) Reflect.deleteProperty(game.homestead.infrastructure, 'pavilion')
   if (game.developmentLife) Reflect.deleteProperty(game.developmentLife.nextAt, 'pavilionRest')
 }

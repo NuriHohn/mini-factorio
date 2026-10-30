@@ -27,6 +27,7 @@ export interface SceneRuntime {
   createWorld: () => World
   advance: (world: World, delta: number) => void
   activate: () => void
+  prioritize?: (world: World, id: string | null) => boolean
   features?: FactorySceneFeatures
 }
 export async function loadRuntime(mode: PlayMode): Promise<SceneRuntime> {

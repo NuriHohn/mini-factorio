@@ -247,8 +247,8 @@ function homesteadDaily(world: World): boolean {
   if (world.timeMs >= h.nextRestAtMs && world.buildings[world.peace.home!]?.kind === 'treehouse') { activity(world, 'homeward'); return true }
   const egg = reachableEgg(world)
   if (egg !== null && world.timeMs - eggAt(world, egg)!.laidAtMs >= 180000) { activity(world, 'eggward', 0, egg); return true }
-  const fire = world.poultry && world.poultry.collected - world.poultry.eaten >= 4 ? reachableCampfire(world) : null
-  if (fire !== null) { activity(world, 'campfireward', 0, fire); return true }
+  const fire = world.timeMs >= h.nextMealAtMs && world.poultry && world.poultry.collected - world.poultry.eaten >= 4 ? reachableCampfire(world) : null
+  if (fire !== null) { h.nextMealAtMs = world.timeMs + 600000; activity(world, 'campfireward', 0, fire); return true }
   return false
 }
 function nextActivity(world: World): void {
@@ -260,6 +260,7 @@ function nextActivity(world: World): void {
     if (yard && !projectPlansConflict(world, yard)) world.yard = yard
   }
   if (!committed?.carried && committed?.phase !== 'building' && homesteadDaily(world)) return
+  if (world.homestead && committed && !['fell', 'feed', 'care', 'plant'].includes(committed.kind ?? '') && trySecretProject(world)) return
   if (world.homestead && random(world) < .5 && advanceHomestead(world, 0, true)) return
   if (world.homestead && !committed?.carried && committed?.phase !== 'building' && world.flightProject?.phase === 'complete' && world.timeMs >= (world.leisure?.nextFlightAtMs ?? 0) + ((world.leisure?.practices ?? 0) === 0 ? 0 : 120000) && !projectCandidates(world).some(c => !c.definition.repeatable && !['yard', 'run'].includes(c.definition.id))) {
     const visit = leisureDecision(world)
@@ -290,7 +291,7 @@ function nextActivity(world: World): void {
   const garden = gardenSpot(world)
   if (garden !== null && world.timeMs >= (world.gardenProject?.readyAtMs ?? 0) && random(world) < .25) { world.gardenProject!.readyAtMs = world.timeMs + TEND_COOLDOWN_MS; activity(world, 'gardenward', 0, garden); return }
   const fire = reachableCampfire(world)
-  if (fire !== null && random(world) < 1 / 3) { activity(world, 'campfireward', 0, fire); return }
+  if (!world.homestead && fire !== null && random(world) < 1 / 3) { activity(world, 'campfireward', 0, fire); return }
   const egg = reachableEgg(world)
   if (egg !== null && random(world) < .5) { activity(world, 'eggward', 0, egg); return }
   const p = world.pete

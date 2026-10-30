@@ -515,3 +515,18 @@ Implemented under the explicit instruction to implement and merge this five-spri
 | 16.117 | Collapsed current-work/real-connection diagnostics with target focus, idle-arm power explanation correction, strengthened raw-resource long-game/save/repair acceptance and release checks |
 
 [Game design](GAME_DESIGN.md#work-and-visible-demand) owns exact eligibility, invoices, timing and legitimate stops. [Architecture](ARCHITECTURE.md#pete-work-presentation-and-recurring-demand) owns presentation/projection and persistence boundaries. No additional level, building, dependency, production recipe or separate repository is introduced. Save 53 remains current. Native mobile/Safari verification remains an explicit limitation; available browser checks and final validation are recorded in Development.
+
+
+## Sprints 16.118-16.122 - project focus, useful flow and compact presentation
+
+Implemented under the explicit request to implement and merge the next five sprints, in the agreed order. Building-zone marking was excluded by the user.
+
+| Sprint | Delivered scope |
+| --- | --- |
+| 16.118 | Separate complete quick/long test tiers before merge; tested artifact reuse only for the identical entire source tree; fail-closed fallback checks |
+| 16.119 | Saved available-project priority influencing real resource work, early raw-start/recurring-flow acceptance and visible coal/briquette contours |
+| 16.120 | Retained finite-project focus, committed-work protection, paid recovery of sparse connected forests, fewer optional meals with a ten-minute deadline and preserved essential care |
+| 16.121 | Faster personal material walks, selected handwork and task handoffs at normal speed; actual machine/transport power and resource costs retained |
+| 16.122 | Material tiles/capacity/goal shortages and four independently expandable development paths with compact project rows and collapsed completion |
+
+[Game design](GAME_DESIGN.md#project-focus-and-compact-stock) owns the mechanics and limits, [Architecture](ARCHITECTURE.md#saved-project-focus-and-compact-projections-save-54) owns state/projections and compatibility, and [Development](DEVELOPMENT.md#pre-merge-checks-and-artifact-reuse) owns validation and publishing. Save 54 retains versions 1-53. No new building, level, recipe, dependency or zone editor is introduced.

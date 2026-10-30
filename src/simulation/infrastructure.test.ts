@@ -1,3 +1,5 @@
+import { yardBoundary } from './yard'
+import { neighboringTiles } from './navigation'
 import { stripVersion52State } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { createPetesWorld } from './petesWorld'
@@ -269,4 +271,18 @@ it('migrates genuine Save 48 without granting items or altering water', () => {
   const loaded = decodeSave(JSON.stringify(old)).world
   expect(loaded.water).toEqual(w.water); expect(materialStore(loaded)).toEqual(materialStore(w))
   expect(loaded.homestead!.infrastructure.links).toEqual([])
+})
+
+it('keeps waterwheel poles and connectors off the future yard entrance landings', () => {
+  const w = stored(), h = w.homestead!
+  h.millAnchor = 656; h.millBuilt = 3
+  placeBuilding(w, 16, 16, 'sawmill', 'east'); placeBuilding(w, 16, 17, 'powerPole', 'east'); placeBuilding(w, 17, 17, 'generator', 'east')
+  w.water[1062] = true; w.topologyRevision++
+  const bounds = { left: 19, right: 24, top: 19, bottom: 24 }
+  const tiles = yardBoundary(bounds).filter(tile => tile !== 781)
+  w.yard = { ...bounds, kind: 'yard', home: 820, entrance: 781, reused: [], direction: 'east', tiles, spots: tiles.map(tile => tile + 1), phase: 'collecting', built: 0, carried: 0, crate: null, elapsedMs: 0 }
+  const plan = planWheel(w)
+  expect(plan).not.toBeNull()
+  const protectedTiles = [w.yard.entrance, ...neighboringTiles(w.yard.entrance)]
+  expect([plan!.tile, ...plan!.poles].some(tile => protectedTiles.includes(tile))).toBe(false)
 })

@@ -1,3 +1,4 @@
+import { stripVersion54State } from './testFixtures'
 import { MATURE_TREE_MS, plantTree, reproductionTargets } from './nature'
 import { expect, it } from 'vitest'
 import { createPetesWorld } from './petesWorld'
@@ -149,7 +150,7 @@ it('preserves existing cosmetic pauses through both Save 52 and Save 53', () => 
   w.timeMs += 50; advancePeace(w, 50)
   const text = encodeSave(w, view), old = JSON.parse(text)
   expect(decodeSave(text).world.peace).toEqual(w.peace)
-  old.version = 52
+  old.version = 52; stripVersion54State(old.game)
   expect(decodeSave(JSON.stringify(old)).world.peace.untilMs).toBe(old.game.peace.sinceMs + 5000)
 })
 it('services gift deadlines during owned work so an immediate save remains valid', () => {

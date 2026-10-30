@@ -1,3 +1,4 @@
+import { stripVersion54State } from './testFixtures'
 import { begin } from './homestead'
 import { advanceWorld } from './step'
 import { describe, expect, it } from 'vitest'
@@ -73,7 +74,7 @@ describe('development resource families', () => {
     machine.input.ironPlate = 1; machine.input.copperCable = 3
     run(w, 550)
     expect(machine.job?.inputs.ironPlate).toBe(1)
-    const old = snap(w); old.version = 52
+    const old = snap(w); old.version = 52; stripVersion54State(old.game)
     const loaded = decodeSave(JSON.stringify(old)).world
     run(w, 3000); run(loaded, 3000)
     expect(snap(loaded)).toEqual(snap(w))
@@ -92,7 +93,7 @@ describe('development resource families', () => {
     const w = prepared(true), h = w.homestead!, machine = w.buildings[743]!
     if (machine.kind !== 'assembler') throw Error('assembler')
     h.carried.ironPlate = 1; h.carried.copperCable = 3; begin(w, 'feedCircuits', 743)
-    const old = snap(w); old.version = 52
+    const old = snap(w); old.version = 52; stripVersion54State(old.game)
     const loaded = decodeSave(JSON.stringify(old)).world
     advanceWorld(w, 1000); advanceWorld(loaded, 1000)
     expect(snap(loaded)).toEqual(snap(w)); expect(machine.recipeId).toBe('electronicCircuit')
@@ -101,7 +102,7 @@ describe('development resource families', () => {
     expect(h.carried.ironPlate + machine.input.ironPlate).toBe(0)
   })
   it('rejects the new recipe in old schemas and without owned Pete infrastructure', () => {
-    const w = prepared(), text = snap(w), old = structuredClone(text); old.version = 52
+    const w = prepared(), text = snap(w), old = structuredClone(text); old.version = 52; stripVersion54State(old.game)
     expect(() => decodeSave(JSON.stringify(old))).toThrow('save version 53')
     const bad = snap(createBareWorld(() => .5)); bad.game.buildings[743] = text.game.buildings[743]
     expect(() => decodeSave(JSON.stringify(bad))).toThrow('owned assembler')

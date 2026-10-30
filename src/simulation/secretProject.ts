@@ -217,6 +217,8 @@ export function projectCandidates(world: World, blocked: string[] = []): { defin
 }
 export function trySecretProject(world: World): boolean {
   if (world.peace.home === null || world.police.car || world.revenge.boss || world.pete.mode !== 'WANDERING') return false
+  const h = world.homestead
+  if (h?.priority && PETE_PROJECTS.some(p => p.id === h.priority && world[p.state]?.phase === 'complete')) h.priority = null
   let project = currentProject(world)
   if (project) {
     const definition = PETE_PROJECTS.find(p => world[p.state] === project)!
@@ -238,11 +240,14 @@ export function trySecretProject(world: World): boolean {
         if (overdue) candidates.splice(0, candidates.length, ...candidates.filter(c => c.definition.id === overdue))
       }
     }
+    const preferred = candidates.find(c => c.definition.id === world.homestead?.priority)
+    if (preferred) candidates.splice(0, candidates.length, preferred)
     // Reuse the persisted peaceful LCG, consuming exactly one draw per new decision.
     const peace = world.peace
     peace.seed = (Math.imul(1664525, peace.seed) + 1013904223) >>> 0
     let roll = peace.seed / 4294967296 * candidates.reduce((sum, c) => sum + c.priorityWeight, 0)
     const chosen = candidates.find(c => { roll -= c.priorityWeight; return roll < 0 })!
+    if (world.homestead && !chosen.definition.repeatable && !world.homestead.priority) world.homestead.priority = chosen.definition.id
     project = chosen.project
     const previous = world[chosen.definition.state]
     if (previous && (project.kind === 'yard' || project.kind === 'run') && previous.kind === project.kind && worldYard(previous).left === worldYard(project).left && worldYard(previous).right === worldYard(project).right && worldYard(previous).top === worldYard(project).top && worldYard(previous).bottom === worldYard(project).bottom && worldYard(previous).entrance === worldYard(project).entrance) {
@@ -270,7 +275,7 @@ function moveTo(world: World, target: number, delta: number): boolean {
   if (p.next === null) p.next = p.path.shift() ?? null
   if (p.next === null) return p.tile === target
   if (!preparePeteGate(world, p.next)) return false
-  p.travelMs += delta
+  p.travelMs += delta * (world.homestead ? 1.5 : 1)
   const t = Math.min(1, p.travelMs / PETE_WALK_MS)
   p.x = p.tile % SIZE + (p.next % SIZE - p.tile % SIZE) * t
   p.y = Math.floor(p.tile / SIZE) + (Math.floor(p.next / SIZE) - Math.floor(p.tile / SIZE)) * t
@@ -286,7 +291,7 @@ export function advanceSecretProject(world: World, delta: number): void {
   if (project.kind === 'fell') {
     if (project.phase === 'building') {
       if (!harvestTreeReady(world, project) || !moveTo(world, project.spots[0], delta)) { if (!harvestTreeReady(world, project)) stop(world); return }
-      project.elapsedMs += delta
+      project.elapsedMs += delta * (world.homestead ? 2 : 1)
       if (project.elapsedMs < HARVEST_MS) return
       const tile = project.tiles[0], result = chopTree(world, tile % SIZE, Math.floor(tile / SIZE), false)
       if (!result || result.wood !== HARVEST_WOOD) { stop(world); return }
@@ -341,7 +346,7 @@ export function advanceSecretProject(world: World, delta: number): void {
   const spot = project.spots[project.built]
   if (!moveTo(world, spot, delta)) return
   if (!projectSiteClear(world, project)) { stop(world); return }
-  project.elapsedMs += delta
+  project.elapsedMs += delta * (world.homestead ? 2 : 1)
   if (project.elapsedMs < projectBuildMs(project)) return
   const tile = project.tiles[project.built]
   if (project.kind === 'plant') {

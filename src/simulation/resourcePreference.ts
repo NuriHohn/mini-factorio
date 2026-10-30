@@ -1,4 +1,4 @@
-import { materialPath } from './projectRegistry'
+import { PETE_PROJECTS, materialPath } from './projectRegistry'
 import { ITEMS } from './items'
 import { treeStage } from './nature'
 import type { PersonalityPath } from './personality'
@@ -24,6 +24,8 @@ export function resourcePreference(world: World, path: PersonalityPath): number 
 }
 
 export function preferredPaths(world: World): PersonalityPath[] {
+  const goal = PETE_PROJECTS.find(p => p.id === world.homestead?.priority && world[p.state]?.phase !== 'complete')
+  if (goal) return [goal.path, ...(['eco', 'craftsman', 'inventor', 'industrial'] as const).filter(path => path !== goal.path)]
   const paths: PersonalityPath[] = ['eco', 'craftsman', 'inventor']
   if (resourcePreference(world, 'industrial') > 1) paths.push('industrial')
   const weights = paths.map(path => resourcePreference(world, path))

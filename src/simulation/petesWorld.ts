@@ -161,7 +161,7 @@ export function miniWalk(world: World, destination: number, delta: number, cargo
   }
   if (p.next === null) return p.tile === destination
   if (!preparePeteGate(world, p.next)) return false
-  p.travelMs = Math.min(PETE_WALK_MS, p.travelMs + delta * (cargoRide ? 2 : 1))
+  p.travelMs = Math.min(PETE_WALK_MS, p.travelMs + delta * (cargoRide ? 2 : 1) * (world.homestead ? 1.5 : 1))
   const t = p.travelMs / PETE_WALK_MS
   p.x = p.tile % SIZE + (p.next % SIZE - p.tile % SIZE) * t
   p.y = Math.floor(p.tile / SIZE) + (Math.floor(p.next / SIZE) - Math.floor(p.tile / SIZE)) * t

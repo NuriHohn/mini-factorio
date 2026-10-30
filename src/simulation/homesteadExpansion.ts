@@ -457,16 +457,16 @@ export function expansionSummary(world: World): string {
   const rule = missing ? IMPROVEMENT_RULES[missing] : null
   return `${rule ? `${rule.label}: ${store?.inventory[rule.item] ?? 0}/${rule.amount} ${rule.item === 'woodPanel' ? 'Holzplatten' : 'Holzkisten'}. ` : ''}Forststation und Holzkisten ab Öko 4 mit freiem Bauplatz am Sägewerk. Eisenabbau ab Stufe 1, Schmelzofen ab Handwerker 2, Erzförderer ab 3 (8 Eisenplatten). Kupferofen ab Erfinder 2 (6 Erz), Kabel-Assembler ab 3 (8 Kupferplatten), Kupferförderer ab 3 (8 Platten), Schaltkreis-Assembler danach (12 Platten). Neue Schaltkreise brauchen je 1 Kupferplatte und 3 Kupferkabel; bezahlte alte Eisenchargen laufen aus; Flugwerkstatt ab 4, Rundflüge ab 5. Mehr passende Vorräte und nahe Ressourcen erhöhen meine Projektchancen.`
 }
-export function expansionProjectStatuses(world: World): { path: PersonalityPath; name: string; reason: string }[] {
+export function expansionProjectStatuses(world: World): { path: PersonalityPath; name: string; reason: string; completed: boolean }[] {
   const h = world.homestead
   if (!h) return []
   const store = materialStore(world)
   const improvements = IMPROVEMENTS.map(id => {
     const rule = IMPROVEMENT_RULES[id]
-    return { path: 'eco' as const, name: rule.label, reason: h.expansion.improvements[id] !== undefined ? 'fertig' : `${store?.inventory[rule.item] ?? 0}/${rule.amount} ${rule.item === 'woodPanel' ? 'Holzplatten' : 'Holzkisten'}${improvementSite(world, id) === null ? ' · zuerst das Grundprojekt bauen' : ''}` }
+    return { path: 'eco' as const, name: rule.label, completed: h.expansion.improvements[id] !== undefined, reason: h.expansion.improvements[id] !== undefined ? 'fertig' : `${store?.inventory[rule.item] ?? 0}/${rule.amount} ${rule.item === 'woodPanel' ? 'Holzplatten' : 'Holzkisten'}${improvementSite(world, id) === null ? ' · zuerst das Grundprojekt bauen' : ''}` }
   })
   const e = h.expansion
-  const entry = (path: PersonalityPath, name: string, reason: string) => ({ path, name, reason })
+  const entry = (path: PersonalityPath, name: string, reason: string) => ({ path, name, reason, completed: reason.startsWith('gebaut') || reason.startsWith('ausgebaut') })
   return [...improvements,
     entry('eco', 'Sägewerk', h.millBuilt === 3 ? 'gebaut' : `${store?.wood ?? 0}/12 Holz · Eco 3 · freier Bauplatz mit Stromversorgung`),
     entry('eco', 'Forststation', e.forestry !== null ? 'gebaut' : `${store?.inventory.woodPanel ?? 0}/8 Holzplatten und ${store?.wood ?? 0}/1 Holz · Eco 4 · zuerst Sägewerk und Lagerdach`),
@@ -480,7 +480,6 @@ export function expansionProjectStatuses(world: World): { path: PersonalityPath;
     entry('inventor', 'Kupferförderer', `${e.copperMiner !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Erfinder 3 · zuerst Kabel-Assembler · freie Bandstrecke zum Kupferofen`}`),
     entry('inventor', 'Schaltkreis-Assembler', `${e.circuitAssembler !== null ? 'gebaut' : `${store?.inventory.copperPlate ?? 0}/12 Kupferplatten · Erfinder 3 · zuerst Kupferförderer · freier Bauplatz`}`),
     entry('inventor', 'Schaltkreis-Zutaten', `${store?.inventory.copperPlate ?? 0}/1 Kupferplatte und ${store?.inventory.copperCable ?? 0}/3 Kupferkabel pro Stück · Material muss erreichbar sein`),
-    entry('inventor', 'Flugwerkstatt', `Erfinder 4 · vorhandene Schaltkreise und Kupferkabel · Übungsflüge führen zu Rundflügen ab 5`),
     entry('industrial', 'Kohleförderung', `${e.coalMiner !== null ? 'gebaut' : 'Industrie 3 · 6 Kohle als Vorrat · freie Bandstrecke zum Brennstofflager am Kessel'}`),
     entry('industrial', 'Kesselgreifer', `${e.coalInserter !== null ? 'gebaut' : 'zuerst Kohleförderung · 6 Kohle als Brennstoffreserve · freier Platz zwischen Lager und Kessel'}`),
     entry('industrial', 'Kohlestampfer', `${e.briquetteAssembler !== null ? 'gebaut' : 'Industrie 3 · zuerst Kesselgreifer · 6 Kohle Vorrat'} · 2 Kohle → 1 Brikett · 60 kW · 4 Sekunden bei voller Leistung`),
