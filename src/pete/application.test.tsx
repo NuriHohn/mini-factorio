@@ -3,6 +3,7 @@ import { MaterialStore } from '../game/MaterialStore'
 import { createPetesWorld } from '../simulation/petesWorld'
 import { peteStatus } from '../simulation/peteStatus'
 import { emptyInventory } from '../simulation/items'
+import { projectDemand } from '../simulation/projectDemand'
 import { afterEach, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { HeaderActions, WorldHeading, Panels, Toolbar } from './application'
@@ -99,4 +100,16 @@ it('groups compact project rows by path and shows wishes and genuine stock deman
   expect(store).toContain('8 / 200'); expect(store).toContain('Lagerbelegung')
   expect(store).toContain('5 vorgemerkt'); expect(store).toContain('Noch sammeln:')
   expect(store.match(/class="material-tile"/g)).toHaveLength(3)
+})
+it('shows the original invoice for a carried-over legacy project without changing its stock', () => {
+  const w = createPetesWorld()
+  w.homestead!.priority = 'experiment'
+  w.experimentProject = { kind: 'experiment', legacyMaterials: true, home: 820, direction: 'east', tiles: [823], spots: [822], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }
+  const store = { kind: 'supplyCrate' as const, x: 20, y: 22, wood: 3, inventory: { ...emptyInventory(), copperPlate: 5, ironGear: 1 } }
+  const before = structuredClone(store)
+  const demand = projectDemand(w, store)!
+  expect(demand.costs).toEqual({ wood: 4, copperPlate: 8, ironGear: 2 })
+  expect(demand.missing).toEqual({ wood: 1, copperPlate: 3, ironGear: 1 })
+  expect(demand.costs.copperCable).toBeUndefined()
+  expect(store).toEqual(before)
 })
