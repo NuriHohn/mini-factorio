@@ -12,7 +12,7 @@ import { chooseRebuild, awardHomesteadOnce } from './rebuilding'
 import { neighboringTiles, peteReachableTiles, peteWalkableTile, tilePath } from './navigation'
 import { preferredPaths } from './resourcePreference'
 import { emptyInventory, inventoryTotal, ITEMS } from './items'
-import { advanceExpansion, chooseExpansion, createExpansion, expansionSummary, IMPROVEMENT_RULES } from './homesteadExpansion'
+import { advanceExpansion, chooseExpansion, createExpansion, expansionLayout, expansionSummary, IMPROVEMENT_RULES } from './homesteadExpansion'
 import type { HomesteadExpansion } from './homesteadExpansion'
 import type { Inventory } from './items'
 import { chopTree, treeStage } from './nature'
@@ -75,7 +75,8 @@ export function handMillLayout(anchor: number): { tile: number; kind: BuildingKi
 export function freeSite(world: World, tiles: number[], infrastructure = false): boolean {
   if (!infrastructure && tiles.some(tile => infrastructureReserved(world).includes(tile))) return false
   const home = world.peace.home, before = peteReachableTiles(world, world.pete.tile)
-  const crossings = infrastructure ? [...(world.homestead?.infrastructure.links ?? []), ...(world.homestead?.infrastructure.plan ? [world.homestead.infrastructure.plan] : [])].flatMap(p => p.parts).filter(p => p.kind === 'belt' || p.kind === 'inserter').map(p => p.tile) : []
+  const lowParts = expansionCrossings(world)
+  const crossings = [...(infrastructure ? [...(world.homestead?.infrastructure.links ?? []), ...(world.homestead?.infrastructure.plan ? [world.homestead.infrastructure.plan] : [])].flatMap(p => p.parts).filter(p => p.kind === 'belt' || p.kind === 'inserter').map(p => p.tile) : []), ...lowParts.map(p => p.tile)]
   if (home === null || tiles.some(i => {
     const error = placementError(world, i % SIZE, Math.floor(i / SIZE), 'storage')
     // Construction walks to a neighboring work spot before installing an owned low crossing.
@@ -84,12 +85,14 @@ export function freeSite(world: World, tiles: number[], infrastructure = false):
   if (projectPlansConflict(world, { home, direction: 'east', tiles, spots: [], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }, undefined, crossings)) return false
   const buildings = [...world.buildings]
   for (const tile of tiles) {
-    const s = world.homestead?.infrastructure, part = infrastructure ? [...(s?.links ?? []), ...(s?.plan ? [s.plan] : [])].flatMap(p => p.parts).find(p => p.tile === tile) : null
+    const s = world.homestead?.infrastructure, part = lowParts.find(p => p.tile === tile) ?? (infrastructure ? [...(s?.links ?? []), ...(s?.plan ? [s.plan] : [])].flatMap(p => p.parts).find(p => p.tile === tile) : null)
     const position = { x: tile % SIZE, y: Math.floor(tile / SIZE) }
     buildings[tile] = part?.kind === 'belt' ? { ...position, kind: 'belt', direction: part.direction, entry: part.direction, progress: 0, item: null } : part?.kind === 'inserter' ? { ...position, kind: 'inserter', direction: part.direction, phase: 'idle', item: null, elapsedMs: 0 } : { ...position, kind: 'storage', inventory: emptyInventory() }
   }
   const candidate = { ...world, buildings }, after = peteReachableTiles(candidate, world.pete.tile)
   if (!neighboringTiles(home).some(tile => after.has(tile) && peteWalkableTile(candidate, tile))) return false
+  // New machines must retain an approach too; free neighbors can become isolated pockets.
+  if (tiles.some(tile => !neighboringTiles(tile).some(i => after.has(i) && peteWalkableTile(candidate, i)))) return false
   const transport = infrastructure ? infrastructureReserved(world) : []
   return world.buildings.every((building, tile) => !building || transport.includes(tile) || !neighboringTiles(tile).some(i => before.has(i) && peteWalkableTile(world, i)) || neighboringTiles(tile).some(i => after.has(i) && peteWalkableTile(candidate, i)))
 }
@@ -130,11 +133,18 @@ function chooseTree(world: World): number | null {
   choices.sort((a, b) => a.distance - b.distance || a.tile - b.tile)
   return choices[0]?.tile ?? null
 }
+function expansionCrossings(world: World) {
+  const plan = world.homestead?.expansion.plan
+  return plan && ['ironMining', 'copperMining', 'coalMining', 'coalFeed'].includes(plan.kind) ? expansionLayout(plan).filter(p => p.kind === 'belt' || p.kind === 'inserter') : []
+}
 export function arrived(world: World, tile: number | null, delta: number, construction = false): boolean {
   let spot = tile === null ? null : miniApproach(world, tile)
   if (construction && tile !== null && world.peace.home !== null) {
     const buildings = [...world.buildings]
     buildings[tile] = { kind: 'storage', x: tile % SIZE, y: Math.floor(tile / SIZE), inventory: emptyInventory() }
+    const part = expansionCrossings(world).find(p => p.tile === tile)
+    if (part?.kind === 'belt') buildings[tile] = { kind: 'belt', x: tile % SIZE, y: Math.floor(tile / SIZE), direction: part.direction, entry: part.direction, progress: 0, item: null }
+    else if (part?.kind === 'inserter') buildings[tile] = { kind: 'inserter', x: tile % SIZE, y: Math.floor(tile / SIZE), direction: part.direction, phase: 'idle', item: null, elapsedMs: 0 }
     const candidate = { ...world, buildings }, entrance = neighboringTiles(world.peace.home).find(i => peteWalkableTile(candidate, i))
     const safe = entrance === undefined ? new Map<number, number>() : peteReachableTiles(candidate, entrance), paths = peteReachableTiles(world, world.pete.tile)
     spot = neighboringTiles(tile).filter(i => safe.has(i) && paths.has(i) && peteWalkableTile(candidate, i)).sort((a, b) => tilePath(paths, a)!.length - tilePath(paths, b)!.length || a - b)[0] ?? null

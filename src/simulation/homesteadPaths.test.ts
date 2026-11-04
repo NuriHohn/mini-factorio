@@ -1,7 +1,7 @@
 import { stripVersion52State } from './testFixtures'
 import { stripVersion48Homestead } from './testFixtures'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createPetesWorld, placeCopper, placeGrove, placeIron } from './petesWorld'
+import { createPetesWorld, placeCoal, placeCopper, placeGrove, placeIron } from './petesWorld'
 import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { advanceHomestead, begin, finish, materialStore } from './homestead'
 import { chooseExpansion, expansionLayout } from './homesteadExpansion'
@@ -16,6 +16,29 @@ import { projectCandidates } from './secretProject'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 const stamp = '2026-10-24T19:00:00.000Z'
 const snapshot = (w: World) => JSON.parse(encodeSave(w, view, stamp))
+describe('mixed four-family western resource yard', () => {
+  const w = createPetesWorld()
+  beforeAll(() => {
+    expect(placeCoal(w, 15, 14)).toBeNull()
+    expect(placeCopper(w, 15, 18)).toBeNull()
+    expect(placeIron(w, 15, 22)).toBeNull()
+    expect(placeGrove(w, 28, 20)).toBeNull()
+    until(w, () => w.homestead!.expansion.coalMiner !== null, 1800000)
+  }, 60000)
+  beforeAll(() => {
+    until(w, () => w.homestead!.expansion.coalInserter !== null, 600000)
+    const restored = decodeSave(encodeSave(w, view, stamp)).world
+    advanceWorld(w, 1000); advanceWorld(restored, 1000)
+    expect(snapshot(restored)).toEqual(snapshot(w))
+  }, 60000)
+  beforeAll(() => { until(w, () => w.homestead!.expansion.steamWorkshop !== null, 1800000) }, 60000)
+  it('continues through real briquette production and completed steam construction', () => {
+    expect(w.homestead!.expansion.briquetteAssembler).not.toBeNull()
+    expect(w.produced.coalBriquette).toBeGreaterThanOrEqual(4)
+    expect(w.produced.ironPlate).toBeGreaterThan(0)
+    expect(w.produced.copperPlate).toBeGreaterThan(0)
+  })
+})
 function until(w: World, ready: () => boolean, limit = 1200000) {
   for (let t = 0; t < limit && !ready(); t += 50) advanceWorld(w, 50)
   expect(ready(), JSON.stringify({ time: w.timeMs, h: w.homestead, stock: materialStore(w), levels: w.personality.paths, activity: w.peace, pete: w.pete, cover: w.poultry?.cover, selected: [w.yard, w.coopProject, w.gardenProject, w.harvestProject, w.plantProject].filter(p => p?.selected) })).toBe(true)

@@ -1,6 +1,32 @@
 import { GATE_OPEN_MS } from './gardenGate'
-import { SIZE, inside } from './world'
+import { SIZE, inside, offsets } from './world'
 import type { World } from './world'
+
+const mineCrossingCache = new WeakMap<World, { revision: number; plan: NonNullable<World['homestead']>['expansion']['plan']; tiles: Set<number>; signature: string }>()
+function mineCrossings(world: World): Set<number> {
+  const h = world.homestead!, e = h.expansion
+  const signature = `${e.miner}:${e.furnace}:${e.copperMiner}:${e.copperFurnace}:${e.coalMiner}:${e.fuelStore}`
+  const cached = mineCrossingCache.get(world)
+  if (cached?.revision === world.topologyRevision && cached.plan === e.plan && cached.signature === signature) return cached.tiles
+  const tiles = new Set<number>()
+  const plans = [e.plan, ...(world.rebuilding?.jobs.flatMap(j => j.owner.type === 'chain' ? [j.owner.plan] : []) ?? [])]
+  for (const plan of plans) if (plan && ['ironMining', 'copperMining', 'coalMining'].includes(plan.kind)) for (const tile of plan.route?.slice(1) ?? []) tiles.add(tile)
+  for (const [source, target] of [[e.miner, e.furnace === null ? null : e.furnace - 1], [e.copperMiner, e.copperFurnace === null ? null : e.copperFurnace - 1], [e.coalMiner, e.fuelStore]]) {
+    if (source === null || target === null) continue
+    let tile = source
+    for (let i = 0; i < 13; i++) {
+      const b = world.buildings[tile]
+      if (b?.kind !== 'miner' && b?.kind !== 'belt') break
+      if (b.kind === 'belt') tiles.add(tile)
+      if (tile === target) break
+      const next = tile + offsets[b.direction].y * SIZE + offsets[b.direction].x
+      if (!inside(next % SIZE, Math.floor(next / SIZE)) || Math.abs(next % SIZE - tile % SIZE) > 1) break
+      tile = next
+    }
+  }
+  mineCrossingCache.set(world, { revision: world.topologyRevision, plan: e.plan, tiles, signature })
+  return tiles
+}
 
 export function neighboringTiles(tile: number): number[] {
   const x = tile % SIZE, y = Math.floor(tile / SIZE)
@@ -12,7 +38,9 @@ export function walkableTile(world: World, tile: number, peteGates = false): boo
 }
 export function serviceCrossing(world: World, tile: number): boolean {
   const s = world.homestead?.infrastructure, b = world.buildings[tile]
-  return !!s && !world.water[tile] && (b?.kind === 'belt' || b?.kind === 'inserter') && [...s.links, ...(s.plan ? [s.plan] : [])].some(link => link.parts.some(p => p.tile === tile && p.kind === b.kind))
+  const e = world.homestead?.expansion
+  const boilerFeeder = b?.kind === 'inserter' && (e?.coalInserter === tile || e?.plan?.kind === 'coalFeed' && e.plan.anchor === tile)
+  return !!s && !world.water[tile] && (b?.kind === 'belt' || b?.kind === 'inserter') && (boilerFeeder || b.kind === 'belt' && mineCrossings(world).has(tile) || [...s.links, ...(s.plan ? [s.plan] : [])].some(link => link.parts.some(p => p.tile === tile && p.kind === b.kind)))
 }
 export function reachableTiles(world: World, start: number, footbridges = true, peteGates = false): Map<number, number> {
   const queue = [start], parents = new Map<number, number>([[start, -1]])

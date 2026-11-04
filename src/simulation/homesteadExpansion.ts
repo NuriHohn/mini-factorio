@@ -158,7 +158,7 @@ function assemblySiteConnected(world: World, plan: ExpansionPlan): boolean {
   return true
 }
 function planOreMining(world: World, resource: 'iron' | 'copper'): ExpansionPlan | null {
-  const furnace = resource === 'copper' ? world.homestead!.expansion.copperFurnace : world.homestead!.expansion.furnace
+  const h = world.homestead!, furnace = resource === 'copper' ? h.expansion.copperFurnace : h.expansion.furnace
   if (furnace === null || world.buildings[furnace]?.kind !== 'furnace' || furnace % SIZE === 0) return null
   const end = { x: furnace % SIZE - 1, y: Math.floor(furnace / SIZE) }
   const home = world.peace.home!
@@ -171,7 +171,8 @@ function planOreMining(world: World, resource: 'iron' | 'copper'): ExpansionPlan
     for (const direction of ['north', 'south'] as const) {
       const plan: ExpansionPlan = { kind: resource === 'copper' ? 'copperMining' : 'ironMining', anchor, direction, built: 0, route }
       const tiles = expansionLayout(plan).map(s => s.tile)
-      if (new Set(tiles).size === tiles.length && tiles.every(t => inside(t % SIZE, Math.floor(t / SIZE)) && Math.abs(t % SIZE - anchor % SIZE) <= 13) && freeSite(world, tiles) && expansionLayout(plan).every(part => neighboringTiles(part.tile).some(tile => !tiles.includes(tile) && !world.water[tile] && !world.buildings[tile]))) return plan
+      const candidate = { ...world, homestead: { ...h, expansion: { ...h.expansion, plan } } }
+      if (new Set(tiles).size === tiles.length && tiles.every(t => inside(t % SIZE, Math.floor(t / SIZE)) && Math.abs(t % SIZE - anchor % SIZE) <= 13) && freeSite(candidate, tiles) && expansionLayout(plan).every(part => neighboringTiles(part.tile).some(tile => !tiles.includes(tile) && !world.water[tile] && !world.buildings[tile]))) return plan
     }
   }
   return null
