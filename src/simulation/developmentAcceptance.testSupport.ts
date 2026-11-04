@@ -12,6 +12,23 @@ const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powe
 const stamp = '2026-10-29T00:00:00.000Z'
 const snapshot = (w: World) => encodeSave(w, view, stamp)
 
+const pacing = new WeakMap<World, Set<string>>()
+// Observe the original raw acceptance worlds; never replace their preparation
+// with a stock-filled fixture or change their step size or completion bounds.
+export function observeNormalPacing(w: World, path: PersonalityPath): void {
+  if (w.timeMs % 1000) return
+  const h = w.homestead!
+  if (!pacing.has(w) && w.timeMs > 1000) return
+  const seen = pacing.get(w) ?? new Set<string>()
+  pacing.set(w, seen)
+  const machine = path === 'eco' ? h.millBuilt === 3 : path === 'inventor' ? h.expansion.copperFurnace !== null : path === 'industrial' ? h.expansion.steamEngine !== null : h.expansion.furnace !== null
+  const project = path === 'eco' ? w.coopProject : path === 'inventor' ? w.experimentProject : path === 'craftsman' ? w.workshopProject : null
+  const milestones = { store: h.store !== null, machine, project: path === 'industrial' ? h.expansion.steamWorkshop !== null : project?.phase === 'complete', return: h.infrastructure.links.some(link => link.kind === (path === 'eco' ? 'panelReturn' : path === 'inventor' ? 'cableReturn' : path === 'industrial' ? 'loadingReturn' : 'iron')), supply: h.task === 'supplyOrder' && inventoryTotal(h.carried) === 2 }
+  for (const [name, ready] of Object.entries(milestones)) if (ready && !seen.has(name)) {
+    seen.add(name); console.info(`Normal-speed ${path} ${name}: ${w.timeMs / 1000}s`)
+  }
+}
+
 // Reuse the fully material-funded world from each path's existing acceptance.
 export function acceptCompletedPath(w: World, path: PersonalityPath) {
   const status = () => peteStatus(w).next!.find(p => p.path === path)!

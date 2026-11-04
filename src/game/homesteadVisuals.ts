@@ -6,12 +6,22 @@ import { SIZE } from '../simulation/world'
 import type { World } from '../simulation/world'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
-import { wheelParts } from '../simulation/infrastructure'
+import { wheelParts, SUPPLY_WORK_MS } from '../simulation/infrastructure'
 import { cargoBicycleAvailable } from '../simulation/craftsman'
 import { shoreTiles } from '../simulation/shoreline'
 
 export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile: number, view?: Viewport): void {
   const s = world.homestead, p = world.pete
+  if (s?.task === 'supplyOrder' && s.target !== null && world.buildings[s.target]) {
+    const x = (s.target % SIZE + .5) * tile, y = (Math.floor(s.target / SIZE) + .5) * tile
+    if (visiblePoint(view, x, y, tile)) {
+      g.lineStyle(2, 0xf3d28a, .8).strokeCircle(x, y, tile * .43)
+      if (s.elapsedMs) {
+        g.fillStyle(0x292e29).fillRect(x - 12, y - tile * .5 - 5, 24, 4)
+        g.fillStyle(0xf3d28a).fillRect(x - 12, y - tile * .5 - 5, 24 * Math.min(1, s.elapsedMs / SUPPLY_WORK_MS), 4)
+      }
+    }
+  }
   if (s && cargoBicycleAvailable(world) && s.bikeTile !== null && visiblePoint(view, (s.bikeTile % SIZE + .5) * tile, (Math.floor(s.bikeTile / SIZE) + .5) * tile, tile)) {
     drawCargoBike(g, (s.bikeTile % SIZE + .5) * tile, (Math.floor(s.bikeTile / SIZE) + .5) * tile)
   }
@@ -99,7 +109,7 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
   if (target === null || target === undefined || axe) return
   const tx = target % SIZE * tile, ty = Math.floor(target / SIZE) * tile
   g.lineStyle(2, 0xd7bd85, .8).strokeRect(tx + 2, ty + 3, tile - 4, tile - 5)
-  const duration = s.task === 'buildBridge' && s.waterworks.plan ? shoreTiles(s.waterworks.plan).length * 4000 : s.task === 'buildLoading' || s.task === 'buildConnection' || s.task === 'buildWheel' || s.task === 'buildMill' || s.task === 'buildChain' ? 4000 : ['buildPavilion', 'finishOrder', 'buildDock', 'upgradeBicycle', 'expandStore', 'improve'].includes(s.task) ? 8000 : 6000
+  const duration = s.task === 'supplyOrder' ? SUPPLY_WORK_MS : s.task === 'buildBridge' && s.waterworks.plan ? shoreTiles(s.waterworks.plan).length * 4000 : s.task === 'buildLoading' || s.task === 'buildConnection' || s.task === 'buildWheel' || s.task === 'buildMill' || s.task === 'buildChain' ? 4000 : ['supplyOrder', 'buildPavilion', 'finishOrder', 'buildDock', 'upgradeBicycle', 'expandStore', 'improve'].includes(s.task) ? 8000 : 6000
   g.fillStyle(0x91bb78, .6).fillRect(tx + 3, ty + tile - 7, (tile - 6) * Math.min(1, s.elapsedMs / duration), 4)
 }
 function drawCargoBike(g: Phaser.GameObjects.Graphics, x: number, y: number): void {

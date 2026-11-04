@@ -3,7 +3,7 @@ import { createInfrastructure, LINK_KINDS, feedLink, linkCurrency, linkCost, eco
 import type { Connection, Infrastructure, WheelSite } from '../simulation/infrastructureRules'
 import type { LoadingSite } from '../simulation/infrastructureRules'
 import { loadingParts } from '../simulation/loading'
-import { facing, wheelParts, recurringOrderReady } from '../simulation/infrastructure'
+import { facing, wheelParts, recurringOrderReady, supplyTarget, SUPPLY_ITEMS, SUPPLY_LINKS, SUPPLY_WORK_MS } from '../simulation/infrastructure'
 import { inventoryTotal, ITEMS } from '../simulation/items'
 import type { Homestead } from '../simulation/homestead'
 import type { HomesteadExpansion } from '../simulation/homesteadExpansion'
@@ -13,7 +13,7 @@ import * as v from './validation'
 
 export function restoreInfrastructure(value: unknown, world: World, version: number, store: number | null, e: HomesteadExpansion, mill: number | null = null): Infrastructure {
   if (version < 49) return createInfrastructure()
-  const r = v.object(value, 'infrastructure', [...(version >= 52 ? ['pavilion'] : []), ...(version >= 51 ? ['industrial', 'cargoCycles'] : []), ...(version >= 50 ? ['inventor', 'loading', 'loadingPlan', 'loadingCargo'] : []), 'links', 'plan', 'built', 'repair', 'wheel', 'wheelPlan', 'eco', 'craftsman', 'order', 'nextOrderAtMs'])
+  const r = v.object(value, 'infrastructure', [...(version >= 55 ? ['nextSupplyAtMs'] : []), ...(version >= 52 ? ['pavilion'] : []), ...(version >= 51 ? ['industrial', 'cargoCycles'] : []), ...(version >= 50 ? ['inventor', 'loading', 'loadingPlan', 'loadingCargo'] : []), 'links', 'plan', 'built', 'repair', 'wheel', 'wheelPlan', 'eco', 'craftsman', 'order', 'nextOrderAtMs'])
   const l = version >= 50 && r.loading !== null ? v.object(r.loading, 'loading', ['input', 'output', 'pole']) : null
   const loadingRef = l ? { input: v.tile(l.input, 'loading.input'), output: v.tile(l.output, 'loading.output'), pole: v.tile(l.pole, 'loading.pole') } : null
   function connection(value: unknown): Connection {
@@ -74,6 +74,8 @@ export function restoreInfrastructure(value: unknown, world: World, version: num
   const loadingCargo = version < 50 || r.loadingCargo === null ? null : v.choice(r.loadingCargo, 'loadingCargo', ['coal', 'coalBriquette'] as const)
   if (loadingCargo && (!ownedLoading || e.steamHoist === null || world.buildings[e.steamHoist]?.kind !== 'steamHoist')) v.invalid('loadingCargo', 'requires an owned standing hoist')
   const built = v.count(r.built, 'infrastructure.built', plan ? plan.parts.length : wheelPlan ? wheelParts(wheelPlan).length : loadingPlan ? 3 : 0)
+  const nextSupplyAtMs = version < 55 ? 0 : v.count(r.nextSupplyAtMs, 'infrastructure.nextSupplyAtMs', world.timeMs + 60000)
+  if (nextSupplyAtMs % 50) v.invalid('infrastructure.nextSupplyAtMs', 'invalid supply clock')
   const nextOrderAtMs = v.count(r.nextOrderAtMs, 'infrastructure.nextOrderAtMs', world.timeMs + 300000)
   if (nextOrderAtMs % 50 || repair && !plan) v.invalid('infrastructure', 'invalid work clock')
   const pv = version >= 52 && r.pavilion !== null ? v.object(r.pavilion, 'pavilion', ['tile', 'spot', 'stage', 'repair']) : null
@@ -82,11 +84,11 @@ export function restoreInfrastructure(value: unknown, world: World, version: num
     const orchard = world.orchardProject, t = pavilion.tile
     if (orchard?.phase !== 'complete' || Math.max(Math.abs(t % SIZE - orchard.tiles[0] % SIZE), Math.abs(Math.floor(t / SIZE) - Math.floor(orchard.tiles[0] / SIZE))) > 3 || Math.abs(t % SIZE - pavilion.spot % SIZE) + Math.abs(Math.floor(t / SIZE) - Math.floor(pavilion.spot / SIZE)) !== 1 || t === orchard.tiles[0] || occupied.includes(t) || plan?.parts.some(p => p.tile === t) || wheelPlan && wheelParts(wheelPlan).some(p => p.tile === t) || loadingPlan && loadingParts(loadingPlan).some(p => p.tile === t) || ownedWheel && wheelParts(ownedWheel).some(p => p.tile === t) || ownedLoading && loadingParts(ownedLoading).some(p => p.tile === t) || pavilion.repair && !pavilion.stage) v.invalid('pavilion', 'invalid owned orchard site')
   }
-  return { pavilion, industrial: version >= 51 ? v.count(r.industrial, 'infrastructure.industrial', 3) : 0, cargoCycles: version >= 51 ? v.count(r.cargoCycles, 'infrastructure.cargoCycles', Number.MAX_SAFE_INTEGER) : 0, inventor: version >= 50 ? v.count(r.inventor, 'infrastructure.inventor', 3) : 0, loading: ownedLoading, loadingPlan, loadingCargo, links, plan, wheel: ownedWheel, wheelPlan, built, repair, eco: v.count(r.eco, 'infrastructure.eco', 3), craftsman: v.count(r.craftsman, 'infrastructure.craftsman', 3), order: r.order === null ? null : v.choice(r.order, 'infrastructure.order', version >= 51 ? ['eco', 'craftsman', 'inventor', 'industrial'] as const : version >= 50 ? ['eco', 'craftsman', 'inventor'] as const : ['eco', 'craftsman'] as const), nextOrderAtMs }
+  return { nextSupplyAtMs, pavilion, industrial: version >= 51 ? v.count(r.industrial, 'infrastructure.industrial', 3) : 0, cargoCycles: version >= 51 ? v.count(r.cargoCycles, 'infrastructure.cargoCycles', Number.MAX_SAFE_INTEGER) : 0, inventor: version >= 50 ? v.count(r.inventor, 'infrastructure.inventor', 3) : 0, loading: ownedLoading, loadingPlan, loadingCargo, links, plan, wheel: ownedWheel, wheelPlan, built, repair, eco: v.count(r.eco, 'infrastructure.eco', 3), craftsman: v.count(r.craftsman, 'infrastructure.craftsman', 3), order: r.order === null ? null : v.choice(r.order, 'infrastructure.order', version >= 51 ? ['eco', 'craftsman', 'inventor', 'industrial'] as const : version >= 50 ? ['eco', 'craftsman', 'inventor'] as const : ['eco', 'craftsman'] as const), nextOrderAtMs }
 }
 export function validateInfrastructureTask(h: Homestead, world: World): void {
   const s = h.infrastructure, task = h.task
-  if ((task === 'buildConnection') !== (s.plan !== null) || (task === 'buildWheel') !== (s.wheelPlan !== null) || (task === 'finishOrder') !== (s.order !== null) || (task === 'buildLoading') !== (s.loadingPlan !== null)) v.invalid('infrastructure', 'plan must match active task')
+  if ((task === 'buildConnection') !== (s.plan !== null) || (task === 'buildWheel') !== (s.wheelPlan !== null) || (task === 'finishOrder' || task === 'supplyOrder') !== (s.order !== null) || (task === 'buildLoading') !== (s.loadingPlan !== null)) v.invalid('infrastructure', 'plan must match active task')
   const amount = inventoryTotal(h.carried)
   const pavilion = s.pavilion
   if ((task === 'buildPavilion' && (!pavilion || h.target !== pavilion.tile || amount > 0 && (h.carried.woodPanel !== 4 || h.carried.woodenCrate !== 2 || amount !== 6) || h.elapsedMs > 8000 || h.elapsedMs > 0 && !amount || pavilion.stage >= 3 && !pavilion.repair)) || pavilion?.repair && task !== 'buildPavilion') v.invalid('pavilion', 'invalid paid pavilion work')
@@ -96,6 +98,7 @@ export function validateInfrastructureTask(h: Homestead, world: World): void {
   if (s.eco > 0 && world.coopProject?.phase !== 'complete' || s.craftsman > 0 && world.workshopProject?.phase !== 'complete') v.invalid('infrastructure', 'development stages require their original host')
   if (task === 'parkBicycle' && (!h.cargoBicycle || amount || h.elapsedMs || h.target === null)) v.invalid('infrastructure', 'invalid physical parking task')
   const validInvoice = (invoice: Partial<Homestead['carried']>) => !amount || ITEMS.every(i => h.carried[i] === (invoice[i] ?? 0))
+  if (task === 'supplyOrder' && (h.target !== supplyTarget(world, s.order, false) || !s.links.some(link => link.kind === SUPPLY_LINKS[s.order!]) || !amount && supplyTarget(world, s.order) === null || !validInvoice({ [SUPPLY_ITEMS[s.order!]]: 2 }) || h.elapsedMs > SUPPLY_WORK_MS || h.elapsedMs > 0 && !amount)) v.invalid('infrastructure', 'invalid paid supply delivery')
   if (task === 'buildConnection' && (h.target !== h.store || !validInvoice({ [linkCurrency(s.plan!.kind)]: s.repair ? 1 : linkCost(s.plan!.kind) }) || h.elapsedMs > 4000 || h.elapsedMs > 0 && !amount || !s.repair && s.built > 0 && !amount)) v.invalid('infrastructure', 'invalid paid connection work')
   if (task === 'buildWheel' && (h.target !== h.store || !validInvoice({ wood: 10 }) || h.elapsedMs > 4000 || h.elapsedMs > 0 && !amount && world.buildings[s.wheelPlan!.tile]?.kind !== 'waterwheel' && s.wheel?.tile !== s.wheelPlan!.tile)) v.invalid('infrastructure', 'invalid paid wheel work')
   if (s.inventor > 0 && world.experimentProject?.phase !== 'complete' || s.inventor > 1 && world.flightProject?.phase !== 'complete') v.invalid('infrastructure', 'inventor stages require their original hosts')

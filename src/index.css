@@ -401,6 +401,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .project-row p, .path-next p { font-size: .85rem; line-height: 1.4; }
 .project-row summary { cursor: pointer; }
 .path-next { padding: 10px 0; }
+.path-next > strong, .path-next > small { display: block; }
+.path-next > small { margin-top: 3px; }
+.path-strategies { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 6px; }
+.path-strategies .save-action { width: auto; margin: 0; padding: 7px 9px; font-size: .85rem; }
+.path-strategies [aria-pressed="true"] { border-color: #b7df97; background: #385331; }
 .completed-projects { color: #bdd6b7; margin-top: 8px; }
 .material-store > progress { width: 100%; accent-color: #9dc786; }
 .store-capacity { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }

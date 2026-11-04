@@ -2,6 +2,7 @@
 export const testSuites = {
   'pete': [
     'src/simulation/priorityAcceptance.test.ts',
+    'src/simulation/livingFactory.test.ts',
     'src/game/gardenGateVisuals.test.ts',
     'src/game/homesteadVisuals.test.tsx',
     'src/game/poultryVisuals.test.ts',

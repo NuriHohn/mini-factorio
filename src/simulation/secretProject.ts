@@ -1,3 +1,4 @@
+import { developmentFocus } from './developmentFocus'
 import { connectionRunning } from './infrastructure'
 import { resourcePreference } from './resourcePreference'
 import { DEVELOPMENT_KINDS, developmentKind } from './peteDevelopments'
@@ -240,7 +241,7 @@ export function trySecretProject(world: World): boolean {
         if (overdue) candidates.splice(0, candidates.length, ...candidates.filter(c => c.definition.id === overdue))
       }
     }
-    const preferred = candidates.find(c => c.definition.id === world.homestead?.priority)
+    const preferred = candidates.find(c => c.definition.id === world.homestead?.priority) ?? candidates.find(c => !c.definition.repeatable && c.definition.path === developmentFocus(world)?.path)
     if (preferred) candidates.splice(0, candidates.length, preferred)
     // Reuse the persisted peaceful LCG, consuming exactly one draw per new decision.
     const peace = world.peace

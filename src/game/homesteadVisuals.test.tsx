@@ -6,12 +6,25 @@ import type { SupplyCrate } from '../simulation/world'
 import { drawHomestead } from './homesteadVisuals'
 import { drawSupplyCrate, visibleStoreStock } from './supplyCrateVisuals'
 import { projectBuilding } from '../simulation/secretProject'
+import { homesteadHint } from '../simulation/homestead'
 
 function graphics() {
   const calls: { name: string; args: unknown[] }[] = []
   const g = new Proxy({}, { get: (_target, name) => (...args: unknown[]) => { calls.push({ name: String(name), args }); return g } }) as Phaser.GameObjects.Graphics
   return { g, calls }
 }
+it('marks the real supply host and its paid work progress, with culling and no state writes', () => {
+  const w = createPetesWorld(), h = w.homestead!, target = w.peace.home!
+  h.task = 'supplyOrder'; h.target = target; h.carried.ironPlate = 2; h.elapsedMs = 2000
+  const before = structuredClone(w), { g, calls } = graphics()
+  drawHomestead(g, w, 32)
+  expect(homesteadHint(w)).toContain('50 %')
+  expect(calls.some(c => c.name === 'strokeCircle' && c.args[2] === 32 * .43)).toBe(true)
+  expect(calls.some(c => c.name === 'fillRect' && c.args[2] === 12 && c.args[3] === 4)).toBe(true)
+  expect(w).toEqual(before)
+  calls.length = 0; drawHomestead(g, w, 32, { x: 5000, y: 5000, width: 10, height: 10 })
+  expect(calls).toEqual([])
+})
 it('draws the parked cargo bicycle and paid crossing preview without changing authority or ignoring culling', () => {
   const w = createPetesWorld(), h = w.homestead!
   w.bicycleProject = { kind: 'bicycle', home: 820, direction: 'south', tiles: [823], spots: [822], phase: 'complete', built: 1, crate: null, carried: 0, carriedIron: 0, carriedGears: 0, carriedModules: 0, elapsedMs: 0 }

@@ -1,4 +1,4 @@
-import { acceptCompletedPath } from './developmentAcceptance.testSupport'
+import { acceptCompletedPath, observeNormalPacing } from './developmentAcceptance.testSupport'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, placeCoal } from './petesWorld'
 import { advancePetesWorld as advanceWorld } from '../pete/simulation'
@@ -8,7 +8,7 @@ const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powe
 const heldCargo = new WeakMap<World, string>()
 function until(w: World, done: () => boolean, ms = 1800000) {
   for (let t = 0; t < ms && !done(); t += 50) {
-    advanceWorld(w, 50)
+    advanceWorld(w, 50); observeNormalPacing(w, 'industrial')
     if (w.homestead!.infrastructure.loadingCargo !== null && !heldCargo.has(w)) heldCargo.set(w, encodeSave(w, view))
   }
   expect(done(), JSON.stringify({ time: w.timeMs, h: w.homestead, paths: w.personality.paths, stock: w.buildings[w.homestead!.store ?? 0] })).toBe(true)
@@ -43,5 +43,11 @@ describe('raw coal reaches the full real loading chain and paid furnishing', () 
   })
   beforeAll(() => { until(w, () => w.homestead!.infrastructure.industrial === 3 && w.personality.paths.industrial.level === 5) }, 60000)
   it('completes Industrial independently, keeps living and restores its paid machines', () => { acceptCompletedPath(w, 'industrial') }, 60000)
+  it('funds and resumes a small delivery from the real mixed-fuel depot', () => {
+    const supply = structuredClone(w)
+    until(supply, () => supply.homestead!.task === 'supplyOrder' && supply.homestead!.carried.coal === 2)
+    expect(supply.homestead!.infrastructure.order).toBe('industrial')
+    continuation(supply)
+  }, 60000)
 
 })

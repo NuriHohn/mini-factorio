@@ -37,6 +37,7 @@ export function ecoProjectWood(world: World): number {
 }
 
 export function stripVersion54State(game: Pick<World, 'homestead'>): void {
+  if (game.homestead?.infrastructure) Reflect.deleteProperty(game.homestead.infrastructure, 'nextSupplyAtMs')
   if (game.homestead) for (const key of ['priority', 'nextMealAtMs']) Reflect.deleteProperty(game.homestead, key)
 }
 

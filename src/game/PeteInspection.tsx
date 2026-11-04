@@ -4,6 +4,7 @@ import type { PeteStatus, ProjectStatus } from '../simulation/peteStatus'
 import { useGameStore } from '../state/gameStore'
 import { PersonalityOverview } from './PersonalityOverview'
 import { ProcessCards } from './LearningAids'
+import { BUILD_STRATEGIES, STRATEGY_LABELS } from '../simulation/developmentFocus'
 const PATH_ICONS = { eco: '🌱', craftsman: '🔨', inventor: '💡', industrial: '🏭' }
 export function PeteInspection({ status }: { status: PeteStatus }) {
   const t = useGameText()
@@ -19,8 +20,9 @@ export function PeteInspection({ status }: { status: PeteStatus }) {
     <section className="inspection"><div className="inspection-summary">
       <h2>🎃 Pete</h2>
       <section className="pete-current" aria-label="Aktuelles Vorhaben">
-        <small>{priority ? '🎯 Mein Hauptziel' : '🔨 Aktuelle Arbeit'}</small>
-        <h3>{t(priority?.name ?? status.current ?? 'Meine Basis aufbauen')}</h3>
+        <small>{status.focus || priority ? '🎯 Mein Hauptziel' : '🔨 Aktuelle Arbeit'}</small>
+        <h3>{status.focus ? `${t(PATH_LABELS[status.focus.path])} · ${STRATEGY_LABELS[status.focus.strategy]}` : t(priority?.name ?? status.current ?? 'Meine Basis aufbauen')}</h3>
+        {status.focus && <button className="save-action" onClick={() => prioritizeProject(null)}>Automatisch entscheiden</button>}
         <p role="status">{t(status.activity)}</p>
         {status.progress !== null && <progress aria-label={t('Current activity progress')} max={1} value={status.progress} />}
         <details><summary>Transport und nächster Schritt</summary><p>{t(status.intent)}</p><p>🎒 {t(status.carrying)}</p>{priority && <p>{t(priority.reason)}</p>}<p>{t(status.yard)}</p></details>
@@ -33,6 +35,10 @@ export function PeteInspection({ status }: { status: PeteStatus }) {
         const next = status.next?.find(step => step.path === path)
         return <details className="pete-path-group" key={path} aria-label={t(`${PATH_LABELS[path]} projects`)}>
           <summary><span aria-hidden="true">{PATH_ICONS[path]}</span> {t(PATH_LABELS[path])}<small>Lv. {status.personality.paths[path].level} · {next ? `${next.completion.finished}/${next.completion.total}` : `${finished.length}/${projects.length}`} ✓</small></summary>
+          <div className="path-strategies" role="group" aria-label={`${t(PATH_LABELS[path])}: Ausbau priorisieren`}>
+            {BUILD_STRATEGIES.filter(strategy => strategy !== 'storage' || path === 'eco').map(strategy => <button className="save-action" key={strategy} aria-pressed={status.focus?.path === path && status.focus.strategy === strategy} onClick={() => prioritizeProject(`path:${path}:${strategy}`)}>{STRATEGY_LABELS[strategy]}</button>)}
+          </div>
+          <small>{status.focus?.path === path ? '🎯 Pfad priorisiert' : 'Pfad und nächsten Ausbau wählen'}</small>
           {next && <div className="path-next"><strong>{t(next.name)}</strong><small>{next.completion.level === next.completion.maxLevel ? 'Levelmaximum erreicht · ' : ''}{next.completion.state === 'complete' ? 'Ausbau abgeschlossen' : next.completion.state === 'rebuilding' ? 'Wiederaufbau offen' : 'Ausbau offen'}</small><p>{next.phase} · {next.progress}</p>{next.target !== null && <button className="save-action" aria-label={`Ort zeigen: ${t(next.name)}`} onClick={() => useGameStore.getState().focusPeteProject(next.target!)}>📍 Ort zeigen</button>}<details><summary>Bedarf und Hindernisse</summary><p>{t(next.reason)}</p>{next.missing.length > 0 && <p>Fehlt: {t(next.missing.join(', '))}</p>}{next.blockage && <p>{t(next.blockage)}</p>}</details></div>}
           {pending.map(row)}
           {finished.length > 0 && <details className="completed-projects"><summary>✓ {finished.length} abgeschlossen</summary>{finished.map(row)}</details>}
