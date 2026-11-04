@@ -1,3 +1,4 @@
+import { DEPOSIT_CAPACITY, DEPOSIT_WARNING, oreRemaining } from '../simulation/deposits'
 import type Phaser from 'phaser'
 import { ITEM_DEFINITIONS } from '../simulation/items'
 import type { World } from '../simulation/world'
@@ -16,6 +17,11 @@ export function drawTerrainTile(g: Phaser.GameObjects.Graphics, world: World, x:
       g.fillStyle(visual.accent).fillTriangle(px + 5, py + 19, px + 13, py + 6, px + 19, py + 19)
       g.fillStyle(visual.shade).fillTriangle(px + 13, py + 24, px + 23, py + 9, px + 28, py + 24)
       g.fillStyle(visual.highlight).fillRect(px + 11, py + 11, 3, 4)
+      const remaining = oreRemaining(world, index)
+      if (remaining !== null) {
+        g.fillStyle(0x14291e, .85).fillRect(px + 4, py + 27, 24, 3)
+        g.fillStyle(remaining <= DEPOSIT_WARNING ? 0xe4af62 : 0xb7cf91).fillRect(px + 4, py + 27, 24 * Math.ceil(remaining / DEPOSIT_WARNING) / (DEPOSIT_CAPACITY / DEPOSIT_WARNING), 3)
+      }
     } else g.fillStyle(0x65814b, .25).fillRect(px + 7 + index % 11, py + 10 + index % 13, 2, 3)
   }
   drawWaterTile(g, world, x, y, tile)

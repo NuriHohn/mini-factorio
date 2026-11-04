@@ -37,7 +37,8 @@ export function restoreInfrastructure(value: unknown, world: World, version: num
     }
     if (feedLink(kind) && parts.at(-1)!.tile === target + 1) v.invalid('connection', 'gear ingredients cannot enter against the assembler output')
     const inlet = p.inlet === undefined ? undefined : v.array(p.inlet, 'connection.inlet', undefined, 13).map(t => v.tile(t, 'connection.inlet.tile'))
-    if (inlet && (kind !== 'loadingReturn' || inlet.length < 3 || inlet[0] !== e.coalMiner || inlet.at(-1) !== e.fuelStore || !inlet.slice(1, -1).includes(receiver) || new Set(inlet).size !== inlet.length || inlet.some((t, i) => i > 0 && distance(t, inlet[i - 1]) !== 1) || parts.some(p => inlet.includes(p.tile)) || parts.at(-1)!.direction === ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[facing(receiver, inlet[inlet.indexOf(receiver) + 1])] )) v.invalid('connection.inlet', 'invalid original coal inlet')
+    const retainedSuffix = version >= 56 && inlet?.[0] === receiver
+    if (inlet && (kind !== 'loadingReturn' || inlet.length < (retainedSuffix ? 2 : 3) || !retainedSuffix && inlet[0] !== e.coalMiner || inlet.at(-1) !== e.fuelStore || !retainedSuffix && !inlet.slice(1, -1).includes(receiver) || new Set(inlet).size !== inlet.length || inlet.some((t, i) => i > 0 && distance(t, inlet[i - 1]) !== 1) || parts.some(p => inlet.includes(p.tile)) || parts.at(-1)!.direction === ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[facing(receiver, inlet[inlet.indexOf(receiver) + 1])] )) v.invalid('connection.inlet', 'invalid original coal inlet')
     return { kind, source, target, ...(receiver === target ? {} : { receiver }), ...(inlet ? { inlet } : {}), parts }
   }
   function wheel(value: unknown): WheelSite | null {

@@ -1,3 +1,4 @@
+import { createDeposits, forgetDeposit } from './deposits'
 import { infrastructureReserved } from './infrastructure'
 import { createHomestead, homesteadHint } from './homestead'
 import { preparePeteGate } from './gardenGate'
@@ -32,6 +33,7 @@ export function createPetesWorld(): World {
   // Keep the central work approaches dry, but put a pond in the opening view.
   for (const [x, y] of [[22, 27], [21, 27], [23, 27], [22, 26], [22, 28], [23, 28], [24, 28]]) world.water[y * SIZE + x] = true
   world.tiles.fill(null)
+  world.deposits = createDeposits()
   world.nature.wood = 20
   placeBuilding(world, 20, 20, 'treehouse', 'east')
   Object.assign(world.pete, { tile: 21 * SIZE + 20, x: 20, y: 21 })
@@ -90,7 +92,7 @@ export function placeIron(world: World, x: number, y: number): string | null {
   const error = ironError(world, x, y)
   if (error) return error
   const changed: number[] = []
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'iron'; changed.push(tile) }
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'iron'; forgetDeposit(world, tile); changed.push(tile) }
   invalidateTerrain(world, changed)
   world.topologyRevision++
   return null
@@ -99,7 +101,7 @@ export function placeCopper(world: World, x: number, y: number): string | null {
   const error = copperError(world, x, y)
   if (error) return error
   const changed: number[] = []
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'copper'; changed.push(tile) }
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'copper'; forgetDeposit(world, tile); changed.push(tile) }
   invalidateTerrain(world, changed)
   world.topologyRevision++
   return null
@@ -108,7 +110,7 @@ export function placeCoal(world: World, x: number, y: number): string | null {
   const error = coalError(world, x, y)
   if (error) return error
   const changed: number[] = []
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'coal'; changed.push(tile) }
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const tile = (y + dy) * SIZE + x + dx; world.tiles[tile] = 'coal'; forgetDeposit(world, tile); changed.push(tile) }
   invalidateTerrain(world, changed)
   world.topologyRevision++
   return null

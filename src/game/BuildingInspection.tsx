@@ -88,6 +88,7 @@ export function BuildingInspection() {
         <p className="inspection-note">One police operation at a time. {inspection.prison ? `Prison at ${inspection.prison.x}, ${inspection.prison.y}.` : 'A prison appears at a reachable map edge on first dispatch.'}</p>
       </> : inspection.kind === 'forester' ? <><p>{t(inspection.details)}</p><InventoryView inventory={inspection.inventory} /><progress aria-label="Felling progress" value={inspection.progress} max={1} /></> : inspection.kind === 'storage' || inspection.kind === 'fuelDepot' ? <InventoryView inventory={inspection.inventory} showAll /> : inspection.kind === 'furnace' || inspection.kind === 'sawmill' || inspection.kind === 'assembler' ? <CraftingInspector inspection={inspection} requestRecipe={requestRecipe} /> : inspection.kind === 'inserter' ? <InserterInspector inspection={inspection} /> : inspection.kind === 'miner' ? <>
         <div className="stats"><span>{t('Extracting')}</span><b>{inspection.resource ? t(ITEM_DEFINITIONS[inspection.resource].label) : t('No deposit')}</b></div>
+        {inspection.remaining !== null && <div className="stats"><span>Restvorkommen</span><b>{inspection.remaining} Erz</b></div>}
         <div className="stats"><span>{t('Mining progress')}</span><b>{Math.round(inspection.progress * 100)}%</b></div>
         <div className="stats"><span>{t('Output buffer')}</span><b>{inspection.buffered ? '1 ore · blocked' : t('Empty')}</b></div>
       </> : inspection.kind === 'steamWorkshop' || inspection.kind === 'steamHoist' ? <>

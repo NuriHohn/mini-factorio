@@ -8,7 +8,7 @@ function mineCrossings(world: World): Set<number> {
   const signature = `${e.miner}:${e.furnace}:${e.copperMiner}:${e.copperFurnace}:${e.coalMiner}:${e.fuelStore}`
   const cached = mineCrossingCache.get(world)
   if (cached?.revision === world.topologyRevision && cached.plan === e.plan && cached.signature === signature) return cached.tiles
-  const tiles = new Set<number>()
+  const tiles = new Set<number>(world.deposits?.retiring ?? [])
   const plans = [e.plan, ...(world.rebuilding?.jobs.flatMap(j => j.owner.type === 'chain' ? [j.owner.plan] : []) ?? [])]
   for (const plan of plans) if (plan && ['ironMining', 'copperMining', 'coalMining'].includes(plan.kind)) for (const tile of plan.route?.slice(1) ?? []) tiles.add(tile)
   for (const [source, target] of [[e.miner, e.furnace === null ? null : e.furnace - 1], [e.copperMiner, e.copperFurnace === null ? null : e.copperFurnace - 1], [e.coalMiner, e.fuelStore]]) {
@@ -40,7 +40,7 @@ export function serviceCrossing(world: World, tile: number): boolean {
   const s = world.homestead?.infrastructure, b = world.buildings[tile]
   const e = world.homestead?.expansion
   const boilerFeeder = b?.kind === 'inserter' && (e?.coalInserter === tile || e?.plan?.kind === 'coalFeed' && e.plan.anchor === tile)
-  return !!s && !world.water[tile] && (b?.kind === 'belt' || b?.kind === 'inserter') && (boilerFeeder || b.kind === 'belt' && mineCrossings(world).has(tile) || [...s.links, ...(s.plan ? [s.plan] : [])].some(link => link.parts.some(p => p.tile === tile && p.kind === b.kind)))
+  return !!s && !world.water[tile] && (b?.kind === 'belt' || b?.kind === 'inserter') && (boilerFeeder || b.kind === 'belt' && mineCrossings(world).has(tile) || [...s.links, ...(s.plan ? [s.plan] : [])].some(link => link.parts.some(p => p.tile === tile && p.kind === b.kind) || b.kind === 'belt' && !!link.inlet?.slice(link.inlet.indexOf(link.receiver ?? -1), -1).includes(tile)))
 }
 export function reachableTiles(world: World, start: number, footbridges = true, peteGates = false): Map<number, number> {
   const queue = [start], parents = new Map<number, number>([[start, -1]])

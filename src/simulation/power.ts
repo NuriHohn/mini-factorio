@@ -84,7 +84,7 @@ export function workingDemand(building: Building, world?: World, frame?: Inserte
   if (building.kind === 'radar') return RADAR_KW
   if (building.kind === 'inserter') return world ? inserterDemand(world, building, frame) : 0
   if (building.kind === 'forester') return building.output.wood <= 3 || (building.replant && building.plots.length > 0) ? 30 : 0
-  if (building.kind === 'miner') return building.item ? 0 : MINER_KW
+  if (building.kind === 'miner') return building.item || world?.deposits && (!world.tiles[building.y * SIZE + building.x] || world.deposits.retiring.includes(building.y * SIZE + building.x)) ? 0 : MINER_KW
   if (building.kind !== 'furnace' && building.kind !== 'assembler' && building.kind !== 'sawmill') return 0
   return (building.job && craftingStatus(building) !== 'output-full') || (!building.job && canStartCrafting(building)) ? powerRequirement(building) : 0
 }

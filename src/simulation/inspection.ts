@@ -1,3 +1,4 @@
+import { oreRemaining } from './deposits'
 import { projectDemand } from './projectDemand'
 import { steamShare, steamWorkDuration } from './steamWork'
 import { expansionProjects } from './homesteadExpansion'
@@ -64,7 +65,7 @@ export type Inspection = { kind: 'steamWorkshop' | 'steamHoist'; cycles: number;
   | { kind: 'prison'; occupied: boolean; elapsedMs: number; remainingMs: number; imprisonedAtMs: number | null; exit: Position }
   | { kind: 'sprinkler'; manualCooldownMs?: number; radius: number; status: ReturnType<typeof sprinklerState>; cooldownMs: number; sprayProgress: number; sprays: number; electrical: ElectricalDetails }
   | { kind: 'radar'; radius: number; active: boolean; operation: string; prison: Position | null; electrical: ElectricalDetails } | { kind: 'storage'; inventory: Inventory }
-  | { kind: 'miner'; resource: Resource | null; progress: number; buffered: boolean; electrical: ElectricalDetails }
+  | { kind: 'miner'; remaining: number | null; resource: Resource | null; progress: number; buffered: boolean; electrical: ElectricalDetails }
   | { kind: 'generator' | 'waterwheel'; direction?: Direction; waterAvailable?: boolean; capacityKw: number; actualKw: number; electrical: ElectricalDetails }
   | { kind: 'powerPole'; coverageRadius: number; coveredMachines: number; electrical: ElectricalDetails } | {
   kind: 'furnace' | 'assembler' | 'sawmill'
@@ -156,7 +157,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
     return { kind: 'inserter', direction: building.direction, item: building.item, phase: building.phase, status: inserterStatus(world, building), progress: building.phase === 'idle' ? 0 : (building.elapsedMs + (building.phase === 'returning' ? INSERTER_SWING_MS : 0)) / INSERTER_CYCLE_MS, cycleMs: INSERTER_CYCLE_MS, pickup, drop, source: buildingAt(world, pickup.x, pickup.y)?.kind ?? null, target: buildingAt(world, drop.x, drop.y)?.kind ?? null, electrical }
   }
   if (building.kind === 'forester') return { kind: 'forester', details: forestryStatus(world, building), progress: building.elapsed / FELL_MS, inventory: { ...building.output }, electrical }
-  if (building.kind === 'miner') return { kind: 'miner', resource: depositAt(world, building.x, building.y), progress: building.elapsed / INTERVAL, buffered: building.item !== null, electrical }
+  if (building.kind === 'miner') return { kind: 'miner', remaining: oreRemaining(world, building.y * SIZE + building.x), resource: depositAt(world, building.x, building.y), progress: building.elapsed / INTERVAL, buffered: building.item !== null, electrical }
   if (building.kind === 'steamWorkshop' || building.kind === 'steamHoist') return { kind: building.kind, cycles: building.cycles, progress: building.elapsedMs / steamWorkDuration(building.kind), steamFraction: steamShare(world, building), electrical }
   if (building.kind === 'steamEngine') return { kind: building.kind, fuel: building.fuel, briquettes: building.briquettes, cycles: building.cycles, progress: building.burnRemainingMs ? 1 - building.burnRemainingMs / building.cycleDurationMs : 0, capacityKw: ratedGeneration(building), actualKw: electrical.network?.capacityKw ? electrical.network.suppliedKw * generationKw(world, building) / electrical.network.capacityKw : 0, electrical }
   if (building.kind === 'generator' || building.kind === 'waterwheel') return { kind: building.kind, ...(building.kind === 'waterwheel' ? { direction: building.direction, waterAvailable: waterwheelWater(world, building, building.direction) } : {}), capacityKw: ratedGeneration(building), actualKw: electrical.network?.capacityKw ? electrical.network.suppliedKw * generationKw(world, building) / electrical.network.capacityKw : 0, electrical }

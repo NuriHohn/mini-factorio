@@ -34,7 +34,7 @@ it('keeps whole-path choices across paid work and saves and rejects unsupported 
   expect(prioritizeProject(w, 'path:craftsman:storage')).toBe(false)
   const bad = save(w); bad.game.homestead.priority = 'path:eco:free'
   expect(() => decodeSave(JSON.stringify(bad))).toThrow('homestead.priority')
-  const old = save(createPetesWorld()); old.version = 54
+  const old = save(createPetesWorld()); old.version = 54; delete old.game.deposits
   delete old.game.homestead.infrastructure.nextSupplyAtMs
   expect(decodeSave(JSON.stringify(old)).world.homestead!.priority).toBeNull()
   old.game.homestead.priority = 'path:eco:storage'

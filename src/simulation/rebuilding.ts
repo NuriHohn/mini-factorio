@@ -1,8 +1,9 @@
+import { extractOre, forgetDeposit } from './deposits'
 import { INDUSTRIAL_CHAINS } from './industrialRules'
 import { findBeltRoute } from './beltRouting'
 import { recordProduction } from './analytics'
 import { changeCraftingRecipe } from './crafting'
-import { arrived, freeSite, handMillLayout, materialStore } from './homestead'
+import { arrived, finish, freeSite, handMillLayout, materialStore } from './homestead'
 import { chainCost, expansionLayout, IMPROVEMENTS } from './homesteadExpansion'
 import type { ExpansionPlan } from './homesteadExpansion'
 import { emptyInventory, inventoryTotal, ITEMS } from './items'
@@ -100,6 +101,8 @@ export function rebuildCost(_world: World, job: RebuildJob): Inventory {
 }
 export function rememberDemolition(world: World, tile: number): void {
   if (!world.miniFactory) return
+  if (world.deposits) world.deposits.retiring = world.deposits.retiring.filter(t => t !== tile)
+  if (world.homestead?.task === 'retireMine' && world.homestead.target === tile) finish(world)
   const b = world.buildings[tile]
   if (!b || b.kind === 'tree') return
   const r = ensureRebuilding(world)
@@ -121,6 +124,7 @@ export function clearResource(world: World, x: number, y: number): string | null
   if (b?.kind !== 'tree' && !world.tiles[tile]) return 'Wähle einen Baum oder ein Erzfeld.'
   if (b?.kind === 'tree') chopTree(world, x, y, false)
   world.tiles[tile] = null
+  forgetDeposit(world, tile)
   for (const station of world.buildings) if (station?.kind === 'forester') station.plots = station.plots.filter(i => i !== tile)
   invalidateTerrain(world, [tile]); refreshNatureSchedule(world)
   return null
@@ -161,7 +165,7 @@ function gatherForStore(world: World, job: RebuildJob, delta: number): boolean {
   if (job.elapsedMs < 6000) return false
   const b = world.buildings[tile]
   if (b?.kind === 'tree') { const cut = chopTree(world, tile % SIZE, Math.floor(tile / SIZE), false); if (cut) job.paid.wood += cut.wood }
-  else { const item = world.tiles[tile]; if (item === 'iron' || item === 'copper' || item === 'coal') { job.paid[item] += 3; world.mined[item] += 3; recordProduction(world, { [item]: 3 }) } }
+  else { const item = world.tiles[tile]; if (item === 'iron' || item === 'copper' || item === 'coal') { const amount = extractOre(world, tile, item, Math.min(3, 6 - inventoryTotal(job.paid))); job.paid[item] += amount; world.mined[item] += amount; recordProduction(world, { [item]: amount }) } }
   job.elapsedMs = 0; job.gather = null
   return false
 }
