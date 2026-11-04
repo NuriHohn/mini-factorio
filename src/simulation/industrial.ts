@@ -29,7 +29,8 @@ export function planIndustrial(world: World, kind: ChainKind): ExpansionPlan | n
     const direction = directions.find(d => e.fuelStore! + 2 * (offsets[d].y * SIZE + offsets[d].x) === e.steamEngine)
     if (!direction) return null
     const plan = { kind, anchor: (e.fuelStore + e.steamEngine!) / 2, direction, built: 0 }
-    return freeSite(world, [plan.anchor]) ? plan : null
+    const h = world.homestead!
+    return freeSite({ ...world, homestead: { ...h, expansion: { ...e, plan } } }, [plan.anchor]) ? plan : null
   }
   if (kind === 'coalMining') {
     for (const feed of directions) {
@@ -43,7 +44,8 @@ export function planIndustrial(world: World, kind: ChainKind): ExpansionPlan | n
         const route = result.points.map(p => p.y * SIZE + p.x)
         for (const direction of ['north', 'south'] as const) {
           const plan = { kind, anchor, direction, built: 0, route }, tiles = expansionLayout(plan).map(p => p.tile)
-          if (!tiles.includes(gap) && new Set(tiles).size === tiles.length && tiles.every(tile => inside(tile % SIZE, Math.floor(tile / SIZE)) && Math.abs(tile % SIZE - anchor % SIZE) <= 13) && freeSite(world, [...tiles, gap])) return plan
+          const h = world.homestead!, candidate = { ...world, homestead: { ...h, expansion: { ...e, plan } } }
+          if (!tiles.includes(gap) && new Set(tiles).size === tiles.length && tiles.every(tile => inside(tile % SIZE, Math.floor(tile / SIZE)) && Math.abs(tile % SIZE - anchor % SIZE) <= 13) && freeSite(candidate, [...tiles, gap])) return plan
         }
       }
     }

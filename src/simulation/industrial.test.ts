@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { createPetesWorld, placeCoal } from './petesWorld'
 import { advancePetesWorld as advanceWorld } from '../pete/simulation'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
-import { materialStore } from './homestead'
+import { freeSite, materialStore } from './homestead'
 import { emptyInventory } from './items'
 import { awardActivity } from './personality'
 import { removeBuilding, placeBuilding } from './world'
@@ -14,6 +14,7 @@ import { chooseExpansion, advanceExpansion, expansionLayout } from './homesteadE
 import { allocatePower } from './power'
 import { deliverItem, canReceive } from './transport'
 import { changeCraftingRecipe } from './crafting'
+import { peteWalkableTile } from './navigation'
 import type { World } from './world'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 const snapshot = (w: World) => JSON.parse(encodeSave(w, view, '2026-10-26T00:00:00.000Z'))
@@ -38,6 +39,60 @@ function build(w: World) {
   return plan
 }
 describe('Industrial coal automation and driven work', () => {
+  it('crosses only owned dry mining belts and invalidates derived routes when ownership changes', () => {
+    const w = stored(), e = w.homestead!.expansion
+    placeCoal(w, 20, 25)
+    expect(placeBuilding(w, 20, 25, 'miner', 'east')).toBe(true)
+    expect(placeBuilding(w, 21, 25, 'belt', 'east')).toBe(true)
+    expect(placeBuilding(w, 22, 25, 'fuelDepot', 'east')).toBe(true)
+    expect(placeBuilding(w, 23, 25, 'belt', 'east')).toBe(true)
+    e.coalMiner = 1020; e.fuelStore = 1022
+    expect(peteWalkableTile(w, 1021)).toBe(true)
+    expect(peteWalkableTile(w, 1023)).toBe(false)
+    w.water[1021] = true
+    expect(peteWalkableTile(w, 1021)).toBe(false)
+    w.water[1021] = false
+    e.coalMiner = null
+    expect(peteWalkableTile(w, 1021)).toBe(false)
+  })
+  it('rejects a new machine whose only empty approach would be isolated by its own pole', () => {
+    const w = stored()
+    for (const [x, y] of [[19, 17], [21, 17], [20, 18]]) expect(placeBuilding(w, x, y, 'storage', 'east')).toBe(true)
+    expect(freeSite(w, [660, 700])).toBe(false)
+  })
+  it('commissions a walkable boiler feeder beside a mast without blocking late-game progress', () => {
+    const w = stored(), h = w.homestead!, e = h.expansion
+    placeCoal(w, 26, 20)
+    expect(placeBuilding(w, 26, 20, 'miner', 'east')).toBe(true)
+    e.coalMiner = 826
+    expect(placeBuilding(w, 24, 17, 'fuelDepot', 'east')).toBe(true)
+    e.fuelStore = 704
+    // The future feeder is the only approach to this already-built mast.
+    expect(placeBuilding(w, 25, 16, 'powerPole', 'east')).toBe(true)
+    expect(placeBuilding(w, 25, 15, 'storage', 'east')).toBe(true)
+    expect(placeBuilding(w, 24, 16, 'storage', 'east')).toBe(true)
+    expect(chooseExpansion(w, 'industrial')).toBe(true)
+    expect(e.plan).toMatchObject({ kind: 'coalFeed', anchor: 705 })
+    const stock = materialStore(w)!.inventory.coal
+    for (let i = 0; i < 1500 && !h.carried.coal; i++) advanceWorld(w, 50)
+    expect(h.carried.coal).toBe(6)
+    const paid = load(w)
+    advanceWorld(w, 1000); advanceWorld(paid, 1000)
+    expect(snapshot(paid)).toEqual(snapshot(w))
+    build(w)
+    expect(e.coalInserter).toBe(705)
+    expect(peteWalkableTile(w, 705)).toBe(true)
+    expect(materialStore(w)!.inventory.coal).toBe(stock - 6)
+    const restored = load(w)
+    advanceWorld(w, 1000); advanceWorld(restored, 1000)
+    expect(snapshot(restored)).toEqual(snapshot(w))
+    expect(chooseExpansion(w, 'industrial')).toBe(true)
+    expect(e.plan?.kind).toBe('briquettes')
+    build(w)
+    expect(e.briquetteAssembler).not.toBeNull()
+    e.coalInserter = null
+    expect(peteWalkableTile(w, 705)).toBe(false)
+  })
   it('builds a steam-powered bounded coal depot/mine and ordinary boiler inserter, preserving partial work', () => {
     const w = stored(), h = w.homestead!, e = h.expansion
     placeCoal(w, 26, 20)
