@@ -24,9 +24,10 @@ export interface Infrastructure {
   loadingPlan: LoadingSite | null
   loadingCargo: 'coal' | 'coalBriquette' | null
   order: 'eco' | 'craftsman' | 'inventor' | 'industrial' | null
+  nextSupplyAtMs: number
   nextOrderAtMs: number
 }
-export function createInfrastructure(): Infrastructure { return { pavilion: null, industrial: 0, cargoCycles: 0, links: [], plan: null, built: 0, repair: false, wheel: null, wheelPlan: null, eco: 0, craftsman: 0, inventor: 0, loading: null, loadingPlan: null, loadingCargo: null, order: null, nextOrderAtMs: 0 } }
+export function createInfrastructure(): Infrastructure { return { pavilion: null, industrial: 0, cargoCycles: 0, links: [], plan: null, built: 0, repair: false, wheel: null, wheelPlan: null, eco: 0, craftsman: 0, inventor: 0, loading: null, loadingPlan: null, loadingCargo: null, order: null, nextSupplyAtMs: 0, nextOrderAtMs: 0 } }
 export const LINK_NAMES: Record<LinkKind, string> = { iron: 'Eisenlieferung zum Lager', gearFeed: 'Plattenzufuhr für Zahnräder', gearReturn: 'Zahnradlieferung zum Lager', copper: 'Kupferlieferung zum Lager', cableFeed: 'Plattenzufuhr für Kabel', cableReturn: 'Kabellieferung zum Lager', circuitFeed: 'Zutaten für Schaltkreise', circuitReturn: 'Schaltkreise zum Lager', stampFeed: 'Kohle zum Stampfer', loadingFeed: 'Briketts zum Aufzug', loadingReturn: 'Verladefracht zum Kessellager', woodReturn: 'Forstholz zum Lager', panelReturn: 'Holzplatten zum Lager', crateReturn: 'Holzkisten zum Lager' }
 export function copperLink(kind: LinkKind): boolean { return kind === 'copper' || kind === 'cableFeed' || kind === 'cableReturn' || kind === 'circuitFeed' || kind === 'circuitReturn' }
 export function feedLink(kind: LinkKind): boolean { return kind === 'gearFeed' || kind === 'cableFeed' || kind === 'circuitFeed' || kind === 'stampFeed' }

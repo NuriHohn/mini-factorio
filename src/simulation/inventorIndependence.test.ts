@@ -1,4 +1,4 @@
-import { acceptCompletedPath } from './developmentAcceptance.testSupport'
+import { acceptCompletedPath, observeNormalPacing } from './developmentAcceptance.testSupport'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createPetesWorld, placeCopper } from './petesWorld'
 import { advancePetesWorld as advanceWorld } from '../pete/simulation'
@@ -6,7 +6,7 @@ import { decodeSave, encodeSave } from '../persistence/saveGame'
 import type { World } from './world'
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
 function until(w: World, done: () => boolean) {
-  for (let ms = 0; ms < 1800000 && !done(); ms += 50) advanceWorld(w, 50)
+  for (let ms = 0; ms < 1800000 && !done(); ms += 50) { advanceWorld(w, 50); observeNormalPacing(w, 'inventor') }
   expect(done(), JSON.stringify({ time: w.timeMs, h: w.homestead, paths: w.personality.paths, stock: w.buildings[w.homestead!.store ?? 0] })).toBe(true)
 }
 describe('independent Inventor progression from raw copper alone', () => {
@@ -29,5 +29,11 @@ describe('independent Inventor progression from raw copper alone', () => {
   })
   beforeAll(() => { until(w, () => w.homestead!.infrastructure.inventor === 3 && w.personality.paths.inventor.level === 5 && w.treasureProject?.phase === 'complete') }, 60000)
   it('completes Inventor independently, keeps living and restores its paid machines', () => { acceptCompletedPath(w, 'inventor') }, 60000)
+  it('can fund a small cable delivery within the real sixteen-cable return quota', () => {
+    const supply = structuredClone(w)
+    until(supply, () => supply.homestead!.task === 'supplyOrder' && supply.homestead!.carried.copperCable === 2)
+    expect(supply.homestead!.infrastructure.order).toBe('inventor')
+    expect(() => decodeSave(encodeSave(supply, view))).not.toThrow()
+  }, 60000)
 
 })

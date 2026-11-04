@@ -1,3 +1,4 @@
+import { developmentFocus } from './developmentFocus'
 import { PETE_PROJECTS, materialPath } from './projectRegistry'
 import { ITEMS } from './items'
 import { treeStage } from './nature'
@@ -24,6 +25,8 @@ export function resourcePreference(world: World, path: PersonalityPath): number 
 }
 
 export function preferredPaths(world: World): PersonalityPath[] {
+  const focus = developmentFocus(world)
+  if (focus) return [focus.path, ...(['eco', 'craftsman', 'inventor', 'industrial'] as const).filter(path => path !== focus.path)]
   const goal = PETE_PROJECTS.find(p => p.id === world.homestead?.priority && world[p.state]?.phase !== 'complete')
   if (goal) return [goal.path, ...(['eco', 'craftsman', 'inventor', 'industrial'] as const).filter(path => path !== goal.path)]
   const paths: PersonalityPath[] = ['eco', 'craftsman', 'inventor']

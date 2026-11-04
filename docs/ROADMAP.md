@@ -530,3 +530,15 @@ Implemented under the explicit request to implement and merge the next five spri
 | 16.122 | Material tiles/capacity/goal shortages and four independently expandable development paths with compact project rows and collapsed completion |
 
 [Game design](GAME_DESIGN.md#project-focus-and-compact-stock) owns the mechanics and limits, [Architecture](ARCHITECTURE.md#saved-project-focus-and-compact-projections-save-54) owns state/projections and compatibility, and [Development](DEVELOPMENT.md#pre-merge-checks-and-artifact-reuse) owns validation and publishing. Save 54 retains versions 1-53. No new building, level, recipe, dependency or zone editor is introduced.
+
+## Sprints 16.123–16.127 — a working little factory
+
+| Sprint | Delivered scope |
+| --- | --- |
+| 16.123 | Raw-start acceptance of early real consumption/replenishment; two-product supply at existing hosts using paid cargo, construction reserves and powered returns |
+| 16.124 | Saved whole-path goals retained after individual construction, available in each inspector path group |
+| 16.125 | Concrete missing building batches guide existing manual work for path goals; committed tasks, automation and live return deliveries stay protected |
+| 16.126 | Paid production-first versus transport-first choices, plus Eco storage-first roof/shelves expansion; no building-zone editor |
+| 16.127 | Visible delivery destination, carried products and work bar, four-second repeated supply work, and measured normal-speed progression |
+
+Mechanics and limits: [Game design](GAME_DESIGN.md#early-factory-supply-and-development-choices). Save 55 and projection ownership: [Architecture](ARCHITECTURE.md#development-goals-and-early-paid-supply-save-55). The broader early walking/handwork acceleration was withdrawn after it disturbed the mixed-yard build order. The proposed first-project timing target remains unmet in the measured sample; Development records the actual timings and validation. No new building, recipe or dependency is introduced.

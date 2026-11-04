@@ -1,5 +1,7 @@
-import { connectionRunning } from './infrastructure'
-import { chooseInfrastructure, advanceInfrastructure, infrastructureReserved } from './infrastructure'
+import { connectionRunning, SUPPLY_WORK_MS } from './infrastructure'
+import { chooseInfrastructure, chooseSupply, advanceInfrastructure, infrastructureReserved } from './infrastructure'
+import { developmentFocus } from './developmentFocus'
+import { projectDemand } from './projectDemand'
 import { createInfrastructure } from './infrastructureRules'
 import type { Infrastructure } from './infrastructureRules'
 import { chooseShoreline, advanceShoreline } from './shoreline'
@@ -10,7 +12,7 @@ import { chooseRebuild, awardHomesteadOnce } from './rebuilding'
 import { neighboringTiles, peteReachableTiles, peteWalkableTile, tilePath } from './navigation'
 import { preferredPaths } from './resourcePreference'
 import { emptyInventory, inventoryTotal, ITEMS } from './items'
-import { advanceExpansion, chooseExpansion, createExpansion, expansionSummary } from './homesteadExpansion'
+import { advanceExpansion, chooseExpansion, createExpansion, expansionSummary, IMPROVEMENT_RULES } from './homesteadExpansion'
 import type { HomesteadExpansion } from './homesteadExpansion'
 import type { Inventory } from './items'
 import { chopTree, treeStage } from './nature'
@@ -22,7 +24,7 @@ import { inside, placeBuilding, placementError, SIZE } from './world'
 import type { BuildingKind, SupplyCrate, World } from './world'
 
 export const NEW_HOME_TASKS = ['fetchGear', 'feedGear', 'takeGear', 'upgradeBicycle', 'buildBridge', 'buildDock'] as const
-export const INFRASTRUCTURE_TASKS = ['parkBicycle', 'buildConnection', 'buildWheel', 'finishOrder'] as const
+export const INFRASTRUCTURE_TASKS = ['supplyOrder', 'parkBicycle', 'buildConnection', 'buildWheel', 'finishOrder'] as const
 export const LATER_HOME_TASKS = ['buildLoading', 'fetchLoading', 'feedLoading', 'takeLoading'] as const
 export const HOME_TASKS = ['buildPavilion', ...LATER_HOME_TASKS, ...INFRASTRUCTURE_TASKS, ...NEW_HOME_TASKS, 'takeCoal', 'fetchStamp', 'feedStamp', 'takeBriquettes', 'fetchFuel', 'storeFuel', 'gather', 'buildStore', 'buildMill', 'fetchWood', 'feedMill', 'takePanels', 'returnStock', 'expandStore', 'mineIron', 'buildChain', 'improve', 'fetchIron', 'feedIron', 'takeIron', 'takeCrates', 'mineCopper', 'fetchCopper', 'feedCopper', 'takeCopper', 'fetchCable', 'feedCable', 'takeCable', 'fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam'] as const
 export type HomeTask = typeof HOME_TASKS[number]
@@ -149,6 +151,32 @@ export function arrived(world: World, tile: number | null, delta: number, constr
   }
   return miniWalk(world, spot, delta)
 }
+// Work on the actual missing batch before starting an unrelated optional chain.
+// Running belts keep ownership of their deliveries; manual work is the fallback.
+export function chooseDemandWork(world: World): boolean {
+  const h = world.homestead!, store = materialStore(world)
+  if (!store || !developmentFocus(world)) return false
+  const demand = projectDemand(world, store)
+  if (!demand || demand.paid || store.wood + inventoryTotal(store.inventory) + 2 > supplyCapacity(store)) return false
+  const e = h.expansion
+  const batches: { item: 'ironPlate' | 'copperPlate' | 'copperCable' | 'woodPanel'; tile: number | null; link: 'iron' | 'copper' | 'cableReturn' | 'panelReturn'; take: HomeTask; fetch: HomeTask; input: 'iron' | 'copper' | 'copperPlate' | 'wood'; reserve: number }[] = [
+    { item: 'ironPlate', tile: e.furnace, link: 'iron', take: 'takeIron', fetch: 'fetchIron', input: 'iron', reserve: 2 },
+    { item: 'copperPlate', tile: e.copperFurnace, link: 'copper', take: 'takeCopper', fetch: 'fetchCopper', input: 'copper', reserve: 2 },
+    { item: 'copperCable', tile: e.cableAssembler, link: 'cableReturn', take: 'takeCable', fetch: 'fetchCable', input: 'copperPlate', reserve: 10 },
+    { item: 'woodPanel', tile: h.millAnchor, link: 'panelReturn', take: 'takePanels', fetch: 'fetchWood', input: 'wood', reserve: 20 },
+  ]
+  batches.sort((a, b) => (demand.missing[b.item] ?? 0) - (demand.missing[a.item] ?? 0))
+  for (const batch of batches) {
+    if (!(demand.missing[batch.item] ?? 0) || batch.tile === null || connectionRunning(world, batch.link)) continue
+    if (batch.item === 'ironPlate' && e.miner === null || (batch.item === 'copperPlate' || batch.item === 'copperCable') && e.copperMiner === null) continue
+    const machine = world.buildings[batch.tile]
+    if (machine?.kind !== 'furnace' && machine?.kind !== 'assembler' && machine?.kind !== 'sawmill') continue
+    if (machine.output[batch.item]) { begin(world, batch.take, batch.tile); return true }
+    const stock = batch.input === 'wood' ? store.wood : store.inventory[batch.input]
+    if (!machine.job && !machine.input[batch.input] && stock >= batch.reserve) { begin(world, batch.fetch, h.store); return true }
+  }
+  return false
+}
 function chooseTask(world: World): void {
   const s = world.homestead!, store = materialStore(world)
   if (s.store === null) {
@@ -168,8 +196,14 @@ function chooseTask(world: World): void {
   if (inventoryTotal(s.carried)) { begin(world, 'returnStock', s.store); return }
   if (chooseRebuild(world)) return
   if (s.expansion.plan) { begin(world, 'buildChain', s.store); return }
+  const focus = developmentFocus(world)
   for (const path of preferredPaths(world)) {
+    if (focus?.path === path && focus.strategy === 'storage' && path === 'eco' && store.storeTier === 0 && store.inventory.woodPanel >= 8) { begin(world, 'expandStore', s.store); return }
+    if (focus?.path === path && focus.strategy === 'storage' && path === 'eco' && world.personality.paths.eco.level >= 4 && store.storeTier === 1 && s.expansion.improvements.storeShelves === undefined && store.inventory.woodenCrate >= IMPROVEMENT_RULES.storeShelves.amount) { s.expansion.improvement = 'storeShelves'; begin(world, 'improve', s.store); return }
+    if (focus?.path === path && focus.strategy === 'production' && chooseExpansion(world, path)) return
     if (chooseInfrastructure(world, path)) return
+    if (chooseDemandWork(world)) return
+    if (chooseSupply(world, path)) return
     if (chooseExpansion(world, path)) return
     if (path === 'eco' && chooseShoreline(world)) return
     if (path === 'eco') { chooseEcoTask(world); if (s.task !== null) return }
@@ -286,7 +320,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
   }
   return true
 }
-export const HOME_TASK_LABELS: Record<HomeTask, string> = { buildPavilion: 'Ich baue den Obstgarten-Pavillon aus bezahlten Platten und Kisten', buildLoading: 'Ich baue meinen bezahlten Verladeplatz', fetchLoading: 'Ich hole überschüssigen Brennstoff für den Aufzug', feedLoading: 'Ich bringe Brennstoff zum Verladeplatz', takeLoading: 'Ich hole tatsächlich verladenen Brennstoff', parkBicycle: 'Ich parke mein Lastenrad außerhalb der neuen Transportstrecke', buildConnection: 'Ich baue meine Materialverbindung', buildWheel: 'Ich baue mein Wasserrad mit Stromanschluss', finishOrder: 'Ich arbeite an einem bezahlten Ausbauauftrag', fetchGear: 'Ich hole Eisenplatten für Zahnräder', feedGear: 'Ich beliefere den Zahnrad-Assembler', takeGear: 'Ich hole fertige Zahnräder', upgradeBicycle: 'Ich baue mein Lastenfahrrad', buildBridge: 'Ich baue eine bezahlte Fußbrücke', buildDock: 'Ich baue meinen Angelsteg mit Ruderboot', takeCoal: 'Ich hole geförderte Kohle aus dem Brennstofflager', fetchStamp: 'Ich hole Kohle für den Stampfer', feedStamp: 'Ich bringe Kohle zum Stampfer', takeBriquettes: 'Ich hole gepresste Briketts', fetchFuel: 'Ich hole Briketts für den Kessel', storeFuel: 'Ich bringe Brennstoff ins Kessellager', fetchSteam: 'Ich hole Kohle für den Kessel', feedSteam: 'Ich trage Kohle zum Dampfantrieb', mineCoal: 'Ich baue Kohle als Brennstoff ab', fetchCircuits: 'Ich hole Kupferplatten und Kupferkabel für Schaltkreise', feedCircuits: 'Ich bringe echte Zutaten zum Schaltkreis-Assembler', takeCircuits: 'Ich hole fertige Schaltkreise für meine Flugwerkstatt', mineCopper: 'Ich baue Kupfererz ab', fetchCopper: 'Ich hole Kupfererz', feedCopper: 'Ich bringe Kupfererz zum Kupferofen', takeCopper: 'Ich hole fertige Kupferplatten', fetchCable: 'Ich hole Kupferplatten für Kabel', feedCable: 'Ich bringe Platten zum Kabel-Assembler', takeCable: 'Ich hole fertige Kupferkabel', gather: 'Ich fälle ausgewachsene Bäume für mein Materiallager', buildStore: 'Ich baue mein Materiallager aus 6 Holz, 6 Eisenerz, 6 Kupfererz oder 6 Kohle', buildMill: 'Ich baue mein Sägewerk mit Stromversorgung', fetchWood: 'Ich hole Holz aus dem Materiallager', feedMill: 'Ich bringe Holz zum Sägewerk', takePanels: 'Ich hole fertige Holzplatten', returnStock: 'Ich trage Material zurück ins Lager', expandStore: 'Ich überdache und erweitere mein Materiallager', mineIron: 'Ich baue Eisenerz ab', buildChain: 'Ich erweitere meine Produktion', improve: 'Ich verbessere meinen Hof', fetchIron: 'Ich hole Eisenerz aus dem Lager', feedIron: 'Ich bringe Erz zum Schmelzofen', takeIron: 'Ich hole fertige Eisenplatten', takeCrates: 'Ich hole fertige Holzkisten' }
+export const HOME_TASK_LABELS: Record<HomeTask, string> = { supplyOrder: 'Ich bringe echte Produkte zu meinen Anlagen und verbrauche sie dort', buildPavilion: 'Ich baue den Obstgarten-Pavillon aus bezahlten Platten und Kisten', buildLoading: 'Ich baue meinen bezahlten Verladeplatz', fetchLoading: 'Ich hole überschüssigen Brennstoff für den Aufzug', feedLoading: 'Ich bringe Brennstoff zum Verladeplatz', takeLoading: 'Ich hole tatsächlich verladenen Brennstoff', parkBicycle: 'Ich parke mein Lastenrad außerhalb der neuen Transportstrecke', buildConnection: 'Ich baue meine Materialverbindung', buildWheel: 'Ich baue mein Wasserrad mit Stromanschluss', finishOrder: 'Ich arbeite an einem bezahlten Ausbauauftrag', fetchGear: 'Ich hole Eisenplatten für Zahnräder', feedGear: 'Ich beliefere den Zahnrad-Assembler', takeGear: 'Ich hole fertige Zahnräder', upgradeBicycle: 'Ich baue mein Lastenfahrrad', buildBridge: 'Ich baue eine bezahlte Fußbrücke', buildDock: 'Ich baue meinen Angelsteg mit Ruderboot', takeCoal: 'Ich hole geförderte Kohle aus dem Brennstofflager', fetchStamp: 'Ich hole Kohle für den Stampfer', feedStamp: 'Ich bringe Kohle zum Stampfer', takeBriquettes: 'Ich hole gepresste Briketts', fetchFuel: 'Ich hole Briketts für den Kessel', storeFuel: 'Ich bringe Brennstoff ins Kessellager', fetchSteam: 'Ich hole Kohle für den Kessel', feedSteam: 'Ich trage Kohle zum Dampfantrieb', mineCoal: 'Ich baue Kohle als Brennstoff ab', fetchCircuits: 'Ich hole Kupferplatten und Kupferkabel für Schaltkreise', feedCircuits: 'Ich bringe echte Zutaten zum Schaltkreis-Assembler', takeCircuits: 'Ich hole fertige Schaltkreise für meine Flugwerkstatt', mineCopper: 'Ich baue Kupfererz ab', fetchCopper: 'Ich hole Kupfererz', feedCopper: 'Ich bringe Kupfererz zum Kupferofen', takeCopper: 'Ich hole fertige Kupferplatten', fetchCable: 'Ich hole Kupferplatten für Kabel', feedCable: 'Ich bringe Platten zum Kabel-Assembler', takeCable: 'Ich hole fertige Kupferkabel', gather: 'Ich fälle ausgewachsene Bäume für mein Materiallager', buildStore: 'Ich baue mein Materiallager aus 6 Holz, 6 Eisenerz, 6 Kupfererz oder 6 Kohle', buildMill: 'Ich baue mein Sägewerk mit Stromversorgung', fetchWood: 'Ich hole Holz aus dem Materiallager', feedMill: 'Ich bringe Holz zum Sägewerk', takePanels: 'Ich hole fertige Holzplatten', returnStock: 'Ich trage Material zurück ins Lager', expandStore: 'Ich überdache und erweitere mein Materiallager', mineIron: 'Ich baue Eisenerz ab', buildChain: 'Ich erweitere meine Produktion', improve: 'Ich verbessere meinen Hof', fetchIron: 'Ich hole Eisenerz aus dem Lager', feedIron: 'Ich bringe Erz zum Schmelzofen', takeIron: 'Ich hole fertige Eisenplatten', takeCrates: 'Ich hole fertige Holzkisten' }
 export function homesteadHint(world: World): string {
   const s = world.homestead!, store = materialStore(world)
   if (s.task) {
@@ -297,7 +331,7 @@ export function homesteadHint(world: World): string {
     if (s.task === 'returnStock' && store && store.wood + inventoryTotal(store.inventory) + inventoryTotal(s.carried) > supplyCapacity(store)) return 'Mein Materiallager ist voll. Ich behalte das getragene Material, bis wieder Platz ist.'
     if (s.task === 'gather' && s.carried.wood >= 6) return 'Ich habe 6 Holz für das Materiallager. Mir fehlt eine freie, erreichbare Baufläche nahe am Baumhaus.'
     if (s.task === 'gather' && s.target === null) return 'Ich brauche erreichbare Ressourcen. Platziere Wald, Eisen oder Kupfer in meiner Nähe.'
-    return `${HOME_TASK_LABELS[s.task]}${s.elapsedMs ? ` · ${Math.floor(s.elapsedMs / (s.task === 'expandStore' ? 8000 : s.task === 'buildMill' ? 4000 : 6000) * 100)} %` : ''}.`
+    return `${HOME_TASK_LABELS[s.task]}${s.elapsedMs ? ` · ${Math.floor(s.elapsedMs / (s.task === 'supplyOrder' ? SUPPLY_WORK_MS : s.task === 'expandStore' ? 8000 : s.task === 'buildMill' ? 4000 : 6000) * 100)} %` : ''}.`
   }
   if (s.store !== null && !store) return 'Mein Materiallager fehlt. Mein Baufortschritt und getragenes Material bleiben erhalten.'
   if (!store) return 'Platziere Wald, Eisen oder Kupfer in meiner Nähe. Ich sammle selbst Material, baue ein Lager und verwirkliche meine Projekte.'

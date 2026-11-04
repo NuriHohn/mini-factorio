@@ -11,7 +11,7 @@ import { neighboringTiles } from './navigation'
 import { miniApproach } from './petesWorld'
 import { miniWalk } from './petesWorld'
 import { awardActivity } from './personality'
-import { projectCandidates } from './secretProject'
+import { projectCandidates, projectResources } from './secretProject'
 import { DIRECTIONS, inside, offsets, placeBuilding, SIZE } from './world'
 import type { Direction, World } from './world'
 import { copperLink, feedLink, linkMaterial, industrialLink, linkCurrency, linkCost, ecoLink, earlyIronReturnUnlocked } from './infrastructureRules'
@@ -214,6 +214,35 @@ export function recurringOrderReady(world: World, path: 'eco' | 'craftsman' | 'i
     (path !== 'eco' || h.infrastructure.pavilion?.stage === 3) &&
     PETE_PROJECTS.filter(p => p.path === path && !p.repeatable && !retiredIndustrial(world, p)).every(p => world[p.state]?.phase === 'complete')
 }
+export function supplyTarget(world: World, path: NonNullable<World['homestead']>['infrastructure']['order'], standing = true): number | null {
+  const h = world.homestead
+  if (!h || !path) return null
+  if (path === 'industrial') return h.expansion.steamWorkshop !== null && (!standing || world.buildings[h.expansion.steamWorkshop]?.kind === 'steamWorkshop') ? h.expansion.steamWorkshop : null
+  const project = path === 'eco' ? world.coopProject : path === 'inventor' ? world.experimentProject : world.workshopProject
+  return project?.phase === 'complete' && (!standing || world.buildings[project.tiles[0]]) ? project.tiles[0] : null
+}
+export const SUPPLY_WORK_MS = 4000
+export const SUPPLY_ITEMS = { eco: 'woodPanel', craftsman: 'ironPlate', inventor: 'copperCable', industrial: 'coal' } as const
+export const SUPPLY_LINKS = { eco: 'panelReturn', craftsman: 'iron', inventor: 'cableReturn', industrial: 'loadingReturn' } as const
+const SUPPLY_RESERVES = { eco: 18, craftsman: 12, inventor: 12, industrial: 8 } as const
+export function earlySupplyReady(world: World, path: keyof typeof SUPPLY_ITEMS): boolean {
+  const h = world.homestead
+  return !!h && supplyTarget(world, path) !== null && connectionRunning(world, SUPPLY_LINKS[path])
+}
+export function chooseSupply(world: World, path: keyof typeof SUPPLY_ITEMS): boolean {
+  const h = world.homestead!, store = materialStore(world)
+  if (!store || !earlySupplyReady(world, path) || world.timeMs < h.infrastructure.nextSupplyAtMs) return false
+  // A small delivery can use surplus while every affordable construction bill
+  // remains funded. Unrelated building materials do not block product demand.
+  const reserve = SUPPLY_RESERVES[path]
+  const source = path === 'industrial' ? h.expansion.fuelStore === null ? null : world.buildings[h.expansion.fuelStore] : store
+  if (!source || source.kind !== 'supplyCrate' && source.kind !== 'fuelDepot') return false
+  const item = SUPPLY_ITEMS[path]
+  if (source.inventory[item] < 2 || (path === 'industrial' ? inventoryTotal(source.inventory) : source.inventory[item]) < reserve + 2 || projectCandidates(world).some(c => !c.definition.repeatable && (projectResources(c.project)[item] ?? 0) > source.inventory[item] - 2)) return false
+  h.infrastructure.order = path
+  begin(world, 'supplyOrder', supplyTarget(world, path))
+  return true
+}
 function parkForConnection(world: World, kinds: LinkKind[]): boolean {
   const h = world.homestead!
   if (!h.cargoBicycle || h.bikeTile === null || !kinds.length) return false
@@ -294,7 +323,26 @@ export function advanceInfrastructure(world: World, delta: number): boolean {
   const h = world.homestead!, s = h.infrastructure, store = materialStore(world)
   if (advancePavilion(world, delta)) return true
   if (advanceLoading(world, delta)) return true
-  if (!['parkBicycle', 'buildConnection', 'buildWheel', 'finishOrder'].includes(h.task ?? '')) return false
+  if (!['supplyOrder', 'parkBicycle', 'buildConnection', 'buildWheel', 'finishOrder'].includes(h.task ?? '')) return false
+  if (h.task === 'supplyOrder') {
+    const path = s.order!, item = SUPPLY_ITEMS[path]
+    const source = path === 'industrial' ? h.expansion.fuelStore === null ? null : world.buildings[h.expansion.fuelStore] : store
+    if (!inventoryTotal(h.carried)) {
+      if (!source || source.kind !== 'supplyCrate' && source.kind !== 'fuelDepot') { s.order = null; finish(world); return true }
+      if (!arrived(world, path === 'industrial' ? h.expansion.fuelStore : h.store, delta)) return true
+      const reserve = SUPPLY_RESERVES[path]
+      if (!earlySupplyReady(world, path) || source.inventory[item] < 2 || (path === 'industrial' ? inventoryTotal(source.inventory) : source.inventory[item]) < reserve + 2) { s.order = null; finish(world); return true }
+      source.inventory[item] -= 2; h.carried[item] = 2
+    }
+    // A demolished host returns its paid cargo instead of losing or inventing it.
+    if (supplyTarget(world, path) !== h.target) { s.order = null; begin(world, 'returnStock', h.store); return true }
+    if (!arrived(world, h.target, delta)) return true
+    h.elapsedMs = Math.min(SUPPLY_WORK_MS, h.elapsedMs + delta)
+    if (h.elapsedMs === SUPPLY_WORK_MS) {
+      h.carried[item] = 0; s.order = null; s.nextSupplyAtMs = world.timeMs + 60000; finish(world)
+    }
+    return true
+  }
   if (h.task === 'parkBicycle') {
     if (h.bikeTile !== null && !miniWalk(world, h.bikeTile, delta)) return true
     h.bikeTile = null

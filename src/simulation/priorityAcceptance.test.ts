@@ -42,6 +42,7 @@ it('keeps the wish and exact continuation across saves, validates it and upgrade
   const bad = snapshot(w); bad.game.homestead.priority = 'free-items'
   expect(() => decodeSave(JSON.stringify(bad))).toThrow('homestead.priority')
   const old = snapshot(w); old.version = 53
+  delete old.game.homestead.infrastructure.nextSupplyAtMs
   delete old.game.homestead.priority; delete old.game.homestead.nextMealAtMs
   const upgraded = decodeSave(JSON.stringify(old)).world
   expect(upgraded.homestead!.priority).toBeNull()

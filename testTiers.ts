@@ -8,7 +8,7 @@ export const longTests = new Set([
   'infrastructure', 'infrastructurePaths', 'inventorIndependence', 'laterInfrastructure',
   'laterPaths', 'nextProgression', 'pavilion', 'peteBalance', 'peteExpansion48',
   'petePaths48', 'productionLogistics', 'productionPaths', 'ecoLogistics',
-  'craftsman', 'inventor', 'developmentAcceptance', 'priorityAcceptance',
+  'craftsman', 'inventor', 'developmentAcceptance', 'priorityAcceptance', 'livingFactory',
 ])
 export function testTier(path: string): 'long' | 'quick' {
   return longTests.has(path.split('/').at(-1)!.replace(/\.test\.tsx?$/, '')) ? 'long' : 'quick'

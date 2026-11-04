@@ -1,4 +1,4 @@
-import { acceptCompletedPath } from './developmentAcceptance.testSupport'
+import { acceptCompletedPath, observeNormalPacing } from './developmentAcceptance.testSupport'
 import { PETE_PROJECTS } from './projectRegistry'
 import { IMPROVEMENTS } from './homesteadExpansion'
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -10,7 +10,7 @@ import { neighboringTiles, peteReachableTiles, peteWalkableTile } from './naviga
 import { projectBuilding } from './secretProject'
 
 function until(w: World, done: () => boolean, limit = 1800000) {
-  for (let t = 0; t < limit && !done(); t += 50) advanceWorld(w, 50)
+  for (let t = 0; t < limit && !done(); t += 50) { advanceWorld(w, 50); observeNormalPacing(w, w.tiles.includes('iron') ? 'craftsman' : 'eco') }
   expect(done(), JSON.stringify({ time: w.timeMs, h: w.homestead, stock: w.buildings[w.homestead!.store ?? 0], paths: w.personality.paths, activity: w.peace.activity })).toBe(true)
 }
 const view = { scrollX: 0, scrollY: 0, zoom: 1, direction: 'east' as const, powerOverlay: false }
