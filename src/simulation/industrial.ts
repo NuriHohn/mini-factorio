@@ -1,3 +1,4 @@
+import { DEPOSIT_WARNING, oreRemaining } from './deposits'
 import { connectionRunning } from './infrastructure'
 import { fuelAutomation, fuelDeliveryAllowed, mainFuel, protectsOutput } from './productionLogistics'
 import { arrived, begin, finish, freeSite, materialStore } from './homestead'
@@ -35,17 +36,23 @@ export function planIndustrial(world: World, kind: ChainKind): ExpansionPlan | n
   if (kind === 'coalMining') {
     for (const feed of directions) {
       const end = e.steamEngine! - 2 * (offsets[feed].y * SIZE + offsets[feed].x), gap = (end + e.steamEngine!) / 2
-      if (!inside(end % SIZE, Math.floor(end / SIZE)) || Math.abs(end % SIZE - engine.x) > 2 || !freeSite(world, [end, gap])) continue
-      const ores = world.tiles.flatMap((ore, tile) => ore === 'coal' && !world.buildings[tile] && !world.water[tile] && Math.max(Math.abs(tile % SIZE - engine.x), Math.abs(Math.floor(tile / SIZE) - engine.y)) <= 11 ? [tile] : [])
+      const reuseDepot = !!world.deposits && end === e.fuelStore && world.buildings[end]?.kind === 'fuelDepot'
+      const retainedFeeder = reuseDepot && gap === e.coalInserter && world.buildings[gap]?.kind === 'inserter'
+      if (!inside(end % SIZE, Math.floor(end / SIZE)) || Math.abs(end % SIZE - engine.x) > 2 || !freeSite(world, reuseDepot ? retainedFeeder ? [] : [gap] : [end, gap])) continue
+      const ores = world.tiles.flatMap((ore, tile) => ore === 'coal' && (oreRemaining(world, tile) ?? Infinity) > DEPOSIT_WARNING && !world.buildings[tile] && !world.water[tile] && Math.max(Math.abs(tile % SIZE - engine.x), Math.abs(Math.floor(tile / SIZE) - engine.y)) <= 11 ? [tile] : [])
       ores.sort((a, b) => Math.abs(a % SIZE - end % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(end / SIZE)) - Math.abs(b % SIZE - end % SIZE) - Math.abs(Math.floor(b / SIZE) - Math.floor(end / SIZE)) || a - b)
       for (const anchor of ores) {
-        const result = findBeltRoute({ x: anchor % SIZE, y: Math.floor(anchor / SIZE) }, { x: end % SIZE, y: Math.floor(end / SIZE) }, feed, (x, y) => !world.water[y * SIZE + x] && !world.buildings[y * SIZE + x] && y * SIZE + x !== gap, 400)
+        const result = findBeltRoute({ x: anchor % SIZE, y: Math.floor(anchor / SIZE) }, { x: end % SIZE, y: Math.floor(end / SIZE) }, feed, (x, y, outgoing) => { const tile = y * SIZE + x, b = world.buildings[tile]; return !world.water[tile] && tile !== gap && (!b || reuseDepot && (tile === end || b.kind === 'belt' && b.direction === outgoing)) }, 400)
         if (!result.points || result.points.length < 2 || result.points.length > 13) continue
         const route = result.points.map(p => p.y * SIZE + p.x)
         for (const direction of ['north', 'south'] as const) {
-          const plan = { kind, anchor, direction, built: 0, route }, tiles = expansionLayout(plan).map(p => p.tile)
+          const plan: ExpansionPlan = { kind, anchor, direction, built: 0, route }
+          const parts = expansionLayout(plan)
+          if (reuseDepot) plan.reuse = parts.filter(s => { const b = world.buildings[s.tile]; return b?.kind === s.kind && (!('direction' in b) || b.direction === s.direction) }).map(s => s.tile)
+          if (parts.some(s => world.buildings[s.tile] && !plan.reuse?.includes(s.tile))) continue
+          const tiles = parts.map(p => p.tile)
           const h = world.homestead!, candidate = { ...world, homestead: { ...h, expansion: { ...e, plan } } }
-          if (!tiles.includes(gap) && new Set(tiles).size === tiles.length && tiles.every(tile => inside(tile % SIZE, Math.floor(tile / SIZE)) && Math.abs(tile % SIZE - anchor % SIZE) <= 13) && freeSite(candidate, [...tiles, gap])) return plan
+          if (!tiles.includes(gap) && new Set(tiles).size === tiles.length && tiles.every(tile => inside(tile % SIZE, Math.floor(tile / SIZE)) && Math.abs(tile % SIZE - anchor % SIZE) <= 13) && freeSite(candidate, [...tiles.filter(tile => !plan.reuse?.includes(tile)), ...(retainedFeeder ? [] : [gap])])) return plan
         }
       }
     }

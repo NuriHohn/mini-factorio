@@ -75,6 +75,26 @@ export function coalInlet(world: World): number[] {
   }
   return route.at(-1) === e.fuelStore ? route : []
 }
+// A replacement mine can join the same inlet as returning fuel. Reserve the
+// depot's existing raw-coal quota for packets already on either branch, so new
+// mining cannot continually block the return head with fresh raw coal.
+export function miningOutputAllowed(world: World, source: Building): boolean {
+  if (!world.deposits || source.kind !== 'miner' || source.item !== 'coal' || !fuelAutomation(world)) return true
+  const h = world.homestead!, tile = source.y * Math.sqrt(world.tiles.length) + source.x
+  if (tile !== h.expansion.coalMiner && !world.deposits.retiring.includes(tile)) return true
+  const depot = h.expansion.fuelStore === null ? null : world.buildings[h.expansion.fuelStore]
+  if (depot?.kind !== 'fuelDepot') return true
+  const tiles = new Set([...coalInlet(world), ...world.deposits.retiring])
+  for (const link of h.infrastructure.links) if (link.kind === 'loadingReturn') {
+    for (const part of link.parts) tiles.add(part.tile)
+    for (const at of link.inlet ?? []) tiles.add(at)
+  }
+  const queued = [...tiles].reduce((count, at) => {
+    const b = world.buildings[at]
+    return count + Number((b?.kind === 'belt' || b?.kind === 'inserter' || b?.kind === 'miner' && at !== tile) && b.item === 'coal')
+  }, 0)
+  return fuelDeliveryAllowed(world, depot, 'coal', { coal: queued })
+}
 export function ironReserve(world: World): number { return world.bicycleProject?.phase !== 'complete' ? 24 : !world.homestead?.cargoBicycle ? 12 : 2 }
 export function inFlight(world: World, item: Item, kind?: LinkKind): number {
   const tiles = new Set((world.homestead?.infrastructure.links ?? []).filter(p => kind === undefined || p.kind === kind).flatMap(p => [...p.parts.map(b => b.tile), ...(p.inlet && p.receiver !== undefined ? p.inlet.slice(p.inlet.indexOf(p.receiver), -1) : [])]))

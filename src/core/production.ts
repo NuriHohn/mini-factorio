@@ -1,3 +1,4 @@
+import { extractOre } from '../simulation/deposits'
 import { advanceTransport, outputMachines } from '../simulation/transport'
 import { allocatePower } from '../simulation/power'
 import { advanceInserters, createInserterFrame } from '../simulation/inserters'
@@ -33,7 +34,7 @@ export function productionStep(world: World, hooks: ProductionHooks = {}): void 
   advanceCrafting(world, STEP_MS, hooks.credit)
   advanceForestry(world, STEP_MS)
   for (const miner of world.buildings) {
-    if (miner?.kind !== 'miner' || miner.item) continue
+    if (miner?.kind !== 'miner' || miner.item || world.deposits?.retiring.includes(miner.y * SIZE + miner.x)) continue
     const resource = depositAt(world, miner.x, miner.y)
     if (!resource) continue
     const speed = power.consumers[miner.y * SIZE + miner.x]?.speedFraction ?? 0
@@ -41,6 +42,7 @@ export function productionStep(world: World, hooks: ProductionHooks = {}): void 
     miner.elapsed += STEP_MS * speed
     if (miner.elapsed >= INTERVAL - 1e-8) {
       miner.elapsed = Math.max(0, miner.elapsed - INTERVAL)
+      if (!extractOre(world, miner.y * SIZE + miner.x, resource, 1)) continue
       miner.item = resource
       world.mined[resource]++
       recordProduction(world, { [resource]: 1 })

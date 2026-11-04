@@ -542,3 +542,10 @@ Implemented under the explicit request to implement and merge the next five spri
 | 16.127 | Visible delivery destination, carried products and work bar, four-second repeated supply work, and measured normal-speed progression |
 
 Mechanics and limits: [Game design](GAME_DESIGN.md#early-factory-supply-and-development-choices). Save 55 and projection ownership: [Architecture](ARCHITECTURE.md#development-goals-and-early-paid-supply-save-55). The broader early walking/handwork acceleration was withdrawn after it disturbed the mixed-yard build order. The proposed first-project timing target remains unmet in the measured sample; Development records the actual timings and validation. No new building, recipe or dependency is introduced.
+
+
+## Sprint 16.128 — finite deposits and replacement sources
+
+Implemented: finite Pete coal/iron/copper, exact shared/manual/rebuilding extraction, reserve displays, early funded replacement planning with compatible route/depot reuse, draining and dismantling obsolete mining branches, missing-source fallback and Save 56 compatibility. [Game design](GAME_DESIGN.md#finite-deposits-and-replacement-mines) owns rules and scope; [Architecture](ARCHITECTURE.md#finite-pete-deposit-ownership-save-56) owns state and validation.
+
+The next four requested increments remain proposals: intelligent storage/site recovery and outer warehouses; interconnected multi-input conveyor networks; a useful assembled transport product; player nature/building/corridor zones and wider expansion. They are not included in Sprint 16.128.

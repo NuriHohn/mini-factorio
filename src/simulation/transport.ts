@@ -1,5 +1,5 @@
 import { ecoReturnClaim } from './ecoLogistics'
-import { fuelDeliveryAllowed } from './productionLogistics'
+import { fuelDeliveryAllowed, miningOutputAllowed } from './productionLogistics'
 import { STEAM_FUEL_CAPACITY } from './steam'
 import { forestryOutput } from './forestryStation'
 import { PRESS_INPUT_CAPACITY } from './gearPress'
@@ -147,7 +147,7 @@ export function outputMachines(world: World, vacated: ReadonlySet<Building>): vo
     if (source?.kind !== 'forester' && source?.kind !== 'sawmill' && source?.kind !== 'miner' && source?.kind !== 'furnace' && source?.kind !== 'assembler') continue
     if (source.kind === 'forester' && !forestryOutput(source, world)) continue
     const item = source.kind === 'miner' ? source.item : ITEMS.find(item => source.output[item] > 0)
-    if (!item) continue
+    if (!item || !miningOutputAllowed(world, source)) continue
     const target = receiver(world, source, source.direction)
     // Machines only output to belts, and cannot reuse a tile vacated this step.
     if (target?.kind !== 'belt' || vacated.has(target) || !canReceive(target, item, source.direction)) continue

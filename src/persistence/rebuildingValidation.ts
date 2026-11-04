@@ -19,10 +19,16 @@ export function restoreRebuilding(value: unknown, version: number): Rebuilding {
       owner = { type, id: v.choice(o.id, 'rebuilding.owner.id', PETE_PROJECTS.filter(p => !p.repeatable && p.id !== 'veranda').map(p => p.id as Exclude<typeof p.id, 'harvesting' | 'feeding' | 'gardenCare' | 'reforestation'>)) }
     } else if (type === 'chain') {
       if (o.id !== undefined) v.invalid('rebuilding.owner', 'unexpected project id')
-      const p = v.object(o.plan, 'rebuilding.plan', ['kind', 'anchor', 'direction', 'built'], ['route'])
+      const p = v.object(o.plan, 'rebuilding.plan', ['kind', 'anchor', 'direction', 'built'], version >= 56 ? ['route', 'reuse'] : ['route'])
       const plan = { kind: v.choice(p.kind, 'rebuilding.plan.kind', version >= 46 ? CHAIN_KINDS.filter(k => (version >= 48 || k !== 'gears') && (version >= 47 || !INDUSTRIAL_CHAINS.some(i => i === k))) : CHAIN_KINDS.filter(k => !['gears', 'copperMining', 'circuits', 'steam', ...INDUSTRIAL_CHAINS].includes(k))), anchor: v.tile(p.anchor, 'rebuilding.plan.anchor'), direction: v.direction(p.direction, 'rebuilding.plan.direction'), built: v.count(p.built, 'rebuilding.plan.built', version >= 47 ? 32 : 15), ...(p.route === undefined ? {} : { route: v.array(p.route, 'rebuilding.plan.route', undefined, 13).map(i => v.tile(i, 'rebuilding.plan.route.tile')) }) }
       if (plan.route && (plan.kind !== 'ironMining' && plan.kind !== 'copperMining' && plan.kind !== 'coalMining' || plan.route.length < 2 || plan.route[0] !== plan.anchor || new Set(plan.route).size !== plan.route.length || plan.route.some((tile, i) => i && Math.abs(tile % SIZE - plan.route![i - 1] % SIZE) + Math.abs(Math.floor(tile / SIZE) - Math.floor(plan.route![i - 1] / SIZE)) !== 1))) v.invalid('rebuilding.plan.route', 'invalid route')
       const parts = expansionLayout(plan)
+      // Reuse only affects construction; repair ownership keeps the full layout.
+      if (p.reuse !== undefined) {
+        const reuse = v.array(p.reuse, 'rebuilding.plan.reuse', undefined, 32).map(t => v.tile(t, 'rebuilding.plan.reuse.tile'))
+        if (!['ironMining', 'copperMining', 'coalMining'].includes(plan.kind) || new Set(reuse).size !== reuse.length || reuse.some(tile => !parts.some(part => part.tile === tile && part.kind !== 'miner'))) v.invalid('rebuilding.plan.reuse', 'invalid reused geometry')
+        Object.assign(plan, { reuse })
+      }
       if (((plan.kind === 'ironMining' || plan.kind === 'copperMining' || plan.kind === 'coalMining') && !plan.route) || (plan.kind !== 'forestry' && plan.kind !== 'coalFeed' && !['north', 'south'].includes(plan.direction) && !(version >= 51 && (plan.kind === 'cables' || plan.kind === 'circuits') && plan.direction === 'east')) || parts.some(p => p.tile < 0 || p.tile >= SIZE * SIZE || Math.abs(p.tile % SIZE - plan.anchor % SIZE) > ((plan.kind === 'ironMining' || plan.kind === 'copperMining' || plan.kind === 'coalMining') ? 13 : version >= 51 && (plan.kind === 'cables' || plan.kind === 'circuits') && plan.direction === 'east' ? 4 : 2)) || new Set(parts.map(p => p.tile)).size !== parts.length || plan.built > parts.length) v.invalid('rebuilding.plan', 'invalid geometry')
       owner = { type, plan }
     } else {
@@ -42,7 +48,7 @@ export function restoreRebuilding(value: unknown, version: number): Rebuilding {
   if (new Set(rewarded).size !== rewarded.length) v.invalid('rebuilding.rewarded', 'duplicate historical rewards')
   return { jobs, active, rewarded }
 }
-export function validateRebuilding(world: World): void {
+export function validateRebuilding(world: World, version: number): void {
   const r = world.rebuilding, h = world.homestead
   if (!r) return
   if (!world.miniFactory || !h) v.invalid('rebuilding', 'requires Petes Welt')
@@ -60,7 +66,7 @@ export function validateRebuilding(world: World): void {
     const expected = rebuildCost(world, job)
     if (job.owner.type === 'store') {
       const raw = ['wood', 'iron', 'copper', 'coal'] as const
-      if (ITEMS.some(i => !raw.includes(i as typeof raw[number]) && job.paid[i]) || raw.filter(i => job.paid[i]).length > 1 || raw.some(i => job.paid[i] % 3) || inventoryTotal(job.paid) > 6 || (job.funded && inventoryTotal(job.paid) !== 6)) v.invalid('rebuilding.paid', 'invalid physical store funding')
+      if (ITEMS.some(i => !raw.includes(i as typeof raw[number]) && job.paid[i]) || raw.filter(i => job.paid[i]).length > 1 || raw.some(i => (version < 56 || i === 'wood') && job.paid[i] % 3) || inventoryTotal(job.paid) > 6 || (job.funded && inventoryTotal(job.paid) !== 6)) v.invalid('rebuilding.paid', 'invalid physical store funding')
     } else if (ITEMS.some(i => job.paid[i] !== (job.funded ? expected[i] : emptyInventory()[i])) || (!job.funded && job.elapsedMs)) v.invalid('rebuilding.paid', 'funding disagrees with component cost')
   }
 }

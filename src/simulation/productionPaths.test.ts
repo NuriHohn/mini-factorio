@@ -11,7 +11,7 @@ function until(w: World, done: () => boolean, ms = 1800000) {
     advanceWorld(w, 50); observeNormalPacing(w, 'industrial')
     if (w.homestead!.infrastructure.loadingCargo !== null && !heldCargo.has(w)) heldCargo.set(w, encodeSave(w, view))
   }
-  expect(done(), JSON.stringify({ time: w.timeMs, h: w.homestead, paths: w.personality.paths, stock: w.buildings[w.homestead!.store ?? 0] })).toBe(true)
+  expect(done(), JSON.stringify({ time: w.timeMs, h: w.homestead, paths: w.personality.paths, reserves: w.deposits, coal: w.tiles.flatMap((ore, tile) => ore === 'coal' ? [tile] : []), fuel: w.buildings.filter(b => b?.kind === 'fuelDepot' || b?.kind === 'steamEngine' || b?.kind === 'miner' || b?.kind === 'assembler'), stock: w.buildings[w.homestead!.store ?? 0] })).toBe(true)
 }
 function continuation(w: World) {
   const loaded = decodeSave(encodeSave(w, view)).world

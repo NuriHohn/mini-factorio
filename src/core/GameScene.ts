@@ -1,3 +1,4 @@
+import { DEPOSIT_CAPACITY, oreRemaining } from '../simulation/deposits'
 import { peteText } from '../pete/text'
 import { drawFuelDepot, drawSteamWork } from '../game/steamVisuals'
 import { clearResource, demolitionNotice } from '../simulation/rebuilding'
@@ -1056,6 +1057,11 @@ export class GameScene extends Phaser.Scene {
     if (state.tool === null && !worldInputBlocked(state) && this.input.isOver) {
       const pointer = this.input.activePointer, point = pointer.positionToCamera(camera) as Phaser.Math.Vector2
       if (this.crateSupply.hit(this.world, point, TILE, camera.zoom) !== null) this.placementTooltip(pointer, 'Unload 6 Wood into Pete’s crate')
+      else {
+        const x = Math.floor(point.x / TILE), y = Math.floor(point.y / TILE), tile = y * SIZE + x
+        const resource = inside(x, y) ? this.world.tiles[tile] : null
+        if (resource && this.world.deposits) this.placementTooltip(pointer, `${peteText(ITEM_DEFINITIONS[resource].label)} ${oreRemaining(this.world, tile)} / ${DEPOSIT_CAPACITY}`)
+      }
     }
     this.poleLinks.setVisible(!worldInputBlocked(state) && state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer

@@ -23,7 +23,8 @@ export function createBareWorld(random = Math.random) { return createWorld(rando
 
 // Build genuine older-schema fixtures from a current snapshot without hiding
 // unsupported new state in the production decoder.
-export function stripVersion48Homestead(game: Pick<World, 'homestead'>): void {
+export function stripVersion48Homestead(game: Pick<World, 'homestead' | 'deposits'>): void {
+  Reflect.deleteProperty(game, 'deposits')
   const h = game.homestead
   if (!h) return
   for (const key of ['infrastructure', 'cargoBicycle', 'bikeTile', 'waterworks']) Reflect.deleteProperty(h, key)
@@ -36,7 +37,8 @@ export function ecoProjectWood(world: World): number {
   return (world.chickenRun ? world.chickenRun.built * 2 + world.chickenRun.carried : 0) + (world.harvestProject?.manualCycles ?? 0) * 2 - (world.harvestProject?.completedCycles ?? 0) * 3 + (world.careProject?.completedCycles ?? 0) * 2 + (world.careProject?.carried ?? 0) + (world.gardenProject && world.gardenProject.phase !== 'collecting' ? 12 : 0) + (world.plantProject?.carried ?? 0) + 2 * world.buildings.filter(b => b?.kind === 'tree' && b.origin === 'manual').length
 }
 
-export function stripVersion54State(game: Pick<World, 'homestead'>): void {
+export function stripVersion54State(game: Pick<World, 'homestead' | 'deposits'>): void {
+  Reflect.deleteProperty(game, 'deposits')
   if (game.homestead?.infrastructure) Reflect.deleteProperty(game.homestead.infrastructure, 'nextSupplyAtMs')
   if (game.homestead) for (const key of ['priority', 'nextMealAtMs']) Reflect.deleteProperty(game.homestead, key)
 }

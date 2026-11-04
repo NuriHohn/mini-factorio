@@ -109,7 +109,7 @@ export function drawHomestead(g: Phaser.GameObjects.Graphics, world: World, tile
   if (target === null || target === undefined || axe) return
   const tx = target % SIZE * tile, ty = Math.floor(target / SIZE) * tile
   g.lineStyle(2, 0xd7bd85, .8).strokeRect(tx + 2, ty + 3, tile - 4, tile - 5)
-  const duration = s.task === 'supplyOrder' ? SUPPLY_WORK_MS : s.task === 'buildBridge' && s.waterworks.plan ? shoreTiles(s.waterworks.plan).length * 4000 : s.task === 'buildLoading' || s.task === 'buildConnection' || s.task === 'buildWheel' || s.task === 'buildMill' || s.task === 'buildChain' ? 4000 : ['supplyOrder', 'buildPavilion', 'finishOrder', 'buildDock', 'upgradeBicycle', 'expandStore', 'improve'].includes(s.task) ? 8000 : 6000
+  const duration = s.task === 'supplyOrder' ? SUPPLY_WORK_MS : s.task === 'buildBridge' && s.waterworks.plan ? shoreTiles(s.waterworks.plan).length * 4000 : s.task === 'buildLoading' || s.task === 'buildConnection' || s.task === 'buildWheel' || s.task === 'buildMill' || s.task === 'buildChain' || s.task === 'retireMine' ? 4000 : ['supplyOrder', 'buildPavilion', 'finishOrder', 'buildDock', 'upgradeBicycle', 'expandStore', 'improve'].includes(s.task) ? 8000 : 6000
   g.fillStyle(0x91bb78, .6).fillRect(tx + 3, ty + tile - 7, (tile - 6) * Math.min(1, s.elapsedMs / duration), 4)
 }
 function drawCargoBike(g: Phaser.GameObjects.Graphics, x: number, y: number): void {

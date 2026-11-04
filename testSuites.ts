@@ -85,6 +85,7 @@ export const testSuites = {
     'src/simulation/world.test.ts'
   ],
   'integration': [
+    'src/simulation/deposits.test.ts',
     'src/game/PersonalityOverview.test.tsx',
     'src/game/TouchControls.test.tsx',
     'src/game/campfireVisuals.test.ts',

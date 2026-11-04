@@ -108,7 +108,7 @@ describe('Petes Welt follows the original project and daily-life progression', (
   it('migrates paid version-39 factory work without removing buildings, products or progress', () => {
     const w = createPetesWorld(); placeGrove(w, 26, 15); w.miniFactory!.anchor = 17 * 40 + 24
     advanceWorld(w, 17550)
-    const doc = snapshot(w); doc.version = 39; delete doc.game.homestead
+    const doc = snapshot(w); doc.version = 39; delete doc.game.deposits; delete doc.game.homestead
     const restored = decodeSave(JSON.stringify(doc)).world
     expect(restored.miniFactory).toEqual(w.miniFactory)
     expect(restored.buildings).toEqual(w.buildings)
