@@ -1,3 +1,4 @@
+import { infrastructurePickupHint } from './infrastructure'
 import { oreRemaining } from './deposits'
 import { projectDemand } from './projectDemand'
 import { steamShare, steamWorkDuration } from './steamWork'
@@ -48,6 +49,7 @@ export interface WorldStats {
   maxCraftingPerSec: number
 }
 export interface InserterInspection {
+  policyHint: string | null
   kind: 'inserter'
   direction: Direction
   item: Item | null
@@ -154,7 +156,7 @@ export function inspectBuilding(world: World, index: number | null): Inspection 
   }
   if (building.kind === 'inserter') {
     const { pickup, drop } = inserterPorts(building)
-    return { kind: 'inserter', direction: building.direction, item: building.item, phase: building.phase, status: inserterStatus(world, building), progress: building.phase === 'idle' ? 0 : (building.elapsedMs + (building.phase === 'returning' ? INSERTER_SWING_MS : 0)) / INSERTER_CYCLE_MS, cycleMs: INSERTER_CYCLE_MS, pickup, drop, source: buildingAt(world, pickup.x, pickup.y)?.kind ?? null, target: buildingAt(world, drop.x, drop.y)?.kind ?? null, electrical }
+    return { kind: 'inserter', policyHint: infrastructurePickupHint(world, building.y * SIZE + building.x), direction: building.direction, item: building.item, phase: building.phase, status: inserterStatus(world, building), progress: building.phase === 'idle' ? 0 : (building.elapsedMs + (building.phase === 'returning' ? INSERTER_SWING_MS : 0)) / INSERTER_CYCLE_MS, cycleMs: INSERTER_CYCLE_MS, pickup, drop, source: buildingAt(world, pickup.x, pickup.y)?.kind ?? null, target: buildingAt(world, drop.x, drop.y)?.kind ?? null, electrical }
   }
   if (building.kind === 'forester') return { kind: 'forester', details: forestryStatus(world, building), progress: building.elapsed / FELL_MS, inventory: { ...building.output }, electrical }
   if (building.kind === 'miner') return { kind: 'miner', remaining: oreRemaining(world, building.y * SIZE + building.x), resource: depositAt(world, building.x, building.y), progress: building.elapsed / INTERVAL, buffered: building.item !== null, electrical }

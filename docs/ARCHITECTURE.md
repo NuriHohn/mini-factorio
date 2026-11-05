@@ -790,3 +790,10 @@ Save 55 adds the fixed-step infrastructure `nextSupplyAtMs` deadline and extends
 A retained coal-return merge owns the cardinal inlet suffix from its receiver to the depot. Mine retirement trims away the historical miner prefix and preserves that suffix physically and as a service crossing. Save 56 validates this receiver-first suffix independently of the current miner; older versions still require their original miner-prefixed inlet. The existing return connection and real packets remain in place through source changes.
 
 `productionLogistics.miningOutputAllowed` derives the existing main-depot coal reservation from actual mining/retiring/return packets before Pete miner export. It shares `fuelDeliveryAllowed` rather than adding a second quota or inventory. Sequential exports see preceding committed packets, and Factory export remains unchanged. This bounds fresh raw-coal admission while preserving already moving finished briquettes at the shared merge.
+
+
+### Congested return planning and crate arbitration
+
+`infrastructure.ts` keeps joint future-lane previews as its first choice, then retries a failed connection against the actual world while retaining feasible ingredient-lane reservations. Both paths use the same physical placement and access validation. Planning remains detached and cached by topology/actor/ownership revision; no paid component, inventory or completion marker is changed by a probe. Save 56 is unchanged.
+
+`createInserterFrame` snapshots physical supply-crate inventory independently of which adjacent arm is encountered first. Pickup authorization is checked per arm when claiming an item. An unauthorized arm therefore cannot erase another arm's source budget, and still cannot extract from that crate. Atomic budget debits retain contention and conservation rules. Inspector policy hints are derived from current simulation state.

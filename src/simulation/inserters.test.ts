@@ -1,3 +1,4 @@
+import { createHomestead } from './homestead'
 import { createUnlockedWorld } from './testFixtures'
 import { describe, expect, it } from 'vitest'
 import { changeCraftingRecipe } from './crafting'
@@ -390,4 +391,30 @@ describe('complete production with inserters', () => {
     advanceWorld(c, 17)
     expect(b).toEqual(a); expect(c.buildings).toEqual(a.buildings); expect(c.mined).toEqual(a.mined); expect(c.produced).toEqual(a.produced)
   })
+})
+
+it('snapshots crate stock independently of an earlier unauthorized pickup arm', () => {
+  const w = poweredWorld(() => .5)
+  w.nature.wood = 6
+  add(w, 20, 20, 'supplyCrate')
+  add(w, 20, 19, 'inserter', 'north')
+  add(w, 20, 18, 'storage')
+  add(w, 21, 20, 'inserter', 'east')
+  add(w, 22, 20, 'belt', 'east')
+  w.homestead = createHomestead(); w.homestead.store = 820
+  w.homestead.infrastructure.links.push({ kind: 'gearFeed', source: 820, target: 822, parts: [
+    { tile: 821, kind: 'inserter', direction: 'east' }, { tile: 822, kind: 'belt', direction: 'east' },
+  ] })
+  const store = w.buildings[820]
+  if (store?.kind !== 'supplyCrate') throw new Error('missing crate')
+  store.storeTier = 0; store.inventory.ironPlate = 30
+  const frame = createInserterFrame(w)
+  expect(frame.sources.get(store)?.ironPlate).toBe(30)
+  expect(inserterDemand(w, arm(w, 20, 19), frame)).toBe(0)
+  expect(inserterDemand(w, arm(w, 21, 20), frame)).toBe(10)
+  allocatePower(w)
+  advanceInserters(w, 50, frame)
+  expect(arm(w, 20, 19).item).toBeNull()
+  expect(arm(w, 21, 20).item).toBe('ironPlate')
+  expect(store.inventory.ironPlate).toBe(29)
 })

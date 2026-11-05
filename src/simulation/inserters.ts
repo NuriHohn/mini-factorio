@@ -55,6 +55,7 @@ export function createInserterFrame(world: World): InserterFrame {
       // Direction is checked again per inserter; snapshot all physical source units.
       for (const item of ITEMS) {
         if (source.kind === 'forester' || source.kind === 'sawmill' || source.kind === 'furnace' || source.kind === 'assembler') inventory[item] = source.kind === 'forester' && item === 'wood' ? forestryOutput(source, world) : source.output[item]
+        else if (source.kind === 'supplyCrate') inventory[item] = source.inventory[item]
         else if (source.kind === 'splitter') inventory[item] = source.outputs.filter(packet => packet?.item === item).length
         else if (source.kind === 'miner') inventory[item] = Number(source.item === item)
         else inventory[item] = sourceCount(source, inserter, item, false, world)

@@ -64,17 +64,22 @@ export function planConnection(world: World, kind: LinkKind): Connection | null 
     if (feed === kind) { cache.set(kind, { revision, plan }); return plan }
     if (plan) candidate = previewConnection(candidate, plan)
   }
+  const ingredients = candidate
   // In a mixed yard the short assembler returns need the inner lanes; copper can go around them.
   if ((kind === 'copper' || kind === 'cableReturn') && world.homestead!.expansion.furnace !== null && world.homestead!.expansion.circuitAssembler !== null) {
     for (const returning of ['circuitReturn', 'cableReturn'] as const) {
       if (returning === kind) break
       if (candidate.homestead!.infrastructure.links.some(p => p.kind === returning)) continue
       const plan = planSingleConnection(candidate, returning)
-      if (!plan) { cache.set(kind, { revision, plan: null }); return null }
+      if (!plan) {
+        // An impossible future return must not veto an independently safe delivery.
+        const fallback = planSingleConnection(ingredients, kind)
+        cache.set(kind, { revision, plan: fallback }); return fallback
+      }
       candidate = previewConnection(candidate, plan)
     }
   }
-  const chosen = planSingleConnection(candidate, kind)
+  const chosen = planSingleConnection(candidate, kind) ?? planSingleConnection(ingredients, kind)
   cache.set(kind, { revision, plan: chosen })
   return chosen
 }
@@ -444,4 +449,16 @@ export function infrastructureBlockage(world: World): string | null {
   if (!s || !h) return null
   const part = h.task === 'buildConnection' ? s.plan?.parts[s.built] : h.task === 'buildWheel' && s.wheelPlan ? wheelParts(s.wheelPlan)[s.built] : null
   return part && (world.buildings[part.tile] || world.water[part.tile] || miniApproach(world, part.tile) === null) ? 'Bauplatz oder Zugang blockiert; bezahltes Material bleibt erhalten.' : null
+}
+
+export function infrastructurePickupHint(world: World, tile: number): string | null {
+  const h = world.homestead, link = h?.infrastructure.links.find(p => p.kind === 'gearFeed' && p.parts.some(p => p.kind === 'inserter' && p.tile === tile))
+  if (!link) return null
+  if (!connectionComplete(world, link)) return 'Die Plattenzufuhr wartet auf die Reparatur ihrer Strecke.'
+  const store = materialStore(world)
+  if (!store) return null
+  if (store.inventory.ironGear >= 12) return 'Zielbestand erreicht: 12 Zahnräder im Lager. Die Plattenzufuhr startet wieder, sobald Zahnräder verbraucht werden.'
+  const reserve = world.bicycleProject?.phase !== 'complete' ? 24 : !h!.cargoBicycle ? 12 : 2
+  if (store.inventory.ironPlate <= reserve) return `Ich halte ${reserve} Eisenplatten für Bauprojekte zurück. Die Zahnradzufuhr wartet auf weitere Platten.`
+  return null
 }
