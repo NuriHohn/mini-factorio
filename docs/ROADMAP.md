@@ -548,7 +548,7 @@ Mechanics and limits: [Game design](GAME_DESIGN.md#early-factory-supply-and-deve
 
 Implemented: finite Pete coal/iron/copper, exact shared/manual/rebuilding extraction, reserve displays, early funded replacement planning with compatible route/depot reuse, draining and dismantling obsolete mining branches, missing-source fallback and Save 56 compatibility. [Game design](GAME_DESIGN.md#finite-deposits-and-replacement-mines) owns rules and scope; [Architecture](ARCHITECTURE.md#finite-pete-deposit-ownership-save-56) owns state and validation.
 
-The next four requested increments remain proposals: intelligent storage/site recovery and outer warehouses; interconnected multi-input conveyor networks; a useful assembled transport product; player nature/building/corridor zones and wider expansion. They are not included in Sprint 16.128.
+Intelligent storage/site recovery and additional warehouses are delivered in Sprints 16.131–16.132 below. Interconnected multi-input conveyor networks, a useful assembled transport product, and player nature/building/corridor zones with wider expansion remain proposals; they are not included in Sprint 16.128.
 
 
 ## Sprint 16.129 — reported storage pickup and congested return recovery
@@ -565,4 +565,9 @@ The first pausable order is production-chain construction. A general queue for e
 
 ## Sprint 16.131 — physical additional stores
 
-Implemented: paid extra material stores, reachable overflow deliveries, physical surplus exports and input restock, retained blocked shipment cargo, protected extra-store ownership and Save 58 compatibility. [Game design](GAME_DESIGN.md#additional-material-stores) owns rules; [Architecture](ARCHITECTURE.md#warehouse-ownership-and-physical-jobs-save-58) owns state and validation. Main-store relocation and conveyor reconnection are the next requested increment, separate from this one.
+Implemented: paid extra material stores, reachable overflow deliveries, physical surplus exports and input restock, retained blocked shipment cargo, protected extra-store ownership and Save 58 compatibility. [Game design](GAME_DESIGN.md#additional-material-stores) owns rules; [Architecture](ARCHITECTURE.md#warehouse-ownership-and-physical-jobs-save-58) owns state and validation. Main-store relocation and conveyor reconnection are covered separately below.
+
+
+## Sprint 16.132 — paid site recovery and staged main-store moves
+
+Implemented: physical relocation/rollback of movable paid production prefixes; jointly planned replacement stores and affected conveyor links; actual invoices, packet salvage and physical stock evacuation before empty-source removal; retained recovery through Save 59. Existing power and unrelated connections remain. [Game design](GAME_DESIGN.md#construction-site-and-main-store-recovery) owns scope and limits; [Architecture](ARCHITECTURE.md#storage-and-construction-recovery-save-59) owns phased state and compatibility. Arbitrary factory relocation, wider multi-input networks and player zones remain future work.

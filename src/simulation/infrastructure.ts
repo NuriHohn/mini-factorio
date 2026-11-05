@@ -1,3 +1,5 @@
+import { warehouseReserved } from './warehousing'
+import { ownedConnections, connectionPickupEnabled } from './infrastructureRules'
 import { availableMaterial, materialPolicy, SUPPLY_RESERVES } from './materialPolicy'
 import { PETE_PROJECTS, retiredIndustrial, wantsShoreDock, wantsWaterwheel } from './projectRegistry'
 import { ecoPickup } from './ecoLogistics'
@@ -123,7 +125,7 @@ function planSingleConnection(world: World, kind: LinkKind): Connection | null {
   for (const spot of ecoSpots) if (spot.kind !== kind) reserved.push(...spot.tiles)
   if (!feedLink(kind) && gear !== null) reserved.push(next(gear, 'west'))
   if (!feedLink(kind) && target === world.homestead!.store) reserved.push(next(target, 'east'), next(target, 'east', 2))
-  const occupied = new Set(infrastructureReserved(world))
+  const occupied = new Set([...infrastructureReserved(world), ...warehouseReserved(world)])
   const available = (tile: number) => !reserved.includes(tile) && !world.buildings[tile] && !world.water[tile] && world.tiles[tile] === null && !occupied.has(tile)
   reserved.push(...outputClearance(world, source), ...inputClearance(world, feedLink(kind) ? target : undefined))
   const storePorts = world.homestead!.store === null ? [] : neighboringTiles(world.homestead!.store!)
@@ -419,7 +421,7 @@ export function advanceInfrastructure(world: World, delta: number): boolean {
 }
 // Restrict only Pete-owned pickup arms. All transfers still use ordinary powered inserter arbitration.
 export function infrastructurePickupAllowed(world: World, tile: number, item: Item): boolean {
-  if (!boilerPickupAllowed(world, tile, item)) return false
+  if (!connectionPickupEnabled(world, tile) || !boilerPickupAllowed(world, tile, item)) return false
   const h = world.homestead, s = h?.infrastructure
   const link = s?.links.find(p => p.parts.some(part => part.tile === tile && part.kind === 'inserter')) ?? (s?.plan?.parts.some(p => p.tile === tile && p.kind === 'inserter') ? s.plan : null)
   if (!link) return world.buildings[tile]?.kind === 'inserter'
@@ -442,7 +444,7 @@ export function infrastructurePickupAllowed(world: World, tile: number, item: It
 export function ownedStorePickup(world: World, tile: number): boolean { return !!world.homestead?.infrastructure.links.some(p => feedLink(p.kind) && p.parts.some(part => part.tile === tile && part.kind === 'inserter')) }
 export function infrastructureReserved(world: World): number[] {
   const s = world.homestead?.infrastructure
-  return s ? [...(s.pavilion ? [s.pavilion.tile, s.pavilion.spot] : []), ...(s.loading ? loadingParts(s.loading).map(p => p.tile) : []), ...(s.loadingPlan ? loadingParts(s.loadingPlan).map(p => p.tile) : []), ...s.links.flatMap(p => p.parts.map(p => p.tile)), ...(s.plan?.parts.map(p => p.tile) ?? []), ...(s.wheel ? wheelParts(s.wheel).map(p => p.tile) : []), ...(s.wheelPlan ? wheelParts(s.wheelPlan).map(p => p.tile) : [])] : []
+  return s ? [...(s.pavilion ? [s.pavilion.tile, s.pavilion.spot] : []), ...(s.loading ? loadingParts(s.loading).map(p => p.tile) : []), ...(s.loadingPlan ? loadingParts(s.loadingPlan).map(p => p.tile) : []), ...(world.warehousing?.move ? [world.warehousing.move.to] : []), ...ownedConnections(world).flatMap(p => p.parts.map(p => p.tile)), ...(s.plan?.parts.map(p => p.tile) ?? []), ...(s.wheel ? wheelParts(s.wheel).map(p => p.tile) : []), ...(s.wheelPlan ? wheelParts(s.wheelPlan).map(p => p.tile) : [])] : []
 }
 export function infrastructureBlockage(world: World): string | null {
   const h = world.homestead, s = h?.infrastructure

@@ -1,3 +1,4 @@
+import { ownedConnections } from './infrastructureRules'
 import { receivingStore } from './warehousing'
 import { advanceMineRetirement, chooseMineReplacement, miningStatus } from './mineReplacement'
 import { connectionRunning, SUPPLY_WORK_MS } from './infrastructure'
@@ -79,7 +80,7 @@ export function freeSite(world: World, tiles: number[], infrastructure = false):
   if (!infrastructure && tiles.some(tile => infrastructureReserved(world).includes(tile))) return false
   const home = world.peace.home, before = peteReachableTiles(world, world.pete.tile)
   const lowParts = expansionCrossings(world)
-  const crossings = [...(infrastructure ? [...(world.homestead?.infrastructure.links ?? []), ...(world.homestead?.infrastructure.plan ? [world.homestead.infrastructure.plan] : [])].flatMap(p => p.parts).filter(p => p.kind === 'belt' || p.kind === 'inserter').map(p => p.tile) : []), ...lowParts.map(p => p.tile)]
+  const crossings = [...(infrastructure ? ownedConnections(world).flatMap(p => p.parts).filter(p => p.kind === 'belt' || p.kind === 'inserter').map(p => p.tile) : []), ...lowParts.map(p => p.tile)]
   if (home === null || tiles.some(i => {
     const error = placementError(world, i % SIZE, Math.floor(i / SIZE), 'storage')
     // Construction walks to a neighboring work spot before installing an owned low crossing.
@@ -88,7 +89,7 @@ export function freeSite(world: World, tiles: number[], infrastructure = false):
   if (projectPlansConflict(world, { home, direction: 'east', tiles, spots: [], phase: 'collecting', crate: null, built: 0, carried: 0, elapsedMs: 0 }, undefined, crossings)) return false
   const buildings = [...world.buildings]
   for (const tile of tiles) {
-    const s = world.homestead?.infrastructure, part = lowParts.find(p => p.tile === tile) ?? (infrastructure ? [...(s?.links ?? []), ...(s?.plan ? [s.plan] : [])].flatMap(p => p.parts).find(p => p.tile === tile) : null)
+    const part = lowParts.find(p => p.tile === tile) ?? (infrastructure ? ownedConnections(world).flatMap(p => p.parts).find(p => p.tile === tile) : null)
     const position = { x: tile % SIZE, y: Math.floor(tile / SIZE) }
     buildings[tile] = part?.kind === 'belt' ? { ...position, kind: 'belt', direction: part.direction, entry: part.direction, progress: 0, item: null } : part?.kind === 'inserter' ? { ...position, kind: 'inserter', direction: part.direction, phase: 'idle', item: null, elapsedMs: 0 } : { ...position, kind: 'storage', inventory: emptyInventory() }
   }
@@ -139,8 +140,7 @@ function chooseTree(world: World): number | null {
   return choices[0]?.tile ?? null
 }
 function expansionCrossings(world: World) {
-  const plan = world.homestead?.expansion.plan
-  return plan && ['ironMining', 'copperMining', 'coalMining', 'coalFeed'].includes(plan.kind) ? expansionLayout(plan).filter(p => p.kind === 'belt' || p.kind === 'inserter') : []
+  return [world.homestead?.expansion.plan, world.warehousing?.resite?.to].flatMap(plan => plan && ['ironMining', 'copperMining', 'coalMining', 'coalFeed'].includes(plan.kind) ? expansionLayout(plan).filter(p => p.kind === 'belt' || p.kind === 'inserter') : [])
 }
 export function arrived(world: World, tile: number | null, delta: number, construction = false): boolean {
   let spot = tile === null ? null : miniApproach(world, tile)
@@ -253,6 +253,7 @@ function resumeBootstrapMining(world: World): boolean {
 export function advanceHomestead(world: World, delta: number, decision = false): boolean {
   const s = world.homestead
   if (!s || world.peace.home === null) return false
+  if (world.warehousing?.move || world.warehousing?.resite) return false
   if (world.rebuilding?.jobs.some(j => j.owner.type === 'store') && !materialStore(world)) return false
   if (s.task === null) {
     if (!decision) return false

@@ -1,3 +1,5 @@
+import { expansionLayout } from './homesteadExpansion'
+import type { StoreMove, ConstructionResite } from './storageRecovery'
 import { arrived, freeSite } from './homestead'
 import { inventoryTotal, emptyInventory, ITEMS } from './items'
 import type { Item } from './items'
@@ -21,7 +23,7 @@ export interface StorageJob {
   carried: number
   elapsedMs: number
 }
-export interface Warehousing { stores: number[]; job: StorageJob | null; nextAtMs: number }
+export interface Warehousing { move?: StoreMove; resite?: ConstructionResite; recoveryAtMs?: number; stores: number[]; job: StorageJob | null; nextAtMs: number }
 export function ownedStores(world: World): number[] {
   const main = world.homestead?.store
   return [...new Set([...(main === null || main === undefined ? [] : [main]), ...(world.warehousing?.stores ?? [])])].filter(t => {
@@ -39,20 +41,24 @@ export function warehouseCost(world: World, store: SupplyCrate): { item: Item; a
   }
   return null
 }
-export function warehouseSite(world: World, near = world.homestead?.store ?? world.peace.home): number | null {
-  if (near === null) return null
+export function* warehouseSites(world: World, near = world.homestead?.store ?? world.peace.home): Generator<number> {
+  if (near === null) return
   for (let radius = 2; radius <= 10; radius++) for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue
     const x = near % SIZE + dx, y = Math.floor(near / SIZE) + dy, tile = y * SIZE + x
-    if (inside(x, y) && !world.water[tile] && !world.buildings[tile] && world.tiles[tile] === null && freeSite(world, [tile])) return tile
+    if (inside(x, y) && !world.water[tile] && !world.buildings[tile] && world.tiles[tile] === null && !warehouseReserved(world).includes(tile) && freeSite(world, [tile])) yield tile
   }
-  return null
+  return
+}
+export function warehouseSite(world: World, near = world.homestead?.store ?? world.peace.home): number | null {
+  const next = warehouseSites(world, near).next()
+  return next.done ? null : next.value
 }
 function moveStock(store: SupplyCrate, item: Item, amount: number): void {
   if (item === 'wood') store.wood += amount
   else store.inventory[item] += amount
 }
-function releaseActor(world: World): void {
+export function releaseWarehouseActor(world: World): void {
   const h = world.homestead!, p = world.pete
   if (h.cargoBicycle && h.bikeTile === null) h.bikeTile = p.tile
   p.path = []; p.pathRevision = -1
@@ -61,7 +67,7 @@ function releaseActor(world: World): void {
 function finishStorage(world: World): void {
   const s = world.warehousing!
   s.job = null; s.nextAtMs = world.timeMs + 3000
-  releaseActor(world)
+  releaseWarehouseActor(world)
 }
 const access = new WeakMap<World, { revision: number; actor: number; plan: unknown; connection: unknown; stores: Map<number, boolean> }>()
 function reachableStore(world: World, tile: number): boolean {
@@ -73,15 +79,15 @@ function reachableStore(world: World, tile: number): boolean {
   if (!cached.stores.has(tile)) cached.stores.set(tile, miniApproach(world, tile) !== null)
   return cached.stores.get(tile)!
 }
-export function receivingStore(world: World, amount: number, preferred = world.homestead?.store): number | null {
-  const candidates = ownedStores(world).filter(t => {
+export function receivingStore(world: World, amount: number, preferred = world.homestead?.store, excluded?: number): number | null {
+  const candidates = ownedStores(world).filter(t => t !== excluded).filter(t => {
     const b = world.buildings[t]
     return b?.kind === 'supplyCrate' && storeRoom(b) >= amount && reachableStore(world, t)
   })
   if (preferred !== null && preferred !== undefined && candidates.includes(preferred)) return preferred
   return candidates.sort((a, b) => Math.abs(a % SIZE - world.pete.tile % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(world.pete.tile / SIZE)) - Math.abs(b % SIZE - world.pete.tile % SIZE) - Math.abs(Math.floor(b / SIZE) - Math.floor(world.pete.tile / SIZE)) || a - b)[0] ?? null
 }
-function canStart(world: World): boolean {
+export function canStartWarehouseWork(world: World): boolean {
   const h = world.homestead!
   return world.pete.next === null && !currentProject(world)?.selected && !world.leisure?.carried && !world.developmentLife?.carriedFruit && !world.developmentLife?.carriedWood && !world.developmentLife?.carriedSapling &&
     (h.task === 'returnStock' || h.task === null || !!h.paused) && ['walking', 'waving', 'flowers'].includes(world.peace.activity)
@@ -120,16 +126,17 @@ export function advanceWarehousing(world: World, delta: number): boolean {
   if (!world.homestead || !world.miniFactory || world.peace.home === null) return false
   let s = world.warehousing
   if (!s?.job) {
-    if (!canStart(world)) return false
+    if (s?.move || s?.resite) return false
+    if (!canStartWarehouseWork(world)) return false
     const job = chooseStorage(world)
     if (!job) return false
     s = world.warehousing ??= { stores: [], job: null, nextAtMs: 0 }
-    s.job = job; releaseActor(world)
+    s.job = job; releaseWarehouseActor(world)
   }
   const job = s.job!
   if (job.waiting) {
-    if (!canStart(world) || (job.kind === 'build' ? warehouseSite(world) === null : receivingStore(world, job.carried) === null)) return false
-    delete job.waiting; releaseActor(world)
+    if (!canStartWarehouseWork(world) || (job.kind === 'build' ? !freeSite(world, [job.target]) && warehouseSite(world) === null : receivingStore(world, job.carried) === null)) return false
+    delete job.waiting; releaseWarehouseActor(world)
   }
   if (!job.carried) {
     const source = world.buildings[job.source]
@@ -143,7 +150,7 @@ export function advanceWarehousing(world: World, delta: number): boolean {
   if (job.kind === 'build') {
     if (!freeSite(world, [job.target])) {
       const alternative = warehouseSite(world)
-      if (alternative === null) { job.waiting = true; releaseActor(world); return false }
+      if (alternative === null) { job.waiting = true; releaseWarehouseActor(world); return false }
       job.target = alternative
     }
     if (!arrived(world, job.target, delta, true)) return true
@@ -157,7 +164,7 @@ export function advanceWarehousing(world: World, delta: number): boolean {
   let target = world.buildings[job.target]
   if (target?.kind !== 'supplyCrate' || !ownedStores(world).includes(job.target) || storeRoom(target) < job.carried || !reachableStore(world, job.target)) {
     const alternative = receivingStore(world, job.carried)
-    if (alternative === null) { job.waiting = true; releaseActor(world); return false }
+    if (alternative === null) { job.waiting = true; releaseWarehouseActor(world); return false }
     job.target = alternative; target = world.buildings[alternative]
   }
   if (target?.kind !== 'supplyCrate' || !arrived(world, job.target, delta)) return true
@@ -174,5 +181,33 @@ export function forgetWarehouse(world: World, tile: number): void {
 }
 export function warehouseActivity(world: World): string | null {
   const job = world.warehousing?.job
+  if (world.warehousing?.resite) return 'Ich versetze meinen bezahlten Bauauftrag an einen freien Standort.'
+  const move = world.warehousing?.move
+  if (move && !job) return move.phase === 'empty' ? 'Ich bringe die Vorräte in mein neues Lager.' : move.phase === 'remove' ? 'Ich baue das leere alte Lager ab.' : 'Ich baue mein Lager und seine Förderstrecken um.'
   return job ? job.kind === 'build' ? job.carried ? 'Ich baue ein zusätzliches Materiallager.' : 'Ich hole Material für ein zusätzliches Lager.' : 'Ich transportiere Vorräte zwischen meinen Lagern.' : null
+}
+
+export function takeWarehouseStock(world: World, tile: number, item: Item, requested: number): number {
+  const store = world.buildings[tile]
+  if (store?.kind !== 'supplyCrate' || !ownedStores(world).includes(tile)) return 0
+  const amount = Math.min(requested, storedMaterial(store, item))
+  moveStock(store, item, -amount)
+  return amount
+}
+export function putWarehouseStock(world: World, tile: number, item: Item, amount: number): boolean {
+  const store = world.buildings[tile]
+  if (store?.kind !== 'supplyCrate' || !ownedStores(world).includes(tile) || storeRoom(store) < amount) return false
+  moveStock(store, item, amount)
+  return true
+}
+export function warehouseReserved(world: World): number[] {
+  const s = world.warehousing, plan = world.homestead?.expansion.plan
+  return [...(s?.job?.kind === 'build' ? [s.job.target] : []), ...(plan ? expansionLayout(plan).map(p => p.tile) : []), ...(s?.move ? [s.move.from, s.move.to, ...s.move.links.flatMap(p => p.parts.map(p => p.tile))] : []), ...(s?.resite ? expansionLayout(s.resite.to).map(p => p.tile) : [])]
+}
+export function warehouseRemovalError(world: World, tile: number): string | null {
+  const s = world.warehousing, b = world.buildings[tile]
+  if (s?.move && (tile === s.move.from || tile === s.move.to) && ownedStores(world).includes(tile)) return 'Pete is moving this warehouse. Removal is available after the move.'
+  if (s?.move?.phase === 'connect' && b && s.move.links.flatMap(p => p.parts).slice(0, s.move.index).some(p => p.tile === tile && p.kind === b.kind)) return 'Pete is connecting this warehouse. Removal is available after the move.'
+  if (s?.resite && b && [...expansionLayout(s.resite.to), ...(world.homestead?.expansion.plan ? expansionLayout(world.homestead.expansion.plan) : [])].some(p => p.tile === tile && p.kind === b.kind)) return 'Pete is relocating these paid parts. Wait until the move is complete.'
+  return null
 }
