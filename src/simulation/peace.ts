@@ -1,3 +1,4 @@
+import { advanceWarehousing } from './warehousing'
 import { advanceRebuilding } from './rebuilding'
 import { scheduledShoreVisit } from './shoreline'
 import { advanceHomestead, createHomestead, HOMESTEAD_REST_INTERVAL_MS } from './homestead'
@@ -312,6 +313,7 @@ export function advancePeace(world: World, delta: number): void {
     world.homestead ??= createHomestead()
     if (world.miniFactory.anchor !== null && world.miniFactory.built < 11) { advanceMiniFactory(world, delta); return }
     if (advanceRebuilding(world, delta)) return
+    if (advanceWarehousing(world, delta)) return
     if (advanceHomestead(world, delta)) return
   }
   const s = world.peace, p = world.pete

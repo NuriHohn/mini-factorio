@@ -57,7 +57,7 @@ export function restoreHomestead(value: unknown, world: World, version: number):
   if (task === 'expandStore' && (target !== store || carried.wood || (elapsedMs > 0 && carried.woodPanel !== 8))) v.invalid('homestead', 'extension work is not funded')
   if (task === 'buildMill' && millAnchor === null) v.invalid('homestead', 'mill construction needs a plan')
   if (task === 'feedMill' && (!carried.wood || carried.wood > 2 || inventoryTotal(carried) !== carried.wood || target !== millAnchor)) v.invalid('homestead', 'missing mill delivery')
-  if (task === 'returnStock' && (!inventoryTotal(carried) || target !== store)) v.invalid('homestead', 'missing return payload')
+  if (task === 'returnStock' && (!inventoryTotal(carried) || target !== store && !(version >= 58 && target !== null && world.warehousing?.stores.includes(target)))) v.invalid('homestead', 'missing return payload')
   if (task === 'expandStore' && (![0, 8].includes(carried.woodPanel) || inventoryTotal(carried) !== carried.woodPanel)) v.invalid('homestead', 'invalid paid extension')
   if (task === 'mineIron' && ((version < 56 && carried.iron % 3) || inventoryTotal(carried) !== carried.iron)) v.invalid('homestead', 'invalid mined load')
   if (task === 'mineCoal' && ((version < 56 && carried.coal % 3) || inventoryTotal(carried) !== carried.coal)) v.invalid('homestead', 'invalid mined coal load')
@@ -89,7 +89,7 @@ export function restoreHomestead(value: unknown, world: World, version: number):
   const nextMealAtMs = version < 54 ? (Math.floor(world.timeMs / 600000) + 1) * 600000 : v.count(r.nextMealAtMs, 'homestead.nextMealAtMs', world.timeMs + 600000)
   if (nextMealAtMs % 50) v.invalid('homestead.nextMealAtMs', 'invalid meal deadline')
   const paused = Object.hasOwn(r, 'paused')
-  if (paused && (r.paused !== true || task !== 'buildChain' || !inventoryTotal(carried))) v.invalid('homestead.paused', 'requires a paid construction order')
+  if (paused && (r.paused !== true || task !== 'buildChain' && !(version >= 58 && task === 'returnStock') || !inventoryTotal(carried))) v.invalid('homestead.paused', 'requires a retained paid order or stock delivery')
   const restored: Homestead = { ...(paused ? { paused: true } : {}), priority, nextMealAtMs, infrastructure, cargoBicycle, bikeTile, waterworks, store, target, task, treeBornAtMs, carried, elapsedMs, nextAtMs, millAnchor, millBuilt, nextRestAtMs, expansion }
   world.homestead = restored
   if (bikeTile !== null && !peteWalkableTile(world, bikeTile)) v.invalid('homestead.bikeTile', 'parking on an unowned transport component')

@@ -28,6 +28,7 @@ export function materialPolicy(world: World) {
     copperCable: flightComplete ? 0 : 12,
     manualCopperPlate: manualCopper,
     manualCircuitPlate: world.personality.paths.inventor.level >= 4 && !h?.infrastructure.links.some(p => p.kind === 'copper') ? 8 : manualCopper,
+    plateTarget: 40,
     ironGearTarget: 12,
     copperCableTarget: 16,
     electronicCircuitTarget: 12,
@@ -50,4 +51,13 @@ export function materialDemand(store: SupplyCrate, resources: Partial<Inventory>
     missing[item] = paid ? 0 : amount - reserved[item]!
   }
   return { costs, reserved, missing }
+}
+
+// The unupgraded main store retains eight free spaces; surplus belongs in extra stores.
+export function mainStoreTargets(world: World): Record<Item, number> {
+  const p = materialPolicy(world)
+  return { wood: 24, woodPanel: 12, woodenCrate: 8, iron: 6, copper: 6,
+    ironPlate: p.plateTarget, copperPlate: p.plateTarget, ironGear: p.ironGearTarget,
+    copperCable: p.copperCableTarget, electronicCircuit: p.electronicCircuitTarget,
+    coal: p.coalTarget, coalBriquette: 4, mechanicModule: 0 }
 }

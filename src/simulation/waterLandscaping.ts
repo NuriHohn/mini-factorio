@@ -31,6 +31,7 @@ export function waterProtection(world: World): WaterProtection {
       if (project && project.phase !== 'complete') for (const tile of [...project.tiles, ...project.spots]) reserved.add(tile)
     }
     for (const tile of infrastructureReserved(world)) reserved.add(tile)
+    if (world.warehousing?.job?.kind === 'build') reserved.add(world.warehousing.job.target)
     const h = world.homestead
     if (h?.bikeTile !== null && h?.bikeTile !== undefined) reserved.add(h.bikeTile)
     if (h?.waterworks.plan) for (const tile of [...shoreTiles(h.waterworks.plan), ...shoreApproaches(h.waterworks.plan)]) reserved.add(tile)

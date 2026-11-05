@@ -432,7 +432,7 @@ export function infrastructurePickupAllowed(world: World, tile: number, item: It
   if (later !== null) return later
   const material = linkMaterial(link.kind)
   if (item !== material) return false
-  const quota = link.kind === 'iron' || link.kind === 'copper' ? 40 : link.kind === 'cableReturn' ? 16 : 12
+  const quota = link.kind === 'iron' || link.kind === 'copper' ? materialPolicy(world).plateTarget : link.kind === 'cableReturn' ? materialPolicy(world).copperCableTarget : materialPolicy(world).ironGearTarget
   const inflight = (item: string) => s!.links.flatMap(p => p.parts).reduce((n, p) => { const b = world.buildings[p.tile]; return n + Number((b?.kind === 'belt' || b?.kind === 'inserter') && b.item === item) }, 0)
   if (!feedLink(link.kind)) return store.inventory[material] + inflight(material) < quota
   if (link.kind === 'cableFeed') return store.inventory.copperPlate > (materialPolicy(world).copperPlate) && store.inventory.copperCable + inflight('copperCable') < materialPolicy(world).copperCableTarget

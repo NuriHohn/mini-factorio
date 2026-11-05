@@ -1,3 +1,4 @@
+import { warehouseActivity } from './warehousing'
 import { SUPPLY_WORK_MS } from './infrastructure'
 import { developmentFocus } from './developmentFocus'
 import { nextDevelopments } from './nextDevelopment'
@@ -84,10 +85,15 @@ export function peteStatus(world: World): PeteStatus {
     development.carrying = ITEMS.filter(item => h.carried[item]).map(item => `${h.carried[item]} ${ITEM_DEFINITIONS[item].label}`).join(' · ') || 'Nichts getragen'
     development.progress = h.elapsedMs ? Math.min(1, h.elapsedMs / (h.task === 'supplyOrder' ? SUPPLY_WORK_MS : h.task === 'buildBridge' && h.waterworks.plan ? Math.max(1, shoreTiles(h.waterworks.plan).length) * 4000 : h.task === 'buildPavilion' || h.task === 'finishOrder' || h.task === 'buildDock' || h.task === 'upgradeBicycle' || h.task === 'expandStore' || h.task === 'improve' ? 8000 : h.task === 'buildConnection' || h.task === 'buildWheel' || h.task === 'buildMill' || h.task === 'buildChain' || h.task === 'retireMine' ? 4000 : 6000)) : null
   }
+  const storageJob = world.warehousing?.job
+  if (storageJob) {
+    development.carrying = storageJob.carried ? `${storageJob.carried} ${ITEM_DEFINITIONS[storageJob.item].label}` : 'Noch kein Lagertransport abgeholt'
+    development.progress = storageJob.kind === 'build' && storageJob.elapsedMs ? storageJob.elapsedMs / 4000 : null
+  }
   const repair = world.rebuilding?.jobs.find(j => j.tile === world.rebuilding?.active)
   if (repair) {
     development.carrying = ITEMS.filter(i => repair.paid[i]).map(i => `${repair.paid[i]} ${ITEM_DEFINITIONS[i].label}`).join(' · ') || 'Noch kein Reparaturmaterial bezahlt'
     development.progress = repair.elapsedMs ? repair.elapsedMs / (repair.funded ? 4000 : 6000) : null
   }
-  return { focus: developmentFocus(world), next: nextDevelopments(world, projects), intent: repair ? rebuildSummary(world).find((_, i) => world.rebuilding!.jobs[i] === repair)! : mini ?? intent, ...development, yard: yardSummary(world), activity: repair ? repair.funded && repair.elapsedMs ? 'Ich baue das fehlende Teil wieder auf' : 'Ich hole Material für den Wiederaufbau' : world.homestead?.task && !world.homestead.paused ? world.homestead.task === 'finishOrder' && world.homestead.infrastructure.order && world.homestead.infrastructure[world.homestead.infrastructure.order] === 3 ? 'Ich arbeite an einem bezahlten Versorgungsauftrag' : HOME_TASK_LABELS[world.homestead.task] : activity, current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
+  return { focus: developmentFocus(world), next: nextDevelopments(world, projects), intent: repair ? rebuildSummary(world).find((_, i) => world.rebuilding!.jobs[i] === repair)! : mini ?? intent, ...development, yard: yardSummary(world), activity: warehouseActivity(world) ?? (repair ? repair.funded && repair.elapsedMs ? 'Ich baue das fehlende Teil wieder auf' : 'Ich hole Material für den Wiederaufbau' : world.homestead?.task && !world.homestead.paused ? world.homestead.task === 'finishOrder' && world.homestead.infrastructure.order && world.homestead.infrastructure[world.homestead.infrastructure.order] === 3 ? 'Ich arbeite an einem bezahlten Versorgungsauftrag' : HOME_TASK_LABELS[world.homestead.task] : activity), current: selected ? PROJECT_NAMES[selected.id] : null, wish: wishes.find(p => p.id !== selected?.id) ?? null, projects, personality: structuredClone(world.personality) }
 }
