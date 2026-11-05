@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { advanceStorageRecovery, planStoreMove, blockedStoreConnection } from './storageRecovery'
 import { advanceHomestead, begin, handMillLayout, materialStore } from './homestead'
 import { expansionLayout, planChain } from './homesteadExpansion'
@@ -173,28 +173,35 @@ describe('staged connected warehouse relocation', () => {
     expect(stock(w)).toBe(before - expense)
     expect(ownedStores(w).reduce((n, t) => { const b = w.buildings[t]; return n + (b?.kind === 'supplyCrate' ? b.inventory.copperCable : 0) }, 0)).toBe(1)
   })
-  it('builds real overflow capacity when dismantling packets would fill every warehouse', () => {
-    const w = crowdedMill()
-    let packets = 0
-    for (const part of w.homestead!.infrastructure.links[0].parts) {
-      const b = w.buildings[part.tile]
-      if (b?.kind === 'belt') { b.item = 'copperCable'; b.progress = .5; packets++ }
-    }
-    advanceStorageRecovery(w, 50)
-    until(w, () => w.warehousing!.move?.phase === 'retire')
-    // Concurrent external deliveries can fill both crates after the move was paid.
-    for (const t of ownedStores(w)) {
-      const b = w.buildings[t]
-      if (b?.kind === 'supplyCrate') b.wood = 400 - inventoryTotal(b.inventory)
-    }
-    const before = stock(w) + packets, expense = inventoryTotal(w.warehousing!.move!.cost)
-    until(w, () => !!w.warehousing?.job?.carried)
-    const loaded = decodeSave(save(w)).world
-    until(w, () => !w.warehousing!.move)
-    while (loaded.timeMs < w.timeMs) tick(loaded)
-    expect(JSON.parse(save(loaded))).toEqual(JSON.parse(save(w)))
-    expect(w.warehousing!.stores.length).toBeGreaterThan(0)
-    expect(stock(w)).toBe(before - expense - 6 * w.warehousing!.stores.length)
+  describe('overflow during dismantling', () => {
+    let w: World, loaded: World, before: number, expense: number
+    beforeAll(() => {
+      w = crowdedMill()
+      let packets = 0
+      for (const part of w.homestead!.infrastructure.links[0].parts) {
+        const b = w.buildings[part.tile]
+        if (b?.kind === 'belt') { b.item = 'copperCable'; b.progress = .5; packets++ }
+      }
+      advanceStorageRecovery(w, 50)
+      until(w, () => w.warehousing!.move?.phase === 'retire')
+      // Concurrent external deliveries can fill both crates after the move was paid.
+      for (const t of ownedStores(w)) {
+        const b = w.buildings[t]
+        if (b?.kind === 'supplyCrate') b.wood = 400 - inventoryTotal(b.inventory)
+      }
+      before = stock(w) + packets; expense = inventoryTotal(w.warehousing!.move!.cost)
+      until(w, () => !!w.warehousing?.job?.carried)
+      loaded = decodeSave(save(w)).world
+    }, 60000)
+    // Keep every original 50 ms step and the same simulation bound. The shared
+    // preparation separates physical completion from its exact saved replay.
+    beforeAll(() => { until(w, () => !w.warehousing!.move) }, 60000)
+    beforeAll(() => { while (loaded.timeMs < w.timeMs) tick(loaded) }, 60000)
+    it('builds real overflow capacity when dismantling packets would fill every warehouse', () => {
+      expect(JSON.parse(save(loaded))).toEqual(JSON.parse(save(w)))
+      expect(w.warehousing!.stores.length).toBeGreaterThan(0)
+      expect(stock(w)).toBe(before - expense - 6 * w.warehousing!.stores.length)
+    })
   })
   it('keeps a buildable earlier connection ahead of a later blocked feed', () => {
     const { w, h } = partial()
