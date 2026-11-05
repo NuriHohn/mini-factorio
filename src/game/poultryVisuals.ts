@@ -1,7 +1,7 @@
 import type Phaser from 'phaser'
 import { birdStepMs, EGG_COLLECT_MS, eggAt, poultryActive, poultryBedtime } from '../simulation/poultry'
 import type { Bird } from '../simulation/poultry'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'

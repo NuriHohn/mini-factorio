@@ -1,7 +1,7 @@
 import { recordProduction } from './analytics'
 import { awardActivity } from './personality'
 import { sabotageRemaining } from './pete'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { SteamEngine, World } from './world'
 export const STEAM_KW = 50
 export const STEAM_FUEL_CAPACITY = 6

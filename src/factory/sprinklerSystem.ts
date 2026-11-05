@@ -2,7 +2,7 @@ import { peaceful } from '../simulation/peace'
 import { bossAlive, peteUnavailable } from '../simulation/revenge'
 import { damageWalker } from './revengeSystem'
 import { withinRange } from '../simulation/power'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import { beginSlip, sprinklerPowered, sprinklerDetects, SPRINKLER_RANGE, SPRINKLER_COOLDOWN_MS, SPRAY_MS, WATER_COMPLAINTS } from '../simulation/sprinklers'
 

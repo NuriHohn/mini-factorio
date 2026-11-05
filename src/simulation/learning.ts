@@ -1,7 +1,7 @@
 import { connectionGuide, loadingGuide } from './connectionGuide'
 import { ITEM_DEFINITIONS, ITEMS } from './items'
 import { inspectBuilding } from './inspection'
-import { DIRECTIONS, inside, offsets, SIZE } from './world'
+import { DIRECTIONS, inside, offsets, SIZE } from './grid'
 import type { World } from './world'
 import { developmentBuilding } from './peteDevelopments'
 import type { DevelopmentTask } from './peteDevelopments'

@@ -1,7 +1,7 @@
 import { developmentBuilding } from './peteDevelopments'
 import { chopTree, MATURE_TREE_MS, plantTree, treeStage } from './nature'
 import { recordProduction } from './analytics'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Forester, World } from './world'
 
 import { FOREST_RADIUS } from './forestrySupply'

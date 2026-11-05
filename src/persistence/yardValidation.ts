@@ -3,7 +3,7 @@ import { YARD_MAX_SPAN, yardBoundary, yardDirection, yardInterior } from '../sim
 import type { Yard } from '../simulation/yard'
 import { neighboringTiles } from '../simulation/navigation'
 import type { World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import * as v from './validation'
 export function restoreYard(value: unknown, world: World, version = 35, run = false): Yard | null {
   if (value === undefined) return null

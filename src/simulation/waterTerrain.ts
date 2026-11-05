@@ -1,4 +1,4 @@
-import { inside, offsets, SIZE } from './world'
+import { inside, offsets, SIZE } from './grid'
 import type { Direction, Position, World } from './world'
 import { natureRandom } from './nature'
 export const MAX_BRIDGE_SPAN = 5

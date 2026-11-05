@@ -1,5 +1,5 @@
 import type Phaser from 'phaser'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Treehouse, World } from '../simulation/world'
 import { hasVeranda, VERANDA_BUILD_MS } from '../simulation/veranda'
 import { drawPete } from './peteVisuals'

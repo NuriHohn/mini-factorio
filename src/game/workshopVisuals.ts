@@ -1,6 +1,6 @@
 import type Phaser from 'phaser'
 import type { PeteWorkshop, World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 export function drawWorkshop(g: Phaser.GameObjects.Graphics, workshop: PeteWorkshop, tile: number, progress = 1): void {

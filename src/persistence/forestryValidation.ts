@@ -3,7 +3,7 @@ import { MATURE_TREE_MS, TREE_SPECIES } from '../simulation/nature'
 import { neighboringTiles } from '../simulation/navigation'
 import type { SecretProject } from '../simulation/secretProject'
 import type { World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import { restoreEcoDeadline, restoreProjectSelection } from './projectValidation'
 import * as v from './validation'
 export function restoreHarvest(value: unknown, world: World): SecretProject {

@@ -1,6 +1,6 @@
 import type Phaser from 'phaser'
 import { machineGuide, peteRoute } from '../simulation/learning'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 export function drawGuidance(g: Phaser.GameObjects.Graphics, world: World, tile: number, showPete: boolean, index: number | null, connections: boolean): void {
   if (showPete) {

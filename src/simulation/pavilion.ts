@@ -3,7 +3,7 @@ import { inventoryTotal } from './items'
 import { neighboringTiles, peteReachableTiles, peteWalkableTile } from './navigation'
 import { awardActivity } from './personality'
 import { projectCandidates } from './secretProject'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Pavilion } from './infrastructureRules'
 import type { World } from './world'
 

@@ -8,7 +8,7 @@ import { findBeltRoute } from './beltRouting'
 import { deliverItem } from './transport'
 import { inventoryTotal } from './items'
 import { supplyCapacity } from './supplyCrate'
-import { inside, SIZE, offsets } from './world'
+import { inside, SIZE, offsets } from './grid'
 import type { Direction, World } from './world'
 export function industrialLayout(plan: ExpansionPlan) {
   const a = plan.anchor, row = plan.direction === 'north' ? -SIZE : SIZE

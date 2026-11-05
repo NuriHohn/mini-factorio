@@ -4,7 +4,7 @@ import { emptyInventory, inventoryTotal, ITEMS } from '../simulation/items'
 import { PETE_PROJECTS } from '../simulation/projectRegistry'
 import { rebuildCost, rebuildParts } from '../simulation/rebuilding'
 import type { Rebuilding, RebuildOwner } from '../simulation/rebuilding'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restoreRebuilding(value: unknown, version: number): Rebuilding {

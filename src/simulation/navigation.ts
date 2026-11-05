@@ -1,5 +1,5 @@
 import { GATE_OPEN_MS } from './gardenGate'
-import { SIZE, inside, offsets } from './world'
+import { SIZE, inside, offsets } from './grid'
 import type { World } from './world'
 
 const mineCrossingCache = new WeakMap<World, { revision: number; plan: NonNullable<World['homestead']>['expansion']['plan']; tiles: Set<number>; signature: string }>()

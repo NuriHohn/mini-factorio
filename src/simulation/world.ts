@@ -1,3 +1,7 @@
+import { SIZE, offsets, inside, buildingAt, depositAt, opposite } from './grid'
+import type { Direction, Position } from './grid'
+export { SIZE, INTERVAL, DIRECTIONS, offsets, rotate, opposite, inside, buildingAt, depositAt } from './grid'
+export type { Direction, Position } from './grid'
 import type { Deposits } from './deposits'
 import type { Homestead } from './homestead'
 import type { MiniFactory } from './petesWorld'
@@ -49,12 +53,7 @@ import { emptyInventory, RESOURCES } from './items'
 import type { Inventory, Item, Resource } from './items'
 import type { FurnaceRecipeMode, RecipeId } from './recipes'
 export type { Item } from './items'
-export const SIZE = 40
-export const INTERVAL = 1000
-export const DIRECTIONS = ['north', 'east', 'south', 'west'] as const
-export type Direction = typeof DIRECTIONS[number]
 export type BuildingKind = 'petePavilion' | 'fuelDepot' | 'steamWorkshop' | 'steamHoist' | 'steamEngine' | 'forester' | 'sawmill' | 'peteDevelopment' | 'peteTreasure' | 'peteFlightpad' | 'petePress' | 'peteExperiment' | 'peteWorkshop' | 'peteGarden' | 'peteGate' | 'peteCampfire' | 'peteCoop' | 'peteFence' | 'supplyCrate' | 'footbridge' | 'fishingDock' | 'waterwheel' | 'treehouse' | 'tree' | 'miner' | 'belt' | 'storage' | 'furnace' | 'assembler' | 'inserter' | 'generator' | 'powerPole' | 'radar' | 'prison' | 'splitter' | 'sprinkler'
-export interface Position { x: number; y: number }
 export interface BuildingPosition extends Position { sabotageUntilMs?: number }
 export interface Miner extends BuildingPosition { kind: 'miner'; direction: Direction; elapsed: number; item: Item | null }
 export interface Belt extends BuildingPosition { kind: 'belt'; bridge?: true; direction: Direction; item: Item | null; progress: number; entry: Direction }
@@ -135,19 +134,6 @@ export interface Tree extends Position { kind: 'tree'; species: TreeSpecies; ori
 export interface Treehouse extends Position { kind: 'treehouse'; placedAtMs: number; sabotageUntilMs?: never }
 export type Building = PetePavilion | FuelDepot | SteamWork | SteamEngine | Forester | Sawmill | PeteDevelopment | PeteTreasure | PeteFlightpad | PetePress | PeteExperiment | PeteWorkshop | PeteGarden | PeteGate | PeteCampfire | PeteCoop | PeteFence | SupplyCrate | Footbridge | FishingDock | Waterwheel | Treehouse | Tree | Sprinkler | Splitter | Radar | Prison | Miner | Belt | Storage | Furnace | Assembler | Inserter | Generator | PowerPole
 export interface World { deposits?: Deposits; rebuilding?: Rebuilding; homestead?: Homestead; miniFactory?: MiniFactory; developmentLife?: DevelopmentLife; orchardProject?: SecretProject; bicycleProject?: SecretProject; mechanicProject?: SecretProject; winchProject?: SecretProject; nurseryProject?: SecretProject; houseProject?: SecretProject; treasureProject?: SecretProject; flightProject?: SecretProject; leisure?: PeteLeisure; playfulSpray?: PlayfulSpray; chickenRun?: Yard; harvestProject?: SecretProject; feedingProject?: SecretProject; careProject?: SecretProject; pressProject?: SecretProject; experimentProject?: SecretProject; verandaProject?: SecretProject; workshopProject?: SecretProject; gardenProject?: SecretProject; plantProject?: SecretProject; personality: Personality; gateProject: SecretProject | null; yard: Yard | null; campfireProject: SecretProject | null; poultry: Poultry | null; coopProject: SecretProject | null; project: SecretProject | null; peace: PeaceState; nature: NatureState; revenge: RevengeState; research: ResearchState; analytics: AnalyticsState; webs: WebState; timeMs: number; pete: Pete; police: PoliceState; water: boolean[]; tiles: (Resource | null)[]; buildings: (Building | null)[]; mined: Inventory; produced: Inventory; remainder: number; topologyRevision: number; power: PowerState | null }
-export const offsets: Record<Direction, Position> = {
-  north: { x: 0, y: -1 }, east: { x: 1, y: 0 }, south: { x: 0, y: 1 }, west: { x: -1, y: 0 },
-}
-export function rotate(direction: Direction): Direction {
-  return DIRECTIONS[(DIRECTIONS.indexOf(direction) + 1) % 4]
-}
-export function opposite(direction: Direction): Direction { return rotate(rotate(direction)) }
-export function inside(x: number, y: number): boolean {
-  return Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < SIZE && y < SIZE
-}
-export function buildingAt(world: World, x: number, y: number): Building | null {
-  return inside(x, y) ? world.buildings[y * SIZE + x] : null
-}
 export function createWorld(random = Math.random, options: { nature?: boolean; water?: boolean } = {}): World {
   const tiles: (Resource | null)[] = Array.from({ length: SIZE * SIZE }, () => null)
   for (const resource of RESOURCES.filter(resource => resource !== 'coal')) for (let n = 0; n < 35; n++) {
@@ -169,10 +155,6 @@ export function createWorld(random = Math.random, options: { nature?: boolean; w
   if (options.nature !== false) generateNature(world, seed)
   return world
 }
-export function depositAt(world: World, x: number, y: number): Resource | null {
-  return inside(x, y) ? world.tiles[y * SIZE + x] : null
-}
-
 export function placementError(world: World, x: number, y: number, kind: BuildingKind = 'miner', direction?: Direction, bridge = false): string | null {
   if (world.chickenRun?.entrance === y * SIZE + x) return 'Keep Pete’s chicken-run entrance clear.'
   if (world.yard?.entrance === y * SIZE + x) return 'Keep Pete’s reserved yard entrance clear.'

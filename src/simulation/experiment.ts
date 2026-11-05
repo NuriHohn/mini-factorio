@@ -1,7 +1,7 @@
 import { peteReachableTiles, serviceCrossing } from './navigation'
 import { awardActivity } from './personality'
 import type { World } from './world'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 export const EXPERIMENT_BUILD_MS = 12000
 export const EXPERIMENT_ACTIVITY_MS = 5000
 export const EXPERIMENT_COOLDOWN_MS = 60000

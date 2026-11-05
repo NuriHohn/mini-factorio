@@ -1,4 +1,4 @@
-import { DIRECTIONS, inside, offsets, SIZE } from './world'
+import { DIRECTIONS, inside, offsets, SIZE } from './grid'
 import type { FishingDock, World } from './world'
 import { facesWater } from './waterTerrain'
 import { peteReachableTiles as reachableTiles, tilePath } from './navigation'

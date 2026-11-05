@@ -1,4 +1,4 @@
-import { offsets, opposite } from '../simulation/world'
+import { offsets, opposite } from '../simulation/grid'
 import type { Direction, Position } from '../simulation/world'
 import { splitterDirections } from '../simulation/splitters'
 import type { SplitterOutput } from '../simulation/splitters'

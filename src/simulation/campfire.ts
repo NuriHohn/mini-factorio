@@ -1,6 +1,6 @@
 import { peteReachableTiles as reachableTiles } from './navigation'
 import type { World } from './world'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 export const COOKING_MS = 8000
 export const CAMPFIRE_HAPPY_MS = 2000
 export function availableEggs(world: World): number { return world.poultry ? world.poultry.collected - world.poultry.eaten : 0 }

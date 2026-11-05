@@ -2,7 +2,7 @@ import { DEPOSIT_CAPACITY, DEPOSIT_WARNING, oreRemaining } from '../simulation/d
 import type Phaser from 'phaser'
 import { ITEM_DEFINITIONS } from '../simulation/items'
 import type { World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import { terrainChunkRevision, terrainChunks, TERRAIN_CHUNK_SIZE } from '../simulation/waterTerrain'
 import { drawWaterTile } from './landscapeWater'
 const GREENS = [0x344e37, 0x36513a, 0x38543b, 0x324b35]

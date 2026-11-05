@@ -1,5 +1,5 @@
 import type { PlayfulSpray } from '../simulation/playfulSpray'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restorePlayfulSpray(value: unknown, world: World): PlayfulSpray {

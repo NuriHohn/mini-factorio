@@ -1,7 +1,7 @@
 import { CARE_XP, PLANT_COOLDOWN_MS, TEND_COOLDOWN_MS, TEND_MS, gardenSpot } from '../simulation/ecoProjects'
 import type { SecretProject } from '../simulation/secretProject'
 import { neighboringTiles } from '../simulation/navigation'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import { restoreEcoDeadline, restoreProjectSelection } from './projectValidation'
 import * as v from './validation'

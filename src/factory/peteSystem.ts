@@ -6,7 +6,7 @@ import { releaseWebTrap, tryWebTrap } from './webSystem'
 import { allocatePower, generationKw, ratedGeneration } from '../simulation/power'
 import { advanceWaterReaction } from '../simulation/sprinklers'
 import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from '../simulation/navigation'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Position, World } from '../simulation/world'
 
 import { PETE_WALK_MS, PETE_FLEE_MS, PETE_COOLDOWN_MS, SABOTAGE_MS, PUMPKIN_FLIGHT_MS, peteHit, sabotageRemaining } from '../simulation/pete'

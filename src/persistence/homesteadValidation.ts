@@ -12,12 +12,12 @@ import type { Homestead } from '../simulation/homestead'
 import { ITEMS, inventoryTotal } from '../simulation/items'
 import { MATURE_TREE_MS } from '../simulation/nature'
 import type { World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import * as v from './validation'
 
 export function restoreHomestead(value: unknown, world: World, version: number): Homestead {
   if (!world.miniFactory || world.peace.home === null) v.invalid('homestead', 'requires Petes Welt and a home')
-  const r = v.object(value, 'homestead', [...(version >= 54 ? ['priority', 'nextMealAtMs'] : []), 'store', 'task', 'target', ...(version >= 49 ? ['infrastructure'] : []), ...(version >= 48 ? ['cargoBicycle', 'bikeTile', 'waterworks'] : []), 'treeBornAtMs', 'carried', 'elapsedMs', 'nextAtMs', 'millAnchor', 'millBuilt', ...(version >= 43 ? ['nextRestAtMs'] : []), ...(version >= 41 ? ['expansion'] : [])])
+  const r = v.object(value, 'homestead', [...(version >= 54 ? ['priority', 'nextMealAtMs'] : []), 'store', 'task', 'target', ...(version >= 49 ? ['infrastructure'] : []), ...(version >= 48 ? ['cargoBicycle', 'bikeTile', 'waterworks'] : []), 'treeBornAtMs', 'carried', 'elapsedMs', 'nextAtMs', 'millAnchor', 'millBuilt', ...(version >= 43 ? ['nextRestAtMs'] : []), ...(version >= 41 ? ['expansion'] : [])], version >= 57 ? ['paused'] : [])
   const expansion = version < 41 ? createExpansion() : restoreExpansion(r.expansion, world, version)
   const nullableTile = (key: string) => r[key] === null ? null : v.tile(r[key], `homestead.${key}`)
   const store = nullableTile('store'), target = nullableTile('target'), millAnchor = nullableTile('millAnchor')
@@ -88,7 +88,9 @@ export function restoreHomestead(value: unknown, world: World, version: number):
   const priority = version < 54 || r.priority === null ? null : v.choice(r.priority, 'homestead.priority', [...PETE_PROJECTS.filter(p => !p.repeatable).map(p => p.id), ...(version >= 55 ? PATH_GOALS : [])])
   const nextMealAtMs = version < 54 ? (Math.floor(world.timeMs / 600000) + 1) * 600000 : v.count(r.nextMealAtMs, 'homestead.nextMealAtMs', world.timeMs + 600000)
   if (nextMealAtMs % 50) v.invalid('homestead.nextMealAtMs', 'invalid meal deadline')
-  const restored = { priority, nextMealAtMs, infrastructure, cargoBicycle, bikeTile, waterworks, store, target, task, treeBornAtMs, carried, elapsedMs, nextAtMs, millAnchor, millBuilt, nextRestAtMs, expansion }
+  const paused = Object.hasOwn(r, 'paused')
+  if (paused && (r.paused !== true || task !== 'buildChain' || !inventoryTotal(carried))) v.invalid('homestead.paused', 'requires a paid construction order')
+  const restored: Homestead = { ...(paused ? { paused: true } : {}), priority, nextMealAtMs, infrastructure, cargoBicycle, bikeTile, waterworks, store, target, task, treeBornAtMs, carried, elapsedMs, nextAtMs, millAnchor, millBuilt, nextRestAtMs, expansion }
   world.homestead = restored
   if (bikeTile !== null && !peteWalkableTile(world, bikeTile)) v.invalid('homestead.bikeTile', 'parking on an unowned transport component')
   validateInfrastructureTask(restored, world)

@@ -5,7 +5,7 @@ import { neighboringTiles } from '../simulation/navigation'
 import type { SecretProject } from '../simulation/secretProject'
 import { projectBuildMs, projectResources } from '../simulation/secretProject'
 import { restoreProjectSelection } from './projectValidation'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restoreInventorProject(value: unknown, world: World, kind: 'treasure' | 'flightpad'): SecretProject | undefined {

@@ -1,5 +1,5 @@
 import type Phaser from 'phaser'
-import { offsets } from '../simulation/world'
+import { offsets } from '../simulation/grid'
 import type { Waterwheel } from '../simulation/world'
 import { WATERWHEEL_PERIOD_MS } from '../simulation/waterwheel'
 // Bounded procedural geometry; the caller already culls offscreen buildings.

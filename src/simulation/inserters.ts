@@ -5,7 +5,7 @@ import { splitterDirections } from './splitters'
 import { emptyInventory, ITEMS } from './items'
 import type { Inventory, Item } from './items'
 import { canReceive, deliverItem } from './transport'
-import { buildingAt, offsets, SIZE } from './world'
+import { buildingAt, offsets, SIZE } from './grid'
 import type { Building, Inserter, Position, World } from './world'
 
 export const INSERTER_KW = 10

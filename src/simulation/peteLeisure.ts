@@ -1,7 +1,7 @@
 import { awardActivity } from './personality'
 import { PETE_PROJECTS } from './projectRegistry'
 import { serviceCrossing, neighboringTiles, peteReachableTiles, tilePath } from './navigation'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Position, World } from './world'
 export const TREASURES = [
   { id: 'stone', label: 'Glittering stone', icon: '◆', comment: 'It catches the light just right.' },

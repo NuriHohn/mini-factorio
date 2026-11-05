@@ -22,7 +22,7 @@ import { dockAtSpot, FISHING_MS, reachableFishingSpot } from './fishingDock'
 import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from './navigation'
 import { PETE_COOLDOWN_MS, PETE_WALK_MS } from './pete'
 import { WARNING_MS } from './revenge'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { FishingDock, Position, World } from './world'
 
 export const TREEHOUSE_WOOD = 20

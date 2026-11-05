@@ -1,7 +1,7 @@
 import { footbridgeBank } from './footbridge'
 import { neighboringTiles, peteReachableTiles as reachableTiles, serviceCrossing, tilePath } from './navigation'
 import type { SecretProject } from './secretProject'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { World } from './world'
 export const YARD_MAX_SPAN = 14
 export interface Yard extends SecretProject {

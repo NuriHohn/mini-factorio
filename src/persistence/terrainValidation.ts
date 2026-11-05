@@ -1,6 +1,6 @@
 import { footbridgeBanks, footbridgeSpan } from '../simulation/footbridge'
 import { bridgeCrossing } from '../simulation/waterTerrain'
-import { opposite, SIZE } from '../simulation/world'
+import { opposite, SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restoreWater(value: unknown): boolean[] { return v.array(value, 'game.water', SIZE * SIZE).map((b, i) => v.boolean(b, `water[${i}]`)) }

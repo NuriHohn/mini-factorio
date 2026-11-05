@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useGameStore } from '../state/gameStore'
 import { ITEMS, ITEM_DEFINITIONS } from '../simulation/items'
 import type { Item } from '../simulation/items'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import { HISTORY_MS, RATE_WINDOW_MS } from '../simulation/analytics'
 
 const COLORS = ['#b9dc8b', '#f4ae72', '#83c9df']

@@ -1,3 +1,4 @@
+import { materialPolicy } from './materialPolicy'
 import { DEPOSIT_WARNING, extractOre, mineDeveloped, oreRemaining } from './deposits'
 import { finishMineReplacement } from './mineReplacement'
 import { legacyCircuitIron, protectsOutput } from './productionLogistics'
@@ -11,7 +12,6 @@ import type { PersonalityPath } from './personality'
 import { recordProduction } from './analytics'
 import { changeCraftingRecipe } from './crafting'
 import type { RecipeId } from './recipes'
-import { copperLink } from './infrastructureRules'
 import { forestTiles } from './forestryStation'
 import { planHarvest } from './forestry'
 import { treeStage } from './nature'
@@ -183,9 +183,9 @@ export function planOreMining(world: World, resource: 'iron' | 'copper', replace
   }
   return null
 }
-function manualCircuitTarget(world: World, recipe: RecipeId | null): number { return recipe === 'peteCircuit' && world.flightProject?.phase !== 'complete' ? 8 : 12 }
-function manualCopperReserve(world: World): number { return world.flightProject?.phase === 'complete' && world.homestead!.infrastructure.links.filter(p => copperLink(p.kind)).length < 5 ? 8 : 0 }
-function circuitPlateReserve(world: World): number { return world.personality.paths.inventor.level >= 4 && !world.homestead!.infrastructure.links.some(p => p.kind === 'copper') ? 8 : manualCopperReserve(world) }
+function manualCircuitTarget(world: World, recipe: RecipeId | null): number { return recipe === 'peteCircuit' ? materialPolicy(world).manualCircuitTarget : materialPolicy(world).electronicCircuitTarget }
+function manualCopperReserve(world: World): number { return materialPolicy(world).manualCopperPlate }
+function circuitPlateReserve(world: World): number { return materialPolicy(world).manualCircuitPlate }
 function chooseCopper(world: World): boolean {
   const h = world.homestead!, e = h.expansion, store = materialStore(world)!
   const level = world.personality.paths.inventor.level
@@ -213,7 +213,7 @@ function chooseCopper(world: World): boolean {
   const assembler = e.cableAssembler === null ? null : world.buildings[e.cableAssembler]
   const room = store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)
   const cableInvoice = 2 + manualCopperReserve(world)
-  if (assembler?.kind === 'assembler' && store.inventory.copperCable < 16) {
+  if (assembler?.kind === 'assembler' && store.inventory.copperCable < materialPolicy(world).copperCableTarget) {
     if (!connectionRunning(world, 'cableReturn') && assembler.output.copperCable && room) { begin(world, 'takeCable', e.cableAssembler); return true }
     if (!connectionRunning(world, 'cableFeed') && !assembler.job && !assembler.input.copperPlate && store.inventory.copperPlate >= cableInvoice) { begin(world, 'fetchCable', h.store); return true }
   }
@@ -513,4 +513,20 @@ export function expansionProjectStatuses(world: World): { path: PersonalityPath;
 }
 export function expansionProjects(world: World): string[] {
   return expansionProjectStatuses(world).map(project => `${project.name}: ${project.reason}`)
+}
+
+const constructionChecks = new WeakMap<World, { plan: ExpansionPlan; built: number; revision: number; tile: number; blocked: boolean }>()
+// Read-only decision: the paid order survives independently of Pete's current activity.
+export function paidConstructionBlocked(world: World): boolean {
+  const h = world.homestead, plan = h?.expansion.plan
+  if (!h || h.task !== 'buildChain' || !plan || !inventoryTotal(h.carried)) return false
+  const old = constructionChecks.get(world)
+  if (old?.plan === plan && old.built === plan.built && old.revision === world.topologyRevision && old.tile === world.pete.tile) return old.blocked
+  const part = expansionLayout(plan).slice(plan.built).find(p => {
+    const b = world.buildings[p.tile]
+    return !plan.reuse?.includes(p.tile) || b?.kind !== p.kind || 'direction' in b && b.direction !== p.direction
+  })
+  const blocked = !!part && (!!world.buildings[part.tile] || world.water[part.tile] || miniApproach(world, part.tile) === null)
+  constructionChecks.set(world, { plan, built: plan.built, revision: world.topologyRevision, tile: world.pete.tile, blocked })
+  return blocked
 }

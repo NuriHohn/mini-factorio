@@ -3,7 +3,7 @@ import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import { SLIP_MS, SPRAY_MS, SPRINKLER_COOLDOWN_MS, sprinklerPowered } from '../simulation/sprinklers'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Sprinkler, World } from '../simulation/world'
 
 export function drawSprinkler(g: Phaser.GameObjects.Graphics, world: World, building: Sprinkler, tile: number): void {

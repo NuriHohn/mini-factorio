@@ -1,4 +1,4 @@
-import { offsets, opposite } from '../simulation/world'
+import { offsets, opposite } from '../simulation/grid'
 import type { Direction, Position } from '../simulation/world'
 
 // Tile-local coordinates, centered at (0, 0), with edges at +/- 0.5.

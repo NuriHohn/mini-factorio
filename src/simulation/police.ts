@@ -2,7 +2,7 @@ import { peaceful } from './peace'
 import { bossAlive } from './revenge'
 import { walkableTile } from './navigation'
 import { withinRange } from './power'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Building, Position, Prison, World } from './world'
 
 export const RADAR_RANGE = 3

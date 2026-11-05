@@ -3,7 +3,7 @@ import type { Item } from './items'
 import { PETE_PROJECTS, projectUnlocked } from './projectRegistry'
 import { PROJECT_NAMES } from './peteStatus'
 import { supplyCapacity, supplyWood } from './supplyCrate'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Storage, World } from './world'
 
 export interface SupplyAmount { material: Item | 'wood'; label: string; required: number; stored: number; available: number }

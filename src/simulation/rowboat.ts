@@ -1,5 +1,5 @@
 import { neighboringTiles, tilePath } from './navigation'
-import { inside, offsets, SIZE } from './world'
+import { inside, offsets, SIZE } from './grid'
 import type { FishingDock, World } from './world'
 
 export const ROWBOAT_TILE_MS = 2000

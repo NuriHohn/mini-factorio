@@ -1,7 +1,7 @@
 import type Phaser from 'phaser'
 import { campfireSpot, COOKING_MS } from '../simulation/campfire'
 import type { PeteCampfire, World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import { drawPete } from './peteVisuals'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'

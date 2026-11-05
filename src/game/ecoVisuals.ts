@@ -1,4 +1,4 @@
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type Phaser from 'phaser'
 import type { PeteGarden, World } from '../simulation/world'
 import { visiblePoint } from './viewport'

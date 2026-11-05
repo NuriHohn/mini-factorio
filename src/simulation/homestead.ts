@@ -13,7 +13,7 @@ import { chooseRebuild, awardHomesteadOnce } from './rebuilding'
 import { neighboringTiles, peteReachableTiles, peteWalkableTile, tilePath } from './navigation'
 import { preferredPaths } from './resourcePreference'
 import { emptyInventory, inventoryTotal, ITEMS } from './items'
-import { advanceExpansion, chooseExpansion, createExpansion, expansionLayout, expansionSummary, IMPROVEMENT_RULES } from './homesteadExpansion'
+import { paidConstructionBlocked, advanceExpansion, chooseExpansion, createExpansion, expansionLayout, expansionSummary, IMPROVEMENT_RULES } from './homesteadExpansion'
 import type { HomesteadExpansion } from './homesteadExpansion'
 import type { Inventory } from './items'
 import { chopTree, treeStage } from './nature'
@@ -30,6 +30,7 @@ export const LATER_HOME_TASKS = ['buildLoading', 'fetchLoading', 'feedLoading', 
 export const HOME_TASKS = ['retireMine', 'buildPavilion', ...LATER_HOME_TASKS, ...INFRASTRUCTURE_TASKS, ...NEW_HOME_TASKS, 'takeCoal', 'fetchStamp', 'feedStamp', 'takeBriquettes', 'fetchFuel', 'storeFuel', 'gather', 'buildStore', 'buildMill', 'fetchWood', 'feedMill', 'takePanels', 'returnStock', 'expandStore', 'mineIron', 'buildChain', 'improve', 'fetchIron', 'feedIron', 'takeIron', 'takeCrates', 'mineCopper', 'fetchCopper', 'feedCopper', 'takeCopper', 'fetchCable', 'feedCable', 'takeCable', 'fetchCircuits', 'feedCircuits', 'takeCircuits', 'mineCoal', 'fetchSteam', 'feedSteam'] as const
 export type HomeTask = typeof HOME_TASKS[number]
 export interface Homestead {
+  paused?: true
   priority: string | null
   nextMealAtMs: number
   store: number | null
@@ -112,6 +113,7 @@ function site(world: World, mill = false): number | null {
 }
 export function begin(world: World, task: HomeTask, target: number | null): void {
   const s = world.homestead!
+  delete s.paused
   s.task = task; s.target = target; s.elapsedMs = 0; s.treeBornAtMs = null
   Object.assign(world.peace, { activity: 'walking', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
   world.pete.path = []; world.pete.pathRevision = -1
@@ -119,6 +121,7 @@ export function begin(world: World, task: HomeTask, target: number | null): void
 export function finish(world: World): void {
   const s = world.homestead!, p = world.pete
   if (s.cargoBicycle && s.bikeTile === null) s.bikeTile = p.tile
+  delete s.paused
   s.task = null; s.target = null; s.elapsedMs = 0; s.treeBornAtMs = null; s.nextAtMs = world.timeMs + 1000
   Object.assign(p, { next: null, travelMs: 0, path: [], pathRevision: -1, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
   Object.assign(world.peace, { activity: 'walking', sinceMs: world.timeMs, untilMs: world.timeMs, destination: null })
@@ -256,6 +259,21 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     s.nextAtMs = world.timeMs + 2000
     chooseTask(world)
     if (s.task === null) return false
+  }
+  if (!s.paused && paidConstructionBlocked(world)) {
+    // Complete the current safe walking step before handing the actor back.
+    if (world.pete.next !== null) { miniWalk(world, world.pete.next, delta); return true }
+    s.paused = true
+    if (s.cargoBicycle && s.bikeTile === null) s.bikeTile = world.pete.tile
+    world.pete.path = []; world.pete.pathRevision = -1
+    Object.assign(world.peace, { activity: 'walking', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
+    return false
+  }
+  if (s.paused) {
+    if (paidConstructionBlocked(world) || world.pete.next !== null || currentProject(world)?.selected || !['walking', 'waving', 'flowers'].includes(world.peace.activity) || world.leisure?.carried || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling) return false
+    delete s.paused
+    world.pete.path = []; world.pete.pathRevision = -1
+    Object.assign(world.peace, { activity: 'walking', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
   }
   if (s.task === 'gather' && s.target === null && !resumeBootstrapMining(world)) return false
   if (advanceMineRetirement(world, delta)) return true

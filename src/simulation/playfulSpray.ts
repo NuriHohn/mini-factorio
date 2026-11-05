@@ -1,7 +1,7 @@
 import { flightPose } from './peteLeisure'
 import { allocatePower, withinRange } from './power'
 import { SPRINKLER_RANGE, sprinklerPowered } from './sprinklers'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Position, World } from './world'
 export interface PlayfulSpray { source: number; target: Position; startedAtMs: number; untilMs: number; wetPete: boolean; wetBirds: number[] }
 export const MANUAL_SPRAY_MS = 1000

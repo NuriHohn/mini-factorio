@@ -1,6 +1,6 @@
 import type Phaser from 'phaser'
 import { flightPose } from '../simulation/peteLeisure'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import { drawPete } from './peteVisuals'
 import { visiblePoint } from './viewport'

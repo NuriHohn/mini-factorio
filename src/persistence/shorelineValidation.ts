@@ -1,6 +1,6 @@
 import { shoreTiles } from '../simulation/shoreline'
 import type { ShorePlan, Waterworks } from '../simulation/shoreline'
-import { SIZE, inside } from '../simulation/world'
+import { SIZE, inside } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 

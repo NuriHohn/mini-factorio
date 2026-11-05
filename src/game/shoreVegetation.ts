@@ -1,5 +1,5 @@
 import type Phaser from 'phaser'
-import { inside, SIZE } from '../simulation/world'
+import { inside, SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import { isWater, terrainRevision } from '../simulation/waterTerrain'
 

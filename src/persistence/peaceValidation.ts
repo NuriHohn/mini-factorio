@@ -13,7 +13,7 @@ import { dockAtSpot, FISHING_MS } from '../simulation/fishingDock'
 import { createPeace, PROJECT_CHECK_MS, GIFT_MAX_MS, MAX_GIFTS, PEACE_ACTIVITIES } from '../simulation/peace'
 import type { PeaceState } from '../simulation/peace'
 import { neighboringTiles } from '../simulation/navigation'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restorePeace(value: unknown, world: World, version: number): PeaceState {
