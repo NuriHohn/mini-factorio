@@ -549,3 +549,8 @@ Mechanics and limits: [Game design](GAME_DESIGN.md#early-factory-supply-and-deve
 Implemented: finite Pete coal/iron/copper, exact shared/manual/rebuilding extraction, reserve displays, early funded replacement planning with compatible route/depot reuse, draining and dismantling obsolete mining branches, missing-source fallback and Save 56 compatibility. [Game design](GAME_DESIGN.md#finite-deposits-and-replacement-mines) owns rules and scope; [Architecture](ARCHITECTURE.md#finite-pete-deposit-ownership-save-56) owns state and validation.
 
 The next four requested increments remain proposals: intelligent storage/site recovery and outer warehouses; interconnected multi-input conveyor networks; a useful assembled transport product; player nature/building/corridor zones and wider expansion. They are not included in Sprint 16.128.
+
+
+## Sprint 16.129 — reported storage pickup and congested return recovery
+
+Implemented: arm-independent physical crate snapshots with per-arm pickup authorization; safe independent-route fallback when joint future returns cannot fit; a gear-feed inspector explanation for stock limits and plate reserves. The reported live save resumes its copper return after the routing fix. This is a focused recovery increment within the requested second sprint. Additional/outer warehouses, staged warehouse relocation and general recovery of partially paid blocked projects remain proposals, not delivered features. Mechanics: [Game design](GAME_DESIGN.md#congested-production-recovery); ownership: [Architecture](ARCHITECTURE.md#congested-return-planning-and-crate-arbitration).

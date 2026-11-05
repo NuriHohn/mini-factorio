@@ -1,3 +1,4 @@
+import { infrastructurePickupHint, infrastructurePickupAllowed } from './infrastructure'
 import { yardBoundary } from './yard'
 import { neighboringTiles } from './navigation'
 import { stripVersion52State } from './testFixtures'
@@ -285,4 +286,34 @@ it('keeps waterwheel poles and connectors off the future yard entrance landings'
   expect(plan).not.toBeNull()
   const protectedTiles = [w.yard.entrance, ...neighboringTiles(w.yard.entrance)]
   expect([plan!.tile, ...plan!.poles].some(tile => protectedTiles.includes(tile))).toBe(false)
+})
+
+describe('congested production recovery', () => {
+  it('routes an affordable copper return even when a future circuit return cannot be planned', () => {
+    const w = stored(), h = w.homestead!
+    placeBuilding(w, 14, 13, 'furnace', 'east'); h.expansion.copperFurnace = 534
+    placeBuilding(w, 25, 15, 'assembler', 'east'); h.expansion.circuitAssembler = 625
+    placeBuilding(w, 26, 15, 'storage', 'east')
+    expect(planConnection(w, 'circuitReturn')).toBeNull()
+    const copper = planConnection(w, 'copper')
+    expect(copper).not.toBeNull()
+    expect(copper).toMatchObject({ source: 534, target: h.store })
+    expect(w.buildings[626]?.kind).toBe('storage')
+    expect(h.infrastructure.links).toHaveLength(0)
+  })
+  it('explains the gear stock limit and resumes ordinary extraction after consumption', () => {
+    const w = stored(), h = w.homestead!, store = materialStore(w)!
+    const plan = link(w, 'gearFeed'), arm = plan.parts.find(p => p.kind === 'inserter')!
+    store.inventory.ironPlate = 40; store.inventory.ironGear = 12
+    expect(infrastructurePickupAllowed(w, arm.tile, 'ironPlate')).toBe(false)
+    expect(infrastructurePickupHint(w, arm.tile)).toContain('Zielbestand erreicht')
+    store.inventory.ironGear -= 2
+    expect(infrastructurePickupHint(w, arm.tile)).toBeNull()
+    wait(w, 50)
+    const inserter = w.buildings[arm.tile]
+    expect(inserter?.kind === 'inserter' && inserter.item).toBe('ironPlate')
+    expect(store.inventory.ironPlate).toBe(39)
+    expect(infrastructurePickupHint(w, 0)).toBeNull()
+    expect(h.carried.ironPlate).toBe(0)
+  })
 })

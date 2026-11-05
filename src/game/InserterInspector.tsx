@@ -9,6 +9,7 @@ export function InserterInspector({ inspection }: { inspection: InserterInspecti
   return <>
     <h2>{t('Inserter')}</h2>
     <div className="stats"><span>Status</span><b>{moving && inspection.electrical.speedFraction === 0 ? t('Paused · no power') : t(statuses[inspection.status])}</b></div>
+    {inspection.policyHint && <p className="inspection-note">{inspection.policyHint}</p>}
     <div className="stats"><span>{t('Held item')}</span><b>{inspection.item ? t(ITEM_DEFINITIONS[inspection.item].label) : t('Empty')}</b></div>
     <div className="stats"><span>{t('Output direction')}</span><b>{t(inspection.direction)}</b></div>
     <div className="stats"><span>{t('Pickup tile')}</span><b>{inspection.pickup.x}, {inspection.pickup.y} · {inspection.source ?? 'empty'}</b></div>

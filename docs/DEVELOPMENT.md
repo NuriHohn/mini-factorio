@@ -542,3 +542,15 @@ The available Windows in-app browser verified actual iron offering placement, fi
 Final frozen-code validation: **1,882 tests in 164 files**, zero failures/pending, in **834.54 seconds** including preparation, with two workers and the existing 60-second allowance. Lint, production build/import boundary guard, 20 release-policy tests and `git diff --check` passed. No original assertions or simulation bounds were weakened.
 
 Final production-preview acceptance also passed separate Pete/Factory cold starts, the new finite-resource help and both mode-specific controls with zero captured browser warnings/errors. The preview was closed after acceptance.
+
+
+## Sprint 16.129 recovery verification
+
+The reported browser world was exported through the game menu and loaded with the normal Save 56 decoder. On the original code, a ten-minute continuation delivered the carried feather but remained limited to the same two commissioned links. After the routing correction, the same unmodified save built its copper return within ten simulated minutes. This diagnostic used an external local export, not a committed fixture or replacement for raw-start acceptance.
+
+Permanent regressions cover a blocked future circuit return with a feasible copper return, gear-limit explanation and consumption-triggered powered pickup, and a foreign arm preceding the owned arm in a shared crate snapshot. Existing source authorization, budgets, construction reserves and physical item accounting remain enabled. No dependency, schema or production quota changes are included.
+
+
+Focused checks passed: 36 infrastructure/progression assertions and 47 inserter assertions; the external-save ten-minute recovery check also passes after preserving feasible ingredient lanes. Lint, production build/import boundary and 20 release-policy checks pass. The production browser preview imported the reported save while paused, displayed the twelve-gear explanation and correct source/drop coordinates, and cold-started the separate Factory entry with no captured warnings/errors. Native mobile Safari was not tested. The existing Vite large-chunk warning remains.
+
+Final complete aggregate: **1,885 tests in 164 files passed**, zero failures or pending tests (786.39 seconds including preparation). The final candidate retains the successful focused, browser, lint/build and release-policy checks above.
