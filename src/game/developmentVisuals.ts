@@ -1,6 +1,6 @@
 import type Phaser from 'phaser'
 import type { DevelopmentKind } from '../simulation/peteDevelopments'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 export function drawAnnexWalkway(g: Phaser.GameObjects.Graphics, world: World, tile: number, progress = 1): void {
   const p = world.houseProject

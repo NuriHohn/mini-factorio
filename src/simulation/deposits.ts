@@ -1,5 +1,5 @@
 import type { World } from './world'
-import { SIZE, offsets } from './world'
+import { SIZE, offsets } from './grid'
 import type { Resource } from './items'
 import { invalidateTerrain } from './waterTerrain'
 

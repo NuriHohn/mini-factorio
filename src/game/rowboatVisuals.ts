@@ -1,7 +1,7 @@
 import type Phaser from 'phaser'
 import { BOARDING_MS, rowboatPosition } from '../simulation/rowboat'
 import type { World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import { drawPete } from './peteVisuals'
 import { drawPeteOutfit, peteOutfit } from './peteOutfit'
 import { visiblePoint } from './viewport'

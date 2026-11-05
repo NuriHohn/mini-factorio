@@ -1,7 +1,7 @@
 import type { Item } from './items'
 import { RECIPES } from './recipes'
 import type { FurnaceRecipeMode, RecipeId } from './recipes'
-import { buildingAt, SIZE } from './world'
+import { buildingAt, SIZE } from './grid'
 import type { Furnace, World } from './world'
 import { recipeChangeError } from './crafting'
 // Preserve furnace API names while sharing all processing and reservation logic.

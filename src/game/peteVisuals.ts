@@ -6,7 +6,7 @@ import { drawWeb } from './webVisuals'
 import { drawWetPete } from './sprinklerVisuals'
 import type Phaser from 'phaser'
 import { PUMPKIN_FLIGHT_MS, sabotageRemaining } from '../simulation/pete'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Building, World } from '../simulation/world'
 
 // Immediate-mode graphics have no per-hit objects, emitters or timers to leak.

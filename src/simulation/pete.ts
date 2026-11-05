@@ -1,7 +1,7 @@
 import { flightPose } from './peteLeisure'
 import { peteUnavailable } from './revenge'
 import type { WaterReaction } from './sprinklers'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Building, Position, Prison, World } from './world'
 
 export const PETE_WALK_MS = 1000 / 1.3

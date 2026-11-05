@@ -1,5 +1,5 @@
 import { bridgeCrossing, MAX_BRIDGE_SPAN } from './waterTerrain'
-import { inside, SIZE } from './world'
+import { inside, SIZE } from './grid'
 import type { Position, World } from './world'
 import type { ConstructionCell, ConstructionPlan } from './construction'
 import { neighboringTiles } from './navigation'

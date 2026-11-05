@@ -4,7 +4,7 @@ import { neighboringTiles, peteReachableTiles, serviceCrossing, tilePath } from 
 import { projectPlansConflict } from './secretProject'
 import type { SecretProject } from './secretProject'
 import { supplyCapacity } from './supplyCrate'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import { FOREST_RADIUS } from './forestryStation'
 import type { World } from './world'
 export const HARVEST_MS = 6000

@@ -1,6 +1,6 @@
 import { pushRoute, popRoute } from './routingQueue'
 import { MAX_BRIDGE_SPAN } from './waterTerrain'
-import { offsets, SIZE } from './world'
+import { offsets, SIZE } from './grid'
 import type { Direction, Position } from './world'
 
 // Search only near the gesture, never unbounded work on a simulation tick.

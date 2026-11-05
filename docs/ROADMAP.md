@@ -554,3 +554,10 @@ The next four requested increments remain proposals: intelligent storage/site re
 ## Sprint 16.129 — reported storage pickup and congested return recovery
 
 Implemented: arm-independent physical crate snapshots with per-arm pickup authorization; safe independent-route fallback when joint future returns cannot fit; a gear-feed inspector explanation for stock limits and plate reserves. The reported live save resumes its copper return after the routing fix. This is a focused recovery increment within the requested second sprint. Additional/outer warehouses, staged warehouse relocation and general recovery of partially paid blocked projects remain proposals, not delivered features. Mechanics: [Game design](GAME_DESIGN.md#congested-production-recovery); ownership: [Architecture](ARCHITECTURE.md#congested-return-planning-and-crate-arbitration).
+
+
+## Sprint 16.130 — planning simplification
+
+Implemented: a single owner for material reserves/targets/available stock and paid demand; paid production-chain orders can pause independently of actor activity and resume after other work, preserving exact materials/progress through Save 57; runtime-independent grid helpers replace 96 pure-world import declarations; direct decision/continuation and dependency-boundary regressions supplement unchanged long acceptance coverage. [Game design](GAME_DESIGN.md#paused-paid-production-construction) owns behavior and limits; [Architecture](ARCHITECTURE.md#material-decisions-and-independent-paid-work-save-57) owns state/dependencies.
+
+The first pausable order is production-chain construction. A general queue for every task, additional warehouses and staged relocation remain proposed future work. No gameplay feature, historical save support or long regression scenario is removed.

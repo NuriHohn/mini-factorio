@@ -1,4 +1,4 @@
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type Phaser from 'phaser'
 import { inventoryTotal } from '../simulation/items'
 import { supplyWood, supplyCapacity } from '../simulation/supplyCrate'

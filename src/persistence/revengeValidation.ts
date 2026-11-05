@@ -2,7 +2,7 @@ import * as v from './validation'
 import { BREAKDOWN_MS, createRevenge, STOMP_MS, STUN_MS, WARNING_MS, WALKER_TILE_MS, TARGET_INACTIVE_MS } from '../simulation/revenge'
 import type { RevengeState, Walker } from '../simulation/revenge'
 import { neighboringTiles } from '../simulation/navigation'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 export { createRevenge }
 export function restoreRevenge(value: unknown, world: World): RevengeState {

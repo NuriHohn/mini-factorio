@@ -2,7 +2,7 @@ import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import { WEB_FLIGHT_MS, MAX_GROUND_WEBS } from '../simulation/webs'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 export function drawWeb(g: Phaser.GameObjects.Graphics, x: number, y: number, radius: number, alpha = 1): void {
   g.lineStyle(1.2, 0xeaf3f5, alpha)

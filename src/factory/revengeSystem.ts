@@ -4,7 +4,7 @@ import { peaceful } from '../simulation/peace'
 import { reachableTiles, tilePath, edgeTile, neighboringTiles } from '../simulation/navigation'
 import { isSabotageable } from '../simulation/buildingCapabilities'
 import { hasTechnology } from '../simulation/research'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Position, World } from '../simulation/world'
 import { RECIPES } from '../simulation/recipes'
 

@@ -1,5 +1,5 @@
 import { forestryNeedsTrees } from './forestrySupply'
-import { ecoWoodReserve } from './productionLogistics'
+import { ecoWoodReserve, NURSERY_WOOD_COST } from './materialPolicy'
 import type { Item } from './items'
 import type { PersonalityPath, ProjectReward } from './personality'
 import type { World } from './world'
@@ -52,7 +52,7 @@ export const PETE_PROJECTS: readonly ProjectDefinition[] = [
   { id: 'bicycle', state: 'bicycleProject', path: 'craftsman', minimumLevel: 3, resources: { ironPlate: 24 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: ['workshop'] },
   { id: 'mechanic', state: 'mechanicProject', path: 'industrial', minimumLevel: 2, resources: { ironGear: 16 }, primaryMaterial: 'ironGear', repeatable: false, prerequisites: ['press'] },
   { id: 'winch', state: 'winchProject', path: 'industrial', minimumLevel: 2, resources: { ironGear: 8, mechanicModule: 6 }, primaryMaterial: 'ironGear', repeatable: false, prerequisites: ['mechanic'] },
-  { id: 'nursery', state: 'nurseryProject', path: 'eco', minimumLevel: 4, resources: { wood: 24 }, primaryMaterial: 'wood', repeatable: false, prerequisites: ['orchard'] },
+  { id: 'nursery', state: 'nurseryProject', path: 'eco', minimumLevel: 4, resources: { wood: NURSERY_WOOD_COST }, primaryMaterial: 'wood', repeatable: false, prerequisites: ['orchard'] },
   { id: 'house', state: 'houseProject', path: 'craftsman', minimumLevel: 4, resources: { ironPlate: 32 }, primaryMaterial: 'ironPlate', repeatable: false, prerequisites: ['veranda'] },
 ]
 export function projectUnlocked(world: World, definition: ProjectDefinition): boolean {

@@ -33,7 +33,7 @@ import type { CraftingStatus } from './crafting'
 import type { FurnaceRecipeMode, RecipeId } from './recipes'
 import { MACHINE_DEFINITIONS, RECIPES } from './recipes'
 import { outputWaiting } from './transport'
-import { buildingAt, depositAt, INTERVAL, SIZE, opposite } from './world'
+import { buildingAt, depositAt, INTERVAL, SIZE, opposite } from './grid'
 import type { BuildingKind, Direction, Position, World } from './world'
 
 export interface WorldStats {

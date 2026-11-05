@@ -7,7 +7,7 @@ import { facing, wheelParts, recurringOrderReady, supplyTarget, SUPPLY_ITEMS, SU
 import { inventoryTotal, ITEMS } from '../simulation/items'
 import type { Homestead } from '../simulation/homestead'
 import type { HomesteadExpansion } from '../simulation/homesteadExpansion'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 

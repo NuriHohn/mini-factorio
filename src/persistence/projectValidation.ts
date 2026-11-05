@@ -5,7 +5,7 @@ import { PETE_PROJECTS } from '../simulation/projectRegistry'
 import { CAMPFIRE_BUILD_MS, CAMPFIRE_WOOD, COOP_BUILD_MS, COOP_WOOD, currentProject, FENCE_SEGMENT_MS, PROJECT_WOOD, PROJECT_SITE_RADIUS } from '../simulation/secretProject'
 import type { SecretProject } from '../simulation/secretProject'
 import { neighboringTiles } from '../simulation/navigation'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restoreProject(value: unknown, world: World, kind?: 'coop' | 'campfire' | 'garden' | 'workshop' | 'experiment' | 'press', version = 29): SecretProject | null {

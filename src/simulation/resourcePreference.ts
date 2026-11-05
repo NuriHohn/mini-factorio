@@ -3,7 +3,7 @@ import { PETE_PROJECTS, materialPath } from './projectRegistry'
 import { ITEMS } from './items'
 import { treeStage } from './nature'
 import type { PersonalityPath } from './personality'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { World } from './world'
 
 // Compare useful project-sized supplies, not raw units (two cables = one plate).

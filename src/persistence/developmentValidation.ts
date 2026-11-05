@@ -6,7 +6,7 @@ import type { SecretProject } from '../simulation/secretProject'
 import { neighboringTiles } from '../simulation/navigation'
 import { PROJECT_REWARDS } from '../simulation/personality'
 import { restoreProjectSelection } from './projectValidation'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 export function restoreDevelopmentProject(value: unknown, world: World, kind: DevelopmentKind): SecretProject {

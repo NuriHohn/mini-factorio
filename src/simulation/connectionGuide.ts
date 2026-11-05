@@ -2,7 +2,7 @@ import { connectionComplete, infrastructurePickupAllowed } from './infrastructur
 import { LINK_NAMES, feedLink, linkMaterial } from './infrastructureRules'
 import { inventoryTotal, ITEM_DEFINITIONS } from './items'
 import { canReceive } from './transport'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import { fuelAutomation, mainFuel } from './productionLogistics'
 import type { Item } from './items'
 import { steamShare } from './steamWork'

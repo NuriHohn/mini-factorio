@@ -1,6 +1,6 @@
 import { emptyInventory, ITEMS, inventoryTotal } from './items'
 import type { Inventory } from './items'
-import { depositAt } from './world'
+import { depositAt } from './grid'
 import type { Building, World } from './world'
 
 export const RATE_WINDOW_MS = 60000

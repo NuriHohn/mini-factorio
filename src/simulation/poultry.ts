@@ -1,7 +1,7 @@
 import { awardActivity, EGG_REWARD } from './personality'
 import { enclosedRun, enclosedYard, yardInterior } from './yard'
 import { neighboringTiles, peteReachableTiles as reachableTiles, tilePath } from './navigation'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { World } from './world'
 export const CHICK_DELAY_MS = 150000
 export const MAX_EGGS = 4

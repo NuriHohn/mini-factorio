@@ -1,6 +1,6 @@
 import { FISHING_MS } from '../simulation/fishingDock'
 import type Phaser from 'phaser'
-import { offsets } from '../simulation/world'
+import { offsets } from '../simulation/grid'
 import type { FishingDock, World } from '../simulation/world'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'

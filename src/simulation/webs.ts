@@ -1,4 +1,4 @@
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Position, World } from './world'
 export const WEB_FLIGHT_MS = 300
 export const WEB_LIFETIME_MS = 10000

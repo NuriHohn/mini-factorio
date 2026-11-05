@@ -1,4 +1,4 @@
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 export interface Viewport { x: number; y: number; width: number; height: number }
 export function visibleTileBounds(view: Viewport, tile: number, margin = 2) {
   return {

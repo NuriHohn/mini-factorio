@@ -1,3 +1,4 @@
+import { availableMaterial, materialPolicy, SUPPLY_RESERVES } from './materialPolicy'
 import { PETE_PROJECTS, retiredIndustrial, wantsShoreDock, wantsWaterwheel } from './projectRegistry'
 import { ecoPickup } from './ecoLogistics'
 import { choosePavilion, advancePavilion } from './pavilion'
@@ -229,7 +230,6 @@ export function supplyTarget(world: World, path: NonNullable<World['homestead']>
 export const SUPPLY_WORK_MS = 4000
 export const SUPPLY_ITEMS = { eco: 'woodPanel', craftsman: 'ironPlate', inventor: 'copperCable', industrial: 'coal' } as const
 export const SUPPLY_LINKS = { eco: 'panelReturn', craftsman: 'iron', inventor: 'cableReturn', industrial: 'loadingReturn' } as const
-const SUPPLY_RESERVES = { eco: 18, craftsman: 12, inventor: 12, industrial: 8 } as const
 export function earlySupplyReady(world: World, path: keyof typeof SUPPLY_ITEMS): boolean {
   const h = world.homestead
   return !!h && supplyTarget(world, path) !== null && connectionRunning(world, SUPPLY_LINKS[path])
@@ -286,13 +286,13 @@ export function chooseInfrastructure(world: World, path: string): boolean {
   }
   if (path === 'inventor' && (world.personality.paths.inventor.level >= 4 || world.personality.paths.inventor.level >= 3 && !world.tiles.includes('iron') && !world.tiles.includes('coal') && !world.buildings.some(b => b?.kind === 'tree')) && h.expansion.copperMiner !== null) {
     const plateThreshold = !s.links.some(p => p.kind === 'copper') || world.flightProject?.phase === 'complete' ? 8 : 32
-    const wanted = (['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const).filter(kind => !s.links.some(p => p.kind === kind) && (kind === 'copper' || s.links.some(p => p.kind === 'copper')) && (!(kind === 'circuitFeed' || kind === 'circuitReturn') || h.expansion.circuitAssembler !== null && (kind === 'circuitFeed' ? store.inventory.copperPlate > (world.flightProject?.phase === 'complete' ? 2 : 24) && store.inventory.copperCable > (world.flightProject?.phase === 'complete' ? 0 : 12) : s.links.some(p => p.kind === 'circuitFeed'))))
+    const wanted = (['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const).filter(kind => !s.links.some(p => p.kind === kind) && (kind === 'copper' || s.links.some(p => p.kind === 'copper')) && (!(kind === 'circuitFeed' || kind === 'circuitReturn') || h.expansion.circuitAssembler !== null && (kind === 'circuitFeed' ? store.inventory.copperPlate > (materialPolicy(world).copperPlate) && store.inventory.copperCable > (world.flightProject?.phase === 'complete' ? 0 : 12) : s.links.some(p => p.kind === 'circuitFeed'))))
     if (store.inventory.copperPlate >= plateThreshold && parkForConnection(world, wanted)) return true
     const missing = s.links.find(p => copperLink(p.kind) && p.parts.some(part => !partComplete(world, part)))
     if (missing && store.inventory.copperPlate >= 1) { s.plan = structuredClone(missing); s.built = 0; s.repair = true; begin(world, 'buildConnection', h.store); return true }
     for (const kind of ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const) {
       if (s.links.some(p => p.kind === kind) || store.inventory.copperPlate < plateThreshold || kind !== 'copper' && (world.personality.paths.inventor.level < 4 || !s.links.some(p => p.kind === 'copper'))) continue
-      if ((kind === 'circuitFeed' || kind === 'circuitReturn') && (h.expansion.circuitAssembler === null || kind === 'circuitFeed' && (store.inventory.copperPlate <= (world.flightProject?.phase === 'complete' ? 2 : 24) || store.inventory.copperCable <= (world.flightProject?.phase === 'complete' ? 0 : 12)) || kind === 'circuitReturn' && !s.links.some(p => p.kind === 'circuitFeed'))) continue
+      if ((kind === 'circuitFeed' || kind === 'circuitReturn') && (h.expansion.circuitAssembler === null || kind === 'circuitFeed' && (store.inventory.copperPlate <= (materialPolicy(world).copperPlate) || store.inventory.copperCable <= (world.flightProject?.phase === 'complete' ? 0 : 12)) || kind === 'circuitReturn' && !s.links.some(p => p.kind === 'circuitFeed'))) continue
       const plan = planConnection(world, kind)
       if (plan) { s.plan = plan; s.built = 0; s.repair = false; begin(world, 'buildConnection', h.store); return true }
     }
@@ -435,9 +435,9 @@ export function infrastructurePickupAllowed(world: World, tile: number, item: It
   const quota = link.kind === 'iron' || link.kind === 'copper' ? 40 : link.kind === 'cableReturn' ? 16 : 12
   const inflight = (item: string) => s!.links.flatMap(p => p.parts).reduce((n, p) => { const b = world.buildings[p.tile]; return n + Number((b?.kind === 'belt' || b?.kind === 'inserter') && b.item === item) }, 0)
   if (!feedLink(link.kind)) return store.inventory[material] + inflight(material) < quota
-  if (link.kind === 'cableFeed') return store.inventory.copperPlate > (world.flightProject?.phase === 'complete' ? 2 : 24) && store.inventory.copperCable + inflight('copperCable') < 16
-  const reserve = world.bicycleProject?.phase !== 'complete' ? 24 : !h!.cargoBicycle ? 12 : 2
-  return store.inventory.ironPlate > reserve && store.inventory.ironGear + inflight('ironGear') < 12
+  if (link.kind === 'cableFeed') return store.inventory.copperPlate > (materialPolicy(world).copperPlate) && store.inventory.copperCable + inflight('copperCable') < materialPolicy(world).copperCableTarget
+  const reserve = materialPolicy(world).ironPlate
+  return availableMaterial(store, 'ironPlate', reserve) > 0 && store.inventory.ironGear + inflight('ironGear') < materialPolicy(world).ironGearTarget
 }
 export function ownedStorePickup(world: World, tile: number): boolean { return !!world.homestead?.infrastructure.links.some(p => feedLink(p.kind) && p.parts.some(part => part.tile === tile && part.kind === 'inserter')) }
 export function infrastructureReserved(world: World): number[] {
@@ -457,8 +457,8 @@ export function infrastructurePickupHint(world: World, tile: number): string | n
   if (!connectionComplete(world, link)) return 'Die Plattenzufuhr wartet auf die Reparatur ihrer Strecke.'
   const store = materialStore(world)
   if (!store) return null
-  if (store.inventory.ironGear >= 12) return 'Zielbestand erreicht: 12 Zahnräder im Lager. Die Plattenzufuhr startet wieder, sobald Zahnräder verbraucht werden.'
-  const reserve = world.bicycleProject?.phase !== 'complete' ? 24 : !h!.cargoBicycle ? 12 : 2
-  if (store.inventory.ironPlate <= reserve) return `Ich halte ${reserve} Eisenplatten für Bauprojekte zurück. Die Zahnradzufuhr wartet auf weitere Platten.`
+  if (store.inventory.ironGear >= materialPolicy(world).ironGearTarget) return `Zielbestand erreicht: ${materialPolicy(world).ironGearTarget} Zahnräder im Lager. Die Plattenzufuhr startet wieder, sobald Zahnräder verbraucht werden.`
+  const reserve = materialPolicy(world).ironPlate
+  if (availableMaterial(store, 'ironPlate', reserve) === 0) return `Ich halte ${reserve} Eisenplatten für Bauprojekte zurück. Die Zahnradzufuhr wartet auf weitere Platten.`
   return null
 }

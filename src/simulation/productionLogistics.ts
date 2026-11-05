@@ -1,4 +1,4 @@
-import { PETE_PROJECTS } from './projectRegistry'
+import { materialPolicy } from './materialPolicy'
 import { inventoryTotal } from './items'
 import type { Item, Inventory } from './items'
 import type { LinkKind, LoadingSite } from './infrastructureRules'
@@ -29,9 +29,9 @@ export function boilerPickupAllowed(world: World, tile: number, item: Item): boo
 // Apply only to Pete's commissioned main depot. Old excess is retained; Factory stays ordinary.
 export function fuelDeliveryAllowed(world: World, target: Building, item: Item, reserved: Readonly<Partial<Inventory>> = {}): boolean {
   if (!fuelAutomation(world) || target.kind !== 'fuelDepot' || world.homestead?.expansion.fuelStore !== target.y * Math.sqrt(world.tiles.length) + target.x) return true
-  return target.inventory[item] + (reserved[item] ?? 0) < (item === 'coal' ? 12 : item === 'coalBriquette' ? 8 : 0)
+  return target.inventory[item] + (reserved[item] ?? 0) < (item === 'coal' ? materialPolicy(world).coalTarget : item === 'coalBriquette' ? materialPolicy(world).briquetteTarget : 0)
 }
-export function flightReserve(world: World): number { return world.flightProject?.phase === 'complete' ? 0 : 12 }
+export function flightReserve(world: World): number { return materialPolicy(world).copperCable }
 export function protectsOutput(world: World, tiles: number[]): boolean {
   const e = world.homestead?.expansion
   if (!e) return false
@@ -95,7 +95,7 @@ export function miningOutputAllowed(world: World, source: Building): boolean {
   }, 0)
   return fuelDeliveryAllowed(world, depot, 'coal', { coal: queued })
 }
-export function ironReserve(world: World): number { return world.bicycleProject?.phase !== 'complete' ? 24 : !world.homestead?.cargoBicycle ? 12 : 2 }
+export function ironReserve(world: World): number { return materialPolicy(world).ironPlate }
 export function inFlight(world: World, item: Item, kind?: LinkKind): number {
   const tiles = new Set((world.homestead?.infrastructure.links ?? []).filter(p => kind === undefined || p.kind === kind).flatMap(p => [...p.parts.map(b => b.tile), ...(p.inlet && p.receiver !== undefined ? p.inlet.slice(p.inlet.indexOf(p.receiver), -1) : [])]))
   return [...tiles].reduce((n, tile) => {
@@ -114,12 +114,12 @@ export function laterPickup(world: World, kind: LinkKind, item: Item): boolean |
     if (store?.kind !== 'supplyCrate' || machine?.kind !== 'assembler') return false
     if (machine.recipeId === 'electronicCircuit') return item === 'copperCable' && legacyCircuitIron(world) > 0 && machine.input.copperCable + inFlight(world, item, kind) < Math.min(6, legacyCircuitIron(world) * 3) && store.inventory.copperCable > 0
     if (machine.recipeId !== 'peteCircuit' || !['copperPlate', 'copperCable'].includes(item)) return false
-    const batches = Math.min(2, Math.max(0, 12 - circuitStock(world)))
-    return machine.input[item] + inFlight(world, item, kind) < batches * (item === 'copperPlate' ? 1 : 3) && store.inventory[item] > (item === 'copperPlate' ? world.flightProject?.phase === 'complete' ? 2 : 24 : flightReserve(world))
+    const batches = Math.min(2, Math.max(0, materialPolicy(world).electronicCircuitTarget - circuitStock(world)))
+    return machine.input[item] + inFlight(world, item, kind) < batches * (item === 'copperPlate' ? 1 : 3) && store.inventory[item] > (item === 'copperPlate' ? materialPolicy(world).copperPlate : flightReserve(world))
   }
-  if (kind === 'circuitReturn') return item === 'electronicCircuit' && store?.kind === 'supplyCrate' && store.inventory.electronicCircuit + inFlight(world, item) < 12
+  if (kind === 'circuitReturn') return item === 'electronicCircuit' && store?.kind === 'supplyCrate' && store.inventory.electronicCircuit + inFlight(world, item) < materialPolicy(world).electronicCircuitTarget
   if (kind === 'stampFeed') {
-    if (item !== 'coal' || mainFuel(world) <= 8) return false
+    if (item !== 'coal' || mainFuel(world) <= materialPolicy(world).fuelReserve) return false
     const machine = e.briquetteAssembler === null ? null : world.buildings[e.briquetteAssembler]
     if (machine?.kind !== 'assembler' || machine.recipeId !== 'coalBriquette') return false
     const stocked = [e.fuelStore, s.loading?.input, s.loading?.output].reduce<number>((n, tile) => { const b = tile === null || tile === undefined ? null : world.buildings[tile]; return n + (b?.kind === 'fuelDepot' ? b.inventory.coalBriquette : 0) }, 0)
@@ -128,7 +128,7 @@ export function laterPickup(world: World, kind: LinkKind, item: Item): boolean |
   }
   if (kind === 'loadingFeed') {
     const input = s.loading ? world.buildings[s.loading.input] : null
-    return item === 'coalBriquette' && mainFuel(world) >= 8 && input?.kind === 'fuelDepot' && inventoryTotal(input.inventory) + inFlight(world, item, kind) < 6
+    return item === 'coalBriquette' && mainFuel(world) >= materialPolicy(world).fuelReserve && input?.kind === 'fuelDepot' && inventoryTotal(input.inventory) + inFlight(world, item, kind) < 6
   }
   if (kind === 'loadingReturn') {
     const depot = e.fuelStore === null ? null : world.buildings[e.fuelStore]
@@ -137,13 +137,7 @@ export function laterPickup(world: World, kind: LinkKind, item: Item): boolean |
   return null
 }
 
-export function ecoWoodReserve(world: World): number {
-  const h = world.homestead
-  if (!h || h.expansion.assembler === null || h.expansion.forestry === null) return 0
-  if (['woodReturn', 'panelReturn', 'crateReturn'].some(kind => !h.infrastructure.links.some(p => p.kind === kind))) return 18
-  if (world.personality.paths.eco.level >= 4 && world.nurseryProject?.phase !== 'complete') return PETE_PROJECTS.find(p => p.id === 'nursery')!.resources.wood!
-  return world.personality.paths.eco.level >= 5 && h.infrastructure.pavilion?.stage !== 3 ? 12 : 0
-}
+export { ecoWoodReserve } from './materialPolicy'
 
 // Already paid old iron batches and packets drain before the owned machine is retuned.
 export function legacyCircuitIron(world: World): number {

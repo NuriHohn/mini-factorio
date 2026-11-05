@@ -3,7 +3,7 @@ import { approach, DEVELOPMENT_KINDS, DEVELOPMENT_NAMES, developmentBuilding } f
 import type { DevelopmentKind, DevelopmentTask } from './peteDevelopments'
 import { planPlanting } from './ecoProjects'
 import type { World } from './world'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 
 export const TASK_LABELS: Record<DevelopmentTask, string> = {
   pavilionRest: 'Enjoying the orchard pavilion',

@@ -2,7 +2,7 @@ import { visiblePoint, visibleTileBounds } from './viewport'
 import type { Viewport } from './viewport'
 import type Phaser from 'phaser'
 import { MATURE_TREE_MS, treeAge, treeStage, YOUNG_TREE_MS } from '../simulation/nature'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Tree, World } from '../simulation/world'
 const FLOWERS = [0xe9b0b2, 0xe4c477, 0xc2b9df, 0xeee4c4]
 const hash = (i: number) => (Math.imul(i + 17, 1103515245) ^ Math.imul(i + 3, 2654435761)) >>> 0

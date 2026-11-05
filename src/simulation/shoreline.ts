@@ -7,7 +7,7 @@ import { peteReachableTiles, neighboringTiles } from './navigation'
 import { miniWalk } from './petesWorld'
 import { projectCandidates, projectPlansConflict } from './secretProject'
 import { awardHomesteadOnce, ensureRebuilding } from './rebuilding'
-import { DIRECTIONS, inside, offsets, SIZE } from './world'
+import { DIRECTIONS, inside, offsets, SIZE } from './grid'
 import type { Direction, World } from './world'
 
 export interface BridgePlan { kind: 'bridge'; start: number; end: number }

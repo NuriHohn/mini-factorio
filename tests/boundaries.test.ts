@@ -60,3 +60,8 @@ it('partitions the full inventory into disjoint quick and intact long runs', () 
   expect(quick.some(path => long.includes(path))).toBe(false)
   for (const path of ['priorityAcceptance', 'infrastructurePaths', 'inventorIndependence', 'productionPaths', 'homesteadDaily']) expect(testTier(`src/simulation/${path}.test.ts`)).toBe('long')
 })
+
+it('keeps grid and material calculations independent of world commands and planning runtime', () => {
+  expect(imports(resolve('src/simulation/grid.ts'))).toEqual([])
+  expect(imports(resolve('src/simulation/materialPolicy.ts'))).toEqual([resolve('src/simulation/items.ts')])
+})

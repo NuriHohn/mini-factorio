@@ -1,7 +1,7 @@
 import { prepareLoading, completeLoading } from './loading'
 import { awardActivity } from './personality'
 import { generationKw } from './power'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Building, World } from './world'
 export function steamShare(world: World, building: Building): number {
   const id = world.power?.assignments[building.y * SIZE + building.x]

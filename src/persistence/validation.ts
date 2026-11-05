@@ -10,7 +10,7 @@ import { ITEMS, inventoryTotal } from '../simulation/items'
 import type { Inventory, Item } from '../simulation/items'
 import { MACHINE_DEFINITIONS, RECIPES } from '../simulation/recipes'
 import type { RecipeId } from '../simulation/recipes'
-import { DIRECTIONS, INTERVAL, SIZE } from '../simulation/world'
+import { DIRECTIONS, INTERVAL, SIZE } from '../simulation/grid'
 import type { Building, CraftingMachine, Direction, Position, ProcessingJob, SplitterPacket } from '../simulation/world'
 
 export function invalid(path: string, reason: string): never { throw new Error(`Invalid save at ${path}: ${reason}.`) }

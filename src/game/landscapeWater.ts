@@ -1,6 +1,6 @@
 import type Phaser from 'phaser'
 import { isWater, shoreline, shorelineCorners, terrainRevision } from '../simulation/waterTerrain'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { World } from '../simulation/world'
 const hash = (n: number) => (Math.imul(n + 71, 1103515245) ^ Math.imul(n + 9, 2654435761)) >>> 0
 export interface WaterLife { tile: number; kind: 'fish' | 'bubbles'; t: number; alpha: number }

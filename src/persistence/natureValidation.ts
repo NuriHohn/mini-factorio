@@ -1,6 +1,6 @@
 import { createNature, MATURE_TREE_MS, naturalTreeCap, REPRODUCTION_MS } from '../simulation/nature'
 import type { NatureState } from '../simulation/nature'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Building, Tree } from '../simulation/world'
 import * as v from './validation'
 export type NatureData = Pick<NatureState, 'wood' | 'seed' | 'decorations'>

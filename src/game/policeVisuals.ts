@@ -3,7 +3,7 @@ import type { Viewport } from './viewport'
 import { arrestVisual } from './arrestVisuals'
 import type Phaser from 'phaser'
 import { radarPowered } from '../simulation/police'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { Prison, Radar, World } from '../simulation/world'
 
 export function drawSecurityBuilding(g: Phaser.GameObjects.Graphics, world: World, building: Radar | Prison, tile: number): void {

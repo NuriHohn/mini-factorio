@@ -1,5 +1,5 @@
 import { splitterDirections } from './splitters'
-import { buildingAt, DIRECTIONS, offsets, opposite, SIZE } from './world'
+import { buildingAt, DIRECTIONS, offsets, opposite, SIZE } from './grid'
 import type { Belt, Direction, World } from './world'
 
 // Topology only: empty and occupied belts have identical connections.

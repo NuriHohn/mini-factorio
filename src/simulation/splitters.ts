@@ -1,4 +1,4 @@
-import { DIRECTIONS, offsets, opposite } from './world'
+import { DIRECTIONS, offsets, opposite } from './grid'
 import type { Direction, Position, Splitter } from './world'
 
 export const SPLITTER_STAGE_MS = 250

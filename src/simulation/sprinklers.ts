@@ -2,7 +2,7 @@ import { peaceful } from './peace'
 import { neighboringTiles, reachableTiles, tilePath, walkableTile } from './navigation'
 import { PETE_FLEE_MS, PETE_WALK_MS } from './pete'
 import { withinRange } from './power'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { Building, Position, Sprinkler, World } from './world'
 
 export const SPRINKLER_RANGE = 3

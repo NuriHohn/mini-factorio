@@ -1,7 +1,7 @@
 import { recordProduction } from './analytics'
 import { peteReachableTiles } from './navigation'
 import { awardActivity } from './personality'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { PetePress, World } from './world'
 
 export const PRESS_BUILD_MS = 12000

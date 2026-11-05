@@ -1132,3 +1132,10 @@ Save 56 preserves changed tile quantities, retired component ownership and expli
 Pete first previews ingredient lanes and short product returns together. If a future return cannot fit, he also tests the requested connection independently against the actual yard while retaining feasible ingredient-lane reservations. This fallback retains ordinary dry/free-tile, machine-port, paid-footprint and access checks; it neither removes buildings nor grants materials. Already commissioned connections remain intact. It allows a feasible copper delivery to proceed even when another proposed return is blocked. Completely blocked ports still need space; arbitrary warehouse relocation and extra warehouses remain proposed work.
 
 The gear ingredient arm pauses at twelve gears in the store plus its counted transport stock, and preserves the existing plate construction reserve. Its inspector explains the stored-gear limit or plate reserve. Consumption makes it eligible to resume normal powered extraction. The arm stands beside the store: pickup is behind it and delivery is ahead.
+
+
+## Paused paid production construction
+
+If the next part of a paid production-chain build is blocked, Pete keeps its materials, completed parts and work progress and can perform other funded projects or his ordinary activities. He first completes a safe walking step. When access becomes available again, he finishes any other committed activity/project before resuming the retained build; there is no second payment or repeated completion reward. His work display distinguishes current activity from the waiting paid order.
+
+This applies to `buildChain` production construction, including a partially built chain. Other committed tasks retain their existing behavior; it is not automatic warehouse relocation or a general queue for every task. Existing material thresholds, production quantities and deliberate differences between hand-fed bootstrap and conveyor supply remain unchanged, with one authoritative calculation in `materialPolicy.ts`.

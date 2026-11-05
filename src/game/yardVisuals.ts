@@ -1,7 +1,7 @@
 import type Phaser from 'phaser'
 import { yardBoundary } from '../simulation/yard'
 import type { Yard } from '../simulation/yard'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import type { PeteFence, World } from '../simulation/world'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'

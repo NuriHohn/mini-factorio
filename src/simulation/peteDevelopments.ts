@@ -5,7 +5,7 @@ import { recordProduction } from './analytics'
 import { neighboringTiles, peteReachableTiles, tilePath } from './navigation'
 import { planPlanting, plantingSite } from './ecoProjects'
 import { plantTree } from './nature'
-import { SIZE } from './world'
+import { SIZE } from './grid'
 import type { PeteDevelopment, World } from './world'
 export const DEVELOPMENT_KINDS = ['orchard', 'bicycle', 'mechanic', 'winch', 'nursery', 'house'] as const
 export type DevelopmentKind = typeof DEVELOPMENT_KINDS[number]

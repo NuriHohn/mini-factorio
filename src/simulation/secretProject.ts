@@ -22,7 +22,7 @@ import { planYard, prepareYardSection, yardDirection, yardSiteClear } from './ya
 import { serviceCrossing, neighboringTiles, peteReachableTiles as reachableTiles, tilePath, peteWalkableTile as walkableTile } from './navigation'
 import { footbridgeBank } from './footbridge'
 import { PETE_WALK_MS } from './pete'
-import { inside, SIZE } from './world'
+import { inside, SIZE } from './grid'
 import type { SupplyCrate, PeteDevelopment, PeteTreasure, PeteFlightpad, PetePress, PeteExperiment, PeteWorkshop, PeteGarden, Tree, PeteGate, PeteCampfire, PeteCoop, PeteFence, World } from './world'
 export const PROJECT_SITE_RADIUS = 6
 const placementHints = new WeakMap<World, string>()

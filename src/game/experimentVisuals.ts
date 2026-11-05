@@ -1,6 +1,6 @@
 import type Phaser from 'phaser'
 import type { PeteExperiment, World } from '../simulation/world'
-import { SIZE } from '../simulation/world'
+import { SIZE } from '../simulation/grid'
 import { visiblePoint } from './viewport'
 import type { Viewport } from './viewport'
 
