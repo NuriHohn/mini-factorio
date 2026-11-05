@@ -1,11 +1,12 @@
+import { restoreStorageRecovery, validateStorageRecovery } from './storageRecoveryValidation'
 import { MAX_EXTRA_STORES, STORAGE_BATCH, STORAGE_WORK_MS, ownedStores } from '../simulation/warehousing'
 import type { Warehousing, StorageJob } from '../simulation/warehousing'
 import { ITEMS } from '../simulation/items'
 import type { World } from '../simulation/world'
 import * as v from './validation'
 
-export function restoreWarehousing(value: unknown): Warehousing {
-  const r = v.object(value, 'warehousing', ['stores', 'job', 'nextAtMs'])
+export function restoreWarehousing(value: unknown, world: World, version: number): Warehousing {
+  const r = v.object(value, 'warehousing', ['stores', 'job', 'nextAtMs'], version >= 59 ? ['move', 'resite', 'recoveryAtMs'] : [])
   const stores = v.array(r.stores, 'warehousing.stores', undefined, MAX_EXTRA_STORES).map((t, i) => v.tile(t, `warehousing.stores[${i}]`))
   if (new Set(stores).size !== stores.length) v.invalid('warehousing.stores', 'duplicate ownership')
   let job: StorageJob | null = null
@@ -24,13 +25,14 @@ export function restoreWarehousing(value: unknown): Warehousing {
   }
   const nextAtMs = v.count(r.nextAtMs, 'warehousing.nextAtMs')
   if (nextAtMs % 50) v.invalid('warehousing.nextAtMs', 'invalid clock')
-  return { stores, job, nextAtMs }
+  return { stores, job, nextAtMs, ...(version >= 59 ? restoreStorageRecovery(r, world) : {}) }
 }
 export function validateWarehousing(world: World): void {
   const s = world.warehousing
   if (!s) return
   if (!world.miniFactory || !world.homestead || world.peace.home === null || s.nextAtMs > world.timeMs + 3000) v.invalid('warehousing', 'requires Petes Welt and a valid clock')
   for (const t of s.stores) if (t === world.homestead.store || world.buildings[t]?.kind !== 'supplyCrate' || world.buildings[t].storeTier === undefined) v.invalid('warehousing.stores', 'invalid extra store')
+  validateStorageRecovery(world)
   const job = s.job
   if (job && !job.carried && (!ownedStores(world).includes(job.source) || job.kind === 'haul' && !ownedStores(world).includes(job.target))) v.invalid('warehousing.job', 'unfunded job requires owned stores')
 }

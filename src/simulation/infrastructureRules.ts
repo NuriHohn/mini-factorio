@@ -45,3 +45,13 @@ export function earlyIronReturnUnlocked(world: World): boolean {
 export function linkCurrency(kind: LinkKind): 'wood' | 'coal' | 'copperPlate' | 'ironPlate' { return ecoLink(kind) ? 'wood' : industrialLink(kind) ? 'coal' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }
 export function linkCost(kind: LinkKind): number { return industrialLink(kind) || ecoLink(kind) ? 6 : 8 }
 export function linkMaterial(kind: LinkKind): 'ironPlate' | 'ironGear' | 'copperPlate' | 'copperCable' | 'electronicCircuit' | 'coal' | 'coalBriquette' | 'wood' | 'woodPanel' | 'woodenCrate' { return kind === 'woodReturn' ? 'wood' : kind === 'panelReturn' ? 'woodPanel' : kind === 'crateReturn' ? 'woodenCrate' : kind === 'stampFeed' ? 'coal' : industrialLink(kind) ? 'coalBriquette' : kind === 'circuitFeed' ? 'copperPlate' : kind === 'circuitReturn' ? 'electronicCircuit' : kind === 'gearReturn' ? 'ironGear' : kind === 'cableReturn' ? 'copperCable' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }
+
+// Pending migration lanes are owned service crossings, not commissioned production.
+export function ownedConnections(world: World): Connection[] {
+  const s = world.homestead?.infrastructure
+  return [...(world.warehousing?.move?.links ?? []), ...(s?.links ?? []), ...(s?.plan ? [s.plan] : [])]
+}
+export function connectionPickupEnabled(world: World, tile: number): boolean {
+  const m = world.warehousing?.move
+  return !m || m.phase === 'empty' || m.phase === 'remove' || ![...m.previous, ...m.links].some(p => p.parts.some(b => b.kind === 'inserter' && b.tile === tile))
+}

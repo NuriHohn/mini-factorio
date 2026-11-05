@@ -97,7 +97,7 @@ export function restoreHomestead(value: unknown, world: World, version: number):
   return restored
 }
 
-function restoreExpansion(value: unknown, world: World, version: number): HomesteadExpansion {
+export function restoreExpansion(value: unknown, world: World, version: number): HomesteadExpansion {
   const r = v.object(value, 'homestead.expansion', ['improvements', 'improvement', 'plan', ...(version >= 48 ? ['gearAssembler'] : []), 'forestry', 'assembler', 'furnace', ...(version >= 42 ? ['miner', 'copperFurnace', 'cableAssembler'] : []), ...(version >= 46 ? ['copperMiner', 'circuitAssembler', 'steamEngine'] : []), ...(version >= 47 ? ['coalMiner', 'fuelStore', 'coalInserter', 'briquetteAssembler', 'steamWorkshop', 'steamHoist'] : [])])
   const raw = v.object(r.improvements, 'homestead.expansion.improvements', [], IMPROVEMENTS)
   const improvements = Object.fromEntries(Object.entries(raw).map(([key, tile]) => [key, v.tile(tile, `homestead.expansion.improvements.${key}`)]))

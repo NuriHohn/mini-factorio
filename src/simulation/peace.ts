@@ -1,3 +1,4 @@
+import { advanceStorageRecovery } from './storageRecovery'
 import { advanceWarehousing } from './warehousing'
 import { advanceRebuilding } from './rebuilding'
 import { scheduledShoreVisit } from './shoreline'
@@ -313,6 +314,7 @@ export function advancePeace(world: World, delta: number): void {
     world.homestead ??= createHomestead()
     if (world.miniFactory.anchor !== null && world.miniFactory.built < 11) { advanceMiniFactory(world, delta); return }
     if (advanceRebuilding(world, delta)) return
+    if (advanceStorageRecovery(world, delta)) return
     if (advanceWarehousing(world, delta)) return
     if (advanceHomestead(world, delta)) return
   }

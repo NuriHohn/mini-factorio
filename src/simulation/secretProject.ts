@@ -1,3 +1,4 @@
+import { warehouseReserved } from './warehousing'
 import { developmentFocus } from './developmentFocus'
 import { connectionRunning } from './infrastructure'
 import { resourcePreference } from './resourcePreference'
@@ -172,6 +173,7 @@ function availableMaterials(world: World, project: SecretProject | null, definit
   return weight
 }
 export function projectPlansConflict(world: World, project: SecretProject, ignored?: SecretProject, crossings: number[] = []): boolean {
+  if (project.kind !== 'fell' && (project.kind || project.spots.length) && warehouseReserved(world).some(t => project.tiles.includes(t) || project.spots.includes(t))) return true
   const pavilion = world.homestead?.infrastructure.pavilion
   if (project.kind && pavilion && (project.tiles.some(t => t === pavilion.tile || t === pavilion.spot) || project.spots.includes(pavilion.tile))) return true
   const e = world.homestead?.expansion

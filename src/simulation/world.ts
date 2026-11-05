@@ -1,4 +1,4 @@
-import { forgetWarehouse } from './warehousing'
+import { forgetWarehouse, warehouseRemovalError } from './warehousing'
 import type { Warehousing } from './warehousing'
 import { SIZE, offsets, inside, buildingAt, depositAt, opposite } from './grid'
 import type { Direction, Position } from './grid'
@@ -251,6 +251,8 @@ export function placeBuilding(world: World, x: number, y: number, kind: Building
   return true
 }
 export function removalError(world: World, x: number, y: number): string | null {
+  const warehouse = warehouseRemovalError(world, y * SIZE + x)
+  if (warehouse) return warehouse
   const building = buildingAt(world, x, y)
   if (!building) return 'Choose a building to remove.'
   if (building.kind === 'footbridge') return footbridgeRemovalError(world, y * SIZE + x)

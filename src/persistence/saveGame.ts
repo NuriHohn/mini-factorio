@@ -48,7 +48,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 58
+export const SAVE_VERSION = 59
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -329,7 +329,7 @@ export function decodeSave(text: string): LoadedGame {
   world.poultry = restorePoultry(data.poultry, world, version)
   if (data.playfulSpray !== undefined) world.playfulSpray = restorePlayfulSpray(data.playfulSpray, world)
   if (world.miniFactory && version >= 40 && data.homestead === undefined) v.invalid('homestead', 'missing Petes Welt routine')
-  if (data.warehousing !== undefined) world.warehousing = restoreWarehousing(data.warehousing)
+  if (data.warehousing !== undefined) world.warehousing = restoreWarehousing(data.warehousing, world, version)
   if (data.homestead !== undefined) world.homestead = restoreHomestead(data.homestead, world, version)
   if (world.buildings.some((b, at) => b?.kind === 'assembler' && b.recipeId === 'peteCircuit' && world.homestead?.expansion.circuitAssembler !== at)) v.invalid('recipe', 'Inventor circuit requires its owned assembler')
   if (!world.homestead && world.buildings.some(b => b?.kind === 'petePavilion')) v.invalid('pavilion', 'requires an owned homestead')

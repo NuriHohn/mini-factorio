@@ -1,3 +1,4 @@
+import { warehouseReserved } from './warehousing'
 import { createDeposits, forgetDeposit } from './deposits'
 import { infrastructureReserved } from './infrastructure'
 import { createHomestead, homesteadHint } from './homestead'
@@ -68,7 +69,7 @@ function resourceAreaError(world: World, x: number, y: number): string | null {
   const anchor = world.miniFactory.anchor
   const reserved = anchor === null ? [] : Array.from({ length: 28 }, (_, i) => anchor + Math.floor(i / 7) * SIZE + i % 7)
   reserved.push(...infrastructureReserved(world))
-  if (world.warehousing?.job?.kind === 'build') reserved.push(world.warehousing.job.target)
+  reserved.push(...warehouseReserved(world))
   reserved.push(...(world.rebuilding?.jobs.map(j => j.tile) ?? []))
   const h = world.homestead
   if (h?.bikeTile !== null && h?.bikeTile !== undefined) reserved.push(h.bikeTile)
