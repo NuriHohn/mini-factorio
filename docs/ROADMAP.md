@@ -561,3 +561,8 @@ Implemented: arm-independent physical crate snapshots with per-arm pickup author
 Implemented: a single owner for material reserves/targets/available stock and paid demand; paid production-chain orders can pause independently of actor activity and resume after other work, preserving exact materials/progress through Save 57; runtime-independent grid helpers replace 96 pure-world import declarations; direct decision/continuation and dependency-boundary regressions supplement unchanged long acceptance coverage. [Game design](GAME_DESIGN.md#paused-paid-production-construction) owns behavior and limits; [Architecture](ARCHITECTURE.md#material-decisions-and-independent-paid-work-save-57) owns state/dependencies.
 
 The first pausable order is production-chain construction. A general queue for every task, additional warehouses and staged relocation remain proposed future work. No gameplay feature, historical save support or long regression scenario is removed.
+
+
+## Sprint 16.131 — physical additional stores
+
+Implemented: paid extra material stores, reachable overflow deliveries, physical surplus exports and input restock, retained blocked shipment cargo, protected extra-store ownership and Save 58 compatibility. [Game design](GAME_DESIGN.md#additional-material-stores) owns rules; [Architecture](ARCHITECTURE.md#warehouse-ownership-and-physical-jobs-save-58) owns state and validation. Main-store relocation and conveyor reconnection are the next requested increment, separate from this one.

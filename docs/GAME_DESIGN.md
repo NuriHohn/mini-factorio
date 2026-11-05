@@ -1139,3 +1139,12 @@ The gear ingredient arm pauses at twelve gears in the store plus its counted tra
 If the next part of a paid production-chain build is blocked, Pete keeps its materials, completed parts and work progress and can perform other funded projects or his ordinary activities. He first completes a safe walking step. When access becomes available again, he finishes any other committed activity/project before resuming the retained build; there is no second payment or repeated completion reward. His work display distinguishes current activity from the waiting paid order.
 
 This applies to `buildChain` production construction, including a partially built chain. Other committed tasks retain their existing behavior; it is not automatic warehouse relocation or a general queue for every task. Existing material thresholds, production quantities and deliberate differences between hand-fed bootstrap and conveyor supply remain unchanged, with one authoritative calculation in `materialPolicy.ts`.
+
+
+## Additional material stores
+
+When a carried delivery has no reachable store with room, or a full main store blocks its commissioned returns or needed warehouse stock, Pete can build an extra ordinary material store. It costs two stored wooden crates or six matching units of another stored material, preferring surplus over protected main-store buffers. No player Wood or free goods are used. Construction takes four seconds at the site. Up to twelve extra stores can be owned; all use the ordinary capacity and inspection rules.
+
+Deliveries choose a reachable owned store with room for the retained batch. Overflow transport moves at most six real units between stores. Pete brings useful raw, intermediate and finished goods back to the main store; the compact per-item buffer targets total 192 units, leaving space in its initial 200 capacity. Surplus can be moved out to make room for a missing input. A three-second gap between warehouse jobs gives ordinary work a turn; there is no shipping XP or pooled/teleported inventory.
+
+A blocked return delivery can wait while keeping its payload. Paid warehouse construction can choose another free accessible site; missing capacity or access retains already picked-up goods. Demolition destroys goods still inside the removed crate, as before, but not a shipment already carried by Pete. Completely unavailable construction space or the ownership limit still requires the player to provide room; goods are retained.

@@ -217,11 +217,11 @@ function chooseCopper(world: World): boolean {
     if (!connectionRunning(world, 'cableReturn') && assembler.output.copperCable && room) { begin(world, 'takeCable', e.cableAssembler); return true }
     if (!connectionRunning(world, 'cableFeed') && !assembler.job && !assembler.input.copperPlate && store.inventory.copperPlate >= cableInvoice) { begin(world, 'fetchCable', h.store); return true }
   }
-  if (furnace?.kind === 'furnace' && store.inventory.copperPlate < 40) {
+  if (furnace?.kind === 'furnace' && store.inventory.copperPlate < materialPolicy(world).plateTarget) {
     if (!connectionRunning(world, 'copper') && furnace.output.copperPlate && room) { begin(world, 'takeCopper', e.copperFurnace); return true }
     if ((e.copperMiner === null || world.buildings[e.copperMiner]?.kind !== 'miner') && !furnace.job && !furnace.input.copper && store.inventory.copper >= 2) { begin(world, 'fetchCopper', h.store); return true }
   }
-  if ((e.copperMiner === null || world.buildings[e.copperMiner]?.kind !== 'miner' || furnace?.kind !== 'furnace') && store.inventory.copper < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.copperPlate < 40 || level < 3)) {
+  if ((e.copperMiner === null || world.buildings[e.copperMiner]?.kind !== 'miner' || furnace?.kind !== 'furnace') && store.inventory.copper < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.copperPlate < materialPolicy(world).plateTarget || level < 3)) {
     const tile = ironSite(world, 'copper')
     if (tile !== null) { begin(world, 'mineCopper', tile); return true }
   }
@@ -325,13 +325,13 @@ export function chooseExpansion(world: World, path: PersonalityPath = 'craftsman
   if (path === 'inventor') return chooseCopper(world)
   if (path === 'industrial') return chooseIndustrial(world)
   const furnace = e.furnace === null ? null : world.buildings[e.furnace]
-  if (path === 'craftsman' && furnace?.kind === 'furnace' && store.inventory.ironPlate < 40) {
+  if (path === 'craftsman' && furnace?.kind === 'furnace' && store.inventory.ironPlate < materialPolicy(world).plateTarget) {
     if (!connectionRunning(world, 'iron') && furnace.output.ironPlate && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeIron', e.furnace); return true }
     if (!furnace.job && !furnace.input.iron && store.inventory.iron >= 2) { begin(world, 'fetchIron', h.store); return true }
   }
   const assembler = e.assembler === null ? null : world.buildings[e.assembler]
   if (path === 'eco' && !connectionRunning(world, 'crateReturn') && assembler?.kind === 'assembler' && assembler.output.woodenCrate && store.inventory.woodenCrate < 8 && store.wood + inventoryTotal(store.inventory) + 2 <= supplyCapacity(store)) { begin(world, 'takeCrates', e.assembler); return true }
-  if (path === 'craftsman' && (e.miner === null || world.buildings[e.miner]?.kind !== 'miner' || furnace?.kind !== 'furnace') && store.inventory.iron < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.ironPlate < 40)) {
+  if (path === 'craftsman' && (e.miner === null || world.buildings[e.miner]?.kind !== 'miner' || furnace?.kind !== 'furnace') && store.inventory.iron < 24 && store.wood + inventoryTotal(store.inventory) + 3 <= supplyCapacity(store) && (furnace?.kind !== 'furnace' || store.inventory.ironPlate < materialPolicy(world).plateTarget)) {
     const tile = ironSite(world)
     if (tile !== null) { begin(world, 'mineIron', tile); return true }
   }

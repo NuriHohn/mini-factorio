@@ -1,3 +1,4 @@
+import { receivingStore } from './warehousing'
 import { advanceMineRetirement, chooseMineReplacement, miningStatus } from './mineReplacement'
 import { connectionRunning, SUPPLY_WORK_MS } from './infrastructure'
 import { chooseInfrastructure, chooseSupply, advanceInfrastructure, infrastructureReserved } from './infrastructure'
@@ -260,7 +261,8 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     chooseTask(world)
     if (s.task === null) return false
   }
-  if (!s.paused && paidConstructionBlocked(world)) {
+  const blockedOrder = paidConstructionBlocked(world) || s.task === 'returnStock' && receivingStore(world, inventoryTotal(s.carried), s.target) === null
+  if (!s.paused && blockedOrder) {
     // Complete the current safe walking step before handing the actor back.
     if (world.pete.next !== null) { miniWalk(world, world.pete.next, delta); return true }
     s.paused = true
@@ -270,7 +272,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     return false
   }
   if (s.paused) {
-    if (paidConstructionBlocked(world) || world.pete.next !== null || currentProject(world)?.selected || !['walking', 'waving', 'flowers'].includes(world.peace.activity) || world.leisure?.carried || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling) return false
+    if (blockedOrder || world.pete.next !== null || currentProject(world)?.selected || !['walking', 'waving', 'flowers'].includes(world.peace.activity) || world.leisure?.carried || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling) return false
     delete s.paused
     world.pete.path = []; world.pete.pathRevision = -1
     Object.assign(world.peace, { activity: 'walking', destination: null, sinceMs: world.timeMs, untilMs: world.timeMs })
@@ -298,7 +300,12 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     if (s.carried.wood >= 6) { const tile = site(world); if (tile !== null) begin(world, 'buildStore', tile) }
     return true
   }
-  const store = materialStore(world)
+  if (s.task === 'returnStock') {
+    const target = receivingStore(world, inventoryTotal(s.carried), s.target)
+    if (target === null) return true
+    s.target = target
+  }
+  const store = s.task === 'returnStock' && s.target !== null ? world.buildings[s.target] : materialStore(world)
   if (s.task === 'buildStore') {
     if (s.target === null || !freeSite(world, [s.target]) || !arrived(world, s.target, delta, true)) return true
     s.elapsedMs = Math.min(6000, s.elapsedMs + delta * 2)
@@ -310,7 +317,7 @@ export function advanceHomestead(world: World, delta: number, decision = false):
     awardHomesteadOnce(world, 'store', { path, xp: 5 }); finish(world)
     return true
   }
-  if (!store) return true
+  if (store?.kind !== 'supplyCrate') return true
   if (s.task === 'buildMill') {
     if (!s.carried.wood) {
       if (!arrived(world, s.store, delta) || store.wood < 12) return true
