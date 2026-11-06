@@ -1,3 +1,4 @@
+import { ingredientBranch } from './infrastructureRules'
 import { materialPolicy } from './materialPolicy'
 import { inventoryTotal } from './items'
 import type { Item, Inventory } from './items'
@@ -9,7 +10,7 @@ export function productionEndpoints(kind: LinkKind, store: number | null, e: Hom
   if (kind === 'woodReturn') return [e.forestry === null || mill === null ? null : (e.forestry + mill) / 2, store]
   if (kind === 'panelReturn') return [mill === null ? null : mill + 1, store]
   if (kind === 'crateReturn') return [e.assembler, store]
-  if (kind === 'circuitFeed') return [store, e.circuitAssembler]
+  if (kind === 'circuitFeed' || kind === 'circuitCableFeed') return [store, e.circuitAssembler]
   if (kind === 'circuitReturn') return [e.circuitAssembler, store]
   if (kind === 'stampFeed') return [e.fuelStore, e.briquetteAssembler]
   if (kind === 'loadingFeed') return [e.briquetteAssembler, loading?.input ?? null]
@@ -109,13 +110,16 @@ export function circuitStock(world: World): number {
 }
 export function laterPickup(world: World, kind: LinkKind, item: Item): boolean | null {
   const h = world.homestead!, e = h.expansion, s = h.infrastructure, store = h.store === null ? null : world.buildings[h.store]
-  if (kind === 'circuitFeed') {
+  if (kind === 'circuitFeed' || kind === 'circuitCableFeed') {
     const machine = e.circuitAssembler === null ? null : world.buildings[e.circuitAssembler]
     if (store?.kind !== 'supplyCrate' || machine?.kind !== 'assembler') return false
+    if (kind === 'circuitCableFeed' && ingredientBranch(world)) return item === 'copperCable' && machine.recipeId === 'peteCircuit'
+    if (kind === 'circuitCableFeed') return item === 'copperCable' && machine.recipeId === 'peteCircuit' && machine.input.copperCable + (machine.job?.inputs.copperCable ?? 0) + inFlight(world, item, 'circuitFeed') + inFlight(world, item, kind) < Math.min(2, Math.max(0, materialPolicy(world).electronicCircuitTarget - circuitStock(world))) * 3
+    if (kind === 'circuitFeed' && item === 'copperCable' && s.links.some(p => p.kind === 'circuitCableFeed') && !ingredientBranch(world)) return false
     if (machine.recipeId === 'electronicCircuit') return item === 'copperCable' && legacyCircuitIron(world) > 0 && machine.input.copperCable + inFlight(world, item, kind) < Math.min(6, legacyCircuitIron(world) * 3) && store.inventory.copperCable > 0
     if (machine.recipeId !== 'peteCircuit' || !['copperPlate', 'copperCable'].includes(item)) return false
     const batches = Math.min(2, Math.max(0, materialPolicy(world).electronicCircuitTarget - circuitStock(world)))
-    return machine.input[item] + inFlight(world, item, kind) < batches * (item === 'copperPlate' ? 1 : 3) && store.inventory[item] > (item === 'copperPlate' ? materialPolicy(world).copperPlate : flightReserve(world))
+    return machine.input[item] + (s.links.some(p => p.kind === 'circuitCableFeed') ? machine.job?.inputs[item] ?? 0 : 0) + inFlight(world, item, 'circuitFeed') + inFlight(world, item, 'circuitCableFeed') < batches * (item === 'copperPlate' ? 1 : 3) && store.inventory[item] > (item === 'copperPlate' ? materialPolicy(world).copperPlate : flightReserve(world))
   }
   if (kind === 'circuitReturn') return item === 'electronicCircuit' && store?.kind === 'supplyCrate' && store.inventory.electronicCircuit + inFlight(world, item) < materialPolicy(world).electronicCircuitTarget
   if (kind === 'stampFeed') {

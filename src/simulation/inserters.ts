@@ -1,3 +1,4 @@
+import { cableBranchPickup } from './infrastructureRules'
 import { fuelDeliveryAllowed } from './productionLogistics'
 import { infrastructurePickupAllowed, ownedStorePickup } from './infrastructure'
 import { forestryOutput } from './forestryStation'
@@ -14,6 +15,7 @@ export const INSERTER_SWING_MS = INSERTER_CYCLE_MS / 2
 export interface InserterFrame {
   sources: Map<Building, Inventory>
   blockedBelts: Set<Building>
+  branchPackets?: Map<Building, number>
 }
 export function inserterPorts(inserter: Pick<Inserter, 'x' | 'y' | 'direction'>): { pickup: Position; drop: Position } {
   const d = offsets[inserter.direction]
@@ -35,7 +37,7 @@ function sourceCount(source: Building, inserter: Inserter, item: Item, requireRe
     case 'petePress': return item === 'ironPlate' ? source.plates : 0
     case 'supplyCrate': return world && ownedStorePickup(world, inserter.y * SIZE + inserter.x) ? source.inventory[item] : 0
     case 'fuelDepot': case 'storage': return source.inventory[item]
-    case 'belt': return source.item === item && (!requireReady || source.progress >= 1 - 1e-8) ? 1 : 0
+    case 'belt': return source.item === item && (!requireReady || !!world && cableBranchPickup(world, inserter.y * SIZE + inserter.x) || source.progress >= 1 - 1e-8) ? 1 : 0
     case 'miner': return source.direction === inserter.direction && source.item === item ? 1 : 0
     case 'forester': return source.direction === inserter.direction && item === 'wood' ? forestryOutput(source, world) : 0
     case 'sawmill':
@@ -50,6 +52,10 @@ export function createInserterFrame(world: World): InserterFrame {
   for (const inserter of world.buildings) {
     if (inserter?.kind !== 'inserter') continue
     const { source, target } = neighbors(world, inserter)
+    if (source?.kind === 'belt' && cableBranchPickup(world, inserter.y * SIZE + inserter.x)) {
+      frame.branchPackets ??= new Map()
+      frame.branchPackets.set(source, source.progress)
+    }
     if (source && !frame.sources.has(source)) {
       const inventory = emptyInventory()
       // Direction is checked again per inserter; snapshot all physical source units.
@@ -72,6 +78,8 @@ function accepts(world: World, target: Building | null, item: Item, inserter: In
 function pickupCandidate(world: World, inserter: Inserter, frame?: InserterFrame): Item | null {
   const { source, target } = neighbors(world, inserter)
   if (!source) return null
+  const progress = frame?.branchPackets?.get(source)
+  if (source.kind === 'belt' && progress !== undefined && source.progress < progress) return null
   return ITEMS.find(item => infrastructurePickupAllowed(world, inserter.y * SIZE + inserter.x, item) && sourceCount(source, inserter, item, true, world) > 0
     && (!frame || (frame.sources.get(source)?.[item] ?? 0) > 0)
     && accepts(world, target, item, inserter, frame)) ?? null

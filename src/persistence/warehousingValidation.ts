@@ -25,14 +25,14 @@ export function restoreWarehousing(value: unknown, world: World, version: number
   }
   const nextAtMs = v.count(r.nextAtMs, 'warehousing.nextAtMs')
   if (nextAtMs % 50) v.invalid('warehousing.nextAtMs', 'invalid clock')
-  return { stores, job, nextAtMs, ...(version >= 59 ? restoreStorageRecovery(r, world) : {}) }
+  return { stores, job, nextAtMs, ...(version >= 59 ? restoreStorageRecovery(r, world, version) : {}) }
 }
-export function validateWarehousing(world: World): void {
+export function validateWarehousing(world: World, version: number): void {
   const s = world.warehousing
   if (!s) return
   if (!world.miniFactory || !world.homestead || world.peace.home === null || s.nextAtMs > world.timeMs + 3000) v.invalid('warehousing', 'requires Petes Welt and a valid clock')
   for (const t of s.stores) if (t === world.homestead.store || world.buildings[t]?.kind !== 'supplyCrate' || world.buildings[t].storeTier === undefined) v.invalid('warehousing.stores', 'invalid extra store')
-  validateStorageRecovery(world)
+  validateStorageRecovery(world, version)
   const job = s.job
   if (job && !job.carried && (!ownedStores(world).includes(job.source) || job.kind === 'haul' && !ownedStores(world).includes(job.target))) v.invalid('warehousing.job', 'unfunded job requires owned stores')
 }

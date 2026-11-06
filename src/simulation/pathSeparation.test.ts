@@ -38,7 +38,7 @@ describe('development resource families', () => {
     const chains: [PersonalityPath, ChainKind[]][] = [['eco', ['forestry', 'crates']], ['craftsman', ['iron', 'ironMining', 'gears']], ['inventor', ['copper', 'copperMining', 'cables', 'circuits']], ['industrial', ['steam', 'coalMining', 'coalFeed', 'briquettes', 'steamWorkshop', 'steamHoist']]]
     expect(chains.flatMap(([, kinds]) => kinds).sort()).toEqual([...CHAIN_KINDS].sort())
     for (const [path, kinds] of chains) for (const kind of kinds) for (const item of Object.keys(chainCost(kind)) as Item[]) expect(materialPath(w, item), `${kind}: ${item}`).toBe(path)
-    const links: [PersonalityPath, LinkKind[]][] = [['eco', ['woodReturn', 'panelReturn', 'crateReturn']], ['craftsman', ['iron', 'gearFeed', 'gearReturn']], ['inventor', ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn']], ['industrial', ['stampFeed', 'loadingFeed', 'loadingReturn']]]
+    const links: [PersonalityPath, LinkKind[]][] = [['eco', ['woodReturn', 'panelReturn', 'crateReturn']], ['craftsman', ['iron', 'gearFeed', 'gearReturn']], ['inventor', ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn', 'circuitCableFeed']], ['industrial', ['stampFeed', 'loadingFeed', 'loadingReturn']]]
     expect(links.flatMap(([, kinds]) => kinds).sort()).toEqual([...LINK_KINDS].sort())
     for (const [path, kinds] of links) for (const kind of kinds) for (const item of [linkCurrency(kind), linkMaterial(kind)]) expect(materialPath(w, item), `${kind}: ${item}`).toBe(path)
     for (const rule of Object.values(IMPROVEMENT_RULES)) expect(materialPath(w, rule.item), rule.label).toBe('eco')

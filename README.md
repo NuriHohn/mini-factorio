@@ -25,6 +25,8 @@ Pete can pay for additional material stores when deliveries or production outgro
 
 A blocked paid production-chain build can wait while Pete does other work, then resume with its materials and progress intact. See [paused construction](docs/GAME_DESIGN.md#paused-paid-production-construction).
 
+After the first practice flight and the original copper supply lines, Pete can add a paid cable branch for the circuit assembler. He prefers a producer-return junction, with an ingredient-band bypass for crowded yards; both inputs make real circuits delivered to the store. See [interconnected circuit supply](docs/GAME_DESIGN.md#interconnected-circuit-supply).
+
 In Pete's inspector, prioritize a whole development path and choose production or transport first; Eco also offers storage first. Early paid supply at existing buildings consumes real belt products during the build-up. See [development choices and supply](docs/GAME_DESIGN.md#early-factory-supply-and-development-choices).
 
 Each game has its own entry and menu with separate manual/autosave slots. Open the appropriate game page to load its saves; imports from the other game are rejected before replacement. JSON export/import includes the mode. Existing prototype factories and committed construction remain intact, but new worlds no longer build the eleven-step factory immediately.

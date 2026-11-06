@@ -2,6 +2,13 @@ import { ITEMS } from './items'
 import type { Inventory, Item } from './items'
 import type { SupplyCrate, World } from './world'
 
+export function separateCircuitInputsUnlocked(world: World): boolean {
+  const h = world.homestead, at = h?.expansion.circuitAssembler
+  return !!h && at !== null && at !== undefined && world.buildings[at]?.kind === 'assembler' && world.buildings[at].recipeId === 'peteCircuit' &&
+    world.flightProject?.phase === 'complete' && (world.leisure?.practices ?? 0) > 0 &&
+    ['copper', 'cableFeed', 'cableReturn', 'circuitFeed'].every(kind => h.infrastructure.links.some(p => p.kind === kind))
+}
+
 export const NURSERY_WOOD_COST = 24
 export const SUPPLY_RESERVES = { eco: 18, craftsman: 12, inventor: 12, industrial: 8 } as const
 export function ecoWoodReserve(world: World): number {
@@ -17,6 +24,7 @@ export function materialPolicy(world: World) {
   const h = world.homestead, flightComplete = world.flightProject?.phase === 'complete'
   const iron = world.bicycleProject?.phase !== 'complete' ? 24 : !h?.cargoBicycle ? 12 : 2
   const copperLinks = h?.infrastructure.links.filter(p => ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'].includes(p.kind)).length ?? 0
+  const advanced = separateCircuitInputsUnlocked(world)
   const manualCopper = flightComplete && copperLinks < 5 ? 8 : 0
   return {
     fuelReserve: 8,
@@ -29,8 +37,9 @@ export function materialPolicy(world: World) {
     manualCopperPlate: manualCopper,
     manualCircuitPlate: world.personality.paths.inventor.level >= 4 && !h?.infrastructure.links.some(p => p.kind === 'copper') ? 8 : manualCopper,
     plateTarget: 40,
+    copperPlateTarget: advanced ? 56 : 40,
     ironGearTarget: 12,
-    copperCableTarget: 16,
+    copperCableTarget: advanced ? 8 : 16,
     electronicCircuitTarget: 12,
     manualCircuitTarget: flightComplete ? 12 : 8,
   }
@@ -56,8 +65,9 @@ export function materialDemand(store: SupplyCrate, resources: Partial<Inventory>
 // The unupgraded main store retains eight free spaces; surplus belongs in extra stores.
 export function mainStoreTargets(world: World): Record<Item, number> {
   const p = materialPolicy(world)
-  return { wood: 24, woodPanel: 12, woodenCrate: 8, iron: 6, copper: 6,
-    ironPlate: p.plateTarget, copperPlate: p.plateTarget, ironGear: p.ironGearTarget,
+  const raw = separateCircuitInputsUnlocked(world) ? 2 : 6
+  return { wood: 24, woodPanel: 12, woodenCrate: 8, iron: raw, copper: raw,
+    ironPlate: p.plateTarget, copperPlate: p.copperPlateTarget, ironGear: p.ironGearTarget,
     copperCable: p.copperCableTarget, electronicCircuit: p.electronicCircuitTarget,
     coal: p.coalTarget, coalBriquette: 4, mechanicModule: 0 }
 }
