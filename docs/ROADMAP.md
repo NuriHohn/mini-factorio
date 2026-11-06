@@ -548,7 +548,7 @@ Mechanics and limits: [Game design](GAME_DESIGN.md#early-factory-supply-and-deve
 
 Implemented: finite Pete coal/iron/copper, exact shared/manual/rebuilding extraction, reserve displays, early funded replacement planning with compatible route/depot reuse, draining and dismantling obsolete mining branches, missing-source fallback and Save 56 compatibility. [Game design](GAME_DESIGN.md#finite-deposits-and-replacement-mines) owns rules and scope; [Architecture](ARCHITECTURE.md#finite-pete-deposit-ownership-save-56) owns state and validation.
 
-Intelligent storage/site recovery and additional warehouses are delivered in Sprints 16.131–16.132 below. Basic interconnected circuit ingredient networks are delivered in Sprint 16.133. A useful assembled transport product, wider networks and player nature/building/corridor zones with wider expansion remain proposals; they are not included in Sprint 16.128.
+Intelligent storage/site recovery and additional warehouses are delivered in Sprints 16.131–16.132 below. Basic interconnected circuit ingredient networks are delivered in Sprint 16.133. The useful assembled transport product is delivered in Sprint 16.134; wider networks and player nature/building/corridor zones with wider expansion remain proposals; they are not included in Sprint 16.128.
 
 
 ## Sprint 16.129 — reported storage pickup and congested return recovery
@@ -575,4 +575,9 @@ Implemented: physical relocation/rollback of movable paid production prefixes; j
 
 ## Sprint 16.133 — interconnected circuit ingredient conveyors
 
-Implemented: paid cable branches from producer returns or downstream-only ingredient bypasses; real two-input circuit production and stored outputs; nearby multi-stage return junctions with acyclic ownership; direct inserter handoffs; advanced buffer reallocation and Save 60 compatibility. Original flight/bootstrap milestones remain before this expansion. [Game design](GAME_DESIGN.md#interconnected-circuit-supply) owns eligibility, costs and limits; [Architecture](ARCHITECTURE.md#interconnected-ingredient-and-return-graphs-save-60) owns planning, arbitration and validation. A new useful assembled transport product, wider outer expansion and player zones remain proposals.
+Implemented: paid cable branches from producer returns or downstream-only ingredient bypasses; real two-input circuit production and stored outputs; nearby multi-stage return junctions with acyclic ownership; direct inserter handoffs; advanced buffer reallocation and Save 60 compatibility. Original flight/bootstrap milestones remain before this expansion. [Game design](GAME_DESIGN.md#interconnected-circuit-supply) owns eligibility, costs and limits; [Architecture](ARCHITECTURE.md#interconnected-ingredient-and-return-graphs-save-60) owns planning, arbitration and validation. The useful assembled transport product is delivered in Sprint 16.134; wider outer expansion and player zones remain proposals.
+
+
+## Sprint 16.134 — useful assembled transport product
+
+Implemented: an ordinary powered two-input transport-module assembler, paid side-fed gear/circuit conveyors and module return, actual stored output, a two-module cargo upgrade with twelve-unit warehouse hauling, existing resite/recovery integration and Save 61. [Game design](GAME_DESIGN.md#transport-modules-and-cargo-upgrade) owns eligibility, invoices, recipe, benefit and bounds; [Architecture](ARCHITECTURE.md#cross-chain-transport-modules-save-61) owns state, arbitration and migration. Wider networks, wider outer expansion and player zones remain proposals.

@@ -77,7 +77,7 @@ describe('resource-led copper automation, circuits and coal', () => {
     expect(inventoryTotal(h.carried)).toBe(0)
   })
   describe('raw copper and iron through scenic flight', () => {
-    let w: World, scenic: string
+    let w: World, scenic: string, scenicDeadline: number
     beforeAll(() => {
       w = createPetesWorld()
       expect(placeCopper(w, 24, 20)).toBeNull()
@@ -93,7 +93,18 @@ describe('resource-led copper automation, circuits and coal', () => {
     beforeAll(() => { until(w, () => w.treasureProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => w.flightProject?.phase === 'complete', 7200000 - w.timeMs) }, 60000)
     beforeAll(() => { until(w, () => (w.leisure?.practices ?? 0) > 0, 7200000 - w.timeMs) }, 60000)
-    beforeAll(() => { until(w, () => w.leisure?.flight?.practice === false, 7200000); scenic = encodeSave(w, view) }, 60000)
+    beforeAll(() => { scenicDeadline = w.timeMs + 7200000 })
+    // Keep the original scenic-flight simulation bound while separating the real
+    // optional network milestones that may now occur before that flight.
+    for (const kind of ['cableFeed', 'cableReturn', 'circuitFeed', 'circuitCableFeed', 'circuitReturn', 'gearReturn', 'moduleGearFeed', 'moduleCircuitFeed', 'moduleReturn'] as const) beforeAll(() => {
+      if (scenic) return
+      until(w, () => w.leisure?.flight?.practice === false || w.homestead!.infrastructure.links.some(p => p.kind === kind), Math.max(0, scenicDeadline - w.timeMs))
+      if (w.leisure?.flight?.practice === false) scenic = encodeSave(w, view)
+    }, 60000)
+    beforeAll(() => {
+      if (scenic) return
+      until(w, () => w.leisure?.flight?.practice === false, Math.max(0, scenicDeadline - w.timeMs)); scenic = encodeSave(w, view)
+    }, 60000)
     // Extend the same raw-resource world to logistics instead of bootstrapping it twice.
     for (const kind of ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const) beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === kind), 1800000) }, 60000)
     it('builds both paid real connections and resumes the mixed material flow exactly', () => {
@@ -135,11 +146,28 @@ describe('resource-led copper automation, circuits and coal', () => {
         expect(cableMoved).toBe(true)
         expect(w.produced.electronicCircuit).toBeGreaterThan(beforeCircuits)
         expect(cable.target).toBe(plates.target)
-        expect(materialPolicy(w).copperPlateTarget).toBe(56)
+        expect(materialPolicy(w).copperPlateTarget).toBe(w.homestead!.expansion.transportAssembler === undefined ? 56 : 60)
         expect(Object.values(mainStoreTargets(w)).reduce((n, v) => n + v, 0)).toBe(192)
         expect(cable.parts.at(-1)!.tile).not.toBe(plates.parts.at(-1)!.tile)
         expect(load(w).homestead).toEqual(w.homestead)
       })
+      describe('useful cross-chain transport product', () => {
+        beforeAll(() => { until(w, () => w.homestead!.cargoBicycle, 1800000) }, 60000)
+        for (const kind of ['iron', 'gearFeed', 'gearReturn'] as const) beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === kind), 1800000) }, 60000)
+        beforeAll(() => { until(w, () => w.homestead!.infrastructure.inventor >= 3, 1800000) }, 60000)
+        beforeAll(() => { until(w, () => w.homestead!.expansion.transportAssembler !== undefined, 1800000) }, 60000)
+        for (const kind of ['moduleGearFeed', 'moduleCircuitFeed', 'moduleReturn'] as const) beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === kind), 1800000) }, 60000)
+        beforeAll(() => { until(w, () => !!w.homestead!.transportUpgrade, 1800000) }, 60000)
+        beforeAll(() => { until(w, () => (materialStore(w)?.inventory.transportModule ?? 0) > 0, 900000) }, 60000)
+        it('builds the real multi-chain product autonomously, stores it and consumes two modules for a useful cargo upgrade', () => {
+          expect(w.produced.transportModule).toBeGreaterThanOrEqual(3)
+          expect(w.homestead!.transportUpgrade).toBe(true)
+          expect(materialStore(w)!.inventory.transportModule).toBeGreaterThan(0)
+          expect(Object.values(mainStoreTargets(w)).reduce((n, v) => n + v, 0)).toBe(192)
+          expect(load(w).homestead).toEqual(w.homestead)
+        })
+      })
+
     })
   })
   it('builds and personally fuels a steam engine from coal alone and resumes a real burn exactly', () => {

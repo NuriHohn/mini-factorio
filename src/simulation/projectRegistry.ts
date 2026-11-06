@@ -4,7 +4,7 @@ import type { Item } from './items'
 import type { PersonalityPath, ProjectReward } from './personality'
 import type { World } from './world'
 export type ProjectMaterial = Item | 'wood' | 'chickenFeed' | 'fruit' | 'sapling'
-export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { coalBriquette: 'industrial', coal: 'industrial', woodPanel: 'eco', woodenCrate: 'eco', fruit: 'eco', sapling: 'eco', mechanicModule: 'industrial', chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
+export const MATERIAL_PATH: Record<ProjectMaterial, PersonalityPath> = { transportModule: 'craftsman', coalBriquette: 'industrial', coal: 'industrial', woodPanel: 'eco', woodenCrate: 'eco', fruit: 'eco', sapling: 'eco', mechanicModule: 'industrial', chickenFeed: 'eco', wood: 'eco', iron: 'craftsman', ironPlate: 'craftsman', copper: 'inventor', copperPlate: 'inventor', copperCable: 'inventor', electronicCircuit: 'inventor', ironGear: 'industrial' }
 export function materialPath(world: World, item: ProjectMaterial): PersonalityPath { return world.homestead && item === 'ironGear' ? 'craftsman' : MATERIAL_PATH[item] }
 export function retiredIndustrial(world: World, definition: ProjectDefinition): boolean { return !!world.homestead && ['press', 'mechanic', 'winch'].includes(definition.id) && !world[definition.state] }
 export function wantsShoreDock(world: World): boolean {

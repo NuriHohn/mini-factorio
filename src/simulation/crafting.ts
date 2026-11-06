@@ -69,6 +69,7 @@ export function changeCraftingRecipe(world: World, x: number, y: number, recipeI
   if (machine?.kind !== 'assembler') return 'Select an existing assembler.'
   if (recipeId !== 'auto' && (!Object.hasOwn(RECIPES, recipeId) || RECIPES[recipeId].machine !== machine.kind)) return 'This recipe is not compatible with this machine.'
   if (recipeId === 'peteCircuit' && world.homestead?.expansion.circuitAssembler !== y * SIZE + x && !(world.homestead?.expansion.plan?.kind === 'circuits' && world.homestead.expansion.plan.anchor === y * SIZE + x)) return 'This recipe belongs to Pete’s Inventor circuit assembler.'
+  if (recipeId === 'transportModule' && world.homestead?.expansion.transportAssembler !== y * SIZE + x && !(world.homestead?.expansion.plan?.kind === 'transport' && world.homestead.expansion.plan.anchor === y * SIZE + x)) return 'Dieses Rezept gehört zu Petes Transportmodul-Assembler.'
   const error = recipeChangeError(machine)
   if (error) return error
   if (recipeId === 'auto') return 'Assemblers require explicit manual recipe selection.'

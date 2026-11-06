@@ -1,3 +1,4 @@
+import { transportUnlocked } from './materialPolicy'
 import { mineDeveloped } from './deposits'
 import { loadingParts } from './loading'
 import type { RebuildOwner } from './rebuilding'
@@ -23,7 +24,7 @@ function repairPath(owner: RebuildOwner): PersonalityPath | null {
     const kind = owner.plan.kind
     if (kind === 'steam' || INDUSTRIAL_CHAINS.some(k => k === kind)) return 'industrial'
     if (['copper', 'copperMining', 'cables', 'circuits'].includes(kind)) return 'inventor'
-    return ['iron', 'ironMining', 'gears'].includes(kind) ? 'craftsman' : 'eco'
+    return ['transport', 'iron', 'ironMining', 'gears'].includes(kind) ? 'craftsman' : 'eco'
   }
   return owner.type === 'mill' || owner.type === 'prototype' ? 'eco' : null
 }
@@ -44,6 +45,11 @@ export function nextDevelopments(world: World, projects: ProjectStatus[]) {
     inventor: [step('Kupferofen', e.copperFurnace !== null, e.copperFurnace), step('Kabel-Assembler', e.cableAssembler !== null, e.cableAssembler), step('Experiment table', complete('experimentProject')), step('Treasure chest', complete('treasureProject')), step('Kupferförderer', mineDeveloped(world, 'copperMiner'), e.copperMiner), step('Schaltkreis-Assembler', e.circuitAssembler !== null, e.circuitAssembler), step('Flight workshop', complete('flightProject')), ...(['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const).map(kind => step(LINK_NAMES[kind], s.links.some(p => p.kind === kind), kind === 'circuitFeed' || kind === 'circuitReturn' ? e.circuitAssembler : kind === 'copper' ? e.copperFurnace : e.cableAssembler, `${store?.inventory.copperPlate ?? 0}/8 Kupferplatten · Erfinder 3 für reine Kupferstarts, sonst 4 · Kupferförderer · 24 Platten bleiben vor der Flugwerkstatt reserviert · kurze freie Bandstrecke erforderlich`)), orders('inventor')],
     industrial: [step('Dampfantrieb', e.steamEngine !== null, e.steamEngine), step('Kohleförderung', mineDeveloped(world, 'coalMiner'), e.coalMiner), step('Kesselgreifer', e.coalInserter !== null, e.coalInserter), step('Kohlestampfer', e.briquetteAssembler !== null, e.briquetteAssembler), step('Dampfwerkstatt', e.steamWorkshop !== null, e.steamWorkshop), step('Förderaufzug', e.steamHoist !== null, e.steamHoist), step('Verladeplatz', s.loading !== null, e.steamHoist, `${store?.inventory.coal ?? 0}/6 Kohle als echter Anfangsvorrat · zuerst ein abgeschlossener Aufzugzyklus · zwei freie Pufferplätze in Reichweite`), ...(['stampFeed', 'loadingFeed', 'loadingReturn'] as const).map(kind => step(LINK_NAMES[kind], s.links.some(p => p.kind === kind), kind === 'stampFeed' ? e.briquetteAssembler : e.steamHoist, `${store?.inventory.coal ?? 0}/6 Kohle Baukosten · Kesselreserve acht Brennstoff · kurze freie Strecke; persönliche Lieferungen bei Ausfällen`)), orders('industrial')],
   }
+  if (transportUnlocked(world) || e.transportAssembler !== undefined) paths.craftsman.push(
+    step('Transportmodul-Assembler', e.transportAssembler !== undefined, e.transportAssembler ?? h.store, '8 Eisenplatten + 8 Kupferplatten · beide Produktionsketten · freie Zulieferung und Ausgabe'),
+    ...(['moduleGearFeed', 'moduleCircuitFeed', 'moduleReturn'] as const).map(kind => step(LINK_NAMES[kind], s.links.some(p => p.kind === kind), e.transportAssembler ?? h.store, 'Eigene reale Zutaten und Bandstrecken zum neuen Assembler')),
+    step('Lastenrad: Transportmodule', !!h.transportUpgrade, h.bikeTile ?? h.store, `${store?.inventory.transportModule ?? 0}/2 Transportmodule · danach bis zu 12 Waren je Lagerfahrt`)
+  )
   // Include every finite original project; recurring care is never a completion goal.
   for (const definition of PETE_PROJECTS) {
     if (definition.repeatable || retiredIndustrial(world, definition)) continue

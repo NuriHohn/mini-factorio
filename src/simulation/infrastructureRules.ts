@@ -1,7 +1,7 @@
 export { separateCircuitInputsUnlocked } from './materialPolicy'
 import type { Direction, World } from './world'
 
-export const LINK_KINDS = ['iron', 'gearFeed', 'gearReturn', 'copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn', 'stampFeed', 'loadingFeed', 'loadingReturn', 'woodReturn', 'panelReturn', 'crateReturn', 'circuitCableFeed'] as const
+export const LINK_KINDS = ['iron', 'gearFeed', 'gearReturn', 'copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn', 'stampFeed', 'loadingFeed', 'loadingReturn', 'woodReturn', 'panelReturn', 'crateReturn', 'circuitCableFeed', 'moduleGearFeed', 'moduleCircuitFeed', 'moduleReturn'] as const
 export type LinkKind = typeof LINK_KINDS[number]
 export interface InfrastructurePart { tile: number; kind: 'belt' | 'inserter' | 'powerPole' | 'generator' | 'waterwheel'; direction: Direction }
 export interface Connection { kind: LinkKind; source: number; target: number; receiver?: number; inlet?: number[]; parts: InfrastructurePart[] }
@@ -29,9 +29,9 @@ export interface Infrastructure {
   nextOrderAtMs: number
 }
 export function createInfrastructure(): Infrastructure { return { pavilion: null, industrial: 0, cargoCycles: 0, links: [], plan: null, built: 0, repair: false, wheel: null, wheelPlan: null, eco: 0, craftsman: 0, inventor: 0, loading: null, loadingPlan: null, loadingCargo: null, order: null, nextSupplyAtMs: 0, nextOrderAtMs: 0 } }
-export const LINK_NAMES: Record<LinkKind, string> = { iron: 'Eisenlieferung zum Lager', gearFeed: 'Plattenzufuhr für Zahnräder', gearReturn: 'Zahnradlieferung zum Lager', copper: 'Kupferlieferung zum Lager', cableFeed: 'Plattenzufuhr für Kabel', cableReturn: 'Kabellieferung zum Lager', circuitCableFeed: 'Eigene Kabelzufuhr für Schaltkreise', circuitFeed: 'Zutaten für Schaltkreise', circuitReturn: 'Schaltkreise zum Lager', stampFeed: 'Kohle zum Stampfer', loadingFeed: 'Briketts zum Aufzug', loadingReturn: 'Verladefracht zum Kessellager', woodReturn: 'Forstholz zum Lager', panelReturn: 'Holzplatten zum Lager', crateReturn: 'Holzkisten zum Lager' }
-export function copperLink(kind: LinkKind): boolean { return kind === 'circuitCableFeed' || kind === 'copper' || kind === 'cableFeed' || kind === 'cableReturn' || kind === 'circuitFeed' || kind === 'circuitReturn' }
-export function feedLink(kind: LinkKind): boolean { return kind === 'circuitCableFeed' || kind === 'gearFeed' || kind === 'cableFeed' || kind === 'circuitFeed' || kind === 'stampFeed' }
+export const LINK_NAMES: Record<LinkKind, string> = { moduleGearFeed: 'Zahnräder zum Transportmodul', moduleCircuitFeed: 'Schaltkreise zum Transportmodul', moduleReturn: 'Transportmodule zum Lager', iron: 'Eisenlieferung zum Lager', gearFeed: 'Plattenzufuhr für Zahnräder', gearReturn: 'Zahnradlieferung zum Lager', copper: 'Kupferlieferung zum Lager', cableFeed: 'Plattenzufuhr für Kabel', cableReturn: 'Kabellieferung zum Lager', circuitCableFeed: 'Eigene Kabelzufuhr für Schaltkreise', circuitFeed: 'Zutaten für Schaltkreise', circuitReturn: 'Schaltkreise zum Lager', stampFeed: 'Kohle zum Stampfer', loadingFeed: 'Briketts zum Aufzug', loadingReturn: 'Verladefracht zum Kessellager', woodReturn: 'Forstholz zum Lager', panelReturn: 'Holzplatten zum Lager', crateReturn: 'Holzkisten zum Lager' }
+export function copperLink(kind: LinkKind): boolean { return kind === 'moduleCircuitFeed' || kind === 'circuitCableFeed' || kind === 'copper' || kind === 'cableFeed' || kind === 'cableReturn' || kind === 'circuitFeed' || kind === 'circuitReturn' }
+export function feedLink(kind: LinkKind): boolean { return kind === 'moduleGearFeed' || kind === 'moduleCircuitFeed' || kind === 'circuitCableFeed' || kind === 'gearFeed' || kind === 'cableFeed' || kind === 'circuitFeed' || kind === 'stampFeed' }
 export function industrialLink(kind: LinkKind): boolean { return kind === 'stampFeed' || kind === 'loadingFeed' || kind === 'loadingReturn' }
 export function ecoLink(kind: LinkKind): boolean { return kind === 'woodReturn' || kind === 'panelReturn' || kind === 'crateReturn' }
 // Wait for the other offered families' machine footprints and the real copper
@@ -45,7 +45,7 @@ export function earlyIronReturnUnlocked(world: World): boolean {
 }
 export function linkCurrency(kind: LinkKind): 'wood' | 'coal' | 'copperPlate' | 'ironPlate' { return ecoLink(kind) ? 'wood' : industrialLink(kind) ? 'coal' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }
 export function linkCost(kind: LinkKind): number { return industrialLink(kind) || ecoLink(kind) ? 6 : 8 }
-export function linkMaterial(kind: LinkKind): 'ironPlate' | 'ironGear' | 'copperPlate' | 'copperCable' | 'electronicCircuit' | 'coal' | 'coalBriquette' | 'wood' | 'woodPanel' | 'woodenCrate' { return kind === 'circuitCableFeed' ? 'copperCable' : kind === 'woodReturn' ? 'wood' : kind === 'panelReturn' ? 'woodPanel' : kind === 'crateReturn' ? 'woodenCrate' : kind === 'stampFeed' ? 'coal' : industrialLink(kind) ? 'coalBriquette' : kind === 'circuitFeed' ? 'copperPlate' : kind === 'circuitReturn' ? 'electronicCircuit' : kind === 'gearReturn' ? 'ironGear' : kind === 'cableReturn' ? 'copperCable' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }
+export function linkMaterial(kind: LinkKind): 'transportModule' | 'ironPlate' | 'ironGear' | 'copperPlate' | 'copperCable' | 'electronicCircuit' | 'coal' | 'coalBriquette' | 'wood' | 'woodPanel' | 'woodenCrate' { return kind === 'moduleGearFeed' ? 'ironGear' : kind === 'moduleCircuitFeed' ? 'electronicCircuit' : kind === 'moduleReturn' ? 'transportModule' : kind === 'circuitCableFeed' ? 'copperCable' : kind === 'woodReturn' ? 'wood' : kind === 'panelReturn' ? 'woodPanel' : kind === 'crateReturn' ? 'woodenCrate' : kind === 'stampFeed' ? 'coal' : industrialLink(kind) ? 'coalBriquette' : kind === 'circuitFeed' ? 'copperPlate' : kind === 'circuitReturn' ? 'electronicCircuit' : kind === 'gearReturn' ? 'ironGear' : kind === 'cableReturn' ? 'copperCable' : copperLink(kind) ? 'copperPlate' : 'ironPlate' }
 
 // Pending migration lanes are owned service crossings, not commissioned production.
 export function ownedConnections(world: World): Connection[] {
@@ -59,12 +59,12 @@ export function connectionPickupEnabled(world: World, tile: number): boolean {
 
 
 export function cableBranchPickup(world: World, tile: number): boolean {
-  return !!world.homestead?.infrastructure.links.some(p => p.kind === 'circuitCableFeed' && p.parts[2]?.tile === tile)
+  return !!world.homestead?.infrastructure.links.some(p => ['circuitCableFeed', 'moduleGearFeed', 'moduleCircuitFeed'].includes(p.kind) && p.parts[2]?.tile === tile)
 }
 
 // Only the cable return and the downstream suffixes it really feeds can supply a branch.
-export function cableBranchSources(links: readonly Connection[]): number[] {
-  let lane = links.find(p => p.kind === 'cableReturn'), entry: number | undefined
+export function returnBranchSources(links: readonly Connection[], kind: LinkKind = 'cableReturn'): number[] {
+  let lane = links.find(p => p.kind === kind), entry: number | undefined
   const seen = new Set<Connection>(), tiles: number[] = []
   while (lane && !seen.has(lane)) {
     seen.add(lane)
@@ -83,4 +83,9 @@ export function cableBranchSources(links: readonly Connection[]): number[] {
 export function ingredientBranch(world: World): boolean {
   const links = world.homestead?.infrastructure.links ?? [], branch = links.find(p => p.kind === 'circuitCableFeed')
   return !!branch && !!links.find(p => p.kind === 'circuitFeed')?.parts.some(p => p.kind === 'belt' && p.tile === branch.source)
+}
+
+// Dedicated module pickups may share a producer with its ordinary front return.
+export function moduleProducerPickup(world: World, tile: number, source: number): boolean {
+  return !!world.homestead?.infrastructure.links.some(p => (p.kind === 'moduleGearFeed' || p.kind === 'moduleCircuitFeed') && p.parts[2]?.tile === tile && p.source === source)
 }

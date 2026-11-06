@@ -1,3 +1,4 @@
+import { transportUnlocked } from './materialPolicy'
 import { advanceWarehousing, canStartWarehouseWork, releaseWarehouseActor, warehouseSites, ownedStores, receivingStore, warehouseCost, takeWarehouseStock, putWarehouseStock, MAX_EXTRA_STORES } from './warehousing'
 import { arrived, freeSite } from './homestead'
 import { expansionLayout, planChain, chainCost, paidConstructionBlocked } from './homesteadExpansion'
@@ -125,13 +126,13 @@ function retiredParts(world: World, previous: Connection[]): InfrastructurePart[
 }
 function mainLinks(world: World): Connection[] {
   const h = world.homestead!
-  return h.infrastructure.links.filter(p => p.source === h.store || p.target === h.store || p.kind === 'circuitCableFeed')
+  return h.infrastructure.links.filter(p => p.source === h.store || p.target === h.store || ['circuitCableFeed', 'moduleGearFeed', 'moduleCircuitFeed'].includes(p.kind))
 }
-const linkOrder: LinkKind[] = ['gearFeed', 'cableFeed', 'circuitFeed', 'cableReturn', 'circuitCableFeed', 'circuitReturn', 'copper', 'gearReturn', 'iron', 'woodReturn', 'panelReturn', 'crateReturn']
+const linkOrder: LinkKind[] = ['gearFeed', 'cableFeed', 'circuitFeed', 'cableReturn', 'circuitCableFeed', 'circuitReturn', 'copper', 'gearReturn', 'iron', 'woodReturn', 'panelReturn', 'crateReturn', 'moduleGearFeed', 'moduleCircuitFeed', 'moduleReturn']
 export function blockedStoreConnection(world: World): LinkKind | null {
   const h = world.homestead!, e = h.expansion, levels = world.personality.paths
   if (separateCircuitInputsUnlocked(world) && !h.infrastructure.links.some(p => p.kind === 'circuitCableFeed')) return planConnection(world, 'circuitCableFeed') === null ? 'circuitCableFeed' : null
-  const wanted: LinkKind[] = []
+  const wanted: LinkKind[] = h.expansion.transportAssembler === undefined ? [] : ['moduleGearFeed', 'moduleCircuitFeed', 'moduleReturn']
   if (h.cargoBicycle) {
     if (e.furnace !== null) wanted.push('iron')
     if (h.cargoBicycle && e.gearAssembler !== null) wanted.push('gearFeed', 'gearReturn')
@@ -151,6 +152,7 @@ function wantedChain(world: World): ChainKind | null {
     const part = expansionLayout(e.plan)[e.plan.built]
     return paidConstructionBlocked(world) && part?.tile === h.store ? e.plan.kind : null
   }
+  if (!h.task && transportUnlocked(world) && e.transportAssembler === undefined && !planChain(world, 'transport')) return 'transport'
   if (h.task || world.personality.paths.eco.level < 4 || h.millBuilt !== 3 || h.store === null || isStore(world, h.store)?.storeTier === 0) return null
   const kind = e.forestry === null ? 'forestry' : e.assembler === null ? 'crates' : null
   return kind && !planChain(world, kind) ? kind : null

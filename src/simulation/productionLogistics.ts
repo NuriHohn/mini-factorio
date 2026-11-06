@@ -7,6 +7,9 @@ import type { HomesteadExpansion } from './homesteadExpansion'
 import type { Building, World } from './world'
 
 export function productionEndpoints(kind: LinkKind, store: number | null, e: HomesteadExpansion, loading: LoadingSite | null, mill: number | null = null): [number | null, number | null] {
+  if (kind === 'moduleGearFeed') return [e.gearAssembler, e.transportAssembler ?? null]
+  if (kind === 'moduleCircuitFeed') return [e.circuitAssembler, e.transportAssembler ?? null]
+  if (kind === 'moduleReturn') return [e.transportAssembler ?? null, store]
   if (kind === 'woodReturn') return [e.forestry === null || mill === null ? null : (e.forestry + mill) / 2, store]
   if (kind === 'panelReturn') return [mill === null ? null : mill + 1, store]
   if (kind === 'crateReturn') return [e.assembler, store]
@@ -44,14 +47,14 @@ export function outputClearance(world: World, source?: number): number[] {
   const h = world.homestead
   if (!h) return []
   const e = h.expansion, width = Math.sqrt(world.tiles.length)
-  const outputs: { tile: number | null; kind: LinkKind }[] = [{ tile: e.furnace, kind: 'iron' }, { tile: e.gearAssembler, kind: 'gearReturn' }, { tile: e.copperFurnace, kind: 'copper' }, { tile: e.cableAssembler, kind: 'cableReturn' }, { tile: e.circuitAssembler, kind: 'circuitReturn' }, { tile: e.briquetteAssembler, kind: 'loadingFeed' }]
+  const outputs: { tile: number | null; kind: LinkKind }[] = [{ tile: e.transportAssembler ?? null, kind: 'moduleReturn' }, { tile: e.furnace, kind: 'iron' }, { tile: e.gearAssembler, kind: 'gearReturn' }, { tile: e.copperFurnace, kind: 'copper' }, { tile: e.cableAssembler, kind: 'cableReturn' }, { tile: e.circuitAssembler, kind: 'circuitReturn' }, { tile: e.briquetteAssembler, kind: 'loadingFeed' }]
   return outputs.flatMap(p => p.tile === null || p.tile === source || h.infrastructure.links.some(link => link.kind === p.kind) ? [] : [p.tile + 1, p.tile + 2, p.tile + 1 - width, p.tile + 1 + width, p.tile + 2 - width, p.tile + 2 + width])
 }
 export function inputClearance(world: World, target?: number): number[] {
   const h = world.homestead
   if (!h) return []
   const e = h.expansion, width = Math.sqrt(world.tiles.length), outputs = outputClearance(world)
-  const inputs: { tile: number | null; kind: LinkKind }[] = [{ tile: e.gearAssembler, kind: 'gearFeed' }, { tile: e.cableAssembler, kind: 'cableFeed' }, { tile: e.circuitAssembler, kind: 'circuitFeed' }, { tile: e.briquetteAssembler, kind: 'stampFeed' }]
+  const inputs: { tile: number | null; kind: LinkKind }[] = [{ tile: e.transportAssembler ?? null, kind: 'moduleGearFeed' }, { tile: e.gearAssembler, kind: 'gearFeed' }, { tile: e.cableAssembler, kind: 'cableFeed' }, { tile: e.circuitAssembler, kind: 'circuitFeed' }, { tile: e.briquetteAssembler, kind: 'stampFeed' }]
   const free = (tile: number) => tile >= 0 && tile < width * width && !world.buildings[tile] && !world.water[tile] && world.tiles[tile] === null && !outputs.includes(tile)
   return inputs.flatMap(p => {
     if (p.tile === null || p.tile === target || h.infrastructure.links.some(link => link.kind === p.kind)) return []
@@ -108,17 +111,30 @@ export function circuitStock(world: World): number {
   const h = world.homestead, tile = h?.expansion.circuitAssembler, machine = tile === null || tile === undefined ? null : world.buildings[tile], store = h?.store === null || h?.store === undefined ? null : world.buildings[h.store]
   return (store?.kind === 'supplyCrate' ? store.inventory.electronicCircuit : 0) + (machine?.kind === 'assembler' ? machine.output.electronicCircuit + (machine.job?.outputs.electronicCircuit ?? 0) : 0) + inFlight(world, 'electronicCircuit') + (h?.carried.electronicCircuit ?? 0)
 }
+export function moduleStock(world: World): number {
+  const h = world.homestead, at = h?.expansion.transportAssembler, machine = at === undefined ? null : world.buildings[at]
+  return world.buildings.reduce((n, b) => n + (b?.kind === 'supplyCrate' ? b.inventory.transportModule : 0), 0) +
+    (machine?.kind === 'assembler' ? machine.output.transportModule + (machine.job?.outputs.transportModule ?? 0) : 0) + inFlight(world, 'transportModule') + (h?.carried.transportModule ?? 0) + (world.warehousing?.job?.item === 'transportModule' ? world.warehousing.job.carried : 0) +
+    (world.warehousing?.move?.paid.transportModule ?? 0) + Number(world.warehousing?.move?.salvage === 'transportModule')
+}
 export function laterPickup(world: World, kind: LinkKind, item: Item): boolean | null {
   const h = world.homestead!, e = h.expansion, s = h.infrastructure, store = h.store === null ? null : world.buildings[h.store]
+  if (kind === 'moduleReturn') return item === 'transportModule'
+  if (kind === 'moduleGearFeed' || kind === 'moduleCircuitFeed') {
+    const machine = e.transportAssembler === undefined ? null : world.buildings[e.transportAssembler]
+    if (machine?.kind !== 'assembler' || machine.recipeId !== 'transportModule' || item !== (kind === 'moduleGearFeed' ? 'ironGear' : 'electronicCircuit')) return false
+    return machine.input[item] + (machine.job?.inputs[item] ?? 0) + inFlight(world, item, kind) < Math.min(2, Math.max(0, 4 - moduleStock(world))) * 2
+  }
   if (kind === 'circuitFeed' || kind === 'circuitCableFeed') {
     const machine = e.circuitAssembler === null ? null : world.buildings[e.circuitAssembler]
     if (store?.kind !== 'supplyCrate' || machine?.kind !== 'assembler') return false
+    const moduleDemand = s.links.some(p => p.kind === 'moduleCircuitFeed') && laterPickup(world, 'moduleCircuitFeed', 'electronicCircuit')
+    const batches = moduleDemand ? 2 : Math.min(2, Math.max(0, materialPolicy(world).electronicCircuitTarget - circuitStock(world)))
     if (kind === 'circuitCableFeed' && ingredientBranch(world)) return item === 'copperCable' && machine.recipeId === 'peteCircuit'
-    if (kind === 'circuitCableFeed') return item === 'copperCable' && machine.recipeId === 'peteCircuit' && machine.input.copperCable + (machine.job?.inputs.copperCable ?? 0) + inFlight(world, item, 'circuitFeed') + inFlight(world, item, kind) < Math.min(2, Math.max(0, materialPolicy(world).electronicCircuitTarget - circuitStock(world))) * 3
+    if (kind === 'circuitCableFeed') return item === 'copperCable' && machine.recipeId === 'peteCircuit' && machine.input.copperCable + (machine.job?.inputs.copperCable ?? 0) + inFlight(world, item, 'circuitFeed') + inFlight(world, item, kind) < batches * 3
     if (kind === 'circuitFeed' && item === 'copperCable' && s.links.some(p => p.kind === 'circuitCableFeed') && !ingredientBranch(world)) return false
     if (machine.recipeId === 'electronicCircuit') return item === 'copperCable' && legacyCircuitIron(world) > 0 && machine.input.copperCable + inFlight(world, item, kind) < Math.min(6, legacyCircuitIron(world) * 3) && store.inventory.copperCable > 0
     if (machine.recipeId !== 'peteCircuit' || !['copperPlate', 'copperCable'].includes(item)) return false
-    const batches = Math.min(2, Math.max(0, materialPolicy(world).electronicCircuitTarget - circuitStock(world)))
     return machine.input[item] + (s.links.some(p => p.kind === 'circuitCableFeed') ? machine.job?.inputs[item] ?? 0 : 0) + inFlight(world, item, 'circuitFeed') + inFlight(world, item, 'circuitCableFeed') < batches * (item === 'copperPlate' ? 1 : 3) && store.inventory[item] > (item === 'copperPlate' ? materialPolicy(world).copperPlate : flightReserve(world))
   }
   if (kind === 'circuitReturn') return item === 'electronicCircuit' && store?.kind === 'supplyCrate' && store.inventory.electronicCircuit + inFlight(world, item) < materialPolicy(world).electronicCircuitTarget
