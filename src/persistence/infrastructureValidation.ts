@@ -1,5 +1,5 @@
 import { productionEndpoints } from '../simulation/productionLogistics'
-import { createInfrastructure, LINK_KINDS, feedLink, linkCurrency, linkCost, ecoLink } from '../simulation/infrastructureRules'
+import { createInfrastructure, LINK_KINDS, feedLink, linkCurrency, linkCost, ecoLink, cableBranchSources } from '../simulation/infrastructureRules'
 import type { Connection, Infrastructure, WheelSite } from '../simulation/infrastructureRules'
 import type { LoadingSite } from '../simulation/infrastructureRules'
 import { loadingParts } from '../simulation/loading'
@@ -18,19 +18,19 @@ export function restoreInfrastructure(value: unknown, world: World, version: num
   const loadingRef = l ? { input: v.tile(l.input, 'loading.input'), output: v.tile(l.output, 'loading.output'), pole: v.tile(l.pole, 'loading.pole') } : null
   function connection(value: unknown): Connection {
     const p = v.object(value, 'connection', ['kind', 'source', 'target', 'parts'], version >= 51 ? ['receiver', 'inlet'] : version >= 50 ? ['receiver'] : [])
-    const kind = v.choice(p.kind, 'connection.kind', version >= 52 ? LINK_KINDS : version >= 51 ? LINK_KINDS.slice(0, 11) : LINK_KINDS.slice(0, version >= 50 ? 6 : 3)), source = v.tile(p.source, 'connection.source'), target = v.tile(p.target, 'connection.target')
+    const kind = v.choice(p.kind, 'connection.kind', version >= 60 ? LINK_KINDS : version >= 52 ? LINK_KINDS.slice(0, 14) : version >= 51 ? LINK_KINDS.slice(0, 11) : LINK_KINDS.slice(0, version >= 50 ? 6 : 3)), source = v.tile(p.source, 'connection.source'), target = v.tile(p.target, 'connection.target')
     const parts = v.array(p.parts, 'connection.parts', undefined, 21).map(value => {
       const b = v.object(value, 'connection.part', ['tile', 'kind', 'direction'])
       return { tile: v.tile(b.tile, 'connection.tile'), kind: v.choice(b.kind, 'connection.part.kind', ['belt', 'inserter', 'generator', 'powerPole'] as const), direction: v.direction(b.direction, 'connection.direction') }
     })
-    if (parts.length < 4 || parts[0].kind !== 'powerPole' || parts[1].kind !== 'generator' || parts[2].kind !== 'inserter' || parts.slice(3).some(p => p.kind !== 'belt') || new Set(parts.map(p => p.tile)).size !== parts.length || parts.some(p => p.tile === source || p.tile === target)) v.invalid('connection', 'invalid ordered components')
+    if (parts.length < (kind === 'circuitCableFeed' ? 3 : 4) || parts[0].kind !== 'powerPole' || parts[1].kind !== 'generator' || parts[2].kind !== 'inserter' || parts.slice(3).some(p => p.kind !== 'belt') || new Set(parts.map(p => p.tile)).size !== parts.length || parts.some(p => p.tile === source || p.tile === target)) v.invalid('connection', 'invalid ordered components')
     const [expectedSource, expectedTarget] = productionEndpoints(kind, store, e, loadingRef, mill)
-    if (source !== expectedSource || target !== expectedTarget || source === target) v.invalid('connection', 'connection must retain its original machines')
+    if (kind !== 'circuitCableFeed' && source !== expectedSource || target !== expectedTarget || source === target) v.invalid('connection', 'connection must retain its original machines')
     const distance = (a: number, b: number) => Math.abs(a % SIZE - b % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(b / SIZE))
-    const arm = parts[2], start = parts[3]
+    const arm = parts[2], start = parts[3] ?? { tile: target }
     if (distance(source, arm.tile) !== 1 || distance(arm.tile, start.tile) !== 1 || facing(source, arm.tile) !== arm.direction || facing(arm.tile, start.tile) !== arm.direction || !feedLink(kind) && kind !== 'loadingReturn' && !(ecoLink(kind) && kind !== 'crateReturn') && arm.direction !== 'east' || Math.max(Math.abs(parts[0].tile % SIZE - arm.tile % SIZE), Math.abs(Math.floor(parts[0].tile / SIZE) - Math.floor(arm.tile / SIZE))) > 3 || distance(parts[0].tile, parts[1].tile) !== 1) v.invalid('connection', 'invalid pickup or electrical geometry')
     const receiver = p.receiver === undefined ? target : v.tile(p.receiver, 'connection.receiver')
-    if (receiver !== target && (feedLink(kind) || parts.some(p => p.tile === receiver))) v.invalid('connection.receiver', 'only incoming connections can reuse a terminal')
+    if (receiver !== target && (feedLink(kind) && kind !== 'circuitCableFeed' || parts.some(p => p.tile === receiver))) v.invalid('connection.receiver', 'only incoming connections can reuse a terminal')
     for (let i = 3; i < parts.length; i++) {
       const b = parts[i], end = parts[i + 1]?.tile ?? receiver
       if (distance(b.tile, end) !== 1 || b.direction !== facing(b.tile, end)) v.invalid('connection', 'invalid cardinal belt route')
@@ -49,12 +49,25 @@ export function restoreInfrastructure(value: unknown, world: World, version: num
     if (tile % SIZE + dx < 0 || tile % SIZE + dx >= SIZE || Math.floor(tile / SIZE) + dy < 0 || Math.floor(tile / SIZE) + dy >= SIZE || poles.includes(tile) || new Set(poles).size !== poles.length || poles.some((p, i) => i === poles.length - 1 ? Math.abs(tile % SIZE - p % SIZE) + Math.abs(Math.floor(tile / SIZE) - Math.floor(p / SIZE)) !== 1 : Math.max(Math.abs(p % SIZE - poles[i + 1] % SIZE), Math.abs(Math.floor(p / SIZE) - Math.floor(poles[i + 1] / SIZE))) > 6)) v.invalid('wheel', 'invalid shore geometry')
     return { tile, direction, poles }
   }
-  const links = v.array(r.links, 'infrastructure.links', undefined, version >= 52 ? 14 : version >= 51 ? 11 : version >= 50 ? 6 : 3).map(connection)
-  const validReceiver = (p: Connection) => p.receiver === undefined || p.inlet !== undefined || links.some(l => l !== p && l.receiver === undefined && !feedLink(l.kind) && l.target === p.target && l.parts.some(b => b.kind === 'belt' && b.tile === p.receiver && p.parts.at(-1)!.direction !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[b.direction]))
+  const links = v.array(r.links, 'infrastructure.links', undefined, version >= 60 ? LINK_KINDS.length : version >= 52 ? 14 : version >= 51 ? 11 : version >= 50 ? 6 : 3).map(connection)
+  function validReceiver(p: Connection, seen = new Set<Connection>()): boolean {
+    if (p.receiver === undefined || p.inlet !== undefined) return true
+    if (seen.has(p)) return false
+    seen.add(p)
+    const ingredient = p.kind === 'circuitCableFeed'
+    const ingredients = links.find(l => l.kind === 'circuitFeed')?.parts.filter(b => b.kind === 'belt') ?? []
+    const sourceIndex = ingredients.findIndex(b => b.tile === p.source)
+    if (ingredient && sourceIndex >= 0 && ingredients.findIndex(b => b.tile === p.receiver) <= sourceIndex) return false
+    const parent = links.find(l => l !== p && l.target === p.target && (ingredient ? l.kind === 'circuitFeed' : !feedLink(l.kind)) && l.parts.some(b => b.kind === 'belt' && b.tile === p.receiver && p.parts.at(-1)!.direction !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[b.direction]))
+    return !!parent && (version >= 60 ? validReceiver(parent, seen) : parent.receiver === undefined)
+  }
+  const branchSource = (p: Connection) => p.kind !== 'circuitCableFeed' || cableBranchSources(links).includes(p.source) || !!links.find(l => l.kind === 'circuitFeed')?.parts.some(b => b.kind === 'belt' && b.tile === p.source)
+  if (links.some(p => !branchSource(p))) v.invalid('connection.source', 'cable branch requires its owned return path')
   if (links.some(p => !validReceiver(p))) v.invalid('connection.receiver', 'shared terminal needs an original incoming connection')
   const occupied = links.flatMap(p => p.parts.map(p => p.tile)), ownedWheel = wheel(r.wheel)
   if (new Set(links.map(p => p.kind)).size !== links.length || new Set(occupied).size !== occupied.length || ownedWheel && wheelParts(ownedWheel).some(p => occupied.includes(p.tile))) v.invalid('infrastructure', 'overlapping or duplicate ownership')
   const plan = r.plan === null ? null : connection(r.plan), wheelPlan = wheel(r.wheelPlan), repair = v.boolean(r.repair, 'infrastructure.repair')
+  if (plan && !branchSource(plan)) v.invalid('connection.source', 'cable branch requires its owned return path')
   if (plan && !validReceiver(plan)) v.invalid('connection.receiver', 'unknown shared terminal')
   if (plan && (repair ? !links.some(p => JSON.stringify(p) === JSON.stringify(plan)) : links.some(p => p.kind === plan.kind || p.parts.some(b => plan.parts.some(a => a.tile === b.tile))))) v.invalid('infrastructure.plan', 'unknown repair or duplicate new connection')
   if (wheelPlan && ownedWheel && JSON.stringify(wheelPlan) !== JSON.stringify(ownedWheel)) v.invalid('wheelPlan', 'repair must retain the original wheel')

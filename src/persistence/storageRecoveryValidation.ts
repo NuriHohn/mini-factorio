@@ -17,10 +17,10 @@ function plan(value: unknown): ExpansionPlan {
   if (p.reuse !== undefined) result.reuse = v.array(p.reuse, 'resite.reuse', undefined, 32).map(t => v.tile(t, 'resite.reuse.tile'))
   return result
 }
-function connections(value: unknown): Connection[] {
-  return v.array(value, 'warehousing.move.connections', undefined, 14).map(value => {
+function connections(value: unknown, version: number): Connection[] {
+  return v.array(value, 'warehousing.move.connections', undefined, version >= 60 ? LINK_KINDS.length : 14).map(value => {
     const p = v.object(value, 'move.connection', ['kind', 'source', 'target', 'parts'], ['receiver', 'inlet'])
-    const kind = v.choice(p.kind, 'move.connection.kind', LINK_KINDS), source = v.tile(p.source, 'move.source'), target = v.tile(p.target, 'move.target')
+    const kind = v.choice(p.kind, 'move.connection.kind', version >= 60 ? LINK_KINDS : LINK_KINDS.slice(0, 14)), source = v.tile(p.source, 'move.source'), target = v.tile(p.target, 'move.target')
     const parts = v.array(p.parts, 'move.parts', undefined, 64).map(value => {
       const part = v.object(value, 'move.part', ['tile', 'kind', 'direction'])
       return { tile: v.tile(part.tile, 'move.part.tile'), kind: v.choice(part.kind, 'move.part.kind', ['belt', 'inserter', 'powerPole', 'generator'] as const), direction: v.direction(part.direction, 'move.part.direction') }
@@ -28,7 +28,7 @@ function connections(value: unknown): Connection[] {
     return { kind, source, target, ...(p.receiver === undefined || p.receiver === target ? {} : { receiver: v.tile(p.receiver, 'move.receiver') }), ...(p.inlet === undefined ? {} : { inlet: v.array(p.inlet, 'move.inlet', undefined, 13).map(t => v.tile(t, 'move.inlet.tile')) }), parts }
   })
 }
-export function restoreStorageRecovery(r: Record<string, unknown>, world: World): { resite?: ConstructionResite; move?: StoreMove; recoveryAtMs?: number } {
+export function restoreStorageRecovery(r: Record<string, unknown>, world: World, version: number): { resite?: ConstructionResite; move?: StoreMove; recoveryAtMs?: number } {
   const result: { resite?: ConstructionResite; move?: StoreMove; recoveryAtMs?: number } = {}
   if (r.resite !== undefined) {
     const s = v.object(r.resite, 'warehousing.resite', ['to', 'index', 'held', 'elapsedMs'], ['waiting', 'rollback'])
@@ -37,7 +37,7 @@ export function restoreStorageRecovery(r: Record<string, unknown>, world: World)
       if (!s.held || typeof s.held !== 'object' || Array.isArray(s.held)) v.invalid('resite.held', 'expected a component')
       const raw = s.held as Record<string, unknown>
       const x = v.count(raw.x, 'resite.held.x', SIZE - 1), y = v.count(raw.y, 'resite.held.y', SIZE - 1)
-      const b = v.building(s.held, 'resite.held', y * SIZE + x, world.timeMs, 59)
+      const b = v.building(s.held, 'resite.held', y * SIZE + x, world.timeMs, version)
       if (!b || b.kind !== 'belt' && b.kind !== 'inserter' && b.kind !== 'powerPole' && b.kind !== 'generator') v.invalid('resite.held', 'unsupported component')
       held = b
     }
@@ -51,7 +51,7 @@ export function restoreStorageRecovery(r: Record<string, unknown>, world: World)
       from: v.tile(m.from, 'move.from'), to: v.tile(m.to, 'move.to'),
       tier: v.count(m.tier, 'move.tier', 2) as 0 | 1 | 2,
       goal: m.goal === null ? null : v.choice(m.goal, 'move.goal', CHAIN_KINDS),
-      previous: connections(m.previous), links: connections(m.links),
+      previous: connections(m.previous, version), links: connections(m.links, version),
       cost: v.inventory(m.cost, 'move.cost'), paid: v.inventory(m.paid, 'move.paid'),
       phase: v.choice(m.phase, 'move.phase', ['fund', 'store', 'retire', 'connect', 'empty', 'remove'] as const),
       index: v.count(m.index, 'move.index', 1024), elapsedMs: v.count(m.elapsedMs, 'move.elapsedMs', 4000),
@@ -67,7 +67,7 @@ export function restoreStorageRecovery(r: Record<string, unknown>, world: World)
   return result
 }
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
-export function validateStorageRecovery(world: World): void {
+export function validateStorageRecovery(world: World, version: number): void {
   const s = world.warehousing, h = world.homestead
   if (!s || !h) return
   const r = s.resite
@@ -97,8 +97,8 @@ export function validateStorageRecovery(world: World): void {
   const newKinds = new Set(m.links.map(p => p.kind)), oldKinds = new Set(m.previous.map(p => p.kind))
   const continuing = h.infrastructure.links.filter(p => !newKinds.has(p.kind) && !oldKinds.has(p.kind))
   const raw = { ...h.infrastructure, plan: null, built: 0, repair: false }
-  const old = restoreInfrastructure({ ...raw, links: [...continuing, ...m.previous] }, world, 59, m.from, h.expansion, h.millAnchor)
-  const next = restoreInfrastructure({ ...raw, links: [...continuing, ...m.links] }, world, 59, m.to, h.expansion, h.millAnchor)
+  const old = restoreInfrastructure({ ...raw, links: [...continuing, ...m.previous] }, world, version, m.from, h.expansion, h.millAnchor)
+  const next = restoreInfrastructure({ ...raw, links: [...continuing, ...m.links] }, world, version, m.to, h.expansion, h.millAnchor)
   const live = before ? old.links : next.links
   if (!same([...live].sort((a, b) => a.kind.localeCompare(b.kind)), [...h.infrastructure.links].sort((a, b) => a.kind.localeCompare(b.kind)))) v.invalid('warehousing.move', 'retained connection registry disagrees')
   const base = { ...m.cost }

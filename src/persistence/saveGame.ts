@@ -48,7 +48,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 59
+export const SAVE_VERSION = 60
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -349,7 +349,7 @@ export function decodeSave(text: string): LoadedGame {
   validateVeranda(world)
   refreshNatureSchedule(world)
   if (version < 45) migrateMissingStructures(world)
-  validateWarehousing(world)
+  validateWarehousing(world, version)
   validateRebuilding(world, version)
   validateLinks(world, version)
   validateDeposits(world)

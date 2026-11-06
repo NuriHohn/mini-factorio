@@ -149,6 +149,7 @@ export const testSuites = {
     'src/simulation/planning.test.ts',
     'src/simulation/warehousing.test.ts',
     'src/simulation/storageRecovery.test.ts',
+    'src/simulation/multiInput.test.ts',
     'src/simulation/personality.test.ts',
     'src/simulation/peteDevelopments.test.ts',
     'src/simulation/peteLeisure.test.ts',

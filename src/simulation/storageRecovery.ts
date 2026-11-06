@@ -3,7 +3,7 @@ import { arrived, freeSite } from './homestead'
 import { expansionLayout, planChain, chainCost, paidConstructionBlocked } from './homesteadExpansion'
 import type { ExpansionPlan, ChainKind } from './homesteadExpansion'
 import { planConnection, previewConnection } from './infrastructure'
-import { linkCost, linkCurrency } from './infrastructureRules'
+import { linkCost, linkCurrency, separateCircuitInputsUnlocked } from './infrastructureRules'
 import type { Connection, InfrastructurePart, LinkKind } from './infrastructureRules'
 import { emptyInventory, inventoryTotal, ITEMS } from './items'
 import type { Inventory, Item } from './items'
@@ -125,11 +125,12 @@ function retiredParts(world: World, previous: Connection[]): InfrastructurePart[
 }
 function mainLinks(world: World): Connection[] {
   const h = world.homestead!
-  return h.infrastructure.links.filter(p => p.source === h.store || p.target === h.store)
+  return h.infrastructure.links.filter(p => p.source === h.store || p.target === h.store || p.kind === 'circuitCableFeed')
 }
-const linkOrder: LinkKind[] = ['gearFeed', 'cableFeed', 'circuitFeed', 'circuitReturn', 'cableReturn', 'copper', 'gearReturn', 'iron', 'woodReturn', 'panelReturn', 'crateReturn']
+const linkOrder: LinkKind[] = ['gearFeed', 'cableFeed', 'circuitFeed', 'cableReturn', 'circuitCableFeed', 'circuitReturn', 'copper', 'gearReturn', 'iron', 'woodReturn', 'panelReturn', 'crateReturn']
 export function blockedStoreConnection(world: World): LinkKind | null {
   const h = world.homestead!, e = h.expansion, levels = world.personality.paths
+  if (separateCircuitInputsUnlocked(world) && !h.infrastructure.links.some(p => p.kind === 'circuitCableFeed')) return planConnection(world, 'circuitCableFeed') === null ? 'circuitCableFeed' : null
   const wanted: LinkKind[] = []
   if (h.cargoBicycle) {
     if (e.furnace !== null) wanted.push('iron')

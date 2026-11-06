@@ -1,3 +1,4 @@
+import { mainStoreTargets, materialPolicy } from './materialPolicy'
 import { stripVersion52State } from './testFixtures'
 import { stripVersion48Homestead } from './testFixtures'
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -17,7 +18,7 @@ const snapshot = (w: World) => JSON.parse(encodeSave(w, view, '2026-10-26T00:00:
 const load = (w: World) => decodeSave(JSON.stringify(snapshot(w))).world
 function until(w: World, test: () => boolean, limit = 300000) {
   for (let t = 0; t < limit && !test(); t += 50) advanceWorld(w, 50)
-  expect(test(), JSON.stringify({ time: w.timeMs, h: w.homestead, store: materialStore(w), levels: w.personality.paths, peace: w.peace, pete: w.pete, mined: w.mined, machines: w.buildings.filter(b => b && !['treehouse', 'supplyCrate'].includes(b.kind)) })).toBe(true)
+  expect(test(), JSON.stringify({ warehouses: w.warehousing, time: w.timeMs, h: w.homestead, store: materialStore(w), levels: w.personality.paths, peace: w.peace, pete: w.pete, mined: w.mined, machines: w.buildings.filter(b => b && !['treehouse', 'supplyCrate'].includes(b.kind)) })).toBe(true)
 }
 function stored() {
   const w = createPetesWorld()
@@ -97,7 +98,7 @@ describe('resource-led copper automation, circuits and coal', () => {
     for (const kind of ['copper', 'cableFeed', 'cableReturn', 'circuitFeed', 'circuitReturn'] as const) beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === kind), 1800000) }, 60000)
     it('builds both paid real connections and resumes the mixed material flow exactly', () => {
       expect(w.produced.electronicCircuit).toBeGreaterThan(0)
-      expect(w.homestead!.infrastructure.links.filter(p => p.kind.startsWith('circuit'))).toHaveLength(2)
+      expect(w.homestead!.infrastructure.links.filter(p => p.kind === 'circuitFeed' || p.kind === 'circuitReturn')).toHaveLength(2)
       const loaded = load(w)
       advanceWorld(w, 10000); advanceWorld(loaded, 10000)
       expect(snapshot(loaded)).toEqual(snapshot(w))
@@ -116,6 +117,29 @@ describe('resource-led copper automation, circuits and coal', () => {
       expect(w.leisure?.flight?.practice).toBe(false)
       expect(w.personality.paths.inventor.level).toBe(5)
       expect(load(w).leisure).toEqual(w.leisure)
+    })
+    describe('advanced separate circuit ingredients', () => {
+      let cableMoved = false, beforeCircuits = 0
+      beforeAll(() => { until(w, () => w.homestead!.infrastructure.links.some(p => p.kind === 'circuitCableFeed'), 900000) }, 60000)
+      beforeAll(() => {
+        beforeCircuits = w.produced.electronicCircuit
+        until(w, () => {
+          const lane = w.homestead!.infrastructure.links.find(p => p.kind === 'circuitCableFeed')!
+          cableMoved ||= lane.parts.some(p => { const b = w.buildings[p.tile]; return (b?.kind === 'belt' || b?.kind === 'inserter') && b.item === 'copperCable' })
+          return cableMoved && w.produced.electronicCircuit > beforeCircuits
+        }, 360000)
+      }, 60000)
+      it('autonomously pays for a second ingredient lane after the original flight and logistics milestones', () => {
+        const links = w.homestead!.infrastructure.links
+        const cable = links.find(p => p.kind === 'circuitCableFeed')!, plates = links.find(p => p.kind === 'circuitFeed')!
+        expect(cableMoved).toBe(true)
+        expect(w.produced.electronicCircuit).toBeGreaterThan(beforeCircuits)
+        expect(cable.target).toBe(plates.target)
+        expect(materialPolicy(w).copperPlateTarget).toBe(56)
+        expect(Object.values(mainStoreTargets(w)).reduce((n, v) => n + v, 0)).toBe(192)
+        expect(cable.parts.at(-1)!.tile).not.toBe(plates.parts.at(-1)!.tile)
+        expect(load(w).homestead).toEqual(w.homestead)
+      })
     })
   })
   it('builds and personally fuels a steam engine from coal alone and resumes a real burn exactly', () => {
