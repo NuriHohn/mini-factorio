@@ -9,6 +9,12 @@ export function separateCircuitInputsUnlocked(world: World): boolean {
     ['copper', 'cableFeed', 'cableReturn', 'circuitFeed'].every(kind => h.infrastructure.links.some(p => p.kind === kind))
 }
 
+export function cargoBatch(world: World): number { return world.homestead?.transportUpgrade ? 12 : 6 }
+export function transportUnlocked(world: World): boolean {
+  const h = world.homestead
+  return !!h?.cargoBicycle && h.infrastructure.inventor >= 3 && ['iron', 'gearFeed', 'gearReturn', 'circuitReturn', 'circuitCableFeed'].every(kind => h.infrastructure.links.some(p => p.kind === kind))
+}
+
 export const NURSERY_WOOD_COST = 24
 export const SUPPLY_RESERVES = { eco: 18, craftsman: 12, inventor: 12, industrial: 8 } as const
 export function ecoWoodReserve(world: World): number {
@@ -37,10 +43,10 @@ export function materialPolicy(world: World) {
     manualCopperPlate: manualCopper,
     manualCircuitPlate: world.personality.paths.inventor.level >= 4 && !h?.infrastructure.links.some(p => p.kind === 'copper') ? 8 : manualCopper,
     plateTarget: 40,
-    copperPlateTarget: advanced ? 56 : 40,
-    ironGearTarget: 12,
+    copperPlateTarget: (advanced ? 56 : 40) + (h?.expansion.transportAssembler !== undefined ? 4 : 0),
+    ironGearTarget: h?.expansion.transportAssembler !== undefined ? 8 : 12,
     copperCableTarget: advanced ? 8 : 16,
-    electronicCircuitTarget: 12,
+    electronicCircuitTarget: h?.expansion.transportAssembler !== undefined ? 8 : 12,
     manualCircuitTarget: flightComplete ? 12 : 8,
   }
 }
@@ -69,5 +75,5 @@ export function mainStoreTargets(world: World): Record<Item, number> {
   return { wood: 24, woodPanel: 12, woodenCrate: 8, iron: raw, copper: raw,
     ironPlate: p.plateTarget, copperPlate: p.copperPlateTarget, ironGear: p.ironGearTarget,
     copperCable: p.copperCableTarget, electronicCircuit: p.electronicCircuitTarget,
-    coal: p.coalTarget, coalBriquette: 4, mechanicModule: 0 }
+    coal: p.coalTarget, coalBriquette: 4, mechanicModule: 0, transportModule: world.homestead?.expansion.transportAssembler !== undefined ? 4 : 0 }
 }

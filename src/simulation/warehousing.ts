@@ -3,7 +3,7 @@ import type { StoreMove, ConstructionResite } from './storageRecovery'
 import { arrived, freeSite } from './homestead'
 import { inventoryTotal, emptyInventory, ITEMS } from './items'
 import type { Item } from './items'
-import { storedMaterial, mainStoreTargets } from './materialPolicy'
+import { storedMaterial, mainStoreTargets, cargoBatch } from './materialPolicy'
 import { supplyCapacity } from './supplyCrate'
 import { miniApproach } from './petesWorld'
 import { currentProject } from './secretProject'
@@ -104,7 +104,7 @@ function chooseStorage(world: World): StorageJob | null {
   if (crowded) {
     const surplus = ITEMS.filter(i => storedMaterial(main, i) > targets[i]).sort((a, b) => storedMaterial(main, b) - targets[b] - storedMaterial(main, a) + targets[a])[0]
     if (surplus) {
-      const amount = Math.min(STORAGE_BATCH, storedMaterial(main, surplus) - targets[surplus])
+      const amount = Math.min(cargoBatch(world), storedMaterial(main, surplus) - targets[surplus])
       const target = stores.find(t => t !== h.store && world.buildings[t]?.kind === 'supplyCrate' && storeRoom(world.buildings[t] as SupplyCrate) >= amount && reachableStore(world, t)) ?? null
       if (target !== null && target !== h.store) return { kind: 'haul', source: h.store!, target, item: surplus, amount, carried: 0, elapsedMs: 0 }
     }
@@ -115,7 +115,7 @@ function chooseStorage(world: World): StorageJob | null {
   }
   if (returning || world.timeMs < (world.warehousing?.nextAtMs ?? 0)) return null
   for (const item of ITEMS) {
-    const amount = Math.min(STORAGE_BATCH, Math.max(0, targets[item] - storedMaterial(main, item)), storeRoom(main))
+    const amount = Math.min(cargoBatch(world), Math.max(0, targets[item] - storedMaterial(main, item)), storeRoom(main))
     if (!amount) continue
     const source = stores.find(t => t !== h.store && world.buildings[t]?.kind === 'supplyCrate' && storedMaterial(world.buildings[t] as SupplyCrate, item) > 0 && reachableStore(world, t))
     if (source !== undefined) return { kind: 'haul', source, target: h.store!, item, amount, carried: 0, elapsedMs: 0 }

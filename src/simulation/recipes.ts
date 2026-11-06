@@ -1,7 +1,7 @@
 import { ITEMS } from './items'
 import type { Inventory } from './items'
 export type FurnaceRecipeMode = 'auto' | RecipeId
-export type RecipeId = 'peteCircuit' | 'coalBriquette' | 'woodSawing' | 'woodenCrate' | 'ironSmelting' | 'copperSmelting' | 'ironGear' | 'copperCable' | 'electronicCircuit'
+export type RecipeId = 'transportModule' | 'peteCircuit' | 'coalBriquette' | 'woodSawing' | 'woodenCrate' | 'ironSmelting' | 'copperSmelting' | 'ironGear' | 'copperCable' | 'electronicCircuit'
 export interface Recipe {
   readonly id: RecipeId
   readonly label: string
@@ -11,6 +11,7 @@ export interface Recipe {
   readonly durationMs: number
 }
 export const RECIPES: Readonly<Record<RecipeId, Recipe>> = {
+  transportModule: { id: 'transportModule', label: 'Transportmodul · Zahnräder + Schaltkreise', machine: 'assembler', inputs: { ironGear: 2, electronicCircuit: 2 }, outputs: { transportModule: 1 }, durationMs: 5000 },
   coalBriquette: { id: 'coalBriquette', label: 'Coal briquette · Stampfer', machine: 'assembler', inputs: { coal: 2 }, outputs: { coalBriquette: 1 }, durationMs: 4000 },
   woodSawing: { id: 'woodSawing', label: 'Wood panels', machine: 'sawmill', inputs: { wood: 1 }, outputs: { woodPanel: 2 }, durationMs: 2000 },
   woodenCrate: { id: 'woodenCrate', label: 'Wooden crate', machine: 'assembler', inputs: { woodPanel: 4 }, outputs: { woodenCrate: 1 }, durationMs: 3000 },

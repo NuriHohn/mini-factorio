@@ -1,6 +1,7 @@
+import { chooseTransportModule } from './transportModules'
 import { allocatePower } from './power'
 import { warehouseReserved } from './warehousing'
-import { ownedConnections, connectionPickupEnabled, separateCircuitInputsUnlocked, cableBranchSources, ingredientBranch } from './infrastructureRules'
+import { ownedConnections, connectionPickupEnabled, separateCircuitInputsUnlocked, returnBranchSources, ingredientBranch } from './infrastructureRules'
 import { availableMaterial, materialPolicy, SUPPLY_RESERVES } from './materialPolicy'
 import { PETE_PROJECTS, retiredIndustrial, wantsShoreDock, wantsWaterwheel } from './projectRegistry'
 import { ecoPickup } from './ecoLogistics'
@@ -40,7 +41,7 @@ const plans = new WeakMap<World, Map<LinkKind, { revision: string; plan: Connect
 const jointPlans = new WeakMap<World, Map<LinkKind, { revision: string; plan: Connection | null }>>()
 function planRevision(world: World): string {
   const h = world.homestead!, e = h.expansion
-  return `${world.yard?.entrance}:${world.chickenRun?.entrance}:${h.infrastructure.pavilion?.tile}:${h.infrastructure.pavilion?.spot}:${world.topologyRevision}:${world.pete.tile}:${h.bikeTile}:${h.infrastructure.links.map(p => p.kind).join(',')}:${[e.forestry, e.assembler, h.millAnchor, e.furnace, e.gearAssembler, e.copperFurnace, e.cableAssembler, e.circuitAssembler, e.briquetteAssembler, h.infrastructure.loading?.input, h.infrastructure.loading?.output].join(',')}`
+  return `${world.yard?.entrance}:${world.chickenRun?.entrance}:${h.infrastructure.pavilion?.tile}:${h.infrastructure.pavilion?.spot}:${world.topologyRevision}:${world.pete.tile}:${h.bikeTile}:${h.infrastructure.links.map(p => p.kind).join(',')}:${[e.transportAssembler, e.forestry, e.assembler, h.millAnchor, e.furnace, e.gearAssembler, e.copperFurnace, e.cableAssembler, e.circuitAssembler, e.briquetteAssembler, h.infrastructure.loading?.input, h.infrastructure.loading?.output].join(',')}`
 }
 export function previewConnection(world: World, plan: Connection): World {
   const h = world.homestead!, buildings = [...world.buildings]
@@ -60,10 +61,22 @@ export function planConnection(world: World, kind: LinkKind): Connection | null 
   const revision = planRevision(world), old = cache.get(kind)
   if (old?.revision === revision) return old.plan
   if (kind === 'iron' || ecoLink(kind)) return planSingleConnection(world, kind)
+  if (kind === 'moduleGearFeed' || kind === 'moduleCircuitFeed') {
+    const target = world.homestead!.expansion.transportAssembler
+    if (target === undefined) return null
+    const sources = returnBranchSources(world.homestead!.infrastructure.links, kind === 'moduleGearFeed' ? 'gearReturn' : 'circuitReturn')
+    sources.sort((a, b) => Math.abs(a % SIZE - target % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(target / SIZE)) - Math.abs(b % SIZE - target % SIZE) - Math.abs(Math.floor(b / SIZE) - Math.floor(target / SIZE)))
+    for (const source of sources) {
+      const plan = planSingleConnection({ ...world }, kind, source)
+      if (plan) { cache.set(kind, { revision, plan }); return plan }
+    }
+    const plan = planSingleConnection({ ...world }, kind)
+    cache.set(kind, { revision, plan }); return plan
+  }
   if (kind === 'circuitCableFeed') {
     const ingredients = world.homestead!.infrastructure.links.find(p => p.kind === 'circuitFeed')?.parts.filter(p => p.kind === 'belt') ?? []
     const distance = (a: number, b: number) => Math.abs(a % SIZE - b % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(b / SIZE))
-    const sources = cableBranchSources(world.homestead!.infrastructure.links).sort((a, b) => Math.min(...ingredients.map(p => distance(a, p.tile))) - Math.min(...ingredients.map(p => distance(b, p.tile))))
+    const sources = returnBranchSources(world.homestead!.infrastructure.links).sort((a, b) => Math.min(...ingredients.map(p => distance(a, p.tile))) - Math.min(...ingredients.map(p => distance(b, p.tile))))
     for (const source of [...sources, ...ingredients.map(p => p.tile)]) {
       const plan = planSingleConnection({ ...world }, kind, source)
       if (plan) { cache.set(kind, { revision, plan }); return plan }
@@ -127,9 +140,9 @@ function planSingleConnection(world: World, kind: LinkKind, branchSource?: numbe
   const revision = planRevision(world)
   if (old?.revision === revision) return old.plan
   let chosen: Connection | null = null
-  const gear = ecoLink(kind) ? null : kind === 'circuitFeed' || kind === 'circuitCableFeed' || kind === 'circuitReturn' ? world.homestead!.expansion.circuitAssembler : industrialLink(kind) ? world.homestead!.expansion.briquetteAssembler : copperLink(kind) ? world.homestead!.expansion.cableAssembler : world.homestead!.expansion.gearAssembler
+  const gear = ecoLink(kind) ? null : kind.startsWith('module') ? world.homestead!.expansion.transportAssembler ?? null : kind === 'circuitFeed' || kind === 'circuitCableFeed' || kind === 'circuitReturn' ? world.homestead!.expansion.circuitAssembler : industrialLink(kind) ? world.homestead!.expansion.briquetteAssembler : copperLink(kind) ? world.homestead!.expansion.cableAssembler : world.homestead!.expansion.gearAssembler
   const gearArm = gear === null ? null : next(gear, 'east')
-  const reserved = !['gearReturn', 'cableReturn', 'circuitReturn', 'loadingFeed'].includes(kind) && gearArm !== null ? [gearArm, next(gearArm, 'east'), next(gearArm, 'north'), next(gearArm, 'south')] : []
+  const reserved = !['gearReturn', 'cableReturn', 'circuitReturn', 'loadingFeed', 'moduleReturn'].includes(kind) && gearArm !== null ? [gearArm, next(gearArm, 'east'), next(gearArm, 'north'), next(gearArm, 'south')] : []
   const forestry = world.homestead!.expansion.forestry
   const station = forestry === null ? null : world.buildings[forestry]
   if (ecoLink(kind) && station?.kind === 'forester') reserved.push(...station.plots)
@@ -138,7 +151,8 @@ function planSingleConnection(world: World, kind: LinkKind, branchSource?: numbe
   if (!feedLink(kind) && gear !== null) reserved.push(next(gear, 'west'))
   if (!feedLink(kind) && target === world.homestead!.store) reserved.push(next(target, 'east'), next(target, 'east', 2))
   const occupied = new Set([...infrastructureReserved(world), ...warehouseReserved(world)])
-  const available = (tile: number) => !reserved.includes(tile) && !world.buildings[tile] && !world.water[tile] && world.tiles[tile] === null && !occupied.has(tile)
+  const oreCrossing = kind.startsWith('module') || kind === 'gearReturn' && separateCircuitInputsUnlocked(world) && world.homestead!.cargoBicycle
+  const available = (tile: number, belt = false) => !reserved.includes(tile) && !world.buildings[tile] && !world.water[tile] && (world.tiles[tile] === null || belt && oreCrossing) && !occupied.has(tile)
   reserved.push(...outputClearance(world, source), ...inputClearance(world, feedLink(kind) ? target : undefined))
   const storePorts = world.homestead!.store === null ? [] : neighboringTiles(world.homestead!.store!)
   const corridors = world.homestead!.store === null ? storePorts : [...storePorts, world.homestead!.store! - 2 * SIZE, world.homestead!.store! + 2 * SIZE]
@@ -146,14 +160,15 @@ function planSingleConnection(world: World, kind: LinkKind, branchSource?: numbe
   const ingredients = world.homestead!.infrastructure.links.find(p => p.kind === 'circuitFeed')?.parts.filter(p => p.kind === 'belt') ?? []
   const sourceIndex = ingredients.findIndex(p => p.tile === source)
   const branchInlets = kind === 'circuitCableFeed' ? ingredients.slice(sourceIndex + 1).map(p => p.tile) : []
-  const terminals = [target, ...branchInlets, ...(!feedLink(kind) ? world.homestead!.infrastructure.links.filter(p => !feedLink(p.kind) && p.target === target && (p.receiver === undefined || copperLink(kind) && (world.leisure?.practices ?? 0) > 0)).flatMap(p => p.parts.filter(p => p.kind === 'belt').map(p => p.tile)) : [])]
-  const nearestReturns = kind === 'circuitCableFeed' || (world.leisure?.practices ?? 0) > 0 && copperLink(kind) && !feedLink(kind) && world.homestead!.expansion.circuitAssembler !== null
+  const terminals = [target, ...branchInlets, ...(!feedLink(kind) ? world.homestead!.infrastructure.links.filter(p => !feedLink(p.kind) && p.target === target && (p.receiver === undefined || (copperLink(kind) || kind === 'moduleReturn' || kind === 'gearReturn' && separateCircuitInputsUnlocked(world) && world.homestead!.cargoBicycle) && (world.leisure?.practices ?? 0) > 0)).flatMap(p => p.parts.filter(p => p.kind === 'belt').map(p => p.tile)) : [])]
+  const nearestReturns = kind === 'circuitCableFeed' || (world.leisure?.practices ?? 0) > 0 && (copperLink(kind) || kind === 'moduleReturn' || kind === 'gearReturn' && separateCircuitInputsUnlocked(world) && world.homestead!.cargoBicycle) && !feedLink(kind) && world.homestead!.expansion.circuitAssembler !== null
   if (nearestReturns) terminals.sort((a, b) => Math.abs(a % SIZE - source % SIZE) + Math.abs(Math.floor(a / SIZE) - Math.floor(source / SIZE)) - Math.abs(b % SIZE - source % SIZE) - Math.abs(Math.floor(b / SIZE) - Math.floor(source / SIZE)))
   const inlet = kind === 'loadingReturn' ? coalInlet(world) : []
   terminals.push(...inlet.slice(1, -1))
   if (terminals.length > 1 && !nearestReturns) terminals.push(terminals.shift()!)
   const sourceBuilding = world.buildings[source]
-  const pickups: Direction[] = (ecoLink(kind) || kind === 'circuitCableFeed') && sourceBuilding?.kind === 'belt' || sourceBuilding?.kind === 'supplyCrate' || sourceBuilding?.kind === 'fuelDepot' ? ['east', 'south', 'west', 'north'] : ['east']
+  const pickups: Direction[] = (ecoLink(kind) || kind === 'circuitCableFeed' || kind === 'moduleGearFeed' || kind === 'moduleCircuitFeed') && (sourceBuilding?.kind === 'belt' || sourceBuilding?.kind === 'assembler') || sourceBuilding?.kind === 'supplyCrate' || sourceBuilding?.kind === 'fuelDepot' ? ['east', 'south', 'west', 'north'] : ['east']
+  if ((kind === 'moduleGearFeed' || kind === 'moduleCircuitFeed') && sourceBuilding?.kind === 'assembler') pickups.splice(0, pickups.length, ...pickups.filter(d => d !== 'east'))
   const alignment = (d: Direction) => offsets[d].x * (target % SIZE - source % SIZE) + offsets[d].y * (Math.floor(target / SIZE) - Math.floor(source / SIZE))
   const ecoSpot = ecoSpots.find(p => p.kind === kind)
   if (ecoSpot) pickups.splice(0, pickups.length, ecoSpot.direction)
@@ -165,7 +180,7 @@ function planSingleConnection(world: World, kind: LinkKind, branchSource?: numbe
       if (!available(pole) || !available(generator) || corridors.includes(pole) || corridors.includes(generator) || yardLandings.includes(pole) || yardLandings.includes(generator) || pole === generator || parts.some(p => p.tile === pole || p.tile === generator)) continue
       const plan: Connection = { kind, source, target, ...(receiver === target ? {} : { receiver }), ...(inlet.slice(1, -1).includes(receiver) ? { inlet } : {}), parts: [{ tile: pole, kind: 'powerPole', direction: 'east' }, { tile: generator, kind: 'generator', direction: 'east' }, ...parts] }
       if (!accessibleLayout(world, plan)) continue
-      if (kind === 'circuitCableFeed') {
+      if (kind === 'circuitCableFeed' || kind.startsWith('module')) {
         const candidate = { ...previewConnection(world, plan), power: null }
         const power = allocatePower(candidate)
         if (!power.networks.some(n => n.id === power.assignments[arm] && n.capacityKw > 0)) continue
@@ -177,18 +192,18 @@ function planSingleConnection(world: World, kind: LinkKind, branchSource?: numbe
   outer: for (const receiver of terminals) for (const d of pickups) {
     const arm = next(source, d), start = next(source, d, 2)
     if (arm === null || start === null || !available(arm)) continue
-    if (kind === 'circuitCableFeed' && receiver === target && start === target && d !== 'west') {
+    if ((kind === 'circuitCableFeed' || kind === 'moduleGearFeed' || kind === 'moduleCircuitFeed') && receiver === target && start === target && d !== 'west') {
       const plan = powered(arm, [{ tile: arm, kind: 'inserter', direction: d }], target)
       if (plan) { chosen = plan; break outer }
     }
-    if (!available(start)) continue
+    if (!available(start, true)) continue
     const ends = neighboringTiles(receiver).filter(tile => (!feedLink(kind) || tile !== next(target, 'east')) && (receiver === target || facing(tile, receiver) !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[world.buildings[receiver]?.kind === 'belt' ? world.buildings[receiver].direction : 'east']))
     if (feedLink(kind) || kind === 'iron' || kind === 'copper') ends.sort((a, b) => Number(b === next(target, 'west')) - Number(a === next(target, 'west')))
     for (const end of ends) {
-      if (!available(end) || storePorts.includes(end) && receiver !== world.homestead!.store) continue
+      if (!available(end, true) || storePorts.includes(end) && receiver !== world.homestead!.store) continue
       const route = findBeltRoute({ x: start % SIZE, y: Math.floor(start / SIZE) }, { x: end % SIZE, y: Math.floor(end / SIZE) }, facing(end, receiver), (x, y, outgoing) => {
         const tile = y * SIZE + x
-        return tile !== arm && (!corridors.includes(tile) || tile === start && source === world.homestead!.store || tile === end && receiver === world.homestead!.store) && available(tile) && (tile !== start || outgoing !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[d])
+        return tile !== arm && (!corridors.includes(tile) || tile === start && source === world.homestead!.store || tile === end && receiver === world.homestead!.store) && available(tile, true) && (tile !== start || outgoing !== ({ east: 'west', west: 'east', north: 'south', south: 'north' } as const)[d])
       }, 500).points
       if (!route || route.length > 18) continue
       const tiles = route.map(p => p.y * SIZE + p.x)
@@ -227,16 +242,21 @@ export function planWheel(world: World): WheelSite | null {
 }
 export function partComplete(world: World, p: InfrastructurePart): boolean { const b = world.buildings[p.tile]; return b?.kind === p.kind && (!('direction' in b) || b.direction === p.direction) }
 export function connectionComplete(world: World, link: Connection): boolean {
-  const intact = (p: InfrastructurePart) => partComplete(world, p)
-  if (!link.parts.every(intact)) return false
-  if (link.receiver === undefined) return true
-  if (link.inlet) return link.inlet.slice(link.inlet.indexOf(link.receiver), -1).every((tile, i, suffix) => {
-    const b = world.buildings[tile]
-    return b?.kind === 'belt' && b.direction === facing(tile, suffix[i + 1] ?? link.target)
-  })
-  const owner = world.homestead?.infrastructure.links.find(p => p.receiver === undefined && p.target === link.target && p.parts.some(b => b.kind === 'belt' && b.tile === link.receiver))
-  return !!owner && owner.parts.slice(owner.parts.findIndex(p => p.tile === link.receiver)).every(intact)
+  const seen = new Set<Connection>()
+  function complete(p: Connection, start = 0): boolean {
+    if (seen.has(p) || !p.parts.slice(start).every(part => partComplete(world, part))) return false
+    seen.add(p)
+    if (p.receiver === undefined) return true
+    if (p.inlet) return p.inlet.slice(p.inlet.indexOf(p.receiver), -1).every((tile, i, suffix) => {
+      const b = world.buildings[tile]
+      return b?.kind === 'belt' && b.direction === facing(tile, suffix[i + 1] ?? p.target)
+    })
+    const owner = world.homestead?.infrastructure.links.find(parent => parent !== p && parent.target === p.target && parent.parts.some(b => b.kind === 'belt' && b.tile === p.receiver))
+    return !!owner && complete(owner, owner.parts.findIndex(part => part.tile === p.receiver))
+  }
+  return complete(link)
 }
+
 export function connectionRunning(world: World, kind: LinkKind): boolean {
   const link = world.homestead?.infrastructure.links.find(p => p.kind === kind)
   if (!link || !world.buildings[link.source] || !world.buildings[link.target] || !connectionComplete(world, link)) return false
@@ -282,7 +302,7 @@ export function chooseSupply(world: World, path: keyof typeof SUPPLY_ITEMS): boo
   begin(world, 'supplyOrder', supplyTarget(world, path))
   return true
 }
-function parkForConnection(world: World, kinds: LinkKind[]): boolean {
+export function parkForConnection(world: World, kinds: LinkKind[]): boolean {
   const h = world.homestead!
   if (!h.cargoBicycle || h.bikeTile === null || !kinds.length) return false
   const desired = kinds.map(kind => planConnection(world, kind)).find(plan => plan !== null)
@@ -297,6 +317,7 @@ function parkForConnection(world: World, kinds: LinkKind[]): boolean {
 export function chooseInfrastructure(world: World, path: string): boolean {
   const h = world.homestead!, s = h.infrastructure, store = materialStore(world)
   if (!store) return false
+  if (chooseTransportModule(world, path)) return true
   if (path === 'eco' && world.personality.paths.eco.level >= 4 && h.expansion.assembler !== null && world.orchardProject?.phase === 'complete' && !wantsShoreDock(world)) {
     const missing = s.links.find(p => ecoLink(p.kind) && p.parts.some(part => !partComplete(world, part)))
     if (missing && store.wood > 0) { s.plan = structuredClone(missing); s.built = 0; s.repair = true; begin(world, 'buildConnection', h.store); return true }
@@ -468,6 +489,8 @@ export function infrastructurePickupAllowed(world: World, tile: number, item: It
   if (!store) return false
   const eco = ecoPickup(world, link.kind, item)
   if (eco !== null) return eco
+  const moduleFeed = link.kind === 'gearReturn' ? 'moduleGearFeed' : link.kind === 'circuitReturn' ? 'moduleCircuitFeed' : null
+  if (moduleFeed && item === linkMaterial(moduleFeed) && connectionRunning(world, moduleFeed) && laterPickup(world, moduleFeed, item)) return true
   const later = laterPickup(world, link.kind, item)
   if (later !== null) return later
   const material = linkMaterial(link.kind)
@@ -476,6 +499,7 @@ export function infrastructurePickupAllowed(world: World, tile: number, item: It
   const inflight = (item: string) => s!.links.flatMap(p => p.parts).reduce((n, p) => { const b = world.buildings[p.tile]; return n + Number((b?.kind === 'belt' || b?.kind === 'inserter') && b.item === item) }, 0)
   if (link.kind === 'cableReturn' && s?.links.some(p => p.kind === 'circuitCableFeed') && !ingredientBranch(world) && laterPickup(world, 'circuitCableFeed', 'copperCable')) return true
   if (!feedLink(link.kind)) return store.inventory[material] + inflight(material) < quota
+  if (link.kind === 'gearFeed' && s?.links.some(p => p.kind === 'moduleGearFeed') && laterPickup(world, 'moduleGearFeed', 'ironGear')) return availableMaterial(store, 'ironPlate', materialPolicy(world).ironPlate) > 0
   if (link.kind === 'cableFeed') return store.inventory.copperPlate > (materialPolicy(world).copperPlate) && store.inventory.copperCable + inflight('copperCable') < materialPolicy(world).copperCableTarget
   const reserve = materialPolicy(world).ironPlate
   return availableMaterial(store, 'ironPlate', reserve) > 0 && store.inventory.ironGear + inflight('ironGear') < materialPolicy(world).ironGearTarget

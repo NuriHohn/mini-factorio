@@ -1,3 +1,4 @@
+import { advanceTransportUpgrade } from './transportModules'
 import { materialPolicy } from './materialPolicy'
 import { DEPOSIT_WARNING, extractOre, mineDeveloped, oreRemaining } from './deposits'
 import { finishMineReplacement } from './mineReplacement'
@@ -34,10 +35,11 @@ export const IMPROVEMENT_RULES: Record<Improvement, { label: string; item: Item;
   storeShelves: { label: 'Lagerregale', item: 'woodenCrate', amount: 4, xp: 12 },
   gardenBoxes: { label: 'Pflanzkästen am Garten', item: 'woodenCrate', amount: 3, xp: 12 },
 }
-export const CHAIN_KINDS = ['gears', 'forestry', 'crates', 'iron', 'ironMining', 'copper', 'cables', 'copperMining', 'circuits', 'steam', ...INDUSTRIAL_CHAINS] as const
+export const CHAIN_KINDS = ['gears', 'forestry', 'crates', 'iron', 'ironMining', 'copper', 'cables', 'copperMining', 'circuits', 'steam', ...INDUSTRIAL_CHAINS, 'transport'] as const
 export type ChainKind = typeof CHAIN_KINDS[number]
 export interface ExpansionPlan { kind: ChainKind; anchor: number; direction: Direction; built: number; route?: number[]; reuse?: number[] }
 export interface HomesteadExpansion {
+  transportAssembler?: number
   improvements: Partial<Record<Improvement, number>>
   improvement: Improvement | null
   plan: ExpansionPlan | null
@@ -72,11 +74,11 @@ export function expansionLayout(plan: ExpansionPlan): { tile: number; kind: Buil
   }
   if (plan.kind === 'steam') return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a, kind: 'steamEngine', direction: 'east' }]
   if ((plan.kind === 'cables' || plan.kind === 'circuits') && d === 'east') return [{ tile: a + 3, kind: 'powerPole', direction: 'east' }, { tile: a + 4, kind: 'generator', direction: 'east' }, { tile: a, kind: 'assembler', direction: 'east' }]
-  if (plan.kind === 'gears' || plan.kind === 'cables' || plan.kind === 'circuits') return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, { tile: a, kind: 'assembler', direction: 'east' }]
+  if (plan.kind === 'transport' || plan.kind === 'gears' || plan.kind === 'cables' || plan.kind === 'circuits') return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, { tile: a, kind: 'assembler', direction: 'east' }]
   if (plan.kind === 'crates') return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, { tile: a - 1, kind: 'belt', direction: 'east' }, { tile: a, kind: 'assembler', direction: 'east' }]
   return [{ tile: a + row, kind: 'powerPole', direction: 'east' }, { tile: a + row + 1, kind: 'generator', direction: 'east' }, { tile: a, kind: 'furnace', direction: 'east' }]
 }
-export function chainCost(kind: ChainKind): Partial<Inventory> { return INDUSTRIAL_CHAINS.some(k => k === kind) ? { coal: 6 } : kind === 'steam' ? { coal: 6 } : kind === 'circuits' ? { copperPlate: 12 } : kind === 'copper' ? { copper: 6 } : kind === 'gears' ? { ironPlate: 8 } : kind === 'cables' ? { copperPlate: 8 } : kind === 'copperMining' ? { copperPlate: 8 } : kind === 'ironMining' ? { ironPlate: 8 } : kind === 'iron' ? { iron: 6 } : kind === 'forestry' ? { woodPanel: 8, wood: 1 } : { woodPanel: 12 } }
+export function chainCost(kind: ChainKind): Partial<Inventory> { return kind === 'transport' ? { ironPlate: 8, copperPlate: 8 } : INDUSTRIAL_CHAINS.some(k => k === kind) ? { coal: 6 } : kind === 'steam' ? { coal: 6 } : kind === 'circuits' ? { copperPlate: 12 } : kind === 'copper' ? { copper: 6 } : kind === 'gears' ? { ironPlate: 8 } : kind === 'cables' ? { copperPlate: 8 } : kind === 'copperMining' ? { copperPlate: 8 } : kind === 'ironMining' ? { ironPlate: 8 } : kind === 'iron' ? { iron: 6 } : kind === 'forestry' ? { woodPanel: 8, wood: 1 } : { woodPanel: 12 } }
 function improvementSite(world: World, id: Improvement): number | null {
   const p = id === 'coopAwning' ? world.coopProject : id === 'gardenBench' || id === 'gardenBoxes' ? world.gardenProject : null
   return id === 'storeShelves' ? world.homestead!.store : p?.phase === 'complete' && world.buildings[p.tiles[0]] ? p.tiles[0] : null
@@ -99,9 +101,9 @@ function chainCandidates(world: World, kind: ChainKind): ExpansionPlan[] {
   } else if (kind === 'crates' && h.millAnchor !== null && h.millAnchor % SIZE < SIZE - 3) {
     for (const direction of ['north', 'south'] as const) candidates.push({ kind, anchor: h.millAnchor + 2, direction, built: 0 })
   }
-  else if (kind === 'iron' || kind === 'copper' || kind === 'gears' || kind === 'cables' || kind === 'circuits' || kind === 'steam') {
+  else if (kind === 'transport' || kind === 'iron' || kind === 'copper' || kind === 'gears' || kind === 'cables' || kind === 'circuits' || kind === 'steam') {
     const home = world.peace.home!
-    for (let radius = 3; radius <= 7; radius++) for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+    for (let radius = 3; radius <= (kind === 'transport' ? 10 : 7); radius++) for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue
       const x = home % SIZE + dx, y = Math.floor(home / SIZE) + dy
       if (x > 0 && x < SIZE - 2 && y > 0 && y < SIZE - 2) {
@@ -123,7 +125,7 @@ export function planChain(world: World, kind: ChainKind): ExpansionPlan | null {
   if (kind === 'ironMining' || kind === 'copperMining') return planOreMining(world, kind === 'copperMining' ? 'copper' : 'iron')
   let fallback: ExpansionPlan | null = null
   for (const p of chainCandidates(world, kind)) {
-    if (kind === 'iron' || kind === 'gears' || kind === 'copper' || kind === 'cables' || kind === 'circuits') {
+    if (kind === 'transport' || kind === 'iron' || kind === 'gears' || kind === 'copper' || kind === 'cables' || kind === 'circuits') {
       const store = world.homestead!.store
       if (store !== null && Math.abs(p.anchor % SIZE - store % SIZE) + Math.abs(Math.floor(p.anchor / SIZE) - Math.floor(store / SIZE)) < 4) continue
       if (p.anchor % SIZE >= SIZE - 2 || [p.anchor + 1, p.anchor + 2].some(t => world.buildings[t] || world.water[t] || world.tiles[t])) continue
@@ -134,6 +136,7 @@ export function planChain(world: World, kind: ChainKind): ExpansionPlan | null {
       }
     }
     if (protectsOutput(world, expansionLayout(p).map(s => s.tile)) || !freeSite(world, expansionLayout(p).map(s => s.tile))) continue
+    if (kind === 'transport') { if (assemblySiteConnected(world, p)) return p; continue }
     fallback ??= p
     if (!['cables', 'circuits'].includes(kind) || assemblySiteConnected(world, p)) return p
   }
@@ -144,10 +147,18 @@ function assemblySiteConnected(world: World, plan: ExpansionPlan): boolean {
   const h = world.homestead!, buildings = [...world.buildings]
   for (const part of expansionLayout(plan)) {
     const position = { x: part.tile % SIZE, y: Math.floor(part.tile / SIZE) }
-    if (part.kind === 'assembler') buildings[part.tile] = { ...position, kind: 'assembler', direction: 'east', recipeMode: 'manual', recipeId: plan.kind === 'circuits' ? 'peteCircuit' : 'copperCable', recipeLocked: true, autoWaitElapsedMs: null, input: emptyInventory(), output: emptyInventory(), job: null }
+    if (part.kind === 'assembler') buildings[part.tile] = { ...position, kind: 'assembler', direction: 'east', recipeMode: 'manual', recipeId: plan.kind === 'transport' ? 'transportModule' : plan.kind === 'circuits' ? 'peteCircuit' : 'copperCable', recipeLocked: true, autoWaitElapsedMs: null, input: emptyInventory(), output: emptyInventory(), job: null }
     else if (part.kind === 'powerPole' || part.kind === 'generator') buildings[part.tile] = { ...position, kind: part.kind }
   }
-  let candidate: World = { ...world, buildings, homestead: { ...h, expansion: { ...h.expansion, ...(plan.kind === 'circuits' ? { circuitAssembler: plan.anchor } : { cableAssembler: plan.anchor }) } } }
+  let candidate: World = { ...world, buildings, homestead: { ...h, expansion: { ...h.expansion, ...(plan.kind === 'transport' ? { transportAssembler: plan.anchor } : plan.kind === 'circuits' ? { circuitAssembler: plan.anchor } : { cableAssembler: plan.anchor }) } } }
+  if (plan.kind === 'transport') {
+    for (const kind of ['moduleGearFeed', 'moduleCircuitFeed', 'moduleReturn'] as const) {
+      const link = planConnection(candidate, kind)
+      if (!link) return false
+      candidate = previewConnection(candidate, link)
+    }
+    return true
+  }
   if (plan.kind === 'cables' && h.expansion.copperMiner === null && !planOreMining(candidate, 'copper')) return false
   const returns = plan.kind === 'circuits' && h.expansion.furnace !== null ? ['circuitReturn', 'cableReturn', 'copper'] as const : ['copper', 'cableReturn', 'circuitReturn'] as const
   for (const kind of ['iron', 'gearFeed', 'cableFeed', 'circuitFeed', ...returns] as const) {
@@ -339,6 +350,7 @@ export function chooseExpansion(world: World, path: PersonalityPath = 'craftsman
 }
 export function advanceExpansion(world: World, delta: number): boolean {
   const h = world.homestead!, e = h.expansion, store = materialStore(world)
+  if (advanceTransportUpgrade(world, delta)) return true
   if (advanceCraftsman(world, delta)) return true
   if (advanceIndustrial(world, delta)) return true
   if (h.task === 'mineIron' || h.task === 'mineCopper' || h.task === 'mineCoal') {
@@ -390,7 +402,7 @@ export function advanceExpansion(world: World, delta: number): boolean {
     h.target = step.tile; h.elapsedMs = Math.min(4000, h.elapsedMs + delta)
     if (h.elapsedMs === 4000 && plan.kind === 'coalFeed' && !world.research.unlocked.includes('logistics1')) world.research.unlocked.push('logistics1')
     if (h.elapsedMs !== 4000 || !placeBuilding(world, step.tile % SIZE, Math.floor(step.tile / SIZE), step.kind, step.direction)) return true
-    if (step.kind === 'assembler') changeCraftingRecipe(world, step.tile % SIZE, Math.floor(step.tile / SIZE), plan.kind === 'gears' ? 'ironGear' : plan.kind === 'briquettes' ? 'coalBriquette' : plan.kind === 'circuits' ? 'peteCircuit' : plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
+    if (step.kind === 'assembler') changeCraftingRecipe(world, step.tile % SIZE, Math.floor(step.tile / SIZE), plan.kind === 'transport' ? 'transportModule' : plan.kind === 'gears' ? 'ironGear' : plan.kind === 'briquettes' ? 'coalBriquette' : plan.kind === 'circuits' ? 'peteCircuit' : plan.kind === 'cables' ? 'copperCable' : 'woodenCrate')
     plan.built++; h.elapsedMs = 0
     if (plan.built === expansionLayout(plan).length) {
       const leftover = emptyInventory()
@@ -416,12 +428,13 @@ export function advanceExpansion(world: World, delta: number): boolean {
       else if (plan.kind === 'coalFeed') e.coalInserter = plan.anchor
       else if (plan.kind === 'briquettes') e.briquetteAssembler = plan.anchor
       else if (plan.kind === 'steamWorkshop' || plan.kind === 'steamHoist') e[plan.kind] = plan.anchor
+      else if (plan.kind === 'transport') e.transportAssembler = plan.anchor
       else if (plan.kind === 'circuits') e.circuitAssembler = plan.anchor
       else if (plan.kind === 'gears') e.gearAssembler = plan.anchor
       else e.cableAssembler = plan.anchor
       if (INDUSTRIAL_CHAINS.some(k => k === plan.kind)) leftover.coal = h.carried.coal
       h.carried = leftover
-      const reward: { path: PersonalityPath; xp: number } = { path: plan.kind === 'steam' || INDUSTRIAL_CHAINS.some(k => k === plan.kind) ? 'industrial' : plan.kind === 'gears' || plan.kind === 'iron' || plan.kind === 'ironMining' ? 'craftsman' : plan.kind === 'copper' || plan.kind === 'cables' || plan.kind === 'copperMining' || plan.kind === 'circuits' ? 'inventor' : 'eco', xp: 12 }
+      const reward: { path: PersonalityPath; xp: number } = { path: plan.kind === 'steam' || INDUSTRIAL_CHAINS.some(k => k === plan.kind) ? 'industrial' : plan.kind === 'transport' || plan.kind === 'gears' || plan.kind === 'iron' || plan.kind === 'ironMining' ? 'craftsman' : plan.kind === 'copper' || plan.kind === 'cables' || plan.kind === 'copperMining' || plan.kind === 'circuits' ? 'inventor' : 'eco', xp: 12 }
       const mineKey = plan.kind === 'ironMining' ? 'miner' : plan.kind === 'copperMining' ? 'copperMiner' : plan.kind === 'coalMining' ? 'coalMiner' : null
       if (mineKey) awardHomesteadOnce(world, `chain:${mineKey}`, reward)
       else awardActivity(world.personality, reward)
@@ -472,7 +485,7 @@ export function expansionSummary(world: World): string {
   if (h.task === 'buildChain' && e.plan) {
     const step = expansionLayout(e.plan)[e.plan.built]
     if (step && (world.buildings[step.tile] || world.water[step.tile] || miniApproach(world, step.tile) === null)) return 'Mein nächster Bauplatz oder Weg ist blockiert. Bezahltes Material und Baufortschritt bleiben erhalten.'
-    return `Ich baue ${e.plan.kind === 'forestry' ? 'Forststation und Förderband' : e.plan.kind === 'crates' ? 'den Assembler für Holzkisten' : e.plan.kind === 'gears' ? 'meinen Zahnrad-Assembler' : e.plan.kind === 'coalMining' ? 'den Kohleförderer mit Brennstofflager und Stromverbindung' : e.plan.kind === 'coalFeed' ? 'den Kesselgreifer' : e.plan.kind === 'briquettes' ? 'den Kohlestampfer' : e.plan.kind === 'steamWorkshop' ? 'meine Dampfwerkstatt' : e.plan.kind === 'steamHoist' ? 'meinen Förderaufzug' : e.plan.kind === 'steam' ? 'meinen kohlebefeuerten Dampfantrieb' : e.plan.kind === 'copperMining' ? 'Kupferförderer und Förderband zum Kupferofen' : e.plan.kind === 'ironMining' ? 'Erzförderer und Förderband zum Eisenofen' : e.plan.kind === 'copper' ? 'meinen Kupferofen' : e.plan.kind === 'circuits' ? 'den Schaltkreis-Assembler' : e.plan.kind === 'cables' ? 'den Kabel-Assembler' : 'meinen Eisenofen'} · ${e.plan.built}/${expansionLayout(e.plan).length}. Bezahltes Material bleibt erhalten.`
+    return `Ich baue ${e.plan.kind === 'transport' ? 'den Transportmodul-Assembler' : e.plan.kind === 'forestry' ? 'Forststation und Förderband' : e.plan.kind === 'crates' ? 'den Assembler für Holzkisten' : e.plan.kind === 'gears' ? 'meinen Zahnrad-Assembler' : e.plan.kind === 'coalMining' ? 'den Kohleförderer mit Brennstofflager und Stromverbindung' : e.plan.kind === 'coalFeed' ? 'den Kesselgreifer' : e.plan.kind === 'briquettes' ? 'den Kohlestampfer' : e.plan.kind === 'steamWorkshop' ? 'meine Dampfwerkstatt' : e.plan.kind === 'steamHoist' ? 'meinen Förderaufzug' : e.plan.kind === 'steam' ? 'meinen kohlebefeuerten Dampfantrieb' : e.plan.kind === 'copperMining' ? 'Kupferförderer und Förderband zum Kupferofen' : e.plan.kind === 'ironMining' ? 'Erzförderer und Förderband zum Eisenofen' : e.plan.kind === 'copper' ? 'meinen Kupferofen' : e.plan.kind === 'circuits' ? 'den Schaltkreis-Assembler' : e.plan.kind === 'cables' ? 'den Kabel-Assembler' : 'meinen Eisenofen'} · ${e.plan.built}/${expansionLayout(e.plan).length}. Bezahltes Material bleibt erhalten.`
   }
   if (h.task === 'improve' && e.improvement) return improvementSite(world, e.improvement) === null ? 'Das Gebäude für meine Verbesserung fehlt. Ich behalte das bereits abgeholte Material.' : `Ich baue: ${IMPROVEMENT_RULES[e.improvement].label}.`
   const missing = IMPROVEMENTS.find(id => e.improvements[id] === undefined && improvementSite(world, id) !== null)
@@ -496,6 +509,7 @@ export function expansionProjectStatuses(world: World): { path: PersonalityPath;
     entry('craftsman', 'Eisenofen', e.furnace !== null ? 'gebaut' : `${store?.inventory.iron ?? 0}/6 Eisenerz · Craftsman 2 · freier Bauplatz mit Stromversorgung`),
     entry('craftsman', 'Ambossübung', 'Wiederkehrend an der fertigen Werkstatt: 5 Sekunden Arbeit, 60 Sekunden Pause; ab Craftsman 3 je 5 XP. Auch das Abholen echter Eisenplatten bringt XP.'),
     entry('craftsman', 'Zahnrad-Assembler', e.gearAssembler !== null ? 'gebaut' : `${store?.inventory.ironPlate ?? 0}/8 Eisenplatten · Craftsman 3 · zuerst Erzförderer`),
+    entry('craftsman', 'Transportmodul-Ausbau', h.transportUpgrade ? 'eingebaut · bis zu 12 Waren je Lagerfahrt' : `${store?.inventory.transportModule ?? 0}/2 Transportmodule · Zahnräder und Schaltkreise automatisieren`),
     entry('craftsman', 'Lastenfahrrad', h.cargoBicycle ? 'ausgebaut · doppelte Fahrtgeschwindigkeit auf Materialrouten' : `${store?.inventory.ironPlate ?? 0}/12 Eisenplatten und ${store?.inventory.ironGear ?? 0}/6 Zahnräder · Craftsman 4 · vorhandenes Fahrrad`),
     entry('craftsman', 'Erzförderer', `${mineDeveloped(world, 'miner') ? e.miner === null ? 'gebaut · Ersatzquelle gesucht' : 'gebaut' : `${store?.inventory.ironPlate ?? 0}/8 Eisenplatten · Handwerker 3 · freie Bandstrecke mit höchstens 12 Feldern zum Eisenofen`}`),
     entry('inventor', 'Kupferofen', `${e.copperFurnace !== null ? 'gebaut' : `${store?.inventory.copper ?? 0}/6 Kupfererz · Erfinder 2 · freier Bauplatz mit Stromversorgung`}`),

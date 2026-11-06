@@ -27,13 +27,15 @@ A blocked paid production-chain build can wait while Pete does other work, then 
 
 After the first practice flight and the original copper supply lines, Pete can add a paid cable branch for the circuit assembler. He prefers a producer-return junction, with an ingredient-band bypass for crowded yards; both inputs make real circuits delivered to the store. See [interconnected circuit supply](docs/GAME_DESIGN.md#interconnected-circuit-supply).
 
+Later, gears and circuits can feed a dedicated transport-module assembler. Pete stores its output and installs two modules on the cargo bicycle, increasing warehouse hauling from six to twelve goods per trip. See [transport modules](docs/GAME_DESIGN.md#transport-modules-and-cargo-upgrade).
+
 In Pete's inspector, prioritize a whole development path and choose production or transport first; Eco also offers storage first. Early paid supply at existing buildings consumes real belt products during the build-up. See [development choices and supply](docs/GAME_DESIGN.md#early-factory-supply-and-development-choices).
 
 Each game has its own entry and menu with separate manual/autosave slots. Open the appropriate game page to load its saves; imports from the other game are rejected before replacement. JSON export/import includes the mode. Existing prototype factories and committed construction remain intact, but new worlds no longer build the eleven-step factory immediately.
 
 The existing Factory game also offers Forststation and Sägewerk. The shared chain harvests physical Wood, saws 1 Wood into 2 wood panels, then uses the ordinary assembler to make 1 wooden crate from 4 panels. Forestry replants its own harvested plots and respects five-minute tree growth. See [shared Eco production](docs/GAME_DESIGN.md#shared-eco-production-and-petes-welt).
 
-Petes Welt keeps new development costs and production within each path: Eco uses Wood, Craftsman iron, Inventor copper and Industrial coal, including their own processed goods. Pete's Inventor circuit recipe uses **1 copper plate + 3 cables**, so the flight workshop needs no iron supply. Fewer idle bouquets and gifts, less duplicate manual forestry and reliable construction access keep Pete focused on building. See [path separation and construction focus](docs/GAME_DESIGN.md#path-separation-and-construction-focus).
+Petes Welt keeps the original development costs and production within each path: Eco uses Wood, Craftsman iron, Inventor copper and Industrial coal, including their own processed goods. Pete's Inventor circuit recipe uses **1 copper plate + 3 cables**, so the flight workshop needs no iron supply. Fewer idle bouquets and gifts, less duplicate manual forestry and reliable construction access keep Pete focused on building. See [path separation and construction focus](docs/GAME_DESIGN.md#path-separation-and-construction-focus).
 
 ## Independent Pete and visible supplies
 

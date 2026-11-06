@@ -1,4 +1,4 @@
-import { cableBranchPickup } from './infrastructureRules'
+import { cableBranchPickup, moduleProducerPickup } from './infrastructureRules'
 import { fuelDeliveryAllowed } from './productionLogistics'
 import { infrastructurePickupAllowed, ownedStorePickup } from './infrastructure'
 import { forestryOutput } from './forestryStation'
@@ -42,7 +42,7 @@ function sourceCount(source: Building, inserter: Inserter, item: Item, requireRe
     case 'forester': return source.direction === inserter.direction && item === 'wood' ? forestryOutput(source, world) : 0
     case 'sawmill':
     case 'furnace':
-    case 'assembler': return source.direction === inserter.direction ? source.output[item] : 0
+    case 'assembler': return source.direction === inserter.direction || source.kind === 'assembler' && !!world && moduleProducerPickup(world, inserter.y * SIZE + inserter.x, source.y * SIZE + source.x) ? source.output[item] : 0
     default: return 0
   }
 }

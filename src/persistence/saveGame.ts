@@ -48,7 +48,7 @@ import type { Direction, Prison, World } from '../simulation/world'
 import * as v from './validation'
 
 export const SAVE_FORMAT = 'mini-factorio-save'
-export const SAVE_VERSION = 60
+export const SAVE_VERSION = 61
 export const MAX_SAVE_BYTES = 2 * 1024 * 1024
 export interface ViewState { scrollX: number; scrollY: number; zoom: number; direction: Direction; powerOverlay: boolean }
 export interface LoadedGame { world: World; view: ViewState; savedAt: string }
@@ -216,6 +216,22 @@ export function decodeSave(text: string): LoadedGame {
   if (root.format !== SAVE_FORMAT) throw new Error('This is not a Mini-Factorio save file.')
   if (typeof root.version !== 'number' || !Number.isInteger(root.version) || root.version < 1 || root.version > SAVE_VERSION) throw new Error(`Unsupported save version ${String(root.version)}. This game supports versions 1–${SAVE_VERSION}.`)
   const version = root.version
+  if (version < 61) {
+    const upgradeTransport = (value: unknown, depth = 0): void => {
+      if (depth > 64) v.invalid('game', 'save nesting exceeds limit')
+      if (value === 'transportModule') v.invalid('transportModule', 'transport modules require save version 61')
+      if (!value || typeof value !== 'object') return
+      if (!Array.isArray(value)) {
+        const record = value as Record<string, unknown>
+        if (Object.hasOwn(record, 'iron') && Object.hasOwn(record, 'ironPlate') && Object.hasOwn(record, 'electronicCircuit')) {
+          if (record.transportModule !== undefined && record.transportModule !== 0) v.invalid('transportModule', 'legacy inventory cannot contain transport modules')
+          record.transportModule = 0
+        }
+      }
+      Object.values(value).forEach(item => upgradeTransport(item, depth + 1))
+    }
+    upgradeTransport(root.game)
+  }
   if (version < 47) {
     const upgradeBriquettes = (value: unknown, depth = 0): void => {
       if (depth > 64) v.invalid('game', 'save nesting exceeds limit')
@@ -331,6 +347,7 @@ export function decodeSave(text: string): LoadedGame {
   if (world.miniFactory && version >= 40 && data.homestead === undefined) v.invalid('homestead', 'missing Petes Welt routine')
   if (data.warehousing !== undefined) world.warehousing = restoreWarehousing(data.warehousing, world, version)
   if (data.homestead !== undefined) world.homestead = restoreHomestead(data.homestead, world, version)
+  if (world.buildings.some((b, at) => b?.kind === 'assembler' && b.recipeId === 'transportModule' && world.homestead?.expansion.transportAssembler !== at)) v.invalid('recipe', 'transport module requires its owned assembler')
   if (world.buildings.some((b, at) => b?.kind === 'assembler' && b.recipeId === 'peteCircuit' && world.homestead?.expansion.circuitAssembler !== at)) v.invalid('recipe', 'Inventor circuit requires its owned assembler')
   if (!world.homestead && world.buildings.some(b => b?.kind === 'petePavilion')) v.invalid('pavilion', 'requires an owned homestead')
   validateSupplyVisit(world)
