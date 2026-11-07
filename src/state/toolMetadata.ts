@@ -1,11 +1,13 @@
 import type { NatureTool } from './natureTools'
 import type { BuildingKind } from '../simulation/world'
 export type BuildTab = 'factory' | 'logistics' | 'power' | 'nature' | 'pete'
-export type ToolKind = Exclude<BuildingKind, 'peteDevelopment' | 'peteTreasure' | 'peteFlightpad' | 'prison' | 'tree' | 'peteFence' | 'peteCoop' | 'peteCampfire' | 'peteGate'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam' | 'playfulSpray' | 'clearResource'
+export type ToolKind = Exclude<BuildingKind, 'peteDevelopment' | 'peteTreasure' | 'peteFlightpad' | 'prison' | 'tree' | 'peteFence' | 'peteCoop' | 'peteCampfire' | 'peteGate'> | NatureTool | 'remove' | 'spiderWeb' | 'flySwatter' | 'drill' | 'lightningBeam' | 'playfulSpray' | 'clearResource' | 'petePee' | 'petePoop'
 export type Tool = ToolKind | null
 export interface ToolMetadata { tool: ToolKind; label: string; hint: string; key: string; icon: string; code?: string; tab: BuildTab }
 export const BUILD_TABS: readonly { id: BuildTab; label: string; icon: string }[] = [{ id: 'factory', label: 'Factory', icon: '⚙' }, { id: 'logistics', label: 'Logistics', icon: '➜' }, { id: 'power', label: 'Power', icon: 'ϟ' }, { id: 'nature', label: 'Nature', icon: '♣' }, { id: 'pete', label: 'Special', icon: '✳' }]
 export const PLAYER_TOOLS: readonly ToolMetadata[] = [
+  { tool: 'petePee', label: 'Pipi machen', hint: 'Landfeld oder Baum wählen · nach der aktuellen Arbeit', key: 'Click', icon: '💧', tab: 'pete' },
+  { tool: 'petePoop', label: 'Kacka machen', hint: 'Landfeld oder Baum wählen · nach der aktuellen Arbeit', key: 'Click', icon: '💩', tab: 'pete' },
   { tool: 'clearResource', label: 'Ressource entfernen', hint: 'Ein Feld: Baum und Erz entfernen · kein Ertrag · gelagerte Vorräte bleiben', key: 'Click', icon: '◇', tab: 'nature' },
   { tool: 'forester', label: 'Forststation', hint: 'Mature trees within 3 tiles → Wood · 30 kW · replants harvested plots', key: 'Click', icon: '♠', tab: 'factory' },
   { tool: 'sawmill', label: 'Sägewerk', hint: '1 Wood → 2 wood panels · 40 kW', key: 'Click', icon: '▥', tab: 'factory' },
@@ -49,6 +51,6 @@ export const PLAYER_TOOLS: readonly ToolMetadata[] = [
   { tool: 'restoreLand', label: 'Restore Land', hint: 'Free · drag to remove water · bridges stay protected', key: 'Drag', icon: '▱', tab: 'nature' },
   { tool: 'remove', label: 'Remove building', hint: 'Discards contained resources', key: 'X', icon: '×', code: 'KeyX', tab: 'pete' },
 ]
-export const PETES_WORLD_TOOLS: readonly ToolKind[] = ['placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource', 'remove', 'createWater', 'restoreLand']
+export const PETES_WORLD_TOOLS: readonly ToolKind[] = ['petePee', 'petePoop', 'placeGrove', 'placeIron', 'placeCopper', 'placeCoal', 'clearResource', 'remove', 'createWater', 'restoreLand']
 export const TOOL_HOTKEYS: Readonly<Record<string, ToolKind>> = Object.fromEntries(PLAYER_TOOLS.filter(tool => tool.code).map(tool => [tool.code, tool.tool]))
 export function toolMetadata(tool: ToolKind): ToolMetadata { return PLAYER_TOOLS.find(metadata => metadata.tool === tool)! }

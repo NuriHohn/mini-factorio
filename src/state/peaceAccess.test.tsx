@@ -60,3 +60,18 @@ it('keeps construction details out of the HUD without replacing normal messages'
   useGameStore.getState().publish(createBareWorld(() => .5))
   expect(renderToStaticMarkup(<RevengeHUD />)).not.toContain('No safe site')
 })
+
+it('offers toilet targeting buttons in Petes Welt and cancels them with Escape or a tool switch', () => {
+  useGameStore.setState({ playMode: 'petesWorld', tool: null, buildTab: 'nature' })
+  const html = renderToStaticMarkup(<BuildToolbar />)
+  expect(html).toContain('data-tool="petePee"')
+  expect(html).toContain('data-tool="petePoop"')
+  const store = useGameStore.getState()
+  store.select('petePee')
+  expect(useGameStore.getState()).toMatchObject({ tool: 'petePee', inspected: null })
+  expect(useGameStore.getState().message).toContain('Landfeld oder Baum')
+  store.handleToolKey({ code: 'Escape', repeat: false })
+  expect(useGameStore.getState().tool).toBeNull()
+  store.select('petePoop'); store.select('placeGrove')
+  expect(useGameStore.getState().tool).toBe('placeGrove')
+})

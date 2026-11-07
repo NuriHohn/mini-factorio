@@ -28,6 +28,7 @@ export function PeteInspection({ status }: { status: PeteStatus }) {
         <details><summary>Transport und nächster Schritt</summary><p>{t(status.intent)}</p><p>🎒 {t(status.carrying)}</p>{priority && <p>{t(priority.reason)}</p>}<p>{t(status.yard)}</p></details>
       </section>
       <button className="save-action" aria-pressed={petePathVisible} onClick={() => useGameStore.setState({ petePathVisible: !petePathVisible })}>{petePathVisible ? 'Route ausblenden' : '👣 Route zeigen'}</button>
+      <div role="group" aria-label="Toilettengang"><button className="save-action" onClick={() => useGameStore.getState().select('petePee')}>💧 Pipi machen</button><button className="save-action" onClick={() => useGameStore.getState().select('petePoop')}>💩 Kacka machen</button></div>
       <section aria-label="Nächste Entwicklung"><h3>Entwicklungspfade</h3>
       {PERSONALITY_PATHS.map(path => {
         const projects = status.projects.filter(p => p.path === path)

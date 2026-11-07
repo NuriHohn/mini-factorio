@@ -32,10 +32,11 @@ export const GIFT_MIN_MS = 900000
 export const GIFT_MAX_MS = 1500000
 export const PROJECT_CHECK_MS = 5000
 export const MAX_GIFTS = 3
-export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest', 'experimentward', 'experimenting', 'pressward', 'pressing', 'coverward', 'covering', 'uncoverward', 'uncovering', 'treasureward', 'pickingTreasure', 'treasureHomeward', 'storingTreasure', 'flightward', 'flying', 'crashRest', 'developmentward', 'developmentWork', 'cycling', 'dismounting'] as const
+export const PEACE_ACTIVITIES = ['homeward', 'entering', 'resting', 'walking', 'waving', 'flowers', 'dockward', 'fishing', 'boating', 'crateward', 'checkingCrate', 'project', 'eggward', 'collectingEgg', 'campfireward', 'cooking', 'campfireHappy', 'gardenward', 'gardening', 'workshopward', 'hammering', 'verandaRest', 'experimentward', 'experimenting', 'pressward', 'pressing', 'coverward', 'covering', 'uncoverward', 'uncovering', 'treasureward', 'pickingTreasure', 'treasureHomeward', 'storingTreasure', 'flightward', 'flying', 'crashRest', 'developmentward', 'developmentWork', 'cycling', 'dismounting', 'toiletward', 'peeing', 'pooping'] as const
 export type PeaceActivity = typeof PEACE_ACTIVITIES[number]
 export interface Gift { id: number; tile: number; kind: 'wood' | 'flowers'; wood: number; atMs: number }
 export interface PeaceState {
+  toilet?: { kind: 'pee' | 'poop'; spot: number; dock: number | null; phase: 'pending' | 'walking' | 'working' | 'returning' }
   home: number | null
   boat?: RowboatTrip
   activity: PeaceActivity
@@ -79,6 +80,30 @@ function activity(world: World, name: PeaceActivity, duration = 0, destination: 
   if (water?.dock && dock && water.dock.tile === dock.y * SIZE + dock.x) water.nextVisitAtMs = world.timeMs + 300000
   world.pete.path = []; world.pete.pathRevision = -1
 }
+export const TOILET_MS = 3000
+function toiletSpot(world: World, target?: number): number | null {
+  const parents = reachableTiles(world, world.pete.tile)
+  const valid = (i: number) => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i)
+  const candidates = target === undefined ? [...parents.keys()].filter(valid) : world.buildings[target]?.kind === 'tree' ? neighboringTiles(target).filter(valid) : valid(target) ? [target] : []
+  return candidates.sort((a, b) => Number(neighboringTiles(b).some(i => world.buildings[i]?.kind === 'tree')) - Number(neighboringTiles(a).some(i => world.buildings[i]?.kind === 'tree')) || (tilePath(parents, a)?.length ?? Infinity) - (tilePath(parents, b)?.length ?? Infinity) || a - b)[0] ?? null
+}
+export function requestToilet(world: World, target: number, kind: 'pee' | 'poop'): string | null {
+  if (!peaceful(world)) return 'Pete braucht zuerst ein Zuhause.'
+  if (world.peace.toilet) return 'Pete hat schon einen Toilettengang vor.'
+  if (!Number.isInteger(target) || target < 0 || target >= SIZE * SIZE) return 'Wähle ein erreichbares Landfeld oder einen Baum.'
+  const spot = toiletSpot(world, target)
+  if (spot === null) return 'Dieses Feld ist belegt oder nicht erreichbar.'
+  world.peace.toilet = { kind, spot, dock: null, phase: 'pending' }
+  return null
+}
+function beginToilet(world: World): boolean {
+  const t = world.peace.toilet
+  if (!t || t.phase !== 'pending' || world.homestead?.task || world.rebuilding?.active != null || world.miniFactory && world.miniFactory.anchor !== null && world.miniFactory.built < 11 || world.warehousing?.job || world.warehousing?.move || world.warehousing?.resite || currentProject(world)?.carried || currentProject(world)?.phase === 'building' || world.leisure?.carried || world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling) return false
+  if (toiletSpot(world, t.spot) === null) { delete world.peace.toilet; return false }
+  t.phase = 'walking'
+  activity(world, 'toiletward', 0, t.spot)
+  return true
+}
 export function beginPeace(world: World, home: number): void {
   if (peaceful(world) || world.buildings[home]?.kind !== 'treehouse') return
   const r = world.revenge
@@ -99,6 +124,7 @@ export function beginPeace(world: World, home: number): void {
 export function endPeace(world: World): void {
   if (!peaceful(world)) return
   delete world.peace.boat
+  delete world.peace.toilet
   Object.assign(world.peace, { home: null, gifts: [], nextProjectCheckAtMs: 0, nextGiftAtMs: 0, shutdown: null, reactionAtMs: world.timeMs })
   resetPete(world)
   activity(world, 'homeward')
@@ -112,7 +138,11 @@ function plan(world: World): void {
   const p = world.pete, s = world.peace, parents = reachableTiles(world, p.tile)
   const local = localTiles(world, parents)
   const entrances = neighboringTiles(s.home!).filter(i => parents.has(i) && !world.water[i] && !world.buildings[i] && !reserved(world, i))
-  if (s.activity === 'developmentward' || s.activity === 'cycling') {
+  if (s.activity === 'toiletward') {
+    const t = s.toilet
+    if (!t || toiletSpot(world, t.spot) === null) { delete s.toilet; activity(world, 'homeward'); plan(world); return }
+    s.destination = t.spot
+  } else if (s.activity === 'developmentward' || s.activity === 'cycling') {
     const target = world.developmentLife?.target
     if (target === null || target === undefined || !parents.has(target)) { if (world.developmentLife) { world.developmentLife.task = null; world.developmentLife.target = null; world.developmentLife.plant = null } activity(world, 'homeward'); plan(world); return }
     s.destination = target
@@ -139,7 +169,7 @@ function plan(world: World): void {
   } else if (s.activity === 'crateward') {
     if (!crateAtSpot(world, s.destination) || !parents.has(s.destination!)) { activity(world, 'homeward'); plan(world); return }
   } else if (s.activity === 'dockward') {
-    if (!dockAtSpot(world, s.destination) || !parents.has(s.destination!)) { activity(world, 'homeward'); plan(world); return }
+    if (!dockAtSpot(world, s.destination) || !parents.has(s.destination!)) { delete s.toilet; activity(world, 'homeward'); plan(world); return }
   } else if (s.activity === 'homeward') {
     const candidates = entrances.length ? entrances : local.length ? local : [p.tile]
     s.destination = candidates.sort((a, b) => (tilePath(parents, a)?.length ?? Infinity) - (tilePath(parents, b)?.length ?? Infinity) || a - b)[0]
@@ -156,7 +186,8 @@ function move(world: World, delta: number): void {
       p.next = p.path.shift() ?? null
       if (p.next === null) {
         const leisure = beginDevelopmentWork(world) ?? beginLeisureWork(world)
-        if (leisure) activity(world, leisure.activity, leisure.duration, leisure.activity === 'flying' ? null : world.peace.destination)
+        if (world.peace.activity === 'toiletward' && world.peace.toilet) { world.peace.toilet.phase = 'working'; activity(world, world.peace.toilet.kind === 'pee' ? 'peeing' : 'pooping', TOILET_MS, world.peace.toilet.spot) }
+        else if (leisure) activity(world, leisure.activity, leisure.duration, leisure.activity === 'flying' ? null : world.peace.destination)
         else if (world.peace.activity === 'coverward' || world.peace.activity === 'uncoverward') activity(world, world.peace.activity === 'coverward' ? 'covering' : 'uncovering', COVER_MS, world.peace.destination)
         else if (world.peace.activity === 'pressward') activity(world, 'pressing', PRESS_ACTIVITY_MS, world.peace.destination)
         else if (world.peace.activity === 'experimentward') activity(world, 'experimenting', EXPERIMENT_ACTIVITY_MS, world.peace.destination)
@@ -168,12 +199,20 @@ function move(world: World, delta: number): void {
         else if (world.peace.activity === 'dockward') {
           const dock = dockAtSpot(world, world.peace.destination), boat = dock ? planRowboat(world, dock) : null
           const water = world.homestead?.waterworks, owned = dock && water?.dock?.tile === dock.y * SIZE + dock.x ? water : undefined
-          if (boat && (owned ? owned.preferBoat : random(world) < 1 / 3)) {
+          if (world.peace.toilet?.phase === 'returning') {
+            delete world.peace.toilet
+            activity(world, 'fishing', FISHING_MS, world.peace.destination)
+          } else if (boat && (owned ? owned.preferBoat : random(world) < 1 / 3)) {
             if (owned) owned.preferBoat = false
             world.peace.boat = boat; activity(world, 'boating', BOARDING_MS, world.peace.destination)
           } else {
             if (owned) owned.preferBoat = true
-            activity(world, 'fishing', FISHING_MS, world.peace.destination)
+            const pending = world.peace.toilet
+            const spot = pending?.phase === 'pending' ? pending.spot : toiletSpot(world)
+            if (spot !== null) {
+              world.peace.toilet = { kind: pending?.kind ?? (world.peace.seed % 2 ? 'pee' : 'poop'), spot, dock: world.peace.destination, phase: 'pending' }
+              beginToilet(world)
+            } else activity(world, 'homeward')
           }
         }
         else if (world.peace.activity === 'homeward') {
@@ -223,12 +262,22 @@ export function collectGift(world: World, tile: number): string | null {
   return 'A bouquet from Pete! Flowers planted with love.'
 }
 export function refreshFishing(world: World, previousDock?: FishingDock | null): void {
+  const t = world.peace.toilet
+  if (t && (world.water[t.spot] || world.buildings[t.spot] || reserved(world, t.spot) || t.dock !== null && !dockAtSpot(world, t.dock))) {
+    delete world.peace.toilet
+    if (t.phase !== 'pending') {
+      const p = world.pete
+      Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
+      activity(world, 'homeward')
+    }
+  }
   if (!['dockward', 'fishing', 'boating'].includes(world.peace.activity)) return
   const dock = dockAtSpot(world, world.peace.destination)
   if (dock && (!previousDock || previousDock === dock) && (!world.peace.boat || rowboatValid(world, world.peace.boat, dock))) return
   const p = world.pete
   Object.assign(p, { next: null, travelMs: 0, x: p.tile % SIZE, y: Math.floor(p.tile / SIZE) })
   delete world.peace.boat
+  delete world.peace.toilet
   activity(world, 'homeward')
 }
 export function refreshSupplyVisit(world: World): void {
@@ -256,6 +305,7 @@ function homesteadDaily(world: World): boolean {
 function nextActivity(world: World): void {
   if (world.developmentLife?.carriedFruit || world.developmentLife?.carriedWood || world.developmentLife?.carriedSapling) { const visit = developmentDecision(world); if (visit) { activity(world, visit.activity, 0, visit.destination); return } }
   if (world.leisure?.carried) { const visit = leisureDecision(world); if (visit) { activity(world, visit.activity, 0, visit.destination); return } }
+  if (beginToilet(world)) return
   const committed = currentProject(world)
   if (world.homestead && !world.yard && world.gardenProject?.phase === 'complete' && world.campfireProject?.phase === 'complete') {
     const yard = planYard(world)
@@ -306,11 +356,12 @@ function nextActivity(world: World): void {
   }
 }
 export function advancePeace(world: World, delta: number): void {
+  if (world.peace.toilet?.phase === 'pending' && world.pete.next === null && ['walking', 'waving', 'flowers'].includes(world.peace.activity) ) beginToilet(world)
   if ((world.rebuilding || world.homestead) && peaceful(world) && world.timeMs >= world.peace.nextGiftAtMs) {
     if (world.buildings[world.peace.home!]?.kind === 'treehouse') spawnGift(world)
     scheduleGift(world)
   }
-  if (world.miniFactory) {
+  if (world.miniFactory && (!world.peace.toilet || world.peace.toilet.phase === 'pending')) {
     world.homestead ??= createHomestead()
     if (world.miniFactory.anchor !== null && world.miniFactory.built < 11) { advanceMiniFactory(world, delta); return }
     if (advanceRebuilding(world, delta)) return
@@ -365,11 +416,15 @@ export function advancePeace(world: World, delta: number): void {
       if (boat.phase === 'boarding') { boat.phase = 'rowing'; activity(world, 'boating', 0, s.destination) }
       else { delete s.boat; nextActivity(world) }
     }
-  } else if (s.activity === 'developmentward' || s.activity === 'cycling' || s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward' || s.activity === 'workshopward' || s.activity === 'experimentward' || s.activity === 'pressward' || s.activity === 'coverward' || s.activity === 'uncoverward' || s.activity === 'treasureward' || s.activity === 'treasureHomeward' || s.activity === 'flightward') {
+  } else if (s.activity === 'toiletward' || s.activity === 'developmentward' || s.activity === 'cycling' || s.activity === 'homeward' || s.activity === 'walking' || s.activity === 'dockward' || s.activity === 'crateward' || s.activity === 'eggward' || s.activity === 'campfireward' || s.activity === 'gardenward' || s.activity === 'workshopward' || s.activity === 'experimentward' || s.activity === 'pressward' || s.activity === 'coverward' || s.activity === 'uncoverward' || s.activity === 'treasureward' || s.activity === 'treasureHomeward' || s.activity === 'flightward') {
     if (p.next !== null && (!walkableTile(world, p.next))) { p.next = null; p.travelMs = 0; p.x = p.tile % SIZE; p.y = Math.floor(p.tile / SIZE); p.pathRevision = -1 }
     move(world, delta)
   } else if (world.timeMs >= s.untilMs) {
-    if (s.activity === 'developmentWork' || s.activity === 'dismounting') {
+    if (s.activity === 'peeing' || s.activity === 'pooping') {
+      const t = s.toilet
+      if (t && t.dock !== null && dockAtSpot(world, t.dock)) { t.phase = 'returning'; activity(world, 'dockward', 0, t.dock) }
+      else { delete s.toilet; nextActivity(world) }
+    } else if (s.activity === 'developmentWork' || s.activity === 'dismounting') {
       if (!finishDevelopment(world)) nextActivity(world)
     } else if (['pickingTreasure', 'storingTreasure', 'flying', 'crashRest'].includes(s.activity)) {
       const next = finishLeisure(world)

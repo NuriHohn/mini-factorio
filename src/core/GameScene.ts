@@ -1,3 +1,4 @@
+import { requestToilet } from '../simulation/peace'
 import { DEPOSIT_CAPACITY, oreRemaining } from '../simulation/deposits'
 import { peteText } from '../pete/text'
 import { drawFuelDepot, drawSteamWork } from '../game/steamVisuals'
@@ -246,6 +247,7 @@ export class GameScene extends Phaser.Scene {
       if (this.rightPan.active) return
       if (!pointer.leftButtonDown()) return
       const selected = useGameStore.getState().tool
+      if (selected === 'petePee' || selected === 'petePoop') { this.toiletAt(landscapeTile(pointer, this.cameras.main, TILE), selected); return }
       if (selected === 'clearResource') { const tile = landscapeTile(pointer, this.cameras.main, TILE); useGameStore.setState({ message: clearResource(this.world, tile.x, tile.y) ?? 'Ressource entfernt · kein Ertrag, gelagerte Vorräte bleiben.' }); return }
       if (selected === 'playfulSpray') {
         this.sprayAt(combatPosition(pointer, this.cameras.main, TILE))
@@ -310,7 +312,7 @@ export class GameScene extends Phaser.Scene {
       const x = Math.floor(p.x / TILE), y = Math.floor(p.y / TILE)
       const { tool, direction } = useGameStore.getState()
       if (this.world.miniFactory && tool && tool !== 'axe' && !PETES_WORLD_TOOLS.includes(tool)) return
-      if (tool === 'clearResource' || tool === 'spiderWeb' || tool === 'playfulSpray' || combatTool(tool) || natureTool(tool)) return
+      if (tool === 'petePee' || tool === 'petePoop' || tool === 'clearResource' || tool === 'spiderWeb' || tool === 'playfulSpray' || combatTool(tool) || natureTool(tool)) return
       if (!tool) {
         if (peteHit(this.world, { x: p.x / TILE - .5, y: p.y / TILE - .5 })) { useGameStore.getState().inspectPete(this.world); return }
         const gift = collectGift(this.world, y * SIZE + x)
@@ -371,12 +373,18 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerupoutside', () => { this.rightPan.cancel(); this.landscapeStroke.end(); if (!useGameStore.getState().touchPlacement) this.cancelConstruction() })
     this.input.on('gameout', () => { this.landscapeStroke.end(); if (!useGameStore.getState().touchPlacement) this.cancelConstruction() })
   }
+  private toiletAt(tile: { x: number; y: number }, tool: 'petePee' | 'petePoop') {
+    const error = tile.x < 0 || tile.y < 0 || tile.x >= SIZE || tile.y >= SIZE ? 'Wähle ein Feld auf der Karte.' : requestToilet(this.world, tile.y * SIZE + tile.x, tool === 'petePee' ? 'pee' : 'poop')
+    if (!error) useGameStore.getState().select(null)
+    useGameStore.setState({ message: error ?? 'Pete geht nach seiner aktuellen Arbeit zum gewählten Toilettenplatz.' })
+  }
   private touchTap(point: { x: number; y: number }) {
     const state = useGameStore.getState()
     if (worldInputBlocked(state)) return
     const worldPoint = this.cameras.main.getWorldPoint(point.x, point.y), tile = { x: Math.floor(worldPoint.x / TILE), y: Math.floor(worldPoint.y / TILE) }
     const position = { x: worldPoint.x / TILE - .5, y: worldPoint.y / TILE - .5 }
     if (state.touchPlacement?.contextual && buildingAt(this.world, tile.x, tile.y)?.kind !== 'tree') { state.select(null); this.touchTap(point); return }
+    if (state.tool === 'petePee' || state.tool === 'petePoop') { this.toiletAt(tile, state.tool); return }
     if (state.tool === 'playfulSpray') { this.sprayAt(position); return }
     if (state.tool === 'spiderWeb') { state.useWebTool(this.world, position); return }
     if (combatTool(state.tool)) { const impact = this.runtime.features?.attack(this.world, state.tool, position); if (impact) this.runtime.features?.impact(impact, this.world); return }
@@ -417,7 +425,8 @@ export class GameScene extends Phaser.Scene {
       else if (tool === 'placeGrove') error = placeGrove(this.world, end.x, end.y)
       else if (species) { if (!plantTree(this.world, end.x, end.y, species)) error = 'This planting site is blocked.' }
       else { const result = chopTree(this.world, end.x, end.y); if (result) this.natureVisuals.fell(this.world, result.tree); else error = 'Choose a tree.' }
-    } else if (tool === 'clearResource') error = clearResource(this.world, end.x, end.y)
+    } else if (tool === 'petePee' || tool === 'petePoop') { this.toiletAt(end, tool); return }
+    else if (tool === 'clearResource') error = clearResource(this.world, end.x, end.y)
     else if (tool === 'remove') { error = removalError(this.world, end.x, end.y); if (!error) removeBuilding(this.world, end.x, end.y) }
     else if (tool !== 'spiderWeb' && tool !== 'playfulSpray' && !combatTool(tool)) {
       error = placementError(this.world, end.x, end.y, tool, state.direction)
@@ -1065,6 +1074,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.poleLinks.setVisible(!worldInputBlocked(state) && state.tool === 'powerPole' && this.input.isOver)
     const pointer = this.input.activePointer
+    if (state.tool === 'petePee' || state.tool === 'petePoop') { if (this.input.isOver) { const tile = landscapeTile(this.input.activePointer, camera, TILE); this.preview.lineStyle(2, 0x91dd60).strokeRect(tile.x * TILE, tile.y * TILE, TILE, TILE); this.placementTooltip(this.input.activePointer, 'Landfeld oder Baum wählen · Escape beendet') }; return }
     if (state.tool === 'clearResource') { if (this.input.isOver) { const tile = landscapeTile(this.input.activePointer, camera, TILE); this.preview.lineStyle(2, 0xef9b72).strokeRect(tile.x * TILE, tile.y * TILE, TILE, TILE); this.placementTooltip(this.input.activePointer, 'Ein Ressourcenfeld entfernen · kein Ertrag · Vorräte bleiben') }; return }
     const touchWater = state.touchActive && (state.tool === 'createWater' || state.tool === 'restoreLand')
     if (touchWater && !touchTarget) return
