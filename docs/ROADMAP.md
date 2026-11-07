@@ -613,3 +613,8 @@ Implemented: paid cable branches from producer returns or downstream-only ingred
 ## Sprint 16.134 — useful assembled transport product
 
 Implemented: an ordinary powered two-input transport-module assembler, paid side-fed gear/circuit conveyors and module return, actual stored output, a two-module cargo upgrade with twelve-unit warehouse hauling, existing resite/recovery integration and Save 61. [Game design](GAME_DESIGN.md#transport-modules-and-cargo-upgrade) owns eligibility, invoices, recipe, benefit and bounds; [Architecture](ARCHITECTURE.md#cross-chain-transport-modules-save-61) owns state, arbitration and migration. Wider networks, wider outer expansion and player zones remain proposals.
+
+
+## Toilet visits before fishing
+
+Implemented: a three-second Pipi/Kacka break before each new fishing pause, reachable tree-side preference with open-ground fallback, player-selected land/tree targets through inspector/tool buttons, safe queued commands and Save 62 continuation. [Game design](GAME_DESIGN.md#toilet-before-fishing) owns mechanics; [Architecture](ARCHITECTURE.md#toilet-visits-and-fishing-continuation-save-62) owns state, input and validation.

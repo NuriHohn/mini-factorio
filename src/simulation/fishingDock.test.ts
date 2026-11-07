@@ -7,7 +7,7 @@ import { paintWater } from './waterLandscaping'
 import { placementInfo } from './construction'
 import { decodeSave, encodeSave } from '../persistence/saveGame'
 import { inspectBuilding } from './inspection'
-import { createPeace } from './peace'
+import { createPeace, requestToilet, TOILET_MS } from './peace'
 import { recordArrest } from '../factory/revengeSystem'
 const view = { scrollX: 0, scrollY: 0, zoom: 1.3, direction: 'east' as const, powerOverlay: false }
 const snapshot = (w: ReturnType<typeof fixture>) => JSON.parse(encodeSave(w, view, '2026-10-21T00:00:00.000Z'))
@@ -160,4 +160,128 @@ it('cancels the chosen dock when two docks share an approach instead of switchin
   expect(w.peace.activity).toBe('homeward')
   expect(reachableFishingSpot(w)).toBe(939)
   expect(() => encodeSave(w, view)).not.toThrow()
+})
+
+it('always uses a reachable tree-side toilet before fishing and walks back to the dock', () => {
+  const w = fixture()
+  w.buildings[937] = { kind: 'tree', x: 17, y: 23, species: 'oak', origin: 'natural', bornAtMs: 0, nextReproductionAtMs: 300000 }
+  w.topologyRevision++
+  advanceWorld(w, 12000)
+  for (let i = 0; i < 400 && w.peace.activity !== 'toiletward'; i++) advanceWorld(w, 50)
+  expect(w.peace.activity).toBe('toiletward')
+  expect(w.peace.toilet?.dock).toBe(939)
+  expect([897, 938, 977, 936]).toContain(w.peace.toilet?.spot)
+  for (let i = 0; i < 400 && w.peace.toilet?.phase !== 'working'; i++) advanceWorld(w, 50)
+  expect(['peeing', 'pooping']).toContain(w.peace.activity)
+  expect(w.pete.tile).toBe(w.peace.toilet?.spot)
+  advanceWorld(w, TOILET_MS - 50)
+  expect(w.peace.toilet?.phase).toBe('working')
+  advanceWorld(w, 50)
+  expect(w.peace.toilet?.phase).toBe('returning')
+  for (let i = 0; i < 400 && w.peace.activity !== 'fishing'; i++) advanceWorld(w, 50)
+  expect(w.peace.activity).toBe('fishing')
+  expect(w.pete.tile).toBe(939)
+  expect(w.peace.toilet).toBeUndefined()
+})
+it.each(['pee', 'poop'] as const)('accepts a selected tile for %s, waits for fishing, and resumes deterministically through saves', kind => {
+  const w = startFishing()
+  expect(requestToilet(w, 899, kind)).toBeNull()
+  expect(w.peace.activity).toBe('fishing')
+  expect(requestToilet(w, 939, kind)).toContain('schon')
+  const phases = new Set<string>()
+  for (let i = 0; i < 800; i++) {
+    const phase = w.peace.toilet?.phase
+    if (phase && !phases.has(phase)) {
+      phases.add(phase)
+      const restored = decodeSave(encodeSave(w, view)).world
+      advanceWorld(w, 62.5); advanceWorld(restored, 62.5)
+      expect(snapshot(restored)).toEqual(snapshot(w))
+    }
+    advanceWorld(w, 50)
+    if (!w.peace.toilet) break
+  }
+  expect([...phases]).toEqual(['pending', 'walking', 'working'])
+  expect(w.peace.toilet).toBeUndefined()
+  expect(w.pete.tile).toBe(899)
+})
+it('rejects water, occupied and unreachable targets without changing state, and cancels a lost home', () => {
+  const w = fixture(), before = snapshot(w)
+  for (const tile of [-1, 1600, 1.5, 940, 941]) expect(requestToilet(w, tile, 'pee')).not.toBeNull()
+  expect(snapshot(w)).toEqual(before)
+  expect(requestToilet(w, 899, 'poop')).toBeNull()
+  removeBuilding(w, 18, 23)
+  expect(w.peace.toilet).toBeUndefined()
+  expect(requestToilet(w, 899, 'pee')).not.toBeNull()
+})
+it('saves every automatic toilet phase, rejects corrupt state and keeps version 61 strict', () => {
+  const w = fixture()
+  advanceWorld(w, 12000)
+  const phases = new Set<string>()
+  for (let i = 0; i < 400 && w.peace.activity !== 'fishing'; i++) {
+    const phase = w.peace.toilet?.phase
+    if (phase && !phases.has(phase)) {
+      phases.add(phase)
+      const restored = decodeSave(encodeSave(w, view)).world
+      advanceWorld(w, 12.5); advanceWorld(restored, 12.5)
+      expect(snapshot(restored)).toEqual(snapshot(w))
+      const bad = snapshot(w); bad.game.peace.toilet.kind = 'invalid'
+      expect(() => decodeSave(JSON.stringify(bad))).toThrow()
+      const legacy = snapshot(w); legacy.version = 61
+      expect(() => decodeSave(JSON.stringify(legacy))).toThrow()
+    }
+    advanceWorld(w, 50)
+  }
+  expect([...phases]).toEqual(['walking', 'working', 'returning'])
+  const legacy = snapshot(fixture()); legacy.version = 61
+  expect(decodeSave(JSON.stringify(legacy)).world.peace.toilet).toBeUndefined()
+})
+it('cancels a toilet detour if its fishing dock disappears', () => {
+  const w = fixture(); advanceWorld(w, 12000)
+  for (let i = 0; i < 400 && !w.peace.toilet; i++) advanceWorld(w, 50)
+  expect(w.peace.toilet).toBeDefined()
+  removeBuilding(w, 20, 23)
+  expect(w.peace.toilet).toBeUndefined()
+  expect(w.peace.activity).toBe('homeward')
+  expect(() => decodeSave(encodeSave(w, view))).not.toThrow()
+})
+
+it('finishes sleep before a manual toilet visit and preserves fixed-step partitioning', () => {
+  const a = fixture(), b = fixture()
+  for (const w of [a, b]) expect(requestToilet(w, 899, 'pee')).toBeNull()
+  advanceWorld(a, 1000)
+  for (let i = 0; i < 20; i++) advanceWorld(b, 50)
+  expect(a.peace.activity).toBe('resting')
+  expect(snapshot(a)).toEqual(snapshot(b))
+  advanceWorld(a, 22000)
+  for (let i = 0; i < 440; i++) advanceWorld(b, 50)
+  expect(snapshot(a)).toEqual(snapshot(b))
+  expect(a.peace.toilet).toBeUndefined()
+})
+
+it('keeps a manual request pending while Pete has committed repair work', () => {
+  const w = fixture()
+  Object.assign(w.peace, { activity: 'waving', untilMs: 4000 })
+  w.rebuilding = { active: 900, jobs: [], rewarded: [] }
+  expect(requestToilet(w, 899, 'poop')).toBeNull()
+  advanceWorld(w, 50)
+  expect(w.peace.toilet?.phase).toBe('pending')
+  expect(w.peace.activity).toBe('waving')
+  w.rebuilding.active = null
+  advanceWorld(w, 50)
+  expect(w.peace.activity).toBe('toiletward')
+})
+
+it('cancels an unreachable dock return without leaving an unsaveable toilet phase', () => {
+  const w = fixture()
+  w.buildings[937] = { kind: 'tree', x: 17, y: 23, species: 'oak', origin: 'natural', bornAtMs: 0, nextReproductionAtMs: 600000 }
+  w.topologyRevision++
+  advanceWorld(w, 12000)
+  for (let i = 0; i < 800 && w.peace.toilet?.phase !== 'returning'; i++) advanceWorld(w, 50)
+  expect(w.peace.toilet?.phase).toBe('returning')
+  expect(placeBuilding(w, 19, 22, 'storage', 'east')).toBe(true)
+  expect(placeBuilding(w, 19, 24, 'storage', 'east')).toBe(true)
+  advanceWorld(w, 50)
+  expect(w.peace.toilet).toBeUndefined()
+  expect(w.peace.activity).toBe('homeward')
+  expect(() => decodeSave(encodeSave(w, view))).not.toThrow()
 })

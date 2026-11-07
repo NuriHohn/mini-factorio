@@ -83,6 +83,11 @@ export function drawPeace(g: Phaser.GameObjects.Graphics, world: World, tile: nu
       else if (s.activity === 'boating') drawRowboat(g, world, tile, view)
       else if (dock) drawFishing(g, world, dock, tile, view)
       else if (!['flying', 'crashRest'].includes(s.activity)) drawPete(g, world, tile, view)
+      if (s.activity === 'peeing' || s.activity === 'pooping') {
+        const x = (p.x + .5) * tile, y = (p.y + .5) * tile
+        if (s.activity === 'peeing') g.lineStyle(2, 0xf5d76e, .8).lineBetween(x + 6, y + 3, x + 12, y + 10 + Math.sin(world.timeMs / 150))
+        else g.fillStyle(0x856044).fillEllipse(x + 7, y + 10, 7, 4)
+      }
       drawCrateInspection(g, world, tile, view)
       drawEggCollection(g, world, tile, view)
       if (s.activity === 'waving' && visiblePoint(view, (p.x + .5) * tile, (p.y + .5) * tile, 32)) {
